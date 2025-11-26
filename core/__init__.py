@@ -3,6 +3,7 @@ from .models.config import ModelConfig, ProviderConfig, ModelType, TextMode, Emb
 from .models.factory import ModelFactory
 from .storage import AppStorage
 from .store import SqliteStore
+from .agent_manager import AgentManager
 
 __all__ = [
     "ModelConfig",
@@ -13,4 +14,5 @@ __all__ = [
     "ModelFactory",
     "AppStorage",
     "SqliteStore",
+    "AgentManager",
 ]
