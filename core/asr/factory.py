@@ -4,11 +4,16 @@ from pathlib import Path
 from typing import Optional
 
 from .base import ASRBase
-from .openai_whisper import OpenAIWhisperASR
 
 
 class ASRFactory:
     """ASR 工厂类，负责创建和管理 ASR 实例"""
+    
+    # 提供商映射表（懒加载）
+    _PROVIDERS = {
+        "openai": "openai_whisper.OpenAIWhisperASR",
+        "funasr": "funasr.FunASR",
+    }
     
     def __init__(self, config_path: str = "config/asr.yaml"):
         """初始化
@@ -27,6 +32,22 @@ class ASRFactory:
         
         with open(self.config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
+    
+    def _get_provider_class(self, provider: str):
+        """动态导入提供商类（懒加载）"""
+        if provider not in self._PROVIDERS:
+            raise ValueError(f"未知的ASR提供商: {provider}")
+        
+        module_path = self._PROVIDERS[provider]
+        module_name, class_name = module_path.rsplit(".", 1)
+        
+        try:
+            # 使用相对导入
+            import importlib
+            module = importlib.import_module(f".{module_name}", package="core.asr")
+            return getattr(module, class_name)
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"无法加载ASR提供商 {provider}: {e}")
     
     def create_asr(self, provider: Optional[str] = None) -> ASRBase:
         """创建 ASR 实例
@@ -54,13 +75,9 @@ class ASRFactory:
         if not provider_config.get("enabled", False):
             raise ValueError(f"ASR提供商 {provider} 未启用")
         
-        # 创建实例
-        if provider == "openai":
-            instance = OpenAIWhisperASR(provider_config)
-        elif provider == "google":
-            raise NotImplementedError("Google Speech-to-Text 尚未实现")
-        else:
-            raise ValueError(f"未知的ASR提供商: {provider}")
+        # 动态导入并创建实例
+        provider_class = self._get_provider_class(provider)
+        instance = provider_class(provider_config)
         
         # 缓存实例
         self._instances[provider] = instance
