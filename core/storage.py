@@ -67,6 +67,26 @@ class AppStorage:
                 )
             """)
             
+            # 角色工具配置表
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS character_tools (
+                    character_id INTEGER NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    enabled BOOLEAN DEFAULT 1,
+                    PRIMARY KEY (character_id, tool_name),
+                    FOREIGN KEY (character_id) REFERENCES characters(character_id)
+                )
+            """)
+            
+            # 角色中间件配置表
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS character_middleware (
+                    character_id INTEGER PRIMARY KEY,
+                    config_json TEXT NOT NULL,
+                    FOREIGN KEY (character_id) REFERENCES characters(character_id)
+                )
+            """)
+            
             # 会话表
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
@@ -600,3 +620,102 @@ class AppStorage:
             cursor = conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
             conn.commit()
             return cursor.rowcount
+    
+    # ==================== 角色工具配置 ====================
+    
+    def add_character_tool(self, character_id: int, tool_name: str, enabled: bool = True) -> bool:
+        """为角色添加工具"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO character_tools VALUES (?, ?, ?)",
+                    (character_id, tool_name, enabled)
+                )
+                conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+    
+    def list_character_tools(self, character_id: int) -> List[Dict[str, Any]]:
+        """列出角色的工具配置"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT character_id, tool_name, enabled FROM character_tools WHERE character_id = ?",
+                (character_id,)
+            )
+            return [
+                {
+                    "character_id": row[0],
+                    "tool_name": row[1],
+                    "enabled": bool(row[2])
+                }
+                for row in cursor.fetchall()
+            ]
+    
+    def update_character_tool(self, character_id: int, tool_name: str, enabled: bool) -> bool:
+        """更新角色工具的启用状态"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "UPDATE character_tools SET enabled = ? WHERE character_id = ? AND tool_name = ?",
+                (enabled, character_id, tool_name)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def delete_character_tool(self, character_id: int, tool_name: str) -> bool:
+        """删除角色的工具配置"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM character_tools WHERE character_id = ? AND tool_name = ?",
+                (character_id, tool_name)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    # ==================== 角色中间件配置 ====================
+    
+    def save_middleware_config(self, character_id: int, config: Dict[str, Any]) -> bool:
+        """保存角色的中间件配置"""
+        config_json = json.dumps(config)
+        with sqlite3.connect(self.db_path) as conn:
+            # 检查是否存在
+            cursor = conn.execute(
+                "SELECT 1 FROM character_middleware WHERE character_id = ?",
+                (character_id,)
+            )
+            exists = cursor.fetchone() is not None
+            
+            if exists:
+                conn.execute(
+                    "UPDATE character_middleware SET config_json = ? WHERE character_id = ?",
+                    (config_json, character_id)
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO character_middleware VALUES (?, ?)",
+                    (character_id, config_json)
+                )
+            conn.commit()
+        return True
+    
+    def get_middleware_config(self, character_id: int) -> Optional[Dict[str, Any]]:
+        """获取角色的中间件配置"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT config_json FROM character_middleware WHERE character_id = ?",
+                (character_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return json.loads(row[0])
+        return None
+    
+    def delete_middleware_config(self, character_id: int) -> bool:
+        """删除角色的中间件配置"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM character_middleware WHERE character_id = ?",
+                (character_id,)
+            )
+            conn.commit()
+            return cursor.rowcount > 0

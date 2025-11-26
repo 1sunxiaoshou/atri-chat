@@ -7,6 +7,9 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from .storage import AppStorage
 from .store import SqliteStore
 from .models.factory import ModelFactory
+from .tools.manager import ToolManager
+from .tools.registry import ToolRegistry
+from .middleware.manager import MiddlewareManager
 
 
 class AgentManager:
@@ -19,7 +22,8 @@ class AgentManager:
         self,
         app_storage: AppStorage,
         store: SqliteStore,
-        checkpointer: SqliteSaver
+        checkpointer: SqliteSaver,
+        tool_registry: Optional[ToolRegistry] = None
     ):
         """初始化 AgentManager
         
@@ -27,11 +31,17 @@ class AgentManager:
             app_storage: 应用存储实例（角色、会话、消息）
             store: 长期记忆存储实例（跨会话数据）
             checkpointer: 检查点存储实例（对话历史）
+            tool_registry: 工具注册表实例（可选）
         """
         self.app_storage = app_storage
         self.store = store
         self.checkpointer = checkpointer
         self.model_factory = ModelFactory(app_storage)
+        
+        # 工具和中间件管理
+        self.tool_registry = tool_registry or ToolRegistry()
+        self.tool_manager = ToolManager(app_storage, self.tool_registry)
+        self.middleware_manager = MiddlewareManager(app_storage)
         
         # Agent 实例缓存：{(character_id, model_id, provider_id): agent}
         self._agent_cache: Dict[Tuple[int, str, str], Any] = {}
@@ -96,10 +106,17 @@ class AgentManager:
         if not model:
             raise ValueError(f"模型 {provider_id}/{model_id} 不存在或未启用")
         
-        # 3. 创建 agent（使用角色的 system_prompt）
+        # 3. 获取角色的工具列表
+        tools = self.tool_manager.get_character_tools(character_id)
+        
+        # 4. 获取角色的中间件列表
+        middlewares = self.middleware_manager.get_character_middleware(character_id)
+        
+        # 5. 创建 agent（使用角色的 system_prompt、工具和中间件）
         agent = create_agent(
             model=model,
-            tools=[],  # 根据需要添加工具
+            tools=tools,
+            middleware=middlewares,
             system_prompt=character["system_prompt"],
             checkpointer=self.checkpointer,
             store=self.store
