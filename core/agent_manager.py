@@ -1,6 +1,7 @@
 """Agent 业务逻辑管理器"""
 import sqlite3
-from typing import Dict, Tuple, Optional, Any, List
+from typing import Dict, Tuple, Optional, Any, List, Union
+from pathlib import Path
 from langchain.agents import create_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
 
@@ -10,6 +11,8 @@ from .models.factory import ModelFactory
 from .tools.manager import ToolManager
 from .tools.registry import ToolRegistry
 from .middleware.manager import MiddlewareManager
+from .asr.factory import ASRFactory
+from .tts.factory import TTSFactory
 
 
 class AgentManager:
@@ -23,7 +26,9 @@ class AgentManager:
         app_storage: AppStorage,
         store: SqliteStore,
         checkpointer: SqliteSaver,
-        tool_registry: Optional[ToolRegistry] = None
+        tool_registry: Optional[ToolRegistry] = None,
+        asr_config_path: str = "config/asr.yaml",
+        tts_config_path: str = "config/tts.yaml"
     ):
         """初始化 AgentManager
         
@@ -32,6 +37,8 @@ class AgentManager:
             store: 长期记忆存储实例（跨会话数据）
             checkpointer: 检查点存储实例（对话历史）
             tool_registry: 工具注册表实例（可选）
+            asr_config_path: ASR配置文件路径
+            tts_config_path: TTS配置文件路径
         """
         self.app_storage = app_storage
         self.store = store
@@ -42,6 +49,10 @@ class AgentManager:
         self.tool_registry = tool_registry or ToolRegistry()
         self.tool_manager = ToolManager(app_storage, self.tool_registry)
         self.middleware_manager = MiddlewareManager(app_storage)
+        
+        # ASR和TTS管理
+        self.asr_factory = ASRFactory(asr_config_path)
+        self.tts_factory = TTSFactory(tts_config_path)
         
         # Agent 实例缓存：{(character_id, model_id, provider_id): agent}
         self._agent_cache: Dict[Tuple[int, str, str], Any] = {}
@@ -330,3 +341,115 @@ class AgentManager:
                 for key in self._agent_cache.keys()
             ]
         }
+    
+    def send_audio_message(
+        self,
+        audio: Union[bytes, str, Path],
+        conversation_id: int,
+        character_id: int,
+        model_id: str,
+        provider_id: str,
+        asr_provider: Optional[str] = None,
+        language: Optional[str] = None
+    ) -> str:
+        """发送音频消息并获取文本响应
+        
+        Args:
+            audio: 音频数据（bytes）或音频文件路径
+            conversation_id: 会话ID
+            character_id: 角色ID
+            model_id: 模型ID
+            provider_id: 供应商ID
+            asr_provider: ASR提供商，不指定则使用默认
+            language: 语言代码，不指定则使用ASR配置的默认值
+            
+        Returns:
+            助手的文本响应
+        """
+        # 1. 使用ASR转换音频为文本
+        asr = self.asr_factory.create_asr(asr_provider)
+        user_text = asr.transcribe(audio, language)
+        
+        # 2. 调用现有的文本消息处理
+        return self.send_message(
+            user_message=user_text,
+            conversation_id=conversation_id,
+            character_id=character_id,
+            model_id=model_id,
+            provider_id=provider_id
+        )
+    
+    async def send_audio_message_async(
+        self,
+        audio: Union[bytes, str, Path],
+        conversation_id: int,
+        character_id: int,
+        model_id: str,
+        provider_id: str,
+        asr_provider: Optional[str] = None,
+        language: Optional[str] = None
+    ) -> str:
+        """异步发送音频消息并获取文本响应
+        
+        Args:
+            audio: 音频数据（bytes）或音频文件路径
+            conversation_id: 会话ID
+            character_id: 角色ID
+            model_id: 模型ID
+            provider_id: 供应商ID
+            asr_provider: ASR提供商，不指定则使用默认
+            language: 语言代码，不指定则使用ASR配置的默认值
+            
+        Returns:
+            助手的文本响应
+        """
+        # 1. 使用ASR转换音频为文本
+        asr = self.asr_factory.create_asr(asr_provider)
+        user_text = await asr.transcribe_async(audio, language)
+        
+        # 2. 调用现有的异步文本消息处理
+        return await self.send_message_async(
+            user_message=user_text,
+            conversation_id=conversation_id,
+            character_id=character_id,
+            model_id=model_id,
+            provider_id=provider_id
+        )
+    
+    def text_to_speech(
+        self,
+        text: str,
+        tts_provider: Optional[str] = None,
+        language: Optional[str] = None
+    ) -> bytes:
+        """文本转语音
+        
+        Args:
+            text: 要转换的文本
+            tts_provider: TTS提供商，不指定则使用默认
+            language: 语言代码，不指定则使用TTS配置的默认值
+            
+        Returns:
+            音频数据（bytes）
+        """
+        tts = self.tts_factory.create_tts(tts_provider)
+        return tts.synthesize(text, language)
+    
+    async def text_to_speech_async(
+        self,
+        text: str,
+        tts_provider: Optional[str] = None,
+        language: Optional[str] = None
+    ) -> bytes:
+        """异步文本转语音
+        
+        Args:
+            text: 要转换的文本
+            tts_provider: TTS提供商，不指定则使用默认
+            language: 语言代码，不指定则使用TTS配置的默认值
+            
+        Returns:
+            音频数据（bytes）
+        """
+        tts = self.tts_factory.create_tts(tts_provider)
+        return await tts.synthesize_async(text, language)

@@ -1,0 +1,29 @@
+# TTS (文本转语音) 配置文件
+
+# 默认使用的提供商
+default_provider: gpt_sovits
+
+# 提供商配置
+providers:
+  # GPT-SoVITS
+  gpt_sovits:
+    enabled: true
+    api_url: http://localhost:9880
+    refer_wav_path: ""  # 参考音频路径
+    prompt_text: ""  # 参考音频对应的文本
+    prompt_language: zh  # zh, en, ja
+    text_language: zh  # 目标文本语言
+    cut_punc: "，。"  # 文本切分标点
+    top_k: 5
+    top_p: 1.0
+    temperature: 1.0
+    speed: 1.0
+    
+  # OpenAI TTS (预留)
+  openai:
+    enabled: false
+    api_key: ""
+    base_url: ""
+    model: tts-1  # tts-1 或 tts-1-hd
+    voice: alloy  # alloy, echo, fable, onyx, nova, shimmer
+    speed: 1.0
