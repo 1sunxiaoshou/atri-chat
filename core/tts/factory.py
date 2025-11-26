@@ -28,7 +28,7 @@ class TTSFactory:
         with open(self.config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     
-    def create_tts(self, provider: Optional[str] = None) -> TTSBase:
+    def create_tts(self, provider: Optional[str] = "gpt_sovits") -> TTSBase:
         """创建 TTS 实例
         
         Args:

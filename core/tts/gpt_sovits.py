@@ -7,49 +7,34 @@ from .base import TTSBase
 
 
 class GPTSoVITSTTS(TTSBase):
-    """GPT-SoVITS TTS 实现"""
+    """GPT-SoVITS TTS 实现（适配 api_v2.py 的 POST /tts 接口）"""
     
     def __init__(self, config: dict):
-        """初始化
-        
-        Args:
-            config: GPT-SoVITS配置字典
-        """
-        self.api_url = config.get("api_url", "http://localhost:9880")
+        self.api_url = config.get("api_url", "http://localhost:9880") + "/tts"
         self.refer_wav_path = config.get("refer_wav_path", "")
         self.prompt_text = config.get("prompt_text", "")
         self.prompt_language = config.get("prompt_language", "zh")
         self.text_language = config.get("text_language", "zh")
-        self.cut_punc = config.get("cut_punc", "，。")
-        self.top_k = config.get("top_k", 5)
-        self.top_p = config.get("top_p", 1.0)
-        self.temperature = config.get("temperature", 1.0)
-        self.speed = config.get("speed", 1.0)
     
     def synthesize(
         self,
         text: str,
         language: Optional[str] = None
     ) -> bytes:
-        """文字转语音（同步）"""
+        """文字转语音（同步） - 使用 POST /tts"""
         lang = language or self.text_language
         
-        # 构建请求参数
-        params = {
+        # 构建 JSON 请求体（注意字段名！）
+        json_data = {
             "text": text,
-            "text_language": lang,
+            "text_lang": lang,                     
             "ref_audio_path": self.refer_wav_path,
             "prompt_text": self.prompt_text,
-            "prompt_language": self.prompt_language,
-            "cut_punc": self.cut_punc,
-            "top_k": self.top_k,
-            "top_p": self.top_p,
-            "temperature": self.temperature,
-            "speed": self.speed
+            "prompt_lang": self.prompt_language,   
         }
         
         with httpx.Client(timeout=60.0) as client:
-            response = client.get(self.api_url, params=params)
+            response = client.post(self.api_url, json=json_data)  # ← 改为 POST + json
             response.raise_for_status()
             return response.content
     
@@ -61,20 +46,15 @@ class GPTSoVITSTTS(TTSBase):
         """文字转语音（异步）"""
         lang = language or self.text_language
         
-        params = {
+        json_data = {
             "text": text,
-            "text_language": lang,
+            "text_lang": lang,
             "ref_audio_path": self.refer_wav_path,
             "prompt_text": self.prompt_text,
-            "prompt_language": self.prompt_language,
-            "cut_punc": self.cut_punc,
-            "top_k": self.top_k,
-            "top_p": self.top_p,
-            "temperature": self.temperature,
-            "speed": self.speed
+            "prompt_lang": self.prompt_language,
         }
         
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.get(self.api_url, params=params)
+            response = await client.post(self.api_url, json=json_data)  # ← POST + json
             response.raise_for_status()
             return response.content

@@ -1,2 +1,8 @@
+# 数据文件
 data
+.env
 
+# Python
+__pycache__/
+*.pyc
+runtime/

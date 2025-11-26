@@ -9,15 +9,11 @@ providers:
   gpt_sovits:
     enabled: true
     api_url: http://localhost:9880
-    refer_wav_path: ""  # 参考音频路径
-    prompt_text: ""  # 参考音频对应的文本
-    prompt_language: zh  # zh, en, ja
-    text_language: zh  # 目标文本语言
-    cut_punc: "，。"  # 文本切分标点
-    top_k: 5
-    top_p: 1.0
-    temperature: 1.0
-    speed: 1.0
+    refer_wav_path: "E:\\AI_Music\\GPT-SoVITS-1007-cu124\\models\\v4\\原神-中文-早柚_ZH\\reference_audios\\中文\\emotions\\【默认】我待在这里，会很不自在。.wav"
+    prompt_text: "我待在这里，会很不自在。"
+    prompt_language: zh
+    text_language: zh
+
     
   # OpenAI TTS (预留)
   openai:
