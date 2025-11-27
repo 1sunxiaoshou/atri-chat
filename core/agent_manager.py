@@ -61,7 +61,8 @@ class AgentManager:
         self,
         character_id: int,
         model_id: str,
-        provider_id: str
+        provider_id: str,
+        **model_kwargs
     ) -> Any:
         """获取或创建 Agent 实例
         
@@ -69,20 +70,28 @@ class AgentManager:
             character_id: 角色ID
             model_id: 模型ID
             provider_id: 供应商ID
+            **model_kwargs: 模型动态参数（temperature, max_tokens等）
             
         Returns:
             Agent 实例
             
         Raises:
             ValueError: 当角色或模型不存在时
+            
+        Note:
+            如果传入了 model_kwargs，将不使用缓存，每次都创建新实例
         """
         cache_key = (character_id, model_id, provider_id)
+        
+        # 如果有动态参数，不使用缓存
+        if model_kwargs:
+            return self._create_agent(character_id, model_id, provider_id, **model_kwargs)
         
         # 检查缓存
         if cache_key in self._agent_cache:
             return self._agent_cache[cache_key]
         
-        # 创建新实例
+        # 创建新实例并缓存
         agent = self._create_agent(character_id, model_id, provider_id)
         self._agent_cache[cache_key] = agent
         
@@ -92,7 +101,8 @@ class AgentManager:
         self,
         character_id: int,
         model_id: str,
-        provider_id: str
+        provider_id: str,
+        **model_kwargs
     ) -> Any:
         """创建 Agent 实例
         
@@ -100,6 +110,7 @@ class AgentManager:
             character_id: 角色ID
             model_id: 模型ID
             provider_id: 供应商ID
+            **model_kwargs: 模型动态参数（temperature, max_tokens等）
             
         Returns:
             Agent 实例
@@ -112,8 +123,8 @@ class AgentManager:
         if not character:
             raise ValueError(f"角色 {character_id} 不存在")
         
-        # 2. 使用 ModelFactory 创建模型实例
-        model = self.model_factory.create_model(provider_id, model_id)
+        # 2. 使用 ModelFactory 创建模型实例（支持动态参数）
+        model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
         if not model:
             raise ValueError(f"模型 {provider_id}/{model_id} 不存在或未启用")
         

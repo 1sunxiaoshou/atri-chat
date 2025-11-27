@@ -24,14 +24,19 @@ class ProviderConfigResponse(BaseModel):
     config_json: Dict[str, Any]
 
 
+class ProviderConfigUpdateRequest(BaseModel):
+    """供应商配置更新请求"""
+    config_json: Dict[str, Any] = Field(..., description="配置JSON")
+
+
 # ==================== 模型相关 ====================
 
 class ModelRequest(BaseModel):
     """模型请求"""
     provider_id: str = Field(..., description="供应商ID")
     model_id: str = Field(..., description="模型ID")
-    model_type: str = Field(..., description="模型类型: text, embedding")
-    mode: str = Field(..., description="模式")
+    model_type: str = Field(..., description="模型类型,见ModelType类")
+    capabilities: List[str] = Field(default=["base"], description="模型能力,见Capability类")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -40,8 +45,15 @@ class ModelResponse(BaseModel):
     provider_id: str
     model_id: str
     model_type: str
-    mode: str
+    capabilities: List[str]
     enabled: bool
+
+
+class ModelUpdateRequest(BaseModel):
+    """模型更新请求"""
+    model_type: str = Field(..., description="模型类型,见ModelType类")
+    capabilities: List[str] = Field(default=["base"], description="模型能力,见Capability类")
+    enabled: bool = Field(True, description="是否启用")
 
 
 # ==================== TTS相关 ====================
@@ -64,6 +76,15 @@ class TTSResponse(BaseModel):
     api_key: Optional[str]
     access_url: Optional[str]
     enabled: bool
+
+
+class TTSUpdateRequest(BaseModel):
+    """TTS更新请求"""
+    provider_id: str = Field(..., description="供应商ID")
+    voice_role: str = Field(..., description="语音角色")
+    api_key: Optional[str] = Field(None, description="API密钥")
+    access_url: Optional[str] = Field(None, description="访问URL")
+    enabled: bool = Field(True, description="是否启用")
 
 
 # ==================== 角色相关 ====================
@@ -180,3 +201,13 @@ class CacheInfoResponse(BaseModel):
 class ClearCacheRequest(BaseModel):
     """清空缓存请求"""
     character_id: Optional[int] = Field(None, description="角色ID（可选）")
+
+
+# ==================== 供应商支持相关 ====================
+
+class SupportedProviderResponse(BaseModel):
+    """支持的供应商响应"""
+    provider_id: str
+    name: str
+    description: str
+    available_models: List[str]
