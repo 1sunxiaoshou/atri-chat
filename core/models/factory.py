@@ -1,6 +1,9 @@
-"""模型工厂"""
+"""模型工厂
+
+提供模型创建、供应商管理和依赖检查功能
+"""
 from typing import Optional, Any, TYPE_CHECKING, Dict, List
-from .config import ModelConfig
+from .config import ModelConfig, ProviderMetadata
 from .provider import BaseProvider, OpenAIProvider, AnthropicProvider, GoogleProvider, TongyiProvider, LocalProvider
 
 if TYPE_CHECKING:
@@ -39,9 +42,17 @@ class ModelFactory:
         """获取供应商"""
         return self._providers.get(provider_id)
     
-    def list_providers(self) -> Dict[str, BaseProvider]:
-        """列出所有已注册的供应商"""
-        return self._providers.copy()
+    def get_provider_metadata(self, provider_id: str) -> Optional[ProviderMetadata]:
+        """获取供应商元数据"""
+        provider = self.get_provider(provider_id)
+        return provider.metadata if provider else None
+    
+    def get_all_provider_metadata(self) -> Dict[str, ProviderMetadata]:
+        """获取所有已注册供应商的元数据"""
+        return {
+            provider_id: provider.metadata
+            for provider_id, provider in self._providers.items()
+        }
     
     def create_model(self, provider_id: str, model_id: str, **kwargs) -> Optional[Any]:
         """根据provider_id和model_id创建模型实例
@@ -66,21 +77,28 @@ class ModelFactory:
         
         return provider.create_model(model_config, provider_config, **kwargs)
     
-    def get_available_models(self, provider_id: str) -> List[str]:
-        """获取供应商的可用模型列表
+    def check_provider_dependencies(self, provider_id: str) -> Dict[str, List[str]]:
+        """检查供应商的依赖关系
         
         Args:
             provider_id: 供应商ID
             
         Returns:
-            模型ID列表
+            依赖信息字典，包含 models 和 characters 列表
         """
-        provider_config = self.storage.get_provider(provider_id)
-        if not provider_config:
-            return []
+        dependencies = {
+            "models": [],
+            "characters": []
+        }
         
-        provider = self.get_provider(provider_id)
-        if not provider:
-            return []
+        # 检查依赖的模型
+        models = self.storage.list_models(provider_id=provider_id, enabled_only=False)
+        dependencies["models"] = [m.model_id for m in models]
         
-        return provider.get_available_models(provider_config)
+        # 检查依赖的角色
+        characters = self.storage.list_characters(enabled_only=False)
+        for char in characters:
+            if char["primary_provider_id"] == provider_id:
+                dependencies["characters"].append(char["name"])
+        
+        return dependencies

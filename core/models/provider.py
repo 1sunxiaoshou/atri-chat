@@ -14,18 +14,6 @@ class BaseProvider(ABC):
         pass
     
     @abstractmethod
-    def get_available_models(self, provider_config: ProviderConfig) -> List[str]:
-        """获取可用模型列表
-        
-        Args:
-            provider_config: 供应商配置
-            
-        Returns:
-            模型ID列表
-        """
-        pass
-    
-    @abstractmethod
     def create_text_model(
         self, 
         model_id: str, 
@@ -56,6 +44,34 @@ class BaseProvider(ABC):
             **kwargs: 动态参数
         """
         pass
+    
+    def _merge_params(self, config: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """合并配置参数，kwargs 优先级高于 config
+        
+        仅合并显式提供的参数，未提供的参数由模型实例化方法使用自己的默认值
+        
+        Args:
+            config: 供应商配置字典
+            **kwargs: 运行时参数
+            
+        Returns:
+            合并后的参数字典（仅包含显式提供的参数）
+        """
+        merged = {}
+        
+        # temperature: kwargs > config
+        if "temperature" in kwargs:
+            merged["temperature"] = kwargs["temperature"]
+        elif "temperature" in config:
+            merged["temperature"] = config["temperature"]
+        
+        # max_tokens: kwargs > config
+        if "max_tokens" in kwargs:
+            merged["max_tokens"] = kwargs["max_tokens"]
+        elif "max_tokens" in config:
+            merged["max_tokens"] = config["max_tokens"]
+        
+        return merged
     
     def create_model(
         self, 
@@ -90,31 +106,22 @@ class OpenAIProvider(BaseProvider):
             provider_id="openai",
             name="OpenAI",
             description="OpenAI API provider for GPT models",
-            available_models=[
-                "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo",
-                "text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"
-            ],
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="OpenAI API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.openai.com/v1", description="API基础URL"),
             ]
         )
     
-    def get_available_models(self, provider_config: ProviderConfig) -> List[str]:
-        """获取可用模型列表"""
-        return self.metadata.available_models
-    
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_openai import ChatOpenAI
         config = provider_config.config_json
+        merged = self._merge_params(config, **kwargs)
         
-        # 合并配置：kwargs 优先级高于 config
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
             "base_url": config.get("base_url"),
-            "temperature": kwargs.get("temperature", config.get("temperature", 0.7)),
-            "max_tokens": kwargs.get("max_tokens", config.get("max_tokens")),
+            **merged,
         }
         
         return ChatOpenAI(**params)
@@ -142,28 +149,20 @@ class AnthropicProvider(BaseProvider):
             provider_id="anthropic",
             name="Anthropic",
             description="Anthropic Claude API provider",
-            available_models=[
-                "claude-3-5-sonnet-20241022", "claude-3-opus-20240229", 
-                "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
-            ],
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Anthropic API密钥"),
             ]
         )
     
-    def get_available_models(self, provider_config: ProviderConfig) -> List[str]:
-        """获取可用模型列表"""
-        return self.metadata.available_models
-    
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_anthropic import ChatAnthropic
         config = provider_config.config_json
+        merged = self._merge_params(config, **kwargs)
         
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
-            "temperature": kwargs.get("temperature", config.get("temperature", 0.7)),
-            "max_tokens": kwargs.get("max_tokens", config.get("max_tokens", 1024)),
+            **merged,
         }
         
         return ChatAnthropic(**params)
@@ -182,29 +181,26 @@ class GoogleProvider(BaseProvider):
             provider_id="google",
             name="Google",
             description="Google Generative AI provider",
-            available_models=[
-                "gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro",
-                "models/embedding-001"
-            ],
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Google API密钥"),
             ]
         )
     
-    def get_available_models(self, provider_config: ProviderConfig) -> List[str]:
-        """获取可用模型列表"""
-        return self.metadata.available_models
-    
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_google_genai import ChatGoogleGenerativeAI
         config = provider_config.config_json
+        merged = self._merge_params(config, **kwargs)
         
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
-            "temperature": kwargs.get("temperature", config.get("temperature", 0.7)),
-            "max_output_tokens": kwargs.get("max_tokens", config.get("max_tokens")),
         }
+        
+        # Google 使用 max_output_tokens 而不是 max_tokens
+        if "temperature" in merged:
+            params["temperature"] = merged["temperature"]
+        if "max_tokens" in merged:
+            params["max_output_tokens"] = merged["max_tokens"]
         
         return ChatGoogleGenerativeAI(**params)
     
@@ -230,29 +226,22 @@ class TongyiProvider(BaseProvider):
             provider_id="tongyi",
             name="Tongyi",
             description="Alibaba Tongyi Qianwen API provider",
-            available_models=[
-                "qwen-max", "qwen-plus", "qwen-turbo", "qwen-long"
-            ],
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="通义千问API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, description="API基础URL"),
             ]
         )
     
-    def get_available_models(self, provider_config: ProviderConfig) -> List[str]:
-        """获取可用模型列表"""
-        return self.metadata.available_models
-    
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_community.chat_models.tongyi import ChatTongyi
         config = provider_config.config_json
+        merged = self._merge_params(config, **kwargs)
         
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
             "base_url": config.get("base_url"),
-            "temperature": kwargs.get("temperature", config.get("temperature", 0.7)),
-            "max_tokens": kwargs.get("max_tokens", config.get("max_tokens")),
+            **merged,
         }
         
         return ChatTongyi(**params)
@@ -271,34 +260,20 @@ class LocalProvider(BaseProvider):
             provider_id="local",
             name="Local Model",
             description="Local model provider (Ollama, vLLM, etc.)",
-            available_models=[],
             config_fields=[
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="http://localhost:11434", description="Ollama服务地址"),
             ]
         )
     
-    def get_available_models(self, provider_config: ProviderConfig) -> List[str]:
-        """获取可用模型列表（从 Ollama API 动态获取）"""
-        try:
-            import requests
-            config = provider_config.config_json
-            base_url = config.get("base_url", "http://localhost:11434")
-            response = requests.get(f"{base_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                return [model["name"] for model in data.get("models", [])]
-        except Exception as e:
-            print(f"获取本地模型列表失败: {e}")
-        return []
-    
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_community.chat_models import ChatOllama
         config = provider_config.config_json
+        merged = self._merge_params(config, **kwargs)
         
         params = {
             "model": model_id,
             "base_url": config.get("base_url", "http://localhost:11434"),
-            "temperature": kwargs.get("temperature", config.get("temperature", 0.7)),
+            **merged,
         }
         
         return ChatOllama(**params)
