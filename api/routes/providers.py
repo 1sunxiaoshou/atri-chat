@@ -18,16 +18,45 @@ async def create_provider(
 ):
     """创建供应商配置
     
+    支持内置供应商和自定义 OpenAI 兼容供应商：
+    - 内置供应商: openai, anthropic, google, tongyi, local
+    - 自定义供应商: 任意名称，自动注册为 OpenAI 兼容供应商
+    
     请求体示例:
     {
-        "provider_id": "openai",
+        "provider_id": "deepseek",  // 可以是任意名称
         "config_json": {
             "api_key": "sk-xxx",
-            "base_url": "https://api.openai.com/v1"
+            "base_url": "https://api.deepseek.com/v1"  // 自定义供应商需要提供 base_url
         }
     }
     """
     try:
+        agent_manager = get_agent_manager()
+        
+        # 检查是否为内置供应商
+        builtin_providers = ["openai", "anthropic", "google", "tongyi", "local"]
+        is_builtin = req.provider_id in builtin_providers
+        
+        # 如果不是内置供应商，自动注册为 OpenAI 兼容供应商
+        if not is_builtin:
+            # 检查是否已注册
+            if not agent_manager.model_factory.is_custom_openai_provider(req.provider_id):
+                # 自动注册
+                agent_manager.model_factory.register_custom_openai_provider(
+                    provider_id=req.provider_id,
+                    name=req.provider_id.title(),
+                    description=f"Custom OpenAI-compatible provider"
+                )
+            
+            # 验证必需的配置字段
+            if "base_url" not in req.config_json:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="自定义供应商必须提供 base_url 配置"
+                )
+        
+        # 创建供应商配置
         config = ProviderConfig(
             provider_id=req.provider_id,
             config_json=req.config_json
@@ -35,10 +64,15 @@ async def create_provider(
         success = app_storage.add_provider(config)
         if not success:
             raise HTTPException(status_code=400, detail="供应商已存在")
+        
         return ResponseModel(
             code=200,
             message="供应商创建成功",
-            data={"provider_id": req.provider_id}
+            data={
+                "provider_id": req.provider_id,
+                "type": "builtin" if is_builtin else "custom_openai_compatible",
+                "auto_registered": not is_builtin
+            }
         )
     except HTTPException:
         raise
@@ -222,6 +256,73 @@ async def get_provider_models(
             code=200,
             message="获取成功",
             data=data
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/providers/custom/openai-compatible", response_model=ResponseModel)
+async def register_custom_openai_provider(
+    provider_id: str,
+    name: str,
+    description: str = "",
+    app_storage: AppStorage = Depends(get_storage)
+):
+    """预注册自定义 OpenAI 兼容供应商（可选）
+    
+    注意：通常不需要调用此接口，直接使用 POST /providers 即可自动注册
+    
+    此接口用于提前注册供应商，以便在 GET /providers/supported/list 中显示
+    
+    查询参数:
+    - provider_id: 自定义供应商ID（如 "deepseek", "moonshot"）
+    - name: 供应商名称（如 "DeepSeek", "Moonshot AI"）
+    - description: 供应商描述（可选）
+    """
+    try:
+        agent_manager = get_agent_manager()
+        
+        # 注册到 ModelFactory
+        success = agent_manager.model_factory.register_custom_openai_provider(
+            provider_id=provider_id,
+            name=name,
+            description=description
+        )
+        
+        if not success:
+            raise HTTPException(status_code=400, detail="供应商ID已被注册")
+        
+        return ResponseModel(
+            code=200,
+            message="自定义供应商预注册成功",
+            data={
+                "provider_id": provider_id,
+                "name": name,
+                "description": description,
+                "compatible_with": "openai",
+                "note": "现在可以使用 POST /providers 创建配置"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/providers/custom/openai-compatible", response_model=ResponseModel)
+async def list_custom_openai_providers():
+    """列出所有已注册的自定义 OpenAI 兼容供应商"""
+    try:
+        agent_manager = get_agent_manager()
+        custom_providers = agent_manager.model_factory.list_custom_openai_providers()
+        
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data={
+                "custom_providers": custom_providers,
+                "count": len(custom_providers)
+            }
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
