@@ -63,5 +63,4 @@ class ProviderMetadata(BaseModel):
     provider_id: str = Field(..., description="供应商ID")
     name: str = Field(..., description="供应商名称")
     description: str = Field(..., description="供应商描述")
-    available_models: List[str] = Field(default_factory=list, description="可用模型列表")
     config_fields: List[ConfigField] = Field(default_factory=list, description="可配置字段列表")

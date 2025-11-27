@@ -1,13 +1,12 @@
 """供应商管理路由"""
 from fastapi import APIRouter, HTTPException, Depends
 from api.schemas import (
-    ResponseModel, ProviderConfigRequest, ProviderConfigResponse,
-    ProviderConfigUpdateRequest, SupportedProviderResponse
+    ResponseModel, 
+    ProviderConfigRequest, 
+    ProviderConfigUpdateRequest
 )
-from core import (
-    AppStorage, ProviderConfig, get_supported_providers, DependencyChecker
-)
-from core.dependencies import get_storage
+from core import AppStorage, ProviderConfig
+from core.dependencies import get_storage, get_agent_manager
 
 router = APIRouter()
 
@@ -17,7 +16,17 @@ async def create_provider(
     req: ProviderConfigRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """创建供应商配置"""
+    """创建供应商配置
+    
+    请求体示例:
+    {
+        "provider_id": "openai",
+        "config_json": {
+            "api_key": "sk-xxx",
+            "base_url": "https://api.openai.com/v1"
+        }
+    }
+    """
     try:
         config = ProviderConfig(
             provider_id=req.provider_id,
@@ -31,6 +40,8 @@ async def create_provider(
             message="供应商创建成功",
             data={"provider_id": req.provider_id}
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -92,9 +103,13 @@ async def update_provider(
     {
         "config_json": {
             "api_key": "sk-xxx",
-            "base_url": "https://api.openai.com/v1"
+            "base_url": "https://api.openai.com/v1",
+            "temperature": 0.7
         }
     }
+    
+    注意：temperature 和 max_tokens 等参数可以在这里配置默认值，
+    也可以在创建模型时动态传入（优先级：运行时参数 > 配置参数 > 模型默认值）
     """
     try:
         config = ProviderConfig(
@@ -120,10 +135,12 @@ async def delete_provider(
     provider_id: str,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """删除供应商配置及其下所有模型"""
+    """删除供应商配置及其下所有模型和依赖的角色"""
     try:
+        agent_manager = get_agent_manager()
+        
         # 检查依赖
-        dependencies = DependencyChecker.check_provider_dependencies(provider_id, app_storage)
+        dependencies = agent_manager.model_factory.check_provider_dependencies(provider_id)
         
         # 删除依赖的模型
         for model_id in dependencies["models"]:
@@ -139,7 +156,8 @@ async def delete_provider(
             message="删除成功",
             data={
                 "provider_id": provider_id,
-                "deleted_models": dependencies["models"]
+                "deleted_models": dependencies["models"],
+                "affected_characters": dependencies["characters"]
             }
         )
     except HTTPException:
@@ -150,15 +168,16 @@ async def delete_provider(
 
 @router.get("/providers/supported/list", response_model=ResponseModel)
 async def list_supported_providers():
-    """获取系统支持的所有供应商类型"""
+    """获取系统支持的所有供应商类型及其配置字段"""
     try:
-        supported = get_supported_providers()
+        agent_manager = get_agent_manager()
+        supported = agent_manager.model_factory.get_all_provider_metadata()
+        
         data = [
             {
                 "provider_id": metadata.provider_id,
                 "name": metadata.name,
                 "description": metadata.description,
-                "available_models": metadata.available_models,
                 "config_fields": [
                     {
                         "field_name": field.field_name,
@@ -203,31 +222,6 @@ async def get_provider_models(
             code=200,
             message="获取成功",
             data=data
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/providers/{provider_id}/available-models", response_model=ResponseModel)
-async def get_provider_available_models(
-    provider_id: str,
-    app_storage: AppStorage = Depends(get_storage)
-):
-    """获取供应商支持的所有可用模型列表（从供应商元数据或API获取）"""
-    try:
-        from core.dependencies import get_agent_manager
-        agent_manager = get_agent_manager()
-        
-        # 使用 ModelFactory 获取可用模型
-        available_models = agent_manager.model_factory.get_available_models(provider_id)
-        
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data={
-                "provider_id": provider_id,
-                "available_models": available_models
-            }
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

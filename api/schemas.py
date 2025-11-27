@@ -18,12 +18,6 @@ class ProviderConfigRequest(BaseModel):
     config_json: Dict[str, Any] = Field(..., description="配置JSON")
 
 
-class ProviderConfigResponse(BaseModel):
-    """供应商配置响应"""
-    provider_id: str
-    config_json: Dict[str, Any]
-
-
 class ProviderConfigUpdateRequest(BaseModel):
     """供应商配置更新请求"""
     config_json: Dict[str, Any] = Field(..., description="配置JSON")
@@ -203,11 +197,4 @@ class ClearCacheRequest(BaseModel):
     character_id: Optional[int] = Field(None, description="角色ID（可选）")
 
 
-# ==================== 供应商支持相关 ====================
 
-class SupportedProviderResponse(BaseModel):
-    """支持的供应商响应"""
-    provider_id: str
-    name: str
-    description: str
-    available_models: List[str]
