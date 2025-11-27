@@ -20,6 +20,7 @@ class ModelFactory:
     def __init__(self, storage: "AppStorage"):
         self.storage = storage
         self._providers: Dict[str, BaseProvider] = {}
+        self._custom_openai_providers: set = set()  # 记录自定义 OpenAI 兼容供应商
         self._register_default_providers()
     
     def _register_default_providers(self):
@@ -39,20 +40,81 @@ class ModelFactory:
         self._providers[provider.metadata.provider_id] = provider
     
     def get_provider(self, provider_id: str) -> Optional[BaseProvider]:
-        """获取供应商"""
+        """获取供应商
+        
+        如果是自定义 OpenAI 兼容供应商，返回 OpenAIProvider 实例
+        """
+        if provider_id in self._custom_openai_providers:
+            return self._providers.get("openai")
         return self._providers.get(provider_id)
     
+    def register_custom_openai_provider(self, provider_id: str, name: str, description: str = "") -> bool:
+        """注册自定义 OpenAI 兼容供应商
+        
+        Args:
+            provider_id: 供应商ID
+            name: 供应商名称
+            description: 供应商描述
+            
+        Returns:
+            是否注册成功
+        """
+        if provider_id in self._providers or provider_id in self._custom_openai_providers:
+            return False
+        
+        self._custom_openai_providers.add(provider_id)
+        return True
+    
+    def is_custom_openai_provider(self, provider_id: str) -> bool:
+        """检查是否为自定义 OpenAI 兼容供应商"""
+        return provider_id in self._custom_openai_providers
+    
+    def list_custom_openai_providers(self) -> list:
+        """列出所有自定义 OpenAI 兼容供应商"""
+        return list(self._custom_openai_providers)
+    
     def get_provider_metadata(self, provider_id: str) -> Optional[ProviderMetadata]:
-        """获取供应商元数据"""
-        provider = self.get_provider(provider_id)
+        """获取供应商元数据（包括自定义 OpenAI 兼容供应商）"""
+        from .config import ConfigField
+        
+        # 如果是自定义 OpenAI 兼容供应商
+        if provider_id in self._custom_openai_providers:
+            return ProviderMetadata(
+                provider_id=provider_id,
+                name=provider_id.title(),
+                description=f"Custom OpenAI-compatible provider: {provider_id}",
+                config_fields=[
+                    ConfigField(field_name="api_key", field_type="string", required=True, description="API密钥"),
+                    ConfigField(field_name="base_url", field_type="string", required=True, description="API基础URL"),
+                ]
+            )
+        
+        # 内置供应商
+        provider = self._providers.get(provider_id)
         return provider.metadata if provider else None
     
     def get_all_provider_metadata(self) -> Dict[str, ProviderMetadata]:
-        """获取所有已注册供应商的元数据"""
-        return {
+        """获取所有已注册供应商的元数据（包括自定义 OpenAI 兼容供应商）"""
+        from .config import ConfigField
+        
+        metadata_dict = {
             provider_id: provider.metadata
             for provider_id, provider in self._providers.items()
         }
+        
+        # 添加自定义 OpenAI 兼容供应商的元数据
+        for custom_id in self._custom_openai_providers:
+            metadata_dict[custom_id] = ProviderMetadata(
+                provider_id=custom_id,
+                name=custom_id.title(),
+                description=f"Custom OpenAI-compatible provider: {custom_id}",
+                config_fields=[
+                    ConfigField(field_name="api_key", field_type="string", required=True, description="API密钥"),
+                    ConfigField(field_name="base_url", field_type="string", required=True, description="API基础URL"),
+                ]
+            )
+        
+        return metadata_dict
     
     def create_model(self, provider_id: str, model_id: str, **kwargs) -> Optional[Any]:
         """根据provider_id和model_id创建模型实例
