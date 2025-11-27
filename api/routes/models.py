@@ -1,7 +1,7 @@
 """模型管理路由"""
 from fastapi import APIRouter, HTTPException, Depends
-from api.schemas import ResponseModel, ModelRequest, ModelResponse
-from core import AppStorage, ModelConfig, ModelType
+from api.schemas import ResponseModel, ModelRequest, ModelResponse, ModelUpdateRequest
+from core import AppStorage, ModelConfig, ModelType, Capability
 from core.dependencies import get_storage
 
 router = APIRouter()
@@ -12,13 +12,24 @@ async def create_model(
     req: ModelRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """创建模型"""
+    """创建模型
+    
+    请求体示例:
+    {
+        "provider_id": "openai",
+        "model_id": "gpt-4",
+        "model_type": "text",
+        "capabilities": ["base", "chat", "vision"],
+        "enabled": true
+    }
+    """
     try:
+        capabilities = [Capability(c) for c in req.capabilities]
         model = ModelConfig(
             provider_id=req.provider_id,
             model_id=req.model_id,
             model_type=ModelType(req.model_type),
-            mode=req.mode,
+            capabilities=capabilities,
             enabled=req.enabled
         )
         success = app_storage.add_model(model)
@@ -32,6 +43,8 @@ async def create_model(
                 "model_id": req.model_id
             }
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"无效的参数: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -42,7 +55,7 @@ async def get_model(
     model_id: str,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """获取模型"""
+    """获取模型详情"""
     try:
         model = app_storage.get_model(provider_id, model_id)
         if not model:
@@ -54,7 +67,7 @@ async def get_model(
                 "provider_id": model.provider_id,
                 "model_id": model.model_id,
                 "model_type": model.model_type.value,
-                "mode": model.mode,
+                "capabilities": [c.value for c in model.capabilities],
                 "enabled": model.enabled
             }
         )
@@ -71,7 +84,13 @@ async def list_models(
     enabled_only: bool = True,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """列出模型"""
+    """列出模型
+    
+    查询参数:
+    - provider_id: 供应商ID (可选)
+    - model_type: 模型类型 text/embedding/rerank (可选)
+    - enabled_only: 仅显示启用的模型 (默认 true)
+    """
     try:
         model_type_enum = ModelType(model_type) if model_type else None
         models = app_storage.list_models(provider_id, model_type_enum, enabled_only)
@@ -80,7 +99,7 @@ async def list_models(
                 "provider_id": m.provider_id,
                 "model_id": m.model_id,
                 "model_type": m.model_type.value,
-                "mode": m.mode,
+                "capabilities": [c.value for c in m.capabilities],
                 "enabled": m.enabled
             }
             for m in models
@@ -90,6 +109,8 @@ async def list_models(
             message="获取成功",
             data=data
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"无效的参数: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -98,16 +119,25 @@ async def list_models(
 async def update_model(
     provider_id: str,
     model_id: str,
-    req: ModelRequest,
+    req: ModelUpdateRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """更新模型"""
+    """更新模型
+    
+    请求体示例:
+    {
+        "model_type": "text",
+        "capabilities": ["vision", "function_calling"],
+        "enabled": false
+    }
+    """
     try:
+        capabilities = [Capability(c) for c in req.capabilities]
         model = ModelConfig(
             provider_id=provider_id,
             model_id=model_id,
             model_type=ModelType(req.model_type),
-            mode=req.mode,
+            capabilities=capabilities,
             enabled=req.enabled
         )
         success = app_storage.update_model(model)
@@ -121,6 +151,8 @@ async def update_model(
                 "model_id": model_id
             }
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"无效的参数: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:

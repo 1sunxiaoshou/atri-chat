@@ -1,6 +1,6 @@
 """TTS管理路由"""
 from fastapi import APIRouter, HTTPException, Depends
-from api.schemas import ResponseModel, TTSRequest, TTSResponse
+from api.schemas import ResponseModel, TTSRequest, TTSResponse, TTSUpdateRequest
 from core import AppStorage
 from core.dependencies import get_storage
 
@@ -75,10 +75,20 @@ async def list_tts(
 @router.put("/tts/{tts_id}", response_model=ResponseModel)
 async def update_tts(
     tts_id: str,
-    req: TTSRequest,
+    req: TTSUpdateRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """更新TTS"""
+    """更新TTS
+    
+    请求体示例:
+    {
+        "provider_id": "edge_tts",
+        "voice_role": "zh-CN-XiaoxiaoNeural",
+        "api_key": null,
+        "access_url": null,
+        "enabled": true
+    }
+    """
     try:
         success = app_storage.update_tts(
             tts_id=tts_id,

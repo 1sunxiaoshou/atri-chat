@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from .models.config import ProviderConfig, ModelConfig, ModelType
+from .models.config import ProviderConfig, ModelConfig, ModelType, Capability
 
 
 class AppStorage:
@@ -32,7 +32,7 @@ class AppStorage:
                     provider_id TEXT NOT NULL,
                     model_id TEXT NOT NULL,
                     model_type TEXT NOT NULL,
-                    mode TEXT NOT NULL,
+                    capabilities TEXT NOT NULL,
                     enabled BOOLEAN DEFAULT 1,
                     PRIMARY KEY (provider_id, model_id),
                     FOREIGN KEY (provider_id) REFERENCES provider_config(provider_id)
@@ -178,10 +178,11 @@ class AppStorage:
         """添加模型"""
         try:
             with sqlite3.connect(self.db_path) as conn:
+                capabilities_json = json.dumps([c.value for c in model.capabilities])
                 conn.execute(
                     "INSERT INTO models VALUES (?, ?, ?, ?, ?)",
                     (model.provider_id, model.model_id,
-                     model.model_type.value, model.mode, model.enabled)
+                     model.model_type.value, capabilities_json, model.enabled)
                 )
                 conn.commit()
             return True
@@ -192,16 +193,17 @@ class AppStorage:
         """获取模型"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT provider_id, model_id, model_type, mode, enabled FROM models WHERE provider_id = ? AND model_id = ?",
+                "SELECT provider_id, model_id, model_type, capabilities, enabled FROM models WHERE provider_id = ? AND model_id = ?",
                 (provider_id, model_id)
             )
             row = cursor.fetchone()
             if row:
+                capabilities = [Capability(c) for c in json.loads(row[3])]
                 return ModelConfig(
                     provider_id=row[0],
                     model_id=row[1],
                     model_type=ModelType(row[2]),
-                    mode=row[3],
+                    capabilities=capabilities,
                     enabled=bool(row[4])
                 )
         return None
@@ -209,7 +211,7 @@ class AppStorage:
     def list_models(self, provider_id: Optional[str] = None, model_type: Optional[ModelType] = None, enabled_only: bool = True) -> List[ModelConfig]:
         """列出模型"""
         with sqlite3.connect(self.db_path) as conn:
-            query = "SELECT provider_id, model_id, model_type, mode, enabled FROM models WHERE 1=1"
+            query = "SELECT provider_id, model_id, model_type, capabilities, enabled FROM models WHERE 1=1"
             params = []
             
             if provider_id:
@@ -229,7 +231,7 @@ class AppStorage:
                     provider_id=row[0],
                     model_id=row[1],
                     model_type=ModelType(row[2]),
-                    mode=row[3],
+                    capabilities=[Capability(c) for c in json.loads(row[3])],
                     enabled=bool(row[4])
                 )
                 for row in cursor.fetchall()
@@ -238,9 +240,10 @@ class AppStorage:
     def update_model(self, model: ModelConfig) -> bool:
         """更新模型"""
         with sqlite3.connect(self.db_path) as conn:
+            capabilities_json = json.dumps([c.value for c in model.capabilities])
             cursor = conn.execute(
-                "UPDATE models SET model_type = ?, mode = ?, enabled = ? WHERE provider_id = ? AND model_id = ?",
-                (model.model_type.value, model.mode, model.enabled, model.provider_id, model.model_id)
+                "UPDATE models SET model_type = ?, capabilities = ?, enabled = ? WHERE provider_id = ? AND model_id = ?",
+                (model.model_type.value, capabilities_json, model.enabled, model.provider_id, model.model_id)
             )
             conn.commit()
             return cursor.rowcount > 0
