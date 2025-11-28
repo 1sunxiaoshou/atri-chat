@@ -1,0 +1,350 @@
+# AI Agent API
+
+一个基于 FastAPI 和 LangChain 的多角色 AI Agent 系统，支持多模型供应商、语音识别（ASR）和语音合成（TTS）功能。
+
+## 功能特性
+
+- 🤖 **多角色管理**：支持创建和管理多个 AI 角色，每个角色有独立的系统提示词
+- 🔌 **多供应商支持**：内置支持 OpenAI、Anthropic、Google、通义千问、本地模型（Ollama）
+- 🎯 **自定义供应商**：支持添加任意 OpenAI 兼容的 API 供应商（如 DeepSeek、Moonshot 等）
+- 💬 **会话管理**：支持多会话并发，每个会话独立维护对话历史
+- 🎤 **语音识别**：集成 FunASR 和 OpenAI Whisper，支持音频转文本
+- 🔊 **语音合成**：集成 GPT-SoVITS 和 OpenAI TTS，支持文本转语音
+- 🛠️ **工具系统**：支持为角色配置自定义工具
+- 🔄 **中间件支持**：可扩展的中间件架构
+- 💾 **持久化存储**：基于 SQLite 的数据存储，支持长期记忆和检查点
+
+## 技术栈
+
+- **Web 框架**：FastAPI
+- **AI 框架**：LangChain、LangGraph
+- **语音识别**：FunASR、OpenAI Whisper
+- **语音合成**：GPT-SoVITS、OpenAI TTS
+- **数据库**：SQLite
+- **Python 版本**：3.8+
+
+## 项目结构
+
+```
+.
+├── api/                    # API 路由层
+│   ├── routes/            # 路由模块
+│   │   ├── characters.py  # 角色管理
+│   │   ├── conversations.py # 会话管理
+│   │   ├── messages.py    # 消息管理
+│   │   ├── models.py      # 模型管理
+│   │   ├── providers.py   # 供应商管理
+│   │   ├── tts.py         # TTS 接口
+│   │   └── health.py      # 健康检查
+│   └── schemas.py         # API 数据模型
+├── core/                  # 核心业务逻辑
+│   ├── agent_manager.py   # Agent 管理器
+│   ├── storage.py         # 应用存储
+│   ├── store.py           # 长期记忆存储
+│   ├── dependencies.py    # 依赖注入
+│   ├── models/            # 模型管理
+│   │   ├── factory.py     # 模型工厂
+│   │   ├── provider.py    # 供应商实现
+│   │   └── config.py      # 配置模型
+│   ├── asr/               # 语音识别
+│   │   └── factory.py     # ASR 工厂
+│   ├── tts/               # 语音合成
+│   │   └── factory.py     # TTS 工厂
+│   ├── tools/             # 工具系统
+│   │   ├── manager.py     # 工具管理器
+│   │   └── registry.py    # 工具注册表
+│   └── middleware/        # 中间件系统
+│       └── manager.py     # 中间件管理器
+├── config/                # 配置文件
+│   ├── asr.yaml          # ASR 配置
+│   └── tts.yaml          # TTS 配置
+├── data/                  # 数据文件
+│   ├── app.db            # 应用数据库
+│   ├── checkpoints.db    # 检查点数据库
+│   └── store.db          # 长期记忆数据库
+├── asr_models/           # ASR 模型文件
+├── tests/                # 测试文件
+├── main.py               # 应用入口
+└── requirements-api.txt  # 依赖列表
+```
+
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+pip install -r requirements-api.txt
+```
+
+### 2. 配置环境变量
+
+创建 `.env` 文件：
+
+```env
+# OpenAI API 密钥（可选）
+OPENAI_API_KEY=sk-xxx
+
+# 其他供应商的 API 密钥
+ANTHROPIC_API_KEY=xxx
+GOOGLE_API_KEY=xxx
+```
+
+### 3. 配置 ASR 和 TTS
+
+编辑 `config/asr.yaml` 和 `config/tts.yaml` 文件，配置你需要的语音服务。
+
+### 4. 启动服务
+
+```bash
+python main.py
+```
+
+服务将在 `http://localhost:8000` 启动。
+
+### 5. 访问 API 文档
+
+打开浏览器访问：
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## 核心概念
+
+### 供应商（Provider）
+
+供应商是模型的提供方，系统支持：
+
+- **内置供应商**：
+  - `openai`: OpenAI GPT 系列
+  - `anthropic`: Anthropic Claude 系列
+  - `google`: Google Gemini 系列
+  - `tongyi`: 阿里通义千问
+  - `local`: 本地模型（Ollama）
+
+- **自定义供应商**：
+  - 任何 OpenAI 兼容的 API 都可以作为自定义供应商
+  - 例如：DeepSeek、Moonshot、智谱 AI 等
+
+### 模型（Model）
+
+模型是具体的 AI 模型实例，每个模型属于一个供应商。模型分为两种类型：
+- `text`: 文本生成模型（用于对话）
+- `embedding`: 嵌入模型（用于向量化）
+
+### 角色（Character）
+
+角色是 AI Agent 的人格化配置，包含：
+- 系统提示词（system_prompt）
+- 默认使用的模型和供应商
+- 绑定的工具列表
+- 绑定的中间件列表
+
+### 会话（Conversation）
+
+会话是用户与角色的对话上下文，每个会话：
+- 关联一个角色
+- 维护独立的对话历史
+- 可以切换使用不同的模型
+
+### 消息（Message）
+
+消息是会话中的单条对话记录，包含：
+- 角色类型（user/assistant）
+- 消息内容
+- 时间戳
+
+## API 使用示例
+
+### 1. 创建供应商
+
+```bash
+# 创建 OpenAI 供应商
+curl -X POST "http://localhost:8000/api/v1/providers" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "openai",
+    "config_json": {
+      "api_key": "sk-xxx",
+      "base_url": "https://api.openai.com/v1"
+    }
+  }'
+
+# 创建自定义供应商（DeepSeek）
+curl -X POST "http://localhost:8000/api/v1/providers" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "deepseek",
+    "config_json": {
+      "api_key": "sk-xxx",
+      "base_url": "https://api.deepseek.com/v1"
+    }
+  }'
+```
+
+### 2. 创建模型
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/models" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "openai",
+    "model_id": "gpt-4",
+    "model_type": "text",
+    "capabilities": ["chat"],
+    "enabled": true
+  }'
+```
+
+### 3. 创建角色
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/characters" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "助手",
+    "system_prompt": "你是一个友好的AI助手",
+    "primary_model_id": "gpt-4",
+    "primary_provider_id": "openai",
+    "enabled": true
+  }'
+```
+
+### 4. 创建会话
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/conversations" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "character_id": 1,
+    "title": "我的第一个会话"
+  }'
+```
+
+### 5. 发送消息
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/messages" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conversation_id": 1,
+    "content": "你好！"
+  }'
+```
+
+### 6. 语音转文本
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/tts/audio-to-text" \
+  -F "audio=@audio.wav" \
+  -F "provider=funasr"
+```
+
+### 7. 文本转语音
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/tts/text-to-audio" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "你好，我是AI助手",
+    "provider": "gpt_sovits"
+  }' \
+  --output output.wav
+```
+
+## 配置说明
+
+### ASR 配置（config/asr.yaml）
+
+```yaml
+default_provider: funasr
+
+providers:
+  funasr:
+    enabled: true
+    model: ./asr_models/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch
+    device: cuda
+    vad_model: ./asr_models/speech_fsmn_vad_zh-cn-16k-common-pytorch
+    punc_model: ./asr_models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch
+    language: zh
+  
+  openai:
+    enabled: false
+    api_key: ""
+    model: whisper-1
+```
+
+### TTS 配置（config/tts.yaml）
+
+```yaml
+default_provider: gpt_sovits
+
+providers:
+  gpt_sovits:
+    enabled: true
+    api_url: http://localhost:9880
+    refer_wav_path: "path/to/reference.wav"
+    prompt_text: "参考文本"
+    prompt_language: zh
+    text_language: zh
+  
+  openai:
+    enabled: false
+    api_key: ""
+    model: tts-1
+    voice: alloy
+```
+
+## 高级功能
+
+### 动态模型参数
+
+在发送消息时，可以动态覆盖模型参数：
+
+```python
+# 通过 API 暂不支持，需要在代码层面调用
+agent_manager.send_message(
+    user_message="你好",
+    conversation_id=1,
+    character_id=1,
+    model_id="gpt-4",
+    provider_id="openai",
+    temperature=0.8,  # 动态参数
+    max_tokens=1000   # 动态参数
+)
+```
+
+### 工具绑定
+
+为角色添加自定义工具，让 AI 能够调用外部功能。
+
+### 中间件
+
+通过中间件可以在消息处理前后添加自定义逻辑。
+
+## 开发指南
+
+### 添加新的供应商
+
+1. 在 `core/models/provider.py` 中创建新的供应商类
+2. 继承 `BaseProvider` 并实现必要的方法
+3. 在 `ModelFactory._register_default_providers()` 中注册
+
+### 添加新的工具
+
+1. 在 `core/tools/` 中创建工具实现
+2. 在 `ToolRegistry` 中注册工具
+3. 通过 API 将工具绑定到角色
+
+## 注意事项
+
+- ASR 模型文件需要单独下载并放置在 `asr_models/` 目录
+- GPT-SoVITS 需要单独部署并配置 API 地址
+- 数据库文件会自动创建在 `data/` 目录
+- 建议在生产环境中使用环境变量管理敏感信息
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！

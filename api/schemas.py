@@ -122,7 +122,7 @@ class CharacterUpdateRequest(BaseModel):
 class ConversationRequest(BaseModel):
     """会话请求"""
     character_id: int = Field(..., description="角色ID")
-    title: str = Field(..., description="会话标题")
+    title: Optional[str] = Field("New Chat", description="会话标题")
 
 
 class ConversationResponse(BaseModel):
