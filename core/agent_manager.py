@@ -115,35 +115,42 @@ class AgentManager:
             Agent 实例
             
         Raises:
-            ValueError: 当角色或模型不存在时
+            ValueError: 当角色、模型不存在或创建失败时
         """
-        # 1. 获取角色配置（包含 system_prompt）
-        character = self.app_storage.get_character(character_id)
-        if not character:
-            raise ValueError(f"角色 {character_id} 不存在")
-        
-        # 2. 使用 ModelFactory 创建模型实例（支持动态参数）
-        model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
-        if not model:
-            raise ValueError(f"模型 {provider_id}/{model_id} 不存在或未启用")
-        
-        # 3. 获取角色的工具列表
-        tools = self.tool_manager.get_character_tools(character_id)
-        
-        # 4. 获取角色的中间件列表
-        middlewares = self.middleware_manager.get_character_middleware(character_id)
-        
-        # 5. 创建 agent（使用角色的 system_prompt、工具和中间件）
-        agent = create_agent(
-            model=model,
-            tools=tools,
-            middleware=middlewares,
-            system_prompt=character["system_prompt"],
-            checkpointer=self.checkpointer,
-            store=self.store
-        )
-        
-        return agent
+        try:
+            # 1. 获取角色配置（包含 system_prompt）
+            character = self.app_storage.get_character(character_id)
+            if not character:
+                raise ValueError(f"角色 {character_id} 不存在")
+            
+            # 2. 使用 ModelFactory 创建模型实例（支持动态参数）
+            # ModelFactory.create_model 现在会抛出详细的 ValueError
+            model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
+            
+            # 3. 获取角色的工具列表
+            tools = self.tool_manager.get_character_tools(character_id)
+            
+            # 4. 获取角色的中间件列表
+            middlewares = self.middleware_manager.get_character_middleware(character_id)
+            
+            # 5. 创建 agent（使用角色的 system_prompt、工具和中间件）
+            agent = create_agent(
+                model=model,
+                tools=tools,
+                middleware=middlewares,
+                system_prompt=character["system_prompt"],
+                checkpointer=self.checkpointer,
+                store=self.store
+            )
+            
+            return agent
+            
+        except ValueError:
+            # 重新抛出 ValueError（包含详细错误信息）
+            raise
+        except Exception as e:
+            # 捕获其他异常并转换为 ValueError
+            raise ValueError(f"创建 Agent 失败: {str(e)}")
     
 
     async def send_message_stream(
@@ -165,42 +172,65 @@ class AgentManager:
             
         Yields:
             流式响应的文本块
+            
+        Raises:
+            ValueError: 当会话、角色或模型不存在时
+            RuntimeError: 当模型调用失败时
         """
         # 1. 验证会话是否存在
         conversation = self.app_storage.get_conversation(conversation_id)
         if not conversation:
             raise ValueError(f"会话 {conversation_id} 不存在")
         
-        # 2. 获取或创建 agent 实例（启用流式模式）
-        agent = self.get_or_create_agent(character_id, model_id, provider_id, streaming=True)
-        
-        full_response = ""
-        
-        # 3. 异步流式调用 agent
-        async for event in agent.astream(
-            {"messages": [{"role": "user", "content": user_message}]},
-            config={"configurable": {"thread_id": str(conversation_id)}},
-            stream_mode="messages"
-        ):
-            # event 是 (message, metadata) 元组
-            if isinstance(event, tuple) and len(event) == 2:
-                message, metadata = event
-                # 检查是否是 AIMessageChunk（流式块）
-                if hasattr(message, 'content') and message.content:
-                    chunk = message.content
-                    full_response += chunk
-                    yield chunk
-        
-        # 4. 流结束后保存完整对话
-        self.app_storage.add_message(conversation_id, "user", user_message)
-        self.app_storage.add_message(conversation_id, "assistant", full_response)
-        
-        # 5. 如果是新会话，自动生成标题
-        if conversation["title"] == "New Chat":
-            title = user_message.replace("\n", " ").strip()
-            if len(title) > 30:
-                title = title[:30] + "..."
-            self.app_storage.update_conversation(conversation_id, title=title)
+        try:
+            # 2. 获取或创建 agent 实例（启用流式模式）
+            agent = self.get_or_create_agent(character_id, model_id, provider_id, streaming=True)
+            
+            full_response = ""
+            
+            # 3. 异步流式调用 agent
+            async for event in agent.astream(
+                {"messages": [{"role": "user", "content": user_message}]},
+                config={"configurable": {"thread_id": str(conversation_id)}},
+                stream_mode="messages"
+            ):
+                # event 是 (message, metadata) 元组
+                if isinstance(event, tuple) and len(event) == 2:
+                    message, metadata = event
+                    # 检查是否是 AIMessageChunk（流式块）
+                    if hasattr(message, 'content') and message.content:
+                        chunk = message.content
+                        full_response += chunk
+                        yield chunk
+            
+            # 4. 流结束后保存完整对话
+            self.app_storage.add_message(conversation_id, "user", user_message)
+            self.app_storage.add_message(conversation_id, "assistant", full_response)
+            
+            # 5. 如果是新会话，自动生成标题
+            if conversation["title"] == "New Chat":
+                title = user_message.replace("\n", " ").strip()
+                if len(title) > 30:
+                    title = title[:30] + "..."
+                self.app_storage.update_conversation(conversation_id, title=title)
+                
+        except ValueError:
+            # 重新抛出 ValueError（配置错误）
+            raise
+        except Exception as e:
+            # 捕获模型调用异常
+            error_msg = str(e)
+            # 常见错误类型识别
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                raise RuntimeError(f"模型认证失败，请检查 API Key 配置: {error_msg}")
+            elif "rate limit" in error_msg.lower():
+                raise RuntimeError(f"模型调用频率超限，请稍后重试: {error_msg}")
+            elif "timeout" in error_msg.lower():
+                raise RuntimeError(f"模型调用超时，请检查网络连接: {error_msg}")
+            elif "connection" in error_msg.lower():
+                raise RuntimeError(f"无法连接到模型服务，请检查网络和配置: {error_msg}")
+            else:
+                raise RuntimeError(f"模型调用失败: {error_msg}")
     
     
     def get_conversation_history(
