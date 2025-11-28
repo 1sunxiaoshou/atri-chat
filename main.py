@@ -68,7 +68,7 @@ uploads_dir = Path(__file__).parent / "data" / "uploads"
 uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
-# 注册路由（使用依赖注入，无需手动设置依赖）
+# 注册路由（必须在前端静态文件挂载之前）
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(characters.router, prefix="/api/v1", tags=["characters"])
 app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])
@@ -77,6 +77,12 @@ app.include_router(models.router, prefix="/api/v1", tags=["models"])
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
 app.include_router(tts.router, prefix="/api/v1", tags=["tts"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
+
+# 挂载前端静态文件（必须在最后，避免覆盖 API 路由）
+# frontend_dist = Path(__file__).parent / "frontend" / "dist"
+# if frontend_dist.exists():
+#     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+#     logger.info(f"✓ 前端静态文件已挂载: {frontend_dist}")
 
 
 if __name__ == "__main__":

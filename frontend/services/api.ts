@@ -1,6 +1,9 @@
 import { Provider, Model, Character, Conversation, Message, ApiResponse, SendMessageData, AudioMessageData } from '../types';
 
-const BASE_URL = 'http://localhost:8000/api/v1';
+// 动态获取 API 地址：生产环境使用相对路径，开发环境使用 localhost
+const BASE_URL = import.meta.env.PROD 
+    ? '/api/v1'  // 生产环境：使用相对路径（前后端同域）
+    : 'http://localhost:8000/api/v1';  // 开发环境：使用完整地址
 
 /**
  * 处理API响应
@@ -285,7 +288,8 @@ export const api = {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('http://localhost:8000/api/upload/avatar', {
+        const uploadUrl = import.meta.env.PROD ? '/api/upload/avatar' : 'http://localhost:8000/api/upload/avatar';
+        const response = await fetch(uploadUrl, {
             method: 'POST',
             body: formData
         });
@@ -297,7 +301,7 @@ export const api = {
         const formData = new FormData();
         formData.append('file', file);
         
-        let url = 'http://localhost:8000/api/upload/provider-logo';
+        let url = import.meta.env.PROD ? '/api/upload/provider-logo' : 'http://localhost:8000/api/upload/provider-logo';
         if (providerId) {
             url += `?provider_id=${providerId}`;
         }
