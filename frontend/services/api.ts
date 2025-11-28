@@ -2,6 +2,11 @@ import { Provider, Model, Character, Conversation, Message, ApiResponse, SendMes
 
 const BASE_URL = 'http://localhost:8000/api/v1';
 
+/**
+ * 处理API响应
+ * @param response - 原始响应对象
+ * @returns 统一格式的API响应
+ */
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     if (!response.ok) {
         const errorText = await response.text();
@@ -9,13 +14,13 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
             const errorJson = JSON.parse(errorText);
             return {
                 code: response.status,
-                message: errorJson.message || 'Request failed',
+                message: errorJson.message || '请求失败',
                 data: errorJson.data || {} as T
             };
         } catch (e) {
             return {
                 code: response.status,
-                message: errorText || 'Request failed',
+                message: errorText || '请求失败',
                 data: {} as T
             };
         }
@@ -24,11 +29,13 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
 }
 
 export const api = {
-    // Providers
+    // ==================== 服务商管理 ====================
+    /** 获取所有服务商列表 */
     getProviders: async (): Promise<ApiResponse<Provider[]>> => {
         const response = await fetch(`${BASE_URL}/providers`);
         return handleResponse<Provider[]>(response);
     },
+    /** 创建新的服务商 */
     createProvider: async (provider: Provider): Promise<ApiResponse<Provider>> => {
         const response = await fetch(`${BASE_URL}/providers`, {
             method: 'POST',
@@ -37,6 +44,7 @@ export const api = {
         });
         return handleResponse<Provider>(response);
     },
+    /** 更新服务商配置 */
     updateProvider: async (provider_id: string, config_json: any): Promise<ApiResponse<Provider>> => {
         const response = await fetch(`${BASE_URL}/providers/${provider_id}`, {
             method: 'PUT',
@@ -45,6 +53,7 @@ export const api = {
         });
         return handleResponse<Provider>(response);
     },
+    /** 删除服务商 */
     deleteProvider: async (provider_id: string): Promise<ApiResponse<void>> => {
         const response = await fetch(`${BASE_URL}/providers/${provider_id}`, {
             method: 'DELETE'
@@ -52,11 +61,13 @@ export const api = {
         return handleResponse<void>(response);
     },
 
-    // Models
+    // ==================== 模型管理 ====================
+    /** 获取所有模型列表 */
     getModels: async (): Promise<ApiResponse<Model[]>> => {
         const response = await fetch(`${BASE_URL}/models`);
         return handleResponse<Model[]>(response);
     },
+    /** 创建新的模型 */
     createModel: async (model: Model): Promise<ApiResponse<Model>> => {
         const response = await fetch(`${BASE_URL}/models`, {
             method: 'POST',
@@ -65,8 +76,8 @@ export const api = {
         });
         return handleResponse<Model>(response);
     },
+    /** 切换模型启用/禁用状态 */
     toggleModel: async (modelId: string, enabled: boolean, providerId: string): Promise<ApiResponse<void>> => {
-        // API docs: PUT /models/{provider_id}/{model_id}
         const response = await fetch(`${BASE_URL}/models/${providerId}/${modelId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -74,6 +85,7 @@ export const api = {
         });
         return handleResponse<void>(response);
     },
+    /** 删除模型 */
     deleteModel: async (provider_id: string, model_id: string): Promise<ApiResponse<void>> => {
         const response = await fetch(`${BASE_URL}/models/${provider_id}/${model_id}`, {
             method: 'DELETE'
@@ -81,11 +93,13 @@ export const api = {
         return handleResponse<void>(response);
     },
 
-    // Characters
+    // ==================== 角色管理 ====================
+    /** 获取所有角色列表 */
     getCharacters: async (): Promise<ApiResponse<Character[]>> => {
         const response = await fetch(`${BASE_URL}/characters`);
         return handleResponse<Character[]>(response);
     },
+    /** 创建新的角色 */
     createCharacter: async (characterData: Omit<Character, 'id'>): Promise<ApiResponse<Character>> => {
         const response = await fetch(`${BASE_URL}/characters`, {
             method: 'POST',
@@ -94,6 +108,7 @@ export const api = {
         });
         return handleResponse<Character>(response);
     },
+    /** 更新角色信息 */
     updateCharacter: async (id: string | number, updates: Partial<Character>): Promise<ApiResponse<Character>> => {
         const response = await fetch(`${BASE_URL}/characters/${id}`, {
             method: 'PUT',
@@ -102,6 +117,7 @@ export const api = {
         });
         return handleResponse<Character>(response);
     },
+    /** 删除角色 */
     deleteCharacter: async (id: string | number): Promise<ApiResponse<void>> => {
         const response = await fetch(`${BASE_URL}/characters/${id}`, {
             method: 'DELETE'
@@ -109,7 +125,8 @@ export const api = {
         return handleResponse<void>(response);
     },
 
-    // Conversations
+    // ==================== 对话管理 ====================
+    /** 获取对话列表，可按角色ID筛选 */
     getConversations: async (characterId?: number | string | null): Promise<ApiResponse<Conversation[]>> => {
         let url = `${BASE_URL}/conversations`;
         if (characterId) {
@@ -118,6 +135,7 @@ export const api = {
         const response = await fetch(url);
         return handleResponse<Conversation[]>(response);
     },
+    /** 创建新的对话 */
     createConversation: async (characterId: number | string): Promise<ApiResponse<Conversation>> => {
         const response = await fetch(`${BASE_URL}/conversations`, {
             method: 'POST',
@@ -126,6 +144,7 @@ export const api = {
         });
         return handleResponse<Conversation>(response);
     },
+    /** 删除对话 */
     deleteConversation: async (id: number | string): Promise<ApiResponse<void>> => {
         const response = await fetch(`${BASE_URL}/conversations/${id}`, {
             method: 'DELETE'
@@ -133,18 +152,20 @@ export const api = {
         return handleResponse<void>(response);
     },
 
-    // Messages
+    // ==================== 消息管理 ====================
     getMessages: async (conversationId: number | string): Promise<ApiResponse<Message[]>> => {
         const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`);
         return handleResponse<Message[]>(response);
     },
 
-    sendMessage: async (conversationId: number | string, content: string, characterId?: number | string): Promise<ApiResponse<SendMessageData>> => {
-        // API docs: POST /messages
-        // Body: { conversation_id, content, ... }
-        const body: any = { conversation_id: conversationId, content };
-        // characterId is not strictly needed if conversation_id is present, but maybe for overrides?
-        // The real API handles this on backend.
+    sendMessage: async (conversationId: number | string, content: string, characterId: number | string, modelId: string, providerId: string): Promise<ApiResponse<SendMessageData>> => {
+        const body = {
+            conversation_id: conversationId,
+            character_id: characterId,
+            model_id: modelId,
+            provider_id: providerId,
+            content
+        };
 
         const response = await fetch(`${BASE_URL}/messages`, {
             method: 'POST',

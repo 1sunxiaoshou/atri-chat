@@ -56,17 +56,16 @@ export interface Conversation {
 
 // 6. Messages
 export interface Message {
-  id: string | number;
+  message_id: string | number;
   conversation_id: string | number;
-  role: 'user' | 'assistant';
+  message_type: 'user' | 'assistant';
   content: string;
   created_at: string;
   isStreaming?: boolean; // UI only
 }
 
 export interface SendMessageData {
-  user_message: Message;
-  assistant_message: Message;
+  message: string; // AI回复的纯文本内容
 }
 
 export interface AudioMessageData {

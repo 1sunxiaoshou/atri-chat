@@ -1,2 +1,902 @@
 2025-11-28 12:09:41 | INFO     | __main__:lifespan:21 - 初始化系统...
 2025-11-28 12:09:41 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 404
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 404
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:10:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:11:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 404
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 404
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:11:27 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 404
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 404
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:12:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:48 | INFO     | __main__:lifespan:32 - 关闭系统...
+2025-11-28 12:16:48 | INFO     | __main__:lifespan:35 - ✓ 系统已关闭
+2025-11-28 12:16:51 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 12:16:51 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:16:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:17:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:18:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:18:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:19:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:19:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:19:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 404
+2025-11-28 12:20:26 | INFO     | __main__:lifespan:32 - 关闭系统...
+2025-11-28 12:20:26 | INFO     | __main__:lifespan:35 - ✓ 系统已关闭
+2025-11-28 12:20:28 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 12:20:28 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:20:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:20:34 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:20:34 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 422
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:23:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 422
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:23:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:23:36 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:23:36 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 422
+2025-11-28 12:23:49 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/conversations
+2025-11-28 12:23:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/conversations 200
+2025-11-28 12:23:49 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:23:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:24:12 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:24:12 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:24:16 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:24:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:24:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:24:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:24:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 422
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:25:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:25:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:25:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:43:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/5/messages
+2025-11-28 12:43:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/5/messages 200
+2025-11-28 12:43:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/6/messages
+2025-11-28 12:43:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/6/messages 200
+2025-11-28 12:43:28 | INFO     | core.middleware.logging_middleware:dispatch:18 - → DELETE /api/v1/conversations/6
+2025-11-28 12:43:28 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← DELETE /api/v1/conversations/6 200
+2025-11-28 12:43:29 | INFO     | core.middleware.logging_middleware:dispatch:18 - → DELETE /api/v1/conversations/5
+2025-11-28 12:43:29 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← DELETE /api/v1/conversations/5 200
+2025-11-28 12:43:30 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:43:30 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:43:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/conversations
+2025-11-28 12:43:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/conversations 200
+2025-11-28 12:43:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:43:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:43:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:43:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:43:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:43:36 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 12:52:57 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 12:52:57 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:03 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:03 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:04 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:04 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:05 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:06 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:06 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:53:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:53:14 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:53:19 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → PUT /api/v1/characters/2
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← PUT /api/v1/characters/2 200
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:53:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:54:02 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:54:02 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:54:02 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:02 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:54:02 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:54:03 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:03 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:54:03 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:54:03 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:54:03 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:54:04 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:04 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:06 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:08 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:54:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:54:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:54:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 12:54:41 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 12:54:47 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 12:55:04 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:55:04 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:55:07 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:55:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:48 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:48 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:49 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/7/messages
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/7/messages 200
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 12:58:57 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:00:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/conversations
+2025-11-28 13:00:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/conversations 200
+2025-11-28 13:00:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/8/messages
+2025-11-28 13:00:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/8/messages 200
+2025-11-28 13:00:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 13:00:20 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 13:00:30 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 13:00:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 13:00:49 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/tts/audio-message
+2025-11-28 13:00:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/tts/audio-message 405
+2025-11-28 13:01:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/tts/audio-message
+2025-11-28 13:01:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/tts/audio-message 405
+2025-11-28 13:07:11 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 13:07:11 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/8/messages
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/8/messages 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/8/messages
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/8/messages 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:07:24 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:07:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:07:42 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:08:34 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:08:34 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:08:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:08:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:10:06 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 13:10:06 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/8/messages
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/8/messages 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/8/messages
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/8/messages 200
+2025-11-28 13:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 13:10:14 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:10:14 | INFO     | api.routes.messages:send_audio_message:100 - 接收音频消息: conversation_id=8, character_id=2
+2025-11-28 13:10:14 | INFO     | api.routes.messages:send_audio_message:103 - 音频大小: 18650 bytes
+2025-11-28 13:10:22 | ERROR    | api.routes.messages:send_audio_message:133 - 音频消息处理失败: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+2025-11-28 13:10:22 | ERROR    | api.routes.messages:send_audio_message:134 - Traceback (most recent call last):
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\api\routes\messages.py", line 105, in send_audio_message
+    response = await agent_manager.send_audio_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 422, in send_audio_message_async
+    return await self.send_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 229, in send_message_async
+    response = await agent.ainvoke(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 3137, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 2873, in astream
+    async with AsyncPregelLoop(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\_loop.py", line 1256, in __aenter__
+    saved = await self.checkpointer.aget_tuple(self.checkpoint_config)
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\checkpoint\sqlite\__init__.py", line 502, in aget_tuple
+    raise NotImplementedError(_AIO_ERROR_MSG)
+NotImplementedError: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+
+2025-11-28 13:10:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:11:05 | INFO     | __main__:lifespan:32 - 关闭系统...
+2025-11-28 13:11:05 | INFO     | __main__:lifespan:35 - ✓ 系统已关闭
+2025-11-28 13:11:08 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 13:11:08 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 13:11:14 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:11:14 | INFO     | api.routes.messages:send_audio_message:100 - 接收音频消息: conversation_id=8, character_id=2
+2025-11-28 13:11:14 | INFO     | api.routes.messages:send_audio_message:103 - 音频大小: 21548 bytes
+2025-11-28 13:11:22 | ERROR    | api.routes.messages:send_audio_message:133 - 音频消息处理失败: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+2025-11-28 13:11:22 | ERROR    | api.routes.messages:send_audio_message:134 - Traceback (most recent call last):
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\api\routes\messages.py", line 105, in send_audio_message
+    response = await agent_manager.send_audio_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 422, in send_audio_message_async
+    return await self.send_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 229, in send_message_async
+    response = await agent.ainvoke(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 3137, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 2873, in astream
+    async with AsyncPregelLoop(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\_loop.py", line 1256, in __aenter__
+    saved = await self.checkpointer.aget_tuple(self.checkpoint_config)
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\checkpoint\sqlite\__init__.py", line 502, in aget_tuple
+    raise NotImplementedError(_AIO_ERROR_MSG)
+NotImplementedError: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+
+2025-11-28 13:11:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:11:35 | INFO     | __main__:lifespan:32 - 关闭系统...
+2025-11-28 13:11:35 | INFO     | __main__:lifespan:35 - ✓ 系统已关闭
+2025-11-28 13:11:53 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 13:11:53 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 13:11:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:11:58 | INFO     | api.routes.messages:send_audio_message:100 - 接收音频消息: conversation_id=8, character_id=2
+2025-11-28 13:11:58 | INFO     | api.routes.messages:send_audio_message:103 - 音频大小: 15752 bytes
+2025-11-28 13:12:06 | ERROR    | api.routes.messages:send_audio_message:133 - 音频消息处理失败: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+2025-11-28 13:12:06 | ERROR    | api.routes.messages:send_audio_message:134 - Traceback (most recent call last):
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\api\routes\messages.py", line 105, in send_audio_message
+    response = await agent_manager.send_audio_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 422, in send_audio_message_async
+    return await self.send_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 229, in send_message_async
+    response = await agent.ainvoke(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 3137, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 2873, in astream
+    async with AsyncPregelLoop(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\_loop.py", line 1256, in __aenter__
+    saved = await self.checkpointer.aget_tuple(self.checkpoint_config)
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\checkpoint\sqlite\__init__.py", line 502, in aget_tuple
+    raise NotImplementedError(_AIO_ERROR_MSG)
+NotImplementedError: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+
+2025-11-28 13:12:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:13:27 | INFO     | __main__:lifespan:32 - 关闭系统...
+2025-11-28 13:13:27 | INFO     | __main__:lifespan:35 - ✓ 系统已关闭
+2025-11-28 13:14:32 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 13:14:32 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 13:14:41 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:14:41 | INFO     | api.routes.messages:send_audio_message:100 - 接收音频消息: conversation_id=8, character_id=2
+2025-11-28 13:14:41 | INFO     | api.routes.messages:send_audio_message:103 - 音频大小: 20582 bytes
+2025-11-28 13:14:49 | ERROR    | api.routes.messages:send_audio_message:133 - 音频消息处理失败: '_AsyncGeneratorContextManager' object has no attribute 'get_next_version'
+2025-11-28 13:14:49 | ERROR    | api.routes.messages:send_audio_message:134 - Traceback (most recent call last):
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\api\routes\messages.py", line 105, in send_audio_message
+    response = await agent_manager.send_audio_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 469, in send_audio_message_async
+    return await self.send_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 232, in send_message_async
+    response = await agent.ainvoke(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 3137, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 2873, in astream
+    async with AsyncPregelLoop(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\_loop.py", line 1180, in __init__
+    self.checkpointer_get_next_version = checkpointer.get_next_version
+AttributeError: '_AsyncGeneratorContextManager' object has no attribute 'get_next_version'
+
+2025-11-28 13:14:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
+2025-11-28 13:15:52 | INFO     | __main__:lifespan:32 - 关闭系统...
+2025-11-28 13:15:52 | INFO     | __main__:lifespan:35 - ✓ 系统已关闭
+2025-11-28 13:15:54 | INFO     | __main__:lifespan:21 - 初始化系统...
+2025-11-28 13:15:54 | INFO     | __main__:lifespan:27 - ✓ 系统初始化完成
+2025-11-28 13:15:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages/audio
+2025-11-28 13:15:59 | INFO     | api.routes.messages:send_audio_message:100 - 接收音频消息: conversation_id=8, character_id=2
+2025-11-28 13:15:59 | INFO     | api.routes.messages:send_audio_message:103 - 音频大小: 25412 bytes
+2025-11-28 13:16:08 | ERROR    | api.routes.messages:send_audio_message:133 - 音频消息处理失败: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+2025-11-28 13:16:08 | ERROR    | api.routes.messages:send_audio_message:134 - Traceback (most recent call last):
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\api\routes\messages.py", line 105, in send_audio_message
+    response = await agent_manager.send_audio_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 450, in send_audio_message_async
+    return await self.send_message_async(
+  File "c:\Users\sunxiaoshou\Desktop\ATRI_v2\core\agent_manager.py", line 232, in send_message_async
+    response = await agent.ainvoke(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 3137, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\main.py", line 2873, in astream
+    async with AsyncPregelLoop(
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\pregel\_loop.py", line 1256, in __aenter__
+    saved = await self.checkpointer.aget_tuple(self.checkpoint_config)
+  File "C:\Users\sunxiaoshou\Desktop\ATRI_v2\runtime\lib\site-packages\langgraph\checkpoint\sqlite\__init__.py", line 502, in aget_tuple
+    raise NotImplementedError(_AIO_ERROR_MSG)
+NotImplementedError: The SqliteSaver does not support async methods. Consider using AsyncSqliteSaver instead.
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+Note: AsyncSqliteSaver requires the aiosqlite package to use.
+Install with:
+`pip install aiosqlite`
+See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.sqlite.aio.AsyncSqliteSaverfor more information.
+
+2025-11-28 13:16:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages/audio 500
