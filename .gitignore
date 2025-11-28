@@ -7,3 +7,4 @@ asr_models
 __pycache__/
 *.pyc
 runtime/
+.venv

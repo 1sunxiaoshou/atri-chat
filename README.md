@@ -13,15 +13,23 @@
 - 🛠️ **工具系统**：支持为角色配置自定义工具
 - 🔄 **中间件支持**：可扩展的中间件架构
 - 💾 **持久化存储**：基于 SQLite 的数据存储，支持长期记忆和检查点
+- 🌐 **前端界面**：基于 React + TypeScript + Vite 的现代化 Web 界面
 
 ## 技术栈
 
+### 后端
 - **Web 框架**：FastAPI
 - **AI 框架**：LangChain、LangGraph
 - **语音识别**：FunASR、OpenAI Whisper
 - **语音合成**：GPT-SoVITS、OpenAI TTS
 - **数据库**：SQLite
-- **Python 版本**：3.8+
+- **Python 版本**：3.12+
+
+### 前端
+- **框架**：React 19.2
+- **语言**：TypeScript 5.8
+- **构建工具**：Vite 6.2
+- **UI 图标**：Lucide React
 
 ## 项目结构
 
@@ -68,18 +76,88 @@
 └── requirements-api.txt  # 依赖列表
 ```
 
-## 快速开始
+## 环境要求
 
-### 1. 安装依赖
+### 系统要求
+- **操作系统**：Windows / Linux / macOS
+- **Python**：3.12 或更高版本
+- **Node.js**：18.0 或更高版本（前端开发）
+- **uv**：Python 包管理器（推荐）
 
+### 必需依赖
+
+#### Python 后端依赖
 ```bash
-pip install -r requirements-api.txt
+# 核心框架
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# AI 框架
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-anthropic>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-community>=0.3.0
+langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
+
+# 数据库
+aiosqlite>=0.20.0
+
+# 语音识别（可选）
+funasr>=1.0.0  # FunASR
+modelscope>=1.0.0  # FunASR 模型下载
+
+# 其他工具
+pyyaml>=6.0
+python-dotenv>=1.0.0
 ```
 
-### 2. 配置环境变量
+#### 前端依赖
+```bash
+# 核心框架
+react@19.2.0
+react-dom@19.2.0
 
+# 开发工具
+vite@6.2.0
+typescript@5.8.2
+@vitejs/plugin-react@5.0.0
+
+# UI 组件
+lucide-react@0.555.0
+```
+
+## 快速开始
+
+### 方式一：使用 uv（推荐）
+
+#### 1. 安装 uv
+```bash
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Linux / macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### 2. 创建虚拟环境并安装依赖
+```bash
+# 创建虚拟环境
+uv venv
+
+# 激活虚拟环境
+# Windows
+.venv\Scripts\activate
+# Linux / macOS
+source .venv/bin/activate
+
+# 安装后端依赖
+uv pip install fastapi uvicorn[standard] langchain langchain-openai langchain-anthropic langchain-google-genai langchain-community langgraph langgraph-checkpoint-sqlite aiosqlite pyyaml python-dotenv
+```
+
+#### 3. 配置环境变量
 创建 `.env` 文件：
-
 ```env
 # OpenAI API 密钥（可选）
 OPENAI_API_KEY=sk-xxx
@@ -87,25 +165,55 @@ OPENAI_API_KEY=sk-xxx
 # 其他供应商的 API 密钥
 ANTHROPIC_API_KEY=xxx
 GOOGLE_API_KEY=xxx
+DASHSCOPE_API_KEY=xxx  # 通义千问
 ```
 
-### 3. 配置 ASR 和 TTS
-
+#### 4. 配置 ASR 和 TTS（可选）
 编辑 `config/asr.yaml` 和 `config/tts.yaml` 文件，配置你需要的语音服务。
 
-### 4. 启动服务
+如果需要使用 FunASR：
+```bash
+uv pip install funasr modelscope
+```
 
+#### 5. 启动后端服务
 ```bash
 python main.py
 ```
-
 服务将在 `http://localhost:8000` 启动。
 
-### 5. 访问 API 文档
+#### 6. 启动前端（可选）
+```bash
+cd frontend
+npm install
+npm run dev
+```
+前端将在 `http://localhost:5173` 启动。
+
+### 方式二：使用 pip
+
+```bash
+# 创建虚拟环境
+python -m venv .venv
+
+# 激活虚拟环境
+# Windows
+.venv\Scripts\activate
+# Linux / macOS
+source .venv/bin/activate
+
+# 安装依赖
+pip install fastapi uvicorn[standard] langchain langchain-openai langchain-anthropic langchain-google-genai langchain-community langgraph langgraph-checkpoint-sqlite aiosqlite pyyaml python-dotenv
+
+# 启动服务
+python main.py
+```
+
+### 访问 API 文档
 
 打开浏览器访问：
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
 
 ## 核心概念
 
@@ -258,18 +366,41 @@ curl -X POST "http://localhost:8000/api/v1/tts/text-to-audio" \
 default_provider: funasr
 
 providers:
+  # FunASR (阿里达摩院) - 本地部署
   funasr:
     enabled: true
     model: ./asr_models/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch
-    device: cuda
+    device: cuda  # 或 cpu
     vad_model: ./asr_models/speech_fsmn_vad_zh-cn-16k-common-pytorch
     punc_model: ./asr_models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch
     language: zh
   
+  # OpenAI Whisper - 云端 API
   openai:
     enabled: false
-    api_key: ""
+    api_key: ""  # 留空则从环境变量读取
+    base_url: ""  # 可选，自定义 API 地址
     model: whisper-1
+    language: ""  # 可选，如 zh, en
+    temperature: 0.0
+```
+
+**FunASR 模型下载**：
+```bash
+# 使用 modelscope 下载模型
+from modelscope import snapshot_download
+
+# 下载 ASR 模型
+snapshot_download('damo/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch', 
+                  cache_dir='./asr_models')
+
+# 下载 VAD 模型
+snapshot_download('damo/speech_fsmn_vad_zh-cn-16k-common-pytorch',
+                  cache_dir='./asr_models')
+
+# 下载标点模型
+snapshot_download('damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch',
+                  cache_dir='./asr_models')
 ```
 
 ### TTS 配置（config/tts.yaml）
@@ -278,20 +409,29 @@ providers:
 default_provider: gpt_sovits
 
 providers:
+  # GPT-SoVITS - 本地部署
   gpt_sovits:
     enabled: true
     api_url: http://localhost:9880
-    refer_wav_path: "path/to/reference.wav"
-    prompt_text: "参考文本"
+    refer_wav_path: "path/to/reference.wav"  # 参考音频路径
+    prompt_text: "参考文本"  # 参考音频对应的文本
     prompt_language: zh
     text_language: zh
   
+  # OpenAI TTS - 云端 API
   openai:
     enabled: false
     api_key: ""
-    model: tts-1
-    voice: alloy
+    base_url: ""
+    model: tts-1  # 或 tts-1-hd
+    voice: alloy  # alloy, echo, fable, onyx, nova, shimmer
+    speed: 1.0
 ```
+
+**GPT-SoVITS 部署**：
+1. 从 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) 下载并部署
+2. 启动 API 服务（默认端口 9880）
+3. 准备参考音频和对应文本
 
 ## 高级功能
 
@@ -334,12 +474,79 @@ agent_manager.send_message(
 2. 在 `ToolRegistry` 中注册工具
 3. 通过 API 将工具绑定到角色
 
+## 常见问题
+
+### 1. 如何添加自定义 OpenAI 兼容供应商？
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/providers" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "deepseek",
+    "config_json": {
+      "api_key": "sk-xxx",
+      "base_url": "https://api.deepseek.com/v1"
+    }
+  }'
+```
+
+支持的自定义供应商包括：DeepSeek、Moonshot、智谱 AI、零一万物等。
+
+### 2. 如何切换模型？
+
+在发送消息时指定不同的 `model_id` 和 `provider_id` 即可。
+
+### 3. 语音功能是必需的吗？
+
+不是。ASR 和 TTS 功能是可选的，如果不需要可以不安装相关依赖。
+
+### 4. 支持流式响应吗？
+
+支持。API 提供了流式响应接口，可以实时获取 AI 的回复。
+
+### 5. 数据存储在哪里？
+
+所有数据存储在 `data/` 目录下的 SQLite 数据库中：
+- `app.db`：应用数据（角色、会话、消息）
+- `checkpoints.db`：对话历史检查点
+- `store.db`：长期记忆存储
+
 ## 注意事项
 
-- ASR 模型文件需要单独下载并放置在 `asr_models/` 目录
-- GPT-SoVITS 需要单独部署并配置 API 地址
-- 数据库文件会自动创建在 `data/` 目录
-- 建议在生产环境中使用环境变量管理敏感信息
+- **Python 版本**：必须使用 Python 3.12 或更高版本
+- **ASR 模型**：FunASR 模型文件需要单独下载并放置在 `asr_models/` 目录
+- **GPT-SoVITS**：需要单独部署并配置 API 地址
+- **数据库**：数据库文件会自动创建在 `data/` 目录
+- **环境变量**：建议在生产环境中使用环境变量管理敏感信息（API 密钥等）
+- **CUDA 支持**：如果使用 FunASR 的 GPU 加速，需要安装对应的 CUDA 和 PyTorch
+
+## 项目架构
+
+```
+后端架构：
+├── FastAPI (Web 框架)
+├── LangChain (AI 框架)
+├── LangGraph (Agent 编排)
+└── SQLite (数据存储)
+
+前端架构：
+├── React (UI 框架)
+├── TypeScript (类型安全)
+└── Vite (构建工具)
+
+数据流：
+用户 → 前端 → FastAPI → AgentManager → LangChain/LangGraph → LLM → 响应
+```
+
+## 开发路线图
+
+- [ ] 支持更多 LLM 供应商
+- [ ] 增强工具系统
+- [ ] 添加向量数据库支持
+- [ ] 实现多模态输入（图片、视频）
+- [ ] 优化前端交互体验
+- [ ] 添加用户认证和权限管理
+- [ ] 支持分布式部署
 
 ## 许可证
 
@@ -348,3 +555,7 @@ MIT License
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+## 联系方式
+
+如有问题或建议，请通过 GitHub Issues 联系。

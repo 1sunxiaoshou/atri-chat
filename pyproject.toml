@@ -1,0 +1,67 @@
+[project]
+name = "atri-v2"
+version = "0.1.0"
+description = "多角色 AI Agent 系统，支持多模型供应商、语音识别和语音合成"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Web 框架
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    
+    # AI 框架核心
+    "langchain>=0.3.0",
+    "langgraph>=0.2.0",
+    "langgraph-checkpoint-sqlite>=2.0.0",
+    
+    # LLM 供应商
+    "langchain-openai>=0.2.0",
+    "langchain-anthropic>=0.3.0",
+    "langchain-google-genai>=2.0.0",
+    "langchain-community>=0.3.0",
+    
+    # 数据库
+    "aiosqlite>=0.20.0",
+    
+    # 配置和工具
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# 语音识别（可选）
+asr = [
+    "funasr>=1.0.0",
+    "modelscope>=1.0.0",
+]
+
+# 开发工具
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.0.0",
+    "ruff>=0.6.0",
+]
+
+# 完整安装（包含所有可选功能）
+all = [
+    "atri-v2[asr,dev]",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

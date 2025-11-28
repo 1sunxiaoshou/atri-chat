@@ -360,7 +360,7 @@ class AppStorage:
     # ==================== 角色管理 ====================
     
     def add_character(self, name: str, description: str, system_prompt: str,
-                     primary_model_id: str, primary_provider_id: str, tts_id: str,
+                     primary_model_id: str, primary_provider_id: str, tts_id: str = "default",
                      enabled: bool = True) -> Optional[int]:
         """添加角色，返回角色ID"""
         try:
@@ -417,42 +417,26 @@ class AppStorage:
                 for row in cursor.fetchall()
             ]
     
-    def update_character(self, character_id: int, name: Optional[str] = None,
-                        description: Optional[str] = None, system_prompt: Optional[str] = None,
-                        primary_model_id: Optional[str] = None, primary_provider_id: Optional[str] = None,
-                        tts_id: Optional[str] = None, enabled: Optional[bool] = None) -> bool:
-        """更新角色"""
+    def update_character(self, character_id: int, **updates) -> bool:
+        """更新角色，支持部分字段更新，允许显式设为 NULL"""
+        allowed_fields = {
+            "name", "description", "system_prompt",
+            "primary_model_id", "primary_provider_id",
+            "tts_id", "enabled"
+        }
+
+        # 过滤非法字段（安全）
+        filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
+
+        if not filtered_updates:
+            return False
+
+        set_clause = ", ".join(f"{key} = ?" for key in filtered_updates)
+        params = list(filtered_updates.values()) + [character_id]
+
+        query = f"UPDATE characters SET {set_clause} WHERE character_id = ?"
+
         with sqlite3.connect(self.db_path) as conn:
-            updates = []
-            params = []
-            
-            if name is not None:
-                updates.append("name = ?")
-                params.append(name)
-            if description is not None:
-                updates.append("description = ?")
-                params.append(description)
-            if system_prompt is not None:
-                updates.append("system_prompt = ?")
-                params.append(system_prompt)
-            if primary_model_id is not None:
-                updates.append("primary_model_id = ?")
-                params.append(primary_model_id)
-            if primary_provider_id is not None:
-                updates.append("primary_provider_id = ?")
-                params.append(primary_provider_id)
-            if tts_id is not None:
-                updates.append("tts_id = ?")
-                params.append(tts_id)
-            if enabled is not None:
-                updates.append("enabled = ?")
-                params.append(enabled)
-            
-            if not updates:
-                return False
-            
-            params.append(character_id)
-            query = f"UPDATE characters SET {', '.join(updates)} WHERE character_id = ?"
             cursor = conn.execute(query, params)
             conn.commit()
             return cursor.rowcount > 0

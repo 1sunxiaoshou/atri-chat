@@ -71,58 +71,53 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const content = inputValue;
     setInputValue('');
-    setIsTyping(true);
 
-    // 乐观UI更新：立即添加用户消息
-    const tempId = Date.now();
-    const tempUserMsg: Message = {
-      message_id: tempId,
+    // 立即添加用户消息
+    const userMsgId = Date.now();
+    const userMsg: Message = {
+      message_id: userMsgId,
       conversation_id: activeConversationId,
       message_type: 'user',
       content: content,
       created_at: new Date().toISOString()
     };
-    setMessages(prev => [...prev, tempUserMsg]);
+    setMessages(prev => [...prev, userMsg]);
     scrollToBottom();
 
+    // 创建一个临时的 AI 消息用于流式更新
+    const aiMsgId = Date.now() + 1;
+    const aiMsg: Message = {
+      message_id: aiMsgId,
+      conversation_id: activeConversationId,
+      message_type: 'assistant',
+      content: '',
+      created_at: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, aiMsg]);
+
     try {
-      const res = await api.sendMessage(
+      await api.sendMessage(
         activeConversationId,
         content,
         Number(activeCharacter?.character_id || activeCharacter?.id),
         activeModel?.model_id || '',
-        activeModel?.provider_id || ''
+        activeModel?.provider_id || '',
+        // 流式更新回调
+        (streamContent: string) => {
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.message_id === aiMsgId 
+                ? { ...msg, content: streamContent }
+                : msg
+            )
+          );
+          scrollToBottom();
+        }
       );
-      if (res.code === 200) {
-        // 后端返回格式：data.message 是AI回复的纯文本
-        const aiResponse = res.data?.message || '';
-        
-        // 创建AI助手消息
-        const assistantMsg: Message = {
-          message_id: Date.now() + 1,
-          conversation_id: activeConversationId,
-          message_type: 'assistant',
-          content: aiResponse,
-          created_at: new Date().toISOString()
-        };
-        
-        // 替换临时消息，添加真实的用户消息和AI回复
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.message_id !== tempId);
-          return [...filtered, tempUserMsg, assistantMsg];
-        });
-        scrollToBottom();
-      } else {
-        // 请求失败，移除临时消息
-        setMessages(prev => prev.filter(m => m.message_id !== tempId));
-        console.error('发送消息失败:', res.message);
-      }
     } catch (e) {
       console.error("发送消息异常", e);
-      // 异常时移除临时消息
-      setMessages(prev => prev.filter(m => m.message_id !== tempId));
-    } finally {
-      setIsTyping(false);
+      // 异常时移除 AI 消息
+      setMessages(prev => prev.filter(m => m.message_id !== aiMsgId));
     }
   };
 
@@ -307,18 +302,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           ))
         )}
 
-        {isTyping && (
-          <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-600 overflow-hidden">
-              {activeCharacter?.avatar ? <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" /> : <Bot size={16} />}
-            </div>
-            <div className="bg-white border border-gray-100 px-5 py-4 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        )}
+
         <div ref={messagesEndRef} />
       </div>
 

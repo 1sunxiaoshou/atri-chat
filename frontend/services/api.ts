@@ -111,7 +111,7 @@ export const api = {
     /** 更新角色信息 */
     updateCharacter: async (id: string | number, updates: Partial<Character>): Promise<ApiResponse<Character>> => {
         const response = await fetch(`${BASE_URL}/characters/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',  // 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates)
         });
@@ -158,7 +158,14 @@ export const api = {
         return handleResponse<Message[]>(response);
     },
 
-    sendMessage: async (conversationId: number | string, content: string, characterId: number | string, modelId: string, providerId: string): Promise<ApiResponse<SendMessageData>> => {
+    sendMessage: async (
+        conversationId: number | string, 
+        content: string, 
+        characterId: number | string, 
+        modelId: string, 
+        providerId: string,
+        onChunk?: (content: string) => void
+    ): Promise<ApiResponse<SendMessageData>> => {
         const body = {
             conversation_id: conversationId,
             character_id: characterId,
@@ -172,7 +179,64 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-        return handleResponse<SendMessageData>(response);
+
+        if (!response.ok) {
+            return handleResponse<SendMessageData>(response);
+        }
+
+        // 处理流式响应
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        let buffer = ''; // 用于累积不完整的行
+
+        if (reader) {
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    // 解码并累积到 buffer
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    // 按行分割
+                    const lines = buffer.split('\n');
+                    
+                    // 保留最后一个不完整的行
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                console.log('[SSE] Received:', data); // 调试日志
+                                if (data.done) {
+                                    break;
+                                }
+                                if (data.content) {
+                                    fullContent += data.content;
+                                    if (onChunk) {
+                                        onChunk(fullContent);
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Failed to parse SSE data:', line, e);
+                            }
+                        }
+                    }
+                }
+            } finally {
+                reader.releaseLock();
+            }
+        }
+
+        return {
+            code: 200,
+            message: '消息发送成功',
+            data: {
+                message: fullContent
+            }
+        };
     },
 
     // TTS / Audio

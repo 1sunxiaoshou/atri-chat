@@ -46,31 +46,13 @@ class BaseProvider(ABC):
         pass
     
     def _merge_params(self, config: Dict[str, Any], **kwargs) -> Dict[str, Any]:
-        """合并配置参数，kwargs 优先级高于 config
-        
-        仅合并显式提供的参数，未提供的参数由模型实例化方法使用自己的默认值
-        
-        Args:
-            config: 供应商配置字典
-            **kwargs: 运行时参数
-            
-        Returns:
-            合并后的参数字典（仅包含显式提供的参数）
         """
-        merged = {}
-        
-        # temperature: kwargs > config
-        if "temperature" in kwargs:
-            merged["temperature"] = kwargs["temperature"]
-        elif "temperature" in config:
-            merged["temperature"] = config["temperature"]
-        
-        # max_tokens: kwargs > config
-        if "max_tokens" in kwargs:
-            merged["max_tokens"] = kwargs["max_tokens"]
-        elif "max_tokens" in config:
-            merged["max_tokens"] = config["max_tokens"]
-        
+        合并配置参数，kwargs 优先级高于 config。
+        仅包含在 kwargs 或 config 中显式提供的参数。
+        """
+        # 先取 config 的副本，再用 kwargs 覆盖
+        merged = {k: v for k, v in config.items() if v is not None}
+        merged.update({k: v for k, v in kwargs.items() if v is not None})
         return merged
     
     def create_model(

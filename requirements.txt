@@ -1,0 +1,46 @@
+# AI Agent API - Python 依赖
+# 使用 uv: uv pip install -r requirements.txt
+# 使用 pip: pip install -r requirements.txt
+
+# ============================================
+# 核心依赖
+# ============================================
+
+# Web 框架
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# AI 框架
+langchain>=0.3.0
+langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
+
+# LLM 供应商
+langchain-openai>=0.2.0
+langchain-anthropic>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-community>=0.3.0
+
+# 数据库
+aiosqlite>=0.20.0
+
+# 配置和工具
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# ============================================
+# 可选依赖（根据需要取消注释）
+# ============================================
+
+# 语音识别 (FunASR)
+funasr>=1.0.0
+# modelscope>=1.0.0
+
+# 开发工具
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
+# black>=24.0.0
+# ruff>=0.6.0
+
+dashscope==1.25.2
+loguru>=0.7.3
