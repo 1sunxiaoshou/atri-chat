@@ -15,11 +15,11 @@ export interface ProviderConfig {
 
 export interface Provider {
   provider_id: string;
-  type?: 'builtin' | 'custom';
-  name?: string; // UI helper
-  description?: string; // UI helper
+  name: string;
+  description?: string;
   config_json: ProviderConfig;
-  auto_registered?: boolean;
+  logo?: string;
+  template_type: 'openai' | 'anthropic' | 'google' | 'tongyi' | 'local';
 }
 
 // 3. Models
@@ -37,7 +37,8 @@ export interface Character {
   id?: string | number; // For backward compatibility
   name: string;
   description?: string;
-  avatar?: string; // UI enhancement (not in API)
+  avatar?: string; // Avatar URL (supports both URL and local upload)
+  avatar_position?: 'left' | 'center' | 'right'; // Avatar display position
   system_prompt: string;
   primary_model_id: string;
   primary_provider_id: string;

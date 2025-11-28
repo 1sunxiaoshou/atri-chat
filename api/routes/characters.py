@@ -23,6 +23,8 @@ async def create_character(
             primary_model_id=req.primary_model_id,
             primary_provider_id=req.primary_provider_id,
             tts_id=req.tts_id,
+            avatar=req.avatar,
+            avatar_position=req.avatar_position,
             enabled=req.enabled
         )
         if not character_id:

@@ -45,11 +45,11 @@ export const api = {
         return handleResponse<Provider>(response);
     },
     /** 更新服务商配置 */
-    updateProvider: async (provider_id: string, config_json: any): Promise<ApiResponse<Provider>> => {
+    updateProvider: async (provider_id: string, updates: { name?: string; config_json?: any; logo?: string }): Promise<ApiResponse<Provider>> => {
         const response = await fetch(`${BASE_URL}/providers/${provider_id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config_json })
+            body: JSON.stringify(updates)
         });
         return handleResponse<Provider>(response);
     },
@@ -78,10 +78,23 @@ export const api = {
     },
     /** 切换模型启用/禁用状态 */
     toggleModel: async (modelId: string, enabled: boolean, providerId: string): Promise<ApiResponse<void>> => {
+        // 先获取模型信息
+        const getResponse = await fetch(`${BASE_URL}/models/${providerId}/${modelId}`);
+        const modelData = await handleResponse<any>(getResponse);
+        
+        if (modelData.code !== 200) {
+            return modelData;
+        }
+        
+        // 更新模型
         const response = await fetch(`${BASE_URL}/models/${providerId}/${modelId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled })
+            body: JSON.stringify({
+                model_type: modelData.data.model_type,
+                capabilities: modelData.data.capabilities,
+                enabled
+            })
         });
         return handleResponse<void>(response);
     },
@@ -250,5 +263,35 @@ export const api = {
             body: formData
         });
         return handleResponse<AudioMessageData>(response);
+    },
+
+    // ==================== 文件上传 ====================
+    /** 上传角色头像 */
+    uploadAvatar: async (file: File): Promise<ApiResponse<{ url: string; filename: string }>> => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:8000/api/upload/avatar', {
+            method: 'POST',
+            body: formData
+        });
+        return handleResponse<{ url: string; filename: string }>(response);
+    },
+
+    /** 上传供应商Logo */
+    uploadProviderLogo: async (file: File, providerId?: string): Promise<ApiResponse<{ url: string; filename: string; provider_id?: string }>> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        let url = 'http://localhost:8000/api/upload/provider-logo';
+        if (providerId) {
+            url += `?provider_id=${providerId}`;
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+        return handleResponse<{ url: string; filename: string; provider_id?: string }>(response);
     }
 };

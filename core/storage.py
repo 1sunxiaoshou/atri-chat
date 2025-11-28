@@ -22,7 +22,10 @@ class AppStorage:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS provider_config (
                     provider_id TEXT PRIMARY KEY,
-                    config_json TEXT NOT NULL
+                    name TEXT NOT NULL,
+                    config_json TEXT NOT NULL,
+                    logo TEXT,
+                    template_type TEXT DEFAULT 'openai'
                 )
             """)
             
@@ -58,12 +61,12 @@ class AppStorage:
                     name TEXT NOT NULL,
                     description TEXT NOT NULL,
                     system_prompt TEXT NOT NULL,
-                    primary_model_id TEXT NOT NULL,
-                    primary_provider_id TEXT NOT NULL,
+                    primary_model_id TEXT,
+                    primary_provider_id TEXT,
                     tts_id TEXT NOT NULL,
-                    enabled BOOLEAN DEFAULT 1,
-                    FOREIGN KEY (primary_provider_id, primary_model_id) REFERENCES models(provider_id, model_id),
-                    FOREIGN KEY (tts_id) REFERENCES tts_models(tts_id)
+                    avatar TEXT,
+                    avatar_position TEXT DEFAULT 'center',
+                    enabled BOOLEAN DEFAULT 1
                 )
             """)
             
@@ -115,53 +118,78 @@ class AppStorage:
     
     # ==================== 模型供应商配置 ====================
     
-    def add_provider(self, config: ProviderConfig) -> bool:
+    def add_provider(self, config: ProviderConfig, name: str = None, logo: str = None, template_type: str = "openai") -> bool:
         """添加供应商配置"""
         try:
             with sqlite3.connect(self.db_path) as conn:
+                provider_name = name or config.provider_id
                 conn.execute(
-                    "INSERT INTO provider_config VALUES (?, ?)",
-                    (config.provider_id, json.dumps(config.config_json))
+                    "INSERT INTO provider_config VALUES (?, ?, ?, ?, ?)",
+                    (config.provider_id, provider_name, json.dumps(config.config_json), logo, template_type)
                 )
                 conn.commit()
             return True
         except sqlite3.IntegrityError:
             return False
     
-    def get_provider(self, provider_id: str) -> Optional[ProviderConfig]:
+    def get_provider(self, provider_id: str) -> Optional[Dict[str, Any]]:
         """获取供应商配置"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT provider_id, config_json FROM provider_config WHERE provider_id = ?",
+                "SELECT provider_id, name, config_json, logo, template_type FROM provider_config WHERE provider_id = ?",
                 (provider_id,)
             )
             row = cursor.fetchone()
             if row:
-                return ProviderConfig(
-                    provider_id=row[0],
-                    config_json=json.loads(row[1])
-                )
+                return {
+                    "provider_id": row[0],
+                    "name": row[1],
+                    "config_json": json.loads(row[2]),
+                    "logo": row[3],
+                    "template_type": row[4] if len(row) > 4 else "openai"
+                }
         return None
     
-    def list_providers(self) -> List[ProviderConfig]:
+    def list_providers(self) -> List[Dict[str, Any]]:
         """列出所有供应商配置"""
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute("SELECT provider_id, config_json FROM provider_config")
+            cursor = conn.execute("SELECT provider_id, name, config_json, logo, template_type FROM provider_config")
             return [
-                ProviderConfig(
-                    provider_id=row[0],
-                    config_json=json.loads(row[1])
-                )
+                {
+                    "provider_id": row[0],
+                    "name": row[1],
+                    "config_json": json.loads(row[2]),
+                    "logo": row[3],
+                    "template_type": row[4] if len(row) > 4 else "openai"
+                }
                 for row in cursor.fetchall()
             ]
     
-    def update_provider(self, config: ProviderConfig) -> bool:
+    def update_provider(self, provider_id: str, name: str = None, config_json: Dict[str, Any] = None, logo: str = None, template_type: str = None) -> bool:
         """更新供应商配置"""
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "UPDATE provider_config SET config_json = ? WHERE provider_id = ?",
-                (json.dumps(config.config_json), config.provider_id)
-            )
+            updates = []
+            params = []
+            
+            if name is not None:
+                updates.append("name = ?")
+                params.append(name)
+            if config_json is not None:
+                updates.append("config_json = ?")
+                params.append(json.dumps(config_json))
+            if logo is not None:
+                updates.append("logo = ?")
+                params.append(logo)
+            if template_type is not None:
+                updates.append("template_type = ?")
+                params.append(template_type)
+            
+            if not updates:
+                return False
+            
+            params.append(provider_id)
+            query = f"UPDATE provider_config SET {', '.join(updates)} WHERE provider_id = ?"
+            cursor = conn.execute(query, params)
             conn.commit()
             return cursor.rowcount > 0
     
@@ -360,14 +388,15 @@ class AppStorage:
     # ==================== 角色管理 ====================
     
     def add_character(self, name: str, description: str, system_prompt: str,
-                     primary_model_id: str, primary_provider_id: str, tts_id: str = "default",
+                     primary_model_id: Optional[str] = None, primary_provider_id: Optional[str] = None, 
+                     tts_id: str = "default", avatar: str = None, avatar_position: str = "center", 
                      enabled: bool = True) -> Optional[int]:
         """添加角色，返回角色ID"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute(
-                    "INSERT INTO characters (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, enabled)
+                    "INSERT INTO characters (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled)
                 )
                 conn.commit()
                 return cursor.lastrowid
@@ -378,7 +407,7 @@ class AppStorage:
         """获取角色"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, enabled FROM characters WHERE character_id = ?",
+                "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled FROM characters WHERE character_id = ?",
                 (character_id,)
             )
             row = cursor.fetchone()
@@ -391,14 +420,16 @@ class AppStorage:
                     "primary_model_id": row[4],
                     "primary_provider_id": row[5],
                     "tts_id": row[6],
-                    "enabled": bool(row[7])
+                    "avatar": row[7],
+                    "avatar_position": row[8],
+                    "enabled": bool(row[9])
                 }
         return None
     
     def list_characters(self, enabled_only: bool = True) -> List[Dict[str, Any]]:
         """列出角色"""
         with sqlite3.connect(self.db_path) as conn:
-            query = "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, enabled FROM characters"
+            query = "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled FROM characters"
             if enabled_only:
                 query += " WHERE enabled = 1"
             
@@ -412,7 +443,9 @@ class AppStorage:
                     "primary_model_id": row[4],
                     "primary_provider_id": row[5],
                     "tts_id": row[6],
-                    "enabled": bool(row[7])
+                    "avatar": row[7],
+                    "avatar_position": row[8],
+                    "enabled": bool(row[9])
                 }
                 for row in cursor.fetchall()
             ]
@@ -422,7 +455,7 @@ class AppStorage:
         allowed_fields = {
             "name", "description", "system_prompt",
             "primary_model_id", "primary_provider_id",
-            "tts_id", "enabled"
+            "tts_id", "avatar", "avatar_position", "enabled"
         }
 
         # 过滤非法字段（安全）

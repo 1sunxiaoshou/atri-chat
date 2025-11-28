@@ -81,7 +81,7 @@ async def get_model(
 async def list_models(
     provider_id: str = None,
     model_type: str = None,
-    enabled_only: bool = True,
+    enabled_only: bool = False,
     app_storage: AppStorage = Depends(get_storage)
 ):
     """列出模型
@@ -89,7 +89,7 @@ async def list_models(
     查询参数:
     - provider_id: 供应商ID (可选)
     - model_type: 模型类型 text/embedding/rerank (可选)
-    - enabled_only: 仅显示启用的模型 (默认 true)
+    - enabled_only: 仅显示启用的模型 (默认 false，显示所有模型)
     """
     try:
         model_type_enum = ModelType(model_type) if model_type else None
