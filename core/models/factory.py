@@ -3,7 +3,7 @@
 提供模型创建、供应商管理和依赖检查功能
 """
 from typing import Optional, Any, TYPE_CHECKING, Dict, List
-from .config import ModelConfig, ProviderMetadata
+from .config import ModelConfig, ProviderMetadata, ProviderConfig
 from .provider import BaseProvider, OpenAIProvider, AnthropicProvider, GoogleProvider, TongyiProvider, LocalProvider
 
 if TYPE_CHECKING:
@@ -14,130 +14,90 @@ class ModelFactory:
     """模型工厂
     
     使用供应商插件化架构管理不同供应商的模型创建逻辑。
-    支持动态注册自定义供应商。
+    所有供应商配置统一存储在数据库，通过 template_type 路由到对应的 Provider 实现类。
     """
     
     def __init__(self, storage: "AppStorage"):
         self.storage = storage
-        self._providers: Dict[str, BaseProvider] = {}
-        self._custom_openai_providers: set = set()  # 记录自定义 OpenAI 兼容供应商
-        self._register_default_providers()
+        self._provider_templates: Dict[str, BaseProvider] = {}
+        self._register_provider_templates()
     
-    def _register_default_providers(self):
-        """注册默认供应商"""
-        self.register_provider(OpenAIProvider())
-        self.register_provider(AnthropicProvider())
-        self.register_provider(GoogleProvider())
-        self.register_provider(TongyiProvider())
-        self.register_provider(LocalProvider())
+    def _register_provider_templates(self):
+        """注册供应商模板（Provider 实现类）"""
+        self.register_provider_template(OpenAIProvider())
+        self.register_provider_template(AnthropicProvider())
+        self.register_provider_template(GoogleProvider())
+        self.register_provider_template(TongyiProvider())
+        self.register_provider_template(LocalProvider())
     
-    def register_provider(self, provider: BaseProvider) -> None:
-        """注册供应商
+    def get_available_templates(self) -> List[str]:
+        """获取所有可用的供应商模板类型"""
+        return list(self._provider_templates.keys())
+    
+    def register_provider_template(self, provider: BaseProvider) -> None:
+        """注册供应商模板
         
         Args:
             provider: 供应商实例
         """
-        self._providers[provider.metadata.provider_id] = provider
+        self._provider_templates[provider.metadata.provider_id] = provider
     
-    def get_provider(self, provider_id: str) -> Optional[BaseProvider]:
-        """获取供应商
-        
-        如果是自定义 OpenAI 兼容供应商，返回 OpenAIProvider 实例
-        """
-        if provider_id in self._custom_openai_providers:
-            return self._providers.get("openai")
-        return self._providers.get(provider_id)
-    
-    def register_custom_openai_provider(self, provider_id: str, name: str, description: str = "") -> bool:
-        """注册自定义 OpenAI 兼容供应商
+    def get_provider_template(self, template_type: str) -> Optional[BaseProvider]:
+        """根据模板类型获取 Provider 实现类
         
         Args:
-            provider_id: 供应商ID
-            name: 供应商名称
-            description: 供应商描述
-            
+            template_type: 模板类型 (openai, anthropic, google, tongyi, local)
+        
         Returns:
-            是否注册成功
+            Provider 实例，如果模板不存在则返回 None
         """
-        if provider_id in self._providers or provider_id in self._custom_openai_providers:
-            return False
-        
-        self._custom_openai_providers.add(provider_id)
-        return True
+        return self._provider_templates.get(template_type)
     
-    def is_custom_openai_provider(self, provider_id: str) -> bool:
-        """检查是否为自定义 OpenAI 兼容供应商"""
-        return provider_id in self._custom_openai_providers
-    
-    def list_custom_openai_providers(self) -> list:
-        """列出所有自定义 OpenAI 兼容供应商"""
-        return list(self._custom_openai_providers)
-    
-    def get_provider_metadata(self, provider_id: str) -> Optional[ProviderMetadata]:
-        """获取供应商元数据（包括自定义 OpenAI 兼容供应商）"""
-        from .config import ConfigField
-        
-        # 如果是自定义 OpenAI 兼容供应商
-        if provider_id in self._custom_openai_providers:
-            return ProviderMetadata(
-                provider_id=provider_id,
-                name=provider_id.title(),
-                description=f"Custom OpenAI-compatible provider: {provider_id}",
-                config_fields=[
-                    ConfigField(field_name="api_key", field_type="string", required=True, description="API密钥"),
-                    ConfigField(field_name="base_url", field_type="string", required=True, description="API基础URL"),
-                ]
-            )
-        
-        # 内置供应商
-        provider = self._providers.get(provider_id)
-        return provider.metadata if provider else None
-    
-    def get_all_provider_metadata(self) -> Dict[str, ProviderMetadata]:
-        """获取所有已注册供应商的元数据（包括自定义 OpenAI 兼容供应商）"""
-        from .config import ConfigField
-        
-        metadata_dict = {
-            provider_id: provider.metadata
-            for provider_id, provider in self._providers.items()
+    def get_all_template_metadata(self) -> Dict[str, ProviderMetadata]:
+        """获取所有供应商模板的元数据"""
+        return {
+            template_id: provider.metadata
+            for template_id, provider in self._provider_templates.items()
         }
-        
-        # 添加自定义 OpenAI 兼容供应商的元数据
-        for custom_id in self._custom_openai_providers:
-            metadata_dict[custom_id] = ProviderMetadata(
-                provider_id=custom_id,
-                name=custom_id.title(),
-                description=f"Custom OpenAI-compatible provider: {custom_id}",
-                config_fields=[
-                    ConfigField(field_name="api_key", field_type="string", required=True, description="API密钥"),
-                    ConfigField(field_name="base_url", field_type="string", required=True, description="API基础URL"),
-                ]
-            )
-        
-        return metadata_dict
     
     def create_model(self, provider_id: str, model_id: str, **kwargs) -> Optional[Any]:
-        """根据provider_id和model_id创建模型实例
+        """根据 provider_id 和 model_id 创建模型实例
+        
+        流程：
+        1. 从数据库查询模型配置
+        2. 从数据库查询供应商配置（获取 api_key、base_url、template_type 等）
+        3. 根据 template_type 找到对应的 Provider 实现类
+        4. 使用 Provider 实例化模型
         
         Args:
             provider_id: 供应商ID
             model_id: 模型ID
             **kwargs: 动态参数（temperature, max_tokens等），会覆盖配置中的默认值
         """
+        # 1. 获取模型配置
         model_config = self.storage.get_model(provider_id, model_id)
         if not model_config or not model_config.enabled:
             return None
         
-        provider_config = self.storage.get_provider(provider_id)
-        if not provider_config:
+        # 2. 获取供应商配置
+        provider_config_dict = self.storage.get_provider(provider_id)
+        if not provider_config_dict:
             return None
         
-        provider = self.get_provider(provider_id)
-        if not provider:
-            print(f"警告: 未注册的供应商 '{provider_id}'")
+        # 3. 根据 template_type 获取 Provider 实现类
+        template_type = provider_config_dict.get("template_type", "openai")
+        provider_template = self.get_provider_template(template_type)
+        if not provider_template:
+            print(f"警告: 未找到供应商模板 '{template_type}'")
             return None
         
-        return provider.create_model(model_config, provider_config, **kwargs)
+        # 4. 构造 ProviderConfig 并实例化模型
+        provider_config = ProviderConfig(
+            provider_id=provider_config_dict["provider_id"],
+            config_json=provider_config_dict["config_json"]
+        )
+        
+        return provider_template.create_model(model_config, provider_config, **kwargs)
     
     def check_provider_dependencies(self, provider_id: str) -> Dict[str, List[str]]:
         """检查供应商的依赖关系
@@ -164,3 +124,14 @@ class ModelFactory:
                 dependencies["characters"].append(char["name"])
         
         return dependencies
+    
+    def validate_template_type(self, template_type: str) -> bool:
+        """验证模板类型是否有效
+        
+        Args:
+            template_type: 模板类型
+            
+        Returns:
+            是否有效
+        """
+        return template_type in self._provider_templates

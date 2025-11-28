@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Cpu, Users, Plus, Trash, Edit2, Save, X, Eye, EyeOff, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react';
+import { Server, Cpu, Users, Plus, Trash, Save, X, CheckCircle, RotateCcw } from 'lucide-react';
 import { Provider, Model, Character, AdminTab } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { AvatarEditor } from './AvatarEditor';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -28,8 +29,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [newModel, setNewModel] = useState<Partial<Model>>({ capabilities: ['chat'] });
 
+  // Model Filter State
+  const [modelFilterProvider, setModelFilterProvider] = useState<string>('');
+  const [modelFilterType, setModelFilterType] = useState<string>('');
+  const [modelFilterEnabled, setModelFilterEnabled] = useState<string>('');
+
   // Character Edit State
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,7 +59,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       setEditingProvider({
         provider_id: '',
         name: '',
-        type: 'custom',
+        template_type: 'openai',
         description: '',
         config_json: { api_key: '', base_url: '' }
       });
@@ -61,21 +68,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   };
 
   const handleSaveProvider = async () => {
-    if (!editingProvider || !editingProvider.provider_id) return;
+    if (!editingProvider || !editingProvider.provider_id || !editingProvider.name) return;
 
-    // Check if it's an update or create
     const existing = providers.find(p => p.provider_id === editingProvider.provider_id);
 
-    if (existing && editingProvider.config_json) {
-      // Simple logic: if provider exists in state, assume update.
-      const isUpdate = providers.some(p => p.provider_id === editingProvider.provider_id);
-
-      if (isUpdate) {
-        await api.updateProvider(editingProvider.provider_id, editingProvider.config_json);
-      } else {
-        await api.createProvider(editingProvider as Provider);
-      }
-    } else if (!existing) {
+    if (existing) {
+      // 更新
+      await api.updateProvider(editingProvider.provider_id, {
+        name: editingProvider.name,
+        config_json: editingProvider.config_json
+      });
+    } else {
+      // 创建
       await api.createProvider(editingProvider as Provider);
     }
 
@@ -210,16 +214,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {providers.map((p) => (
           <div key={p.provider_id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className={`absolute top-0 right-0 p-4 ${p.type === 'builtin' ? 'text-blue-500' : 'text-purple-500'}`}>
+            <div className="absolute top-0 right-0 p-4 text-blue-500">
               <CheckCircle size={18} />
             </div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100">
-                <Server size={20} className="text-gray-600" />
+                {p.logo ? (
+                  <img src={p.logo.startsWith('http') ? p.logo : 'http://localhost:8000' + p.logo} alt={p.name} className="w-full h-full object-contain rounded-lg" />
+                ) : (
+                  <Server size={20} className="text-gray-600" />
+                )}
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">{p.name || p.provider_id}</h4>
-                <span className="text-xs text-gray-500 uppercase tracking-wide bg-gray-100 px-2 py-0.5 rounded-full">{p.type}</span>
+                <h4 className="font-semibold text-gray-900">{p.name}</h4>
+                <span className="text-xs text-gray-500 uppercase tracking-wide bg-gray-100 px-2 py-0.5 rounded-full">{p.template_type}</span>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-6 min-h-[40px]">{p.description || "No description provided."}</p>
@@ -253,7 +261,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     </div>
   );
 
-  const renderModels = () => (
+  const renderModels = () => {
+    // 筛选模型
+    const filteredModels = models.filter(m => {
+      if (modelFilterProvider && m.provider_id !== modelFilterProvider) return false;
+      if (modelFilterType && m.model_type !== modelFilterType) return false;
+      if (modelFilterEnabled === 'enabled' && !m.enabled) return false;
+      if (modelFilterEnabled === 'disabled' && m.enabled) return false;
+      return true;
+    });
+
+    return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-gray-800">{t('admin.models')}</h3>
@@ -269,6 +287,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           </button>
         </div>
       </div>
+
+      {/* 筛选器 */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="flex gap-4 items-center">
+          <span className="text-sm font-medium text-gray-700">筛选:</span>
+          <select
+            value={modelFilterProvider}
+            onChange={(e) => setModelFilterProvider(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            <option value="">所有供应商</option>
+            {[...new Set(models.map(m => m.provider_id))].map(pid => (
+              <option key={pid} value={pid}>{pid}</option>
+            ))}
+          </select>
+          <select
+            value={modelFilterType}
+            onChange={(e) => setModelFilterType(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            <option value="">所有类型</option>
+            <option value="text">Text</option>
+            <option value="embedding">Embedding</option>
+          </select>
+          <select
+            value={modelFilterEnabled}
+            onChange={(e) => setModelFilterEnabled(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            <option value="">所有状态</option>
+            <option value="enabled">已启用</option>
+            <option value="disabled">已禁用</option>
+          </select>
+          {(modelFilterProvider || modelFilterType || modelFilterEnabled) && (
+            <button
+              onClick={() => {
+                setModelFilterProvider('');
+                setModelFilterType('');
+                setModelFilterEnabled('');
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              清除筛选
+            </button>
+          )}
+          <span className="text-sm text-gray-500 ml-auto">
+            显示 {filteredModels.length} / {models.length} 个模型
+          </span>
+        </div>
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
@@ -282,7 +351,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {models.map((m) => (
+            {filteredModels.map((m) => (
               <tr key={`${m.provider_id}-${m.model_id}`} className="hover:bg-gray-50/50 transition-colors group">
                 <td className="px-6 py-4 font-medium text-gray-900">{m.model_id}</td>
                 <td className="px-6 py-4">
@@ -318,7 +387,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         </table>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderCharacters = () => (
     <div className="flex gap-6 h-[calc(100vh-200px)] animate-fadeIn">
@@ -344,7 +414,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 onClick={() => setEditingCharacter(c)}
                 className={`p-4 flex items-center gap-3 cursor-pointer border-l-4 transition-all ${editingCharId === charId ? 'bg-blue-50 border-blue-500' : 'border-transparent hover:bg-gray-50'}`}
               >
-                <img src={c.avatar || "https://picsum.photos/50"} alt={c.name} className="w-10 h-10 rounded-full object-cover bg-gray-200" />
+                <img src={c.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + c.name} alt={c.name} className="w-10 h-10 rounded-full object-cover bg-gray-200" />
                 <div className="overflow-hidden flex-1">
                   <p className="font-medium text-gray-900 truncate">{c.name}</p>
                   <p className="text-xs text-gray-500 truncate">{c.description || c.primary_model_id}</p>
@@ -374,10 +444,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             </div>
 
             <div className="flex items-center gap-6 mb-8">
-              <div className="relative group cursor-pointer">
-                <img src={editingCharacter.avatar || "https://picsum.photos/100"} className="w-20 h-20 rounded-full object-cover bg-gray-100" />
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white">
-                  <Edit2 size={20} />
+              <div 
+                className="relative group cursor-pointer"
+                onClick={() => setIsAvatarEditorOpen(true)}
+              >
+                <img 
+                  src={editingCharacter.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + editingCharacter.name} 
+                  className="w-20 h-20 rounded-full object-cover bg-gray-100 border-2 border-gray-200 group-hover:border-blue-400 transition-all" 
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-white text-xs font-medium">点击编辑</span>
                 </div>
               </div>
               <div className="flex-1 space-y-3">
@@ -530,18 +606,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     onChange={(e) => setEditingProvider({ ...editingProvider, provider_id: e.target.value })}
                     disabled={providers.some(p => p.provider_id === editingProvider.provider_id && editingProvider !== p)} // Crude check if existing logic
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="e.g. openai"
+                    placeholder="e.g. deepseek"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{t('admin.providerType')}</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">供应商模板</label>
                   <select
-                    value={editingProvider.type || 'custom'}
-                    onChange={(e) => setEditingProvider({ ...editingProvider, type: e.target.value as any })}
+                    value={editingProvider.template_type || 'openai'}
+                    onChange={(e) => setEditingProvider({ ...editingProvider, template_type: e.target.value as any })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   >
-                    <option value="builtin">Built-in</option>
-                    <option value="custom">Custom</option>
+                    <option value="openai">OpenAI 兼容</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="google">Google (Gemini)</option>
+                    <option value="tongyi">通义千问</option>
+                    <option value="local">本地模型 (Ollama)</option>
                   </select>
                 </div>
               </div>
@@ -688,6 +767,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Avatar Editor Modal */}
+      {isAvatarEditorOpen && editingCharacter && (
+        <AvatarEditor
+          currentAvatar={editingCharacter.avatar || ''}
+          onSave={async (avatarUrl) => {
+            try {
+              let finalAvatarUrl = avatarUrl;
+              
+              // 如果是本地文件（base64），需要上传
+              if (avatarUrl.startsWith('data:')) {
+                // 将base64转换为文件并上传
+                const response = await fetch(avatarUrl);
+                const blob = await response.blob();
+                const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                const result = await api.uploadAvatar(file);
+                if (result.code === 200) {
+                  finalAvatarUrl = 'http://localhost:8000' + result.data.url;
+                } else {
+                  alert('头像上传失败');
+                  return;
+                }
+              }
+              
+              // 立即调用 API 更新角色头像
+              const charId = getCharacterId(editingCharacter);
+              await api.updateCharacter(charId, { avatar: finalAvatarUrl });
+              
+              // 更新本地状态
+              setEditingCharacter({ ...editingCharacter, avatar: finalAvatarUrl });
+              
+              // 刷新数据
+              await fetchData();
+              
+              setIsAvatarEditorOpen(false);
+            } catch (error) {
+              console.error('头像保存失败:', error);
+              alert('头像保存失败，请重试');
+            }
+          }}
+          onCancel={() => setIsAvatarEditorOpen(false)}
+        />
       )}
     </div>
   );

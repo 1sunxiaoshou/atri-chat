@@ -1,5 +1,11 @@
 # 数据文件
-data
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/uploads/avatars/*
+data/uploads/provider_logos/*
+!data/uploads/avatars/README.md
+!data/uploads/provider_logos/README.md
 asr_models
 .env
 

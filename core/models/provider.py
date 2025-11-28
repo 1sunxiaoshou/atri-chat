@@ -88,6 +88,7 @@ class OpenAIProvider(BaseProvider):
             provider_id="openai",
             name="OpenAI",
             description="OpenAI API provider for GPT models",
+            logo="/static/logos/openai.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="OpenAI API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.openai.com/v1", description="API基础URL"),
@@ -131,6 +132,7 @@ class AnthropicProvider(BaseProvider):
             provider_id="anthropic",
             name="Anthropic",
             description="Anthropic Claude API provider",
+            logo="/static/logos/anthropic.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Anthropic API密钥"),
             ]
@@ -163,6 +165,7 @@ class GoogleProvider(BaseProvider):
             provider_id="google",
             name="Google",
             description="Google Generative AI provider",
+            logo="/static/logos/google.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Google API密钥"),
             ]
@@ -208,6 +211,7 @@ class TongyiProvider(BaseProvider):
             provider_id="tongyi",
             name="Tongyi",
             description="Alibaba Tongyi Qianwen API provider",
+            logo="/static/logos/tongyi.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="通义千问API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, description="API基础URL"),
@@ -242,6 +246,7 @@ class LocalProvider(BaseProvider):
             provider_id="local",
             name="Local Model",
             description="Local model provider (Ollama, vLLM, etc.)",
+            logo="/static/logos/local.png",
             config_fields=[
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="http://localhost:11434", description="Ollama服务地址"),
             ]

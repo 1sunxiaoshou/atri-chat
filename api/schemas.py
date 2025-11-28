@@ -15,12 +15,18 @@ class ResponseModel(BaseModel):
 class ProviderConfigRequest(BaseModel):
     """供应商配置请求"""
     provider_id: str = Field(..., description="供应商ID")
+    name: str = Field(..., description="供应商名称")
     config_json: Dict[str, Any] = Field(..., description="配置JSON")
+    logo: Optional[str] = Field(None, description="供应商Logo URL")
+    template_type: Optional[str] = Field("openai", description="供应商模板类型: openai/anthropic/google/tongyi/local")
 
 
 class ProviderConfigUpdateRequest(BaseModel):
     """供应商配置更新请求"""
-    config_json: Dict[str, Any] = Field(..., description="配置JSON")
+    name: Optional[str] = Field(None, description="供应商名称")
+    config_json: Optional[Dict[str, Any]] = Field(None, description="配置JSON")
+    logo: Optional[str] = Field(None, description="供应商Logo URL")
+    template_type: Optional[str] = Field(None, description="供应商模板类型: openai/anthropic/google/tongyi/local")
 
 
 # ==================== 模型相关 ====================
@@ -88,9 +94,11 @@ class CharacterRequest(BaseModel):
     name: str = Field(..., description="角色名称")
     description: str = Field(..., description="角色描述")
     system_prompt: str = Field(..., description="系统提示词")
-    primary_model_id: str = Field(..., description="主模型ID")
-    primary_provider_id: str = Field(..., description="主供应商ID")
+    primary_model_id: Optional[str] = Field(None, description="主模型ID（可选）")
+    primary_provider_id: Optional[str] = Field(None, description="主供应商ID（可选）")
     tts_id: Optional[str] = Field("default", description="TTS ID")
+    avatar: Optional[str] = Field(None, description="角色头像URL")
+    avatar_position: Optional[str] = Field("center", description="头像显示位置: left/center/right")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -103,6 +111,8 @@ class CharacterResponse(BaseModel):
     primary_model_id: str
     primary_provider_id: str
     tts_id: str
+    avatar: Optional[str]
+    avatar_position: Optional[str]
     enabled: bool
 
 
@@ -114,6 +124,8 @@ class CharacterUpdateRequest(BaseModel):
     primary_model_id: Optional[str] = None
     primary_provider_id: Optional[str] = None
     tts_id: Optional[str] = None
+    avatar: Optional[str] = None
+    avatar_position: Optional[str] = None
     enabled: Optional[bool] = None
 
 

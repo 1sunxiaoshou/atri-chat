@@ -18,50 +18,49 @@ async def create_provider(
 ):
     """创建供应商配置
     
-    支持内置供应商和自定义 OpenAI 兼容供应商：
-    - 内置供应商: openai, anthropic, google, tongyi, local
-    - 自定义供应商: 任意名称，自动注册为 OpenAI 兼容供应商
+    所有供应商通过 template_type 指定使用哪个 Provider 实现类。
+    可用的模板类型: openai, anthropic, google, tongyi, local
     
     请求体示例:
     {
-        "provider_id": "deepseek",  // 可以是任意名称
+        "provider_id": "deepseek",
+        "name": "DeepSeek",
+        "template_type": "openai",
         "config_json": {
             "api_key": "sk-xxx",
-            "base_url": "https://api.deepseek.com/v1"  // 自定义供应商需要提供 base_url
+            "base_url": "https://api.deepseek.com/v1"
         }
     }
     """
     try:
         agent_manager = get_agent_manager()
         
-        # 检查是否为内置供应商
-        builtin_providers = ["openai", "anthropic", "google", "tongyi", "local"]
-        is_builtin = req.provider_id in builtin_providers
+        # 确定模板类型
+        template_type = req.template_type or "openai"
         
-        # 如果不是内置供应商，自动注册为 OpenAI 兼容供应商
-        if not is_builtin:
-            # 检查是否已注册
-            if not agent_manager.model_factory.is_custom_openai_provider(req.provider_id):
-                # 自动注册
-                agent_manager.model_factory.register_custom_openai_provider(
-                    provider_id=req.provider_id,
-                    name=req.provider_id.title(),
-                    description=f"Custom OpenAI-compatible provider"
-                )
-            
-            # 验证必需的配置字段
-            if "base_url" not in req.config_json:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="自定义供应商必须提供 base_url 配置"
-                )
+        # 验证模板类型并获取模板
+        template = agent_manager.model_factory.get_provider_template(template_type)
+        if not template:
+            available = agent_manager.model_factory.get_available_templates()
+            raise HTTPException(
+                status_code=400,
+                detail=f"无效的 template_type: {template_type}，可用模板: {', '.join(available)}"
+            )
+        
+        # Logo 从模板元数据中获取
+        logo = template.metadata.logo
         
         # 创建供应商配置
         config = ProviderConfig(
             provider_id=req.provider_id,
             config_json=req.config_json
         )
-        success = app_storage.add_provider(config)
+        success = app_storage.add_provider(
+            config,
+            name=req.name,
+            logo=logo,
+            template_type=template_type
+        )
         if not success:
             raise HTTPException(status_code=400, detail="供应商已存在")
         
@@ -70,8 +69,9 @@ async def create_provider(
             message="供应商创建成功",
             data={
                 "provider_id": req.provider_id,
-                "type": "builtin" if is_builtin else "custom_openai_compatible",
-                "auto_registered": not is_builtin
+                "name": req.name,
+                "template_type": template_type,
+                "logo": logo
             }
         )
     except HTTPException:
@@ -90,12 +90,25 @@ async def get_provider(
         provider = app_storage.get_provider(provider_id)
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
+        
+        # 获取模板元数据
+        agent_manager = get_agent_manager()
+        template_type = provider.get("template_type", "openai")
+        template = agent_manager.model_factory.get_provider_template(template_type)
+        
+        # Logo 从模板元数据中获取
+        logo = template.metadata.logo if template else provider.get("logo")
+        
         return ResponseModel(
             code=200,
             message="获取成功",
             data={
-                "provider_id": provider.provider_id,
-                "config_json": provider.config_json
+                "provider_id": provider["provider_id"],
+                "name": provider["name"],
+                "template_type": template_type,
+                "description": template.metadata.description if template else "",
+                "config_json": provider["config_json"],
+                "logo": logo
             }
         )
     except HTTPException:
@@ -108,14 +121,26 @@ async def get_provider(
 async def list_providers(app_storage: AppStorage = Depends(get_storage)):
     """列出所有供应商"""
     try:
+        agent_manager = get_agent_manager()
         providers = app_storage.list_providers()
-        data = [
-            {
-                "provider_id": p.provider_id,
-                "config_json": p.config_json
-            }
-            for p in providers
-        ]
+        
+        data = []
+        for p in providers:
+            template_type = p.get("template_type", "openai")
+            template = agent_manager.model_factory.get_provider_template(template_type)
+            
+            # Logo 从模板元数据中获取
+            logo = template.metadata.logo if template else p.get("logo")
+            
+            data.append({
+                "provider_id": p["provider_id"],
+                "name": p["name"],
+                "template_type": template_type,
+                "description": template.metadata.description if template else "",
+                "config_json": p["config_json"],
+                "logo": logo
+            })
+        
         return ResponseModel(
             code=200,
             message="获取成功",
@@ -135,28 +160,42 @@ async def update_provider(
     
     请求体示例:
     {
+        "name": "OpenAI",
+        "template_type": "openai",
         "config_json": {
             "api_key": "sk-xxx",
-            "base_url": "https://api.openai.com/v1",
-            "temperature": 0.7
+            "base_url": "https://api.openai.com/v1"
         }
     }
-    
-    注意：temperature 和 max_tokens 等参数可以在这里配置默认值，
-    也可以在创建模型时动态传入（优先级：运行时参数 > 配置参数 > 模型默认值）
     """
     try:
-        config = ProviderConfig(
+        # 如果更新了 template_type，验证并自动更新 logo
+        logo = None
+        if req.template_type:
+            agent_manager = get_agent_manager()
+            template = agent_manager.model_factory.get_provider_template(req.template_type)
+            if not template:
+                available = agent_manager.model_factory.get_available_templates()
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"无效的 template_type: {req.template_type}，可用模板: {', '.join(available)}"
+                )
+            logo = template.metadata.logo
+        
+        success = app_storage.update_provider(
             provider_id=provider_id,
-            config_json=req.config_json
+            name=req.name,
+            config_json=req.config_json,
+            logo=logo,
+            template_type=req.template_type
         )
-        success = app_storage.update_provider(config)
         if not success:
             raise HTTPException(status_code=404, detail="供应商不存在")
+        
         return ResponseModel(
             code=200,
             message="更新成功",
-            data={"provider_id": provider_id}
+            data={"provider_id": provider_id, "logo": logo}
         )
     except HTTPException:
         raise
@@ -169,7 +208,10 @@ async def delete_provider(
     provider_id: str,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """删除供应商配置及其下所有模型和依赖的角色"""
+    """删除供应商配置及其下所有模型
+    
+    注意：不会删除使用该供应商的角色，但这些角色的模型引用会失效
+    """
     try:
         agent_manager = get_agent_manager()
         
@@ -200,18 +242,22 @@ async def delete_provider(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/supported/list", response_model=ResponseModel)
-async def list_supported_providers():
-    """获取系统支持的所有供应商类型及其配置字段"""
+@router.get("/providers/templates/list", response_model=ResponseModel)
+async def list_provider_templates():
+    """获取系统支持的所有供应商模板及其配置字段
+    
+    返回可用的供应商模板列表，用于创建供应商时指定 template_type
+    """
     try:
         agent_manager = get_agent_manager()
-        supported = agent_manager.model_factory.get_all_provider_metadata()
+        templates = agent_manager.model_factory.get_all_template_metadata()
         
         data = [
             {
-                "provider_id": metadata.provider_id,
+                "template_type": metadata.provider_id,
                 "name": metadata.name,
                 "description": metadata.description,
+                "logo": metadata.logo,
                 "config_fields": [
                     {
                         "field_name": field.field_name,
@@ -223,7 +269,7 @@ async def list_supported_providers():
                     for field in metadata.config_fields
                 ]
             }
-            for metadata in supported.values()
+            for metadata in templates.values()
         ]
         return ResponseModel(
             code=200,
@@ -261,68 +307,4 @@ async def get_provider_models(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/providers/custom/openai-compatible", response_model=ResponseModel)
-async def register_custom_openai_provider(
-    provider_id: str,
-    name: str,
-    description: str = "",
-    app_storage: AppStorage = Depends(get_storage)
-):
-    """预注册自定义 OpenAI 兼容供应商（可选）
-    
-    注意：通常不需要调用此接口，直接使用 POST /providers 即可自动注册
-    
-    此接口用于提前注册供应商，以便在 GET /providers/supported/list 中显示
-    
-    查询参数:
-    - provider_id: 自定义供应商ID（如 "deepseek", "moonshot"）
-    - name: 供应商名称（如 "DeepSeek", "Moonshot AI"）
-    - description: 供应商描述（可选）
-    """
-    try:
-        agent_manager = get_agent_manager()
-        
-        # 注册到 ModelFactory
-        success = agent_manager.model_factory.register_custom_openai_provider(
-            provider_id=provider_id,
-            name=name,
-            description=description
-        )
-        
-        if not success:
-            raise HTTPException(status_code=400, detail="供应商ID已被注册")
-        
-        return ResponseModel(
-            code=200,
-            message="自定义供应商预注册成功",
-            data={
-                "provider_id": provider_id,
-                "name": name,
-                "description": description,
-                "compatible_with": "openai",
-                "note": "现在可以使用 POST /providers 创建配置"
-            }
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.get("/providers/custom/openai-compatible", response_model=ResponseModel)
-async def list_custom_openai_providers():
-    """列出所有已注册的自定义 OpenAI 兼容供应商"""
-    try:
-        agent_manager = get_agent_manager()
-        custom_providers = agent_manager.model_factory.list_custom_openai_providers()
-        
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data={
-                "custom_providers": custom_providers,
-                "count": len(custom_providers)
-            }
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
