@@ -74,29 +74,21 @@ async def list_characters(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/characters/{character_id}", response_model=ResponseModel)
+@router.patch("/characters/{character_id}", response_model=ResponseModel)
 async def update_character(
     character_id: int,
     req: CharacterUpdateRequest,
     app_storage: AppStorage = Depends(get_storage),
     agent_manager: AgentManager = Depends(get_agent)
 ):
-    """更新角色"""
+    """部分更新角色信息"""
     try:
-        success = app_storage.update_character(
-            character_id=character_id,
-            name=req.name,
-            description=req.description,
-            system_prompt=req.system_prompt,
-            primary_model_id=req.primary_model_id,
-            primary_provider_id=req.primary_provider_id,
-            tts_id=req.tts_id,
-            enabled=req.enabled
-        )
+        update_data = req.model_dump(exclude_unset=True)
+        success = app_storage.update_character(character_id=character_id, **update_data)
         if not success:
-            raise HTTPException(status_code=404, detail="角色不存在")
+            raise HTTPException(status_code=404, detail="角色不存在或未做任何修改")
         
-        # 清空该角色的Agent缓存
+        # 清空该角色的 Agent 缓存
         agent_manager.clear_agent_cache(character_id)
         
         return ResponseModel(

@@ -36,14 +36,22 @@ const App: React.FC = () => {
 
   const activeModel = models.find(m => m.model_id === (activeModelId || activeCharacter?.primary_model_id)) || null;
 
+  // 初始化加载数据
   useEffect(() => {
     loadGlobalData();
     loadConversations(selectedCharacterId);
-  }, [selectedCharacterId]); // Reload conversations when character selection changes
+  }, []); // 只在组件挂载时执行一次
 
-  // Reload data when returning from Admin view to ensure new characters/models appear
+  // 当选择的角色变化时，重新加载对话列表
   useEffect(() => {
-    if (viewMode === 'chat') {
+    if (characters.length > 0) { // 确保角色已加载
+      loadConversations(selectedCharacterId);
+    }
+  }, [selectedCharacterId]);
+
+  // 从管理页面返回时，刷新数据
+  useEffect(() => {
+    if (viewMode === 'chat' && characters.length > 0) {
       loadGlobalData(true);
       loadConversations(selectedCharacterId);
     }

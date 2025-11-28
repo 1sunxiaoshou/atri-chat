@@ -3,10 +3,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from core.logger import get_logger
 from core.middleware.logging_middleware import LoggingMiddleware
-from core.dependencies import get_app_storage, get_checkpointer
+from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health
 )
@@ -22,7 +21,9 @@ async def lifespan(app: FastAPI):
     
     # 预热单例实例（触发初始化）
     get_app_storage()
-    checkpointer = get_checkpointer()
+    
+    # 初始化 AsyncSqliteSaver
+    await init_checkpointer()
     
     logger.info("✓ 系统初始化完成")   
 
@@ -30,8 +31,7 @@ async def lifespan(app: FastAPI):
     
     # 关闭
     logger.info("关闭系统...")
-    if hasattr(checkpointer, 'conn') and checkpointer.conn:
-        checkpointer.conn.close()
+    await close_checkpointer()
     logger.info("✓ 系统已关闭")
 
 
@@ -53,6 +53,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=3600,  # 预检请求缓存1小时，减少OPTIONS请求
 )
 
 # 注册路由（使用依赖注入，无需手动设置依赖）

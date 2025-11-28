@@ -146,101 +146,62 @@ class AgentManager:
         
         return agent
     
-    def send_message(
+
+    async def send_message_stream(
         self,
         user_message: str,
         conversation_id: int,
         character_id: int,
         model_id: str,
         provider_id: str
-    ) -> str:
-        """发送消息并获取响应
+    ):
+        """异步流式发送消息并获取响应
         
         Args:
             user_message: 用户消息内容
-            conversation_id: 会话ID（作为 thread_id）
+            conversation_id: 会话ID
             character_id: 角色ID
             model_id: 模型ID
             provider_id: 供应商ID
             
-        Returns:
-            助手的响应消息
-            
-        Raises:
-            ValueError: 当会话、角色或模型不存在时
+        Yields:
+            流式响应的文本块
         """
         # 1. 验证会话是否存在
         conversation = self.app_storage.get_conversation(conversation_id)
         if not conversation:
             raise ValueError(f"会话 {conversation_id} 不存在")
         
-        # 2. 获取或创建 agent 实例
-        agent = self.get_or_create_agent(character_id, model_id, provider_id)
+        # 2. 获取或创建 agent 实例（启用流式模式）
+        agent = self.get_or_create_agent(character_id, model_id, provider_id, streaming=True)
         
-        # 3. 调用 agent（thread_id = conversation_id）
-        response = agent.invoke(
+        full_response = ""
+        
+        # 3. 异步流式调用 agent
+        async for event in agent.astream(
             {"messages": [{"role": "user", "content": user_message}]},
-            config={
-                "configurable": {"thread_id": str(conversation_id)}
-            }
-        )
+            config={"configurable": {"thread_id": str(conversation_id)}},
+            stream_mode="messages"
+        ):
+            # event 是 (message, metadata) 元组
+            if isinstance(event, tuple) and len(event) == 2:
+                message, metadata = event
+                # 检查是否是 AIMessageChunk（流式块）
+                if hasattr(message, 'content') and message.content:
+                    chunk = message.content
+                    full_response += chunk
+                    yield chunk
         
-        # 4. 提取响应内容
-        assistant_message = response["messages"][-1].content
-        
-        # 5. 存储消息到 AppStorage
+        # 4. 流结束后保存完整对话
         self.app_storage.add_message(conversation_id, "user", user_message)
-        self.app_storage.add_message(conversation_id, "assistant", assistant_message)
+        self.app_storage.add_message(conversation_id, "assistant", full_response)
         
-        return assistant_message
-    
-    async def send_message_async(
-        self,
-        user_message: str,
-        conversation_id: int,
-        character_id: int,
-        model_id: str,
-        provider_id: str
-    ) -> str:
-        """异步发送消息并获取响应
-        
-        Args:
-            user_message: 用户消息内容
-            conversation_id: 会话ID（作为 thread_id）
-            character_id: 角色ID
-            model_id: 模型ID
-            provider_id: 供应商ID
-            
-        Returns:
-            助手的响应消息
-            
-        Raises:
-            ValueError: 当会话、角色或模型不存在时
-        """
-        # 1. 验证会话是否存在
-        conversation = self.app_storage.get_conversation(conversation_id)
-        if not conversation:
-            raise ValueError(f"会话 {conversation_id} 不存在")
-        
-        # 2. 获取或创建 agent 实例
-        agent = self.get_or_create_agent(character_id, model_id, provider_id)
-        
-        # 3. 异步调用 agent
-        response = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": user_message}]},
-            config={
-                "configurable": {"thread_id": str(conversation_id)}
-            }
-        )
-        
-        # 4. 提取响应内容
-        assistant_message = response["messages"][-1].content
-        
-        # 5. 存储消息到 AppStorage
-        self.app_storage.add_message(conversation_id, "user", user_message)
-        self.app_storage.add_message(conversation_id, "assistant", assistant_message)
-        
-        return assistant_message
+        # 5. 如果是新会话，自动生成标题
+        if conversation["title"] == "New Chat":
+            title = user_message.replace("\n", " ").strip()
+            if len(title) > 30:
+                title = title[:30] + "..."
+            self.app_storage.update_conversation(conversation_id, title=title)
     
     
     def get_conversation_history(
@@ -353,43 +314,7 @@ class AgentManager:
             ]
         }
     
-    def send_audio_message(
-        self,
-        audio: Union[bytes, str, Path],
-        conversation_id: int,
-        character_id: int,
-        model_id: str,
-        provider_id: str,
-        asr_provider: Optional[str] = None,
-        language: Optional[str] = None
-    ) -> str:
-        """发送音频消息并获取文本响应
-        
-        Args:
-            audio: 音频数据（bytes）或音频文件路径
-            conversation_id: 会话ID
-            character_id: 角色ID
-            model_id: 模型ID
-            provider_id: 供应商ID
-            asr_provider: ASR提供商，不指定则使用默认
-            language: 语言代码，不指定则使用ASR配置的默认值
-            
-        Returns:
-            助手的文本响应
-        """
-        # 1. 使用ASR转换音频为文本
-        asr = self.asr_factory.create_asr(asr_provider)
-        user_text = asr.transcribe(audio, language)
-        
-        # 2. 调用现有的文本消息处理
-        return self.send_message(
-            user_message=user_text,
-            conversation_id=conversation_id,
-            character_id=character_id,
-            model_id=model_id,
-            provider_id=provider_id
-        )
-    
+
     async def send_audio_message_async(
         self,
         audio: Union[bytes, str, Path],
@@ -427,25 +352,7 @@ class AgentManager:
             provider_id=provider_id
         )
     
-    def text_to_speech(
-        self,
-        text: str,
-        tts_provider: Optional[str] = None,
-        language: Optional[str] = None
-    ) -> bytes:
-        """文本转语音
-        
-        Args:
-            text: 要转换的文本
-            tts_provider: TTS提供商，不指定则使用默认
-            language: 语言代码，不指定则使用TTS配置的默认值
-            
-        Returns:
-            音频数据（bytes）
-        """
-        tts = self.tts_factory.create_tts(tts_provider)
-        return tts.synthesize(text, language)
-    
+
     async def text_to_speech_async(
         self,
         text: str,

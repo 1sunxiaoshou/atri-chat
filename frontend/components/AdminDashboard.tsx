@@ -143,9 +143,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       const { id, character_id, ...newCharData } = editingCharacter;
       await api.createCharacter(newCharData);
     } else {
-      // Update existing - exclude id and character_id fields from body
-      const { id, character_id, ...updateData } = editingCharacter;
-      await api.updateCharacter(charId, updateData);
+      // Update existing - only send fields that have actual values
+      const originalChar = characters.find(c => getCharacterId(c) === charId);
+      if (!originalChar) return;
+
+      // Build update object with only changed fields
+      const updateData: Partial<Character> = {};
+      
+      if (editingCharacter.name !== originalChar.name) {
+        updateData.name = editingCharacter.name;
+      }
+      if (editingCharacter.description !== originalChar.description) {
+        updateData.description = editingCharacter.description;
+      }
+      if (editingCharacter.system_prompt !== originalChar.system_prompt) {
+        updateData.system_prompt = editingCharacter.system_prompt;
+      }
+      if (editingCharacter.primary_model_id !== originalChar.primary_model_id) {
+        updateData.primary_model_id = editingCharacter.primary_model_id;
+      }
+      if (editingCharacter.primary_provider_id !== originalChar.primary_provider_id) {
+        updateData.primary_provider_id = editingCharacter.primary_provider_id;
+      }
+      if (editingCharacter.tts_id !== originalChar.tts_id) {
+        updateData.tts_id = editingCharacter.tts_id;
+      }
+      if (editingCharacter.enabled !== originalChar.enabled) {
+        updateData.enabled = editingCharacter.enabled;
+      }
+      if (editingCharacter.avatar && editingCharacter.avatar !== originalChar.avatar) {
+        updateData.avatar = editingCharacter.avatar;
+      }
+
+      // Only call API if there are actual changes
+      if (Object.keys(updateData).length > 0) {
+        await api.updateCharacter(charId, updateData);
+      }
     }
 
     await fetchData();

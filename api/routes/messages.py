@@ -12,32 +12,52 @@ import io
 router = APIRouter()
 
 
-@router.post("/messages", response_model=ResponseModel)
+@router.post("/messages")
 async def send_message(
     req: MessageRequest,
     agent_manager: AgentManager = Depends(get_agent)
 ):
-    """发送文本消息"""
+    """发送文本消息（流式响应）"""
     try:
-        response = agent_manager.send_message(
-            user_message=req.content,
-            conversation_id=req.conversation_id,
-            character_id=req.character_id,
-            model_id=req.model_id,
-            provider_id=req.provider_id
-        )
-        
-        return ResponseModel(
-            code=200,
-            message="消息发送成功",
-            data={
-                "message": response
+        async def generate():
+            import json
+            try:
+                # 流式生成内容
+                async for content in agent_manager.send_message_stream(
+                    user_message=req.content,
+                    conversation_id=req.conversation_id,
+                    character_id=req.character_id,
+                    model_id=req.model_id,
+                    provider_id=req.provider_id
+                ):
+
+                    if content: 
+                        yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
+                
+                # 发送结束标记
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            
+            except Exception as inner_exc:
+                # 如果流过程中出错，也要通过 SSE 通知前端（可选）
+                error_msg = {"error": str(inner_exc)}
+                yield f"data: {json.dumps(error_msg, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲
+                "Content-Type": "text/event-stream; charset=utf-8",  # 👈 显式指定编码
             }
         )
+    
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"服务器内部错误: {str(e)}")
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=ResponseModel)

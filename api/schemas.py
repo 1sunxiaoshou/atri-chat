@@ -90,7 +90,7 @@ class CharacterRequest(BaseModel):
     system_prompt: str = Field(..., description="系统提示词")
     primary_model_id: str = Field(..., description="主模型ID")
     primary_provider_id: str = Field(..., description="主供应商ID")
-    tts_id: str = Field(..., description="TTS ID")
+    tts_id: Optional[str] = Field("default", description="TTS ID")
     enabled: bool = Field(True, description="是否启用")
 
 

@@ -1,13 +1,18 @@
 """FastAPI 依赖注入"""
-import sqlite3
-from typing import Generator
+from typing import Generator, Optional
 from functools import lru_cache
+import aiosqlite
 
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from .storage import AppStorage
 from .store import SqliteStore
 from .agent_manager import AgentManager
+
+
+# ==================== 全局变量 ====================
+_checkpointer_instance: Optional[AsyncSqliteSaver] = None
+_aiosqlite_conn = None
 
 
 # ==================== 单例获取器 ====================
@@ -24,11 +29,39 @@ def get_store() -> SqliteStore:
     return SqliteStore(db_path="data/store.db")
 
 
-@lru_cache()
-def get_checkpointer() -> SqliteSaver:
-    """获取 SqliteSaver 单例"""
-    conn = sqlite3.connect("data/checkpoints.db", check_same_thread=False)
-    return SqliteSaver(conn)
+def get_checkpointer() -> AsyncSqliteSaver:
+    """获取 AsyncSqliteSaver 单例"""
+    global _checkpointer_instance
+    if _checkpointer_instance is None:
+        raise RuntimeError("Checkpointer not initialized. Call init_checkpointer() first.")
+    return _checkpointer_instance
+
+
+async def init_checkpointer() -> AsyncSqliteSaver:
+    """初始化 AsyncSqliteSaver（在应用启动时调用）"""
+    global _checkpointer_instance, _aiosqlite_conn
+    
+    # 创建 aiosqlite 连接
+    _aiosqlite_conn = await aiosqlite.connect("data/checkpoints.db")
+    
+    # 使用连接创建 AsyncSqliteSaver
+    _checkpointer_instance = AsyncSqliteSaver(_aiosqlite_conn)
+    
+    # 初始化数据库表
+    await _checkpointer_instance.setup()
+    
+    return _checkpointer_instance
+
+
+async def close_checkpointer():
+    """关闭 AsyncSqliteSaver 和数据库连接"""
+    global _checkpointer_instance, _aiosqlite_conn
+    
+    if _aiosqlite_conn:
+        await _aiosqlite_conn.close()
+        _aiosqlite_conn = None
+    
+    _checkpointer_instance = None
 
 
 @lru_cache()
