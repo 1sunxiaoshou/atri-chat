@@ -4,7 +4,7 @@ from typing import Dict, Tuple, Optional, Any, List, Union
 from pathlib import Path
 from langchain.agents import create_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
-
+from .store import SqliteStore
 from .storage import AppStorage
 from .models.factory import ModelFactory
 from .tools.manager import ToolManager
