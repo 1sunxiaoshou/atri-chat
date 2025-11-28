@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import { Character, Message, Model, Provider } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -268,24 +271,80 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   ? 'bg-blue-600 text-white rounded-tr-none'
                   : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
                   }`}>
-                  <div className="whitespace-pre-wrap font-sans">
-                    {/* Simple rendering of code blocks vs text */}
-                    {msg.content.split('```').map((part, i) => {
-                      if (i % 2 === 1) {
-                        return (
-                          <div key={i} className="my-3 bg-gray-900 rounded-md overflow-hidden text-gray-200">
-                            <div className="px-3 py-1 bg-gray-800 text-xs text-gray-400 flex justify-between items-center">
-                              <span>{t('chat.code')}</span>
-                              <Copy size={12} className="cursor-pointer hover:text-white" />
+                  <div className={`markdown-content ${msg.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        code({ node, inline, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || '');
+                          const codeContent = String(children).replace(/\n$/, '');
+                          
+                          return !inline ? (
+                            <div className="my-3 bg-gray-900 rounded-md overflow-hidden">
+                              <div className="px-3 py-1 bg-gray-800 text-xs text-gray-400 flex justify-between items-center">
+                                <span>{match ? match[1] : t('chat.code')}</span>
+                                <Copy 
+                                  size={12} 
+                                  className="cursor-pointer hover:text-white" 
+                                  onClick={() => navigator.clipboard.writeText(codeContent)}
+                                />
+                              </div>
+                              <pre className="p-3 overflow-x-auto text-xs font-mono">
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              </pre>
                             </div>
-                            <pre className="p-3 overflow-x-auto text-xs font-mono">
-                              <code>{part}</code>
-                            </pre>
-                          </div>
-                        );
-                      }
-                      return <span key={i}>{part}</span>;
-                    })}
+                          ) : (
+                            <code className={`${className} px-1.5 py-0.5 rounded ${msg.message_type === 'user' ? 'bg-blue-700' : 'bg-gray-100'}`} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        p({ children }) {
+                          return <p className="mb-2 last:mb-0">{children}</p>;
+                        },
+                        ul({ children }) {
+                          return <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>;
+                        },
+                        ol({ children }) {
+                          return <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>;
+                        },
+                        li({ children }) {
+                          return <li className="ml-2">{children}</li>;
+                        },
+                        blockquote({ children }) {
+                          return <blockquote className={`border-l-4 pl-4 my-2 italic ${msg.message_type === 'user' ? 'border-blue-400' : 'border-gray-300'}`}>{children}</blockquote>;
+                        },
+                        h1({ children }) {
+                          return <h1 className="text-xl font-bold mb-2 mt-4">{children}</h1>;
+                        },
+                        h2({ children }) {
+                          return <h2 className="text-lg font-bold mb-2 mt-3">{children}</h2>;
+                        },
+                        h3({ children }) {
+                          return <h3 className="text-base font-bold mb-2 mt-2">{children}</h3>;
+                        },
+                        a({ href, children }) {
+                          return <a href={href} className={`underline ${msg.message_type === 'user' ? 'text-blue-200' : 'text-blue-600'} hover:opacity-80`} target="_blank" rel="noopener noreferrer">{children}</a>;
+                        },
+                        table({ children }) {
+                          return <div className="overflow-x-auto my-2"><table className="min-w-full border-collapse border border-gray-300">{children}</table></div>;
+                        },
+                        thead({ children }) {
+                          return <thead className="bg-gray-100">{children}</thead>;
+                        },
+                        th({ children }) {
+                          return <th className="border border-gray-300 px-3 py-2 text-left font-semibold">{children}</th>;
+                        },
+                        td({ children }) {
+                          return <td className="border border-gray-300 px-3 py-2">{children}</td>;
+                        },
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
 
