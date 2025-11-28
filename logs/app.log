@@ -3328,3 +3328,182 @@ See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.ch
 2025-11-28 22:13:48 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
 2025-11-28 22:13:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
 2025-11-28 22:13:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 22:20:42 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-28 22:20:42 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-28 22:21:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:21:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 404
+2025-11-28 22:21:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /favicon.ico
+2025-11-28 22:21:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /favicon.ico 404
+2025-11-28 22:21:34 | INFO     | __main__:<module>:75 - ✓ 前端静态文件已挂载: c:\Users\sunxiaoshou\Desktop\ATRI_v2\frontend\dist
+2025-11-28 22:21:34 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-28 22:21:34 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-28 22:21:48 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/health
+2025-11-28 22:21:48 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/health 404
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 200
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 200
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /favicon.ico
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /favicon.ico 404
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 404
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 404
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:22:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 404
+2025-11-28 22:23:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 22:23:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 404
+2025-11-28 22:23:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:23:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 404
+2025-11-28 22:23:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:23:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 404
+2025-11-28 22:23:40 | INFO     | __main__:lifespan:35 - 关闭系统...
+2025-11-28 22:23:40 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
+2025-11-28 22:23:42 | INFO     | __main__:<module>:75 - ✓ 前端静态文件已挂载: c:\Users\sunxiaoshou\Desktop\ATRI_v2\frontend\dist
+2025-11-28 22:23:42 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-28 22:23:42 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 304
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 304
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 404
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 404
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:23:50 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 404
+2025-11-28 22:23:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 22:23:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 404
+2025-11-28 22:23:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:23:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 404
+2025-11-28 22:23:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:23:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 404
+2025-11-28 22:24:33 | INFO     | __main__:lifespan:35 - 关闭系统...
+2025-11-28 22:24:33 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
+2025-11-28 22:24:35 | INFO     | __main__:<module>:85 - ✓ 前端静态文件已挂载: c:\Users\sunxiaoshou\Desktop\ATRI_v2\frontend\dist
+2025-11-28 22:24:35 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-28 22:24:35 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 304
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 304
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:24:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:24:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 304
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 304
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:36:00 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 304
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:36:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:37:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:37:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 200
+2025-11-28 22:37:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:37:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:37:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:37:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 200
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /favicon.ico
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /favicon.ico 404
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:37:54 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:37:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:37:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:42:32 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:42:32 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 200
+2025-11-28 22:42:36 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:42:36 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 200
+2025-11-28 22:42:36 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:42:36 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:42:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:42:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:42:39 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /favicon.ico
+2025-11-28 22:42:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /favicon.ico 404
+2025-11-28 22:42:39 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:42:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:42:39 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:42:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:42:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:42:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:43:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/conversations
+2025-11-28 22:43:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/conversations 200
+2025-11-28 22:43:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-28 22:43:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-28 22:43:35 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 22:43:35 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 22:44:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-28 22:44:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-28 22:44:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:44:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:44:23 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:44:23 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:44:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:44:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:44:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-28 22:44:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-28 22:44:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:44:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:44:39 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:44:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:45:28 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /
+2025-11-28 22:45:28 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET / 304
+2025-11-28 22:45:28 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /index.css
+2025-11-28 22:45:28 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /index.css 404
+2025-11-28 22:45:29 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /assets/index-Zwvxe6Nv.js
+2025-11-28 22:45:29 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /assets/index-Zwvxe6Nv.js 304
+2025-11-28 22:45:30 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-28 22:45:30 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-28 22:45:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-28 22:45:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-28 22:45:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-28 22:45:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-28 22:45:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-28 22:45:33 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-28 22:45:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-28 22:45:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-28 22:45:41 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:45:41 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:45:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-28 22:45:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-28 22:45:51 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-28 22:45:51 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-28 22:46:30 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-28 22:46:30 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-28 22:47:05 | INFO     | __main__:lifespan:35 - 关闭系统...
+2025-11-28 22:47:05 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
+2025-11-28 23:18:29 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-28 23:18:29 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
