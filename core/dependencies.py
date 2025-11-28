@@ -4,7 +4,7 @@ from functools import lru_cache
 import aiosqlite
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-
+from .store import SqliteStore
 from .storage import AppStorage
 from .store import SqliteStore
 from .agent_manager import AgentManager
@@ -22,6 +22,10 @@ def get_app_storage() -> AppStorage:
     """获取 AppStorage 单例"""
     return AppStorage(db_path="data/app.db")
 
+@lru_cache()
+def get_store() -> SqliteStore:
+    """获取 SqliteStore 单例"""
+    return SqliteStore(db_path="data/store.db")
 
 def get_checkpointer() -> AsyncSqliteSaver:
     """获取 AsyncSqliteSaver 单例"""
@@ -63,6 +67,7 @@ def get_agent_manager() -> AgentManager:
     """获取 AgentManager 单例"""
     return AgentManager(
         app_storage=get_app_storage(),
+        store=get_store(),
         checkpointer=get_checkpointer()
     )
 
