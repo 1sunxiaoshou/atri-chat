@@ -73,31 +73,42 @@ class ModelFactory:
             provider_id: 供应商ID
             model_id: 模型ID
             **kwargs: 动态参数（temperature, max_tokens等），会覆盖配置中的默认值
+            
+        Raises:
+            ValueError: 当模型或供应商配置不存在、未启用或创建失败时
         """
         # 1. 获取模型配置
         model_config = self.storage.get_model(provider_id, model_id)
-        if not model_config or not model_config.enabled:
-            return None
+        if not model_config:
+            raise ValueError(f"模型 {provider_id}/{model_id} 不存在")
+        if not model_config.enabled:
+            raise ValueError(f"模型 {provider_id}/{model_id} 未启用")
         
         # 2. 获取供应商配置
         provider_config_dict = self.storage.get_provider(provider_id)
         if not provider_config_dict:
-            return None
+            raise ValueError(f"供应商 {provider_id} 不存在")
         
         # 3. 根据 template_type 获取 Provider 实现类
         template_type = provider_config_dict.get("template_type", "openai")
         provider_template = self.get_provider_template(template_type)
         if not provider_template:
-            print(f"警告: 未找到供应商模板 '{template_type}'")
-            return None
+            raise ValueError(f"不支持的供应商模板类型: {template_type}")
         
         # 4. 构造 ProviderConfig 并实例化模型
-        provider_config = ProviderConfig(
-            provider_id=provider_config_dict["provider_id"],
-            config_json=provider_config_dict["config_json"]
-        )
-        
-        return provider_template.create_model(model_config, provider_config, **kwargs)
+        try:
+            provider_config = ProviderConfig(
+                provider_id=provider_config_dict["provider_id"],
+                config_json=provider_config_dict["config_json"]
+            )
+            
+            model = provider_template.create_model(model_config, provider_config, **kwargs)
+            if model is None:
+                raise ValueError(f"模型 {provider_id}/{model_id} 创建失败，请检查配置")
+            
+            return model
+        except Exception as e:
+            raise ValueError(f"创建模型 {provider_id}/{model_id} 时出错: {str(e)}")
     
     def check_provider_dependencies(self, provider_id: str) -> Dict[str, List[str]]:
         """检查供应商的依赖关系

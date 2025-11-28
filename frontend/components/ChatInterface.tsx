@@ -99,7 +99,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, aiMsg]);
 
     try {
-      await api.sendMessage(
+      const result = await api.sendMessage(
         activeConversationId,
         content,
         Number(activeCharacter?.character_id || activeCharacter?.id),
@@ -117,10 +117,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           scrollToBottom();
         }
       );
+
+      // 检查是否有错误
+      if (result.code !== 200 || (result.data as any)?.error) {
+        const errorMsg = (result.data as any)?.error || result.message || '发送消息失败';
+        // 更新 AI 消息为错误提示
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.message_id === aiMsgId 
+              ? { ...msg, content: `❌ **错误**: ${errorMsg}` }
+              : msg
+          )
+        );
+      }
     } catch (e) {
       console.error("发送消息异常", e);
-      // 异常时移除 AI 消息
-      setMessages(prev => prev.filter(m => m.message_id !== aiMsgId));
+      // 异常时显示错误消息
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.message_id === aiMsgId 
+            ? { ...msg, content: `❌ **错误**: ${e instanceof Error ? e.message : '发送消息失败，请稍后重试'}` }
+            : msg
+        )
+      );
     }
   };
 

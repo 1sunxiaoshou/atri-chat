@@ -18,46 +18,63 @@ async def send_message(
     agent_manager: AgentManager = Depends(get_agent)
 ):
     """发送文本消息（流式响应）"""
-    try:
-        async def generate():
-            import json
-            try:
-                # 流式生成内容
-                async for content in agent_manager.send_message_stream(
-                    user_message=req.content,
-                    conversation_id=req.conversation_id,
-                    character_id=req.character_id,
-                    model_id=req.model_id,
-                    provider_id=req.provider_id
-                ):
-
-                    if content: 
-                        yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
-                
-                # 发送结束标记
-                yield f"data: {json.dumps({'done': True})}\n\n"
+    async def generate():
+        import json
+        try:
+            # 流式生成内容
+            async for content in agent_manager.send_message_stream(
+                user_message=req.content,
+                conversation_id=req.conversation_id,
+                character_id=req.character_id,
+                model_id=req.model_id,
+                provider_id=req.provider_id
+            ):
+                if content: 
+                    yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
             
-            except Exception as inner_exc:
-                # 如果流过程中出错，也要通过 SSE 通知前端（可选）
-                error_msg = {"error": str(inner_exc)}
-                yield f"data: {json.dumps(error_msg, ensure_ascii=False)}\n\n"
-                yield f"data: {json.dumps({'done': True})}\n\n"
-
-        return StreamingResponse(
-            generate(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲
-                "Content-Type": "text/event-stream; charset=utf-8",  # 👈 显式指定编码
+            # 发送结束标记
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        
+        except ValueError as e:
+            # 配置错误（会话、角色、模型不存在或未启用）
+            error_data = {
+                "error": str(e),
+                "error_type": "config_error",
+                "message": "配置错误，请检查会话、角色或模型设置"
             }
-        )
-    
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"服务器内部错误: {str(e)}")
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        
+        except RuntimeError as e:
+            # 模型调用错误（API Key、网络、超时等）
+            error_data = {
+                "error": str(e),
+                "error_type": "model_error",
+                "message": "模型调用失败"
+            }
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        
+        except Exception as e:
+            # 其他未知错误
+            error_data = {
+                "error": str(e),
+                "error_type": "unknown_error",
+                "message": "服务器内部错误"
+            }
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲
+            "Content-Type": "text/event-stream; charset=utf-8",
+        }
+    )
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=ResponseModel)
@@ -137,9 +154,11 @@ async def send_audio_message(
             }
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"配置错误: {str(e)}")
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=f"模型服务不可用: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"服务器内部错误: {str(e)}")
 
 
 @router.post("/tts/synthesize", response_model=ResponseModel)

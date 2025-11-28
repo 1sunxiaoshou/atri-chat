@@ -67,15 +67,16 @@ class BaseProvider(ABC):
             model_config: 模型配置
             provider_config: 供应商配置
             **kwargs: 动态参数（会覆盖 provider_config 中的默认值）
+            
+        Raises:
+            ValueError: 当模型类型不支持或创建失败时
         """
-        try:
-            if model_config.model_type == ModelType.TEXT:
-                return self.create_text_model(model_config.model_id, provider_config, **kwargs)
-            elif model_config.model_type == ModelType.EMBEDDING:
-                return self.create_embedding_model(model_config.model_id, provider_config, **kwargs)
-        except Exception as e:
-            print(f"创建模型失败 ({self.metadata.provider_id}/{model_config.model_id}): {e}")
-        return None
+        if model_config.model_type == ModelType.TEXT:
+            return self.create_text_model(model_config.model_id, provider_config, **kwargs)
+        elif model_config.model_type == ModelType.EMBEDDING:
+            return self.create_embedding_model(model_config.model_id, provider_config, **kwargs)
+        else:
+            raise ValueError(f"不支持的模型类型: {model_config.model_type}")
 
 
 class OpenAIProvider(BaseProvider):

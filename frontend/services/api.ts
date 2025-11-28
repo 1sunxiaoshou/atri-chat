@@ -223,6 +223,20 @@ export const api = {
                             try {
                                 const data = JSON.parse(line.slice(6));
                                 console.log('[SSE] Received:', data); // 调试日志
+                                
+                                // 检查是否有错误
+                                if (data.error) {
+                                    return {
+                                        code: 500,
+                                        message: data.message || '发送消息失败',
+                                        data: {
+                                            message: '',
+                                            error: data.error,
+                                            error_type: data.error_type
+                                        }
+                                    };
+                                }
+                                
                                 if (data.done) {
                                     break;
                                 }
