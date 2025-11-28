@@ -22,10 +22,14 @@ async def create_conversation(
         )
         if not conversation_id:
             raise HTTPException(status_code=400, detail="会话创建失败")
+            
+        # 获取完整会话信息
+        conversation = app_storage.get_conversation(conversation_id)
+        
         return ResponseModel(
             code=200,
             message="会话创建成功",
-            data={"conversation_id": conversation_id}
+            data=conversation
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

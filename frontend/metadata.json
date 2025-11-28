@@ -1,0 +1,7 @@
+{
+  "name": "NexusAI Chat",
+  "description": "A world-class AI chat interface with robust character and model management.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
