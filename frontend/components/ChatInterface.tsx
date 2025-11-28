@@ -33,10 +33,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [activeConversationId]);
 
   const loadMessages = async () => {
-    const res = await api.getMessages(activeConversationId);
-    if (res.code === 200) {
-      setMessages(res.data);
-      scrollToBottom();
+    try {
+      const res = await api.getMessages(activeConversationId);
+      if (res.code === 200) {
+        // 后端返回格式：data 是消息数组或包含 messages 字段的对象
+        let messageList: Message[] = [];
+        
+        if (Array.isArray(res.data)) {
+          messageList = res.data;
+        } else if (res.data && typeof res.data === 'object' && 'messages' in res.data) {
+          messageList = (res.data as any).messages || [];
+        }
+        
+        // 确保消息格式正确（message_type 字段必须存在）
+        const validMessages = messageList.filter(msg => msg.message_type && (msg.message_type === 'user' || msg.message_type === 'assistant'));
+        
+        setMessages(validMessages);
+        scrollToBottom();
+      } else {
+        console.error('加载消息失败:', res.message);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('加载消息异常:', error);
+      setMessages([]);
     }
   };
 
@@ -53,12 +73,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setInputValue('');
     setIsTyping(true);
 
-    // Optimistic UI update: temporary message
+    // 乐观UI更新：立即添加用户消息
     const tempId = Date.now();
     const tempUserMsg: Message = {
-      id: tempId,
+      message_id: tempId,
       conversation_id: activeConversationId,
-      role: 'user',
+      message_type: 'user',
       content: content,
       created_at: new Date().toISOString()
     };
@@ -66,45 +86,104 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     scrollToBottom();
 
     try {
-      const res = await api.sendMessage(activeConversationId, content, Number(activeCharacter.id));
+      const res = await api.sendMessage(
+        activeConversationId,
+        content,
+        Number(activeCharacter?.character_id || activeCharacter?.id),
+        activeModel?.model_id || '',
+        activeModel?.provider_id || ''
+      );
       if (res.code === 200) {
-        setIsTyping(false);
-        // Replace optimistic msg with real one if needed, or just append assistant
-        // The API returns both user_message and assistant_message
-        // Filter out the temp one and add real ones
+        // 后端返回格式：data.message 是AI回复的纯文本
+        const aiResponse = res.data?.message || '';
+        
+        // 创建AI助手消息
+        const assistantMsg: Message = {
+          message_id: Date.now() + 1,
+          conversation_id: activeConversationId,
+          message_type: 'assistant',
+          content: aiResponse,
+          created_at: new Date().toISOString()
+        };
+        
+        // 替换临时消息，添加真实的用户消息和AI回复
         setMessages(prev => {
-          const filtered = prev.filter(m => m.id !== tempId);
-          return [...filtered, res.data.user_message, res.data.assistant_message];
+          const filtered = prev.filter(m => m.message_id !== tempId);
+          return [...filtered, tempUserMsg, assistantMsg];
         });
         scrollToBottom();
+      } else {
+        // 请求失败，移除临时消息
+        setMessages(prev => prev.filter(m => m.message_id !== tempId));
+        console.error('发送消息失败:', res.message);
       }
     } catch (e) {
-      console.error("Failed to send", e);
+      console.error("发送消息异常", e);
+      // 异常时移除临时消息
+      setMessages(prev => prev.filter(m => m.message_id !== tempId));
+    } finally {
       setIsTyping(false);
-      // Remove temp message on failure or show error
     }
   };
 
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+
   const toggleRecording = async () => {
     if (isRecording) {
-      setIsRecording(false);
-      // Simulate Audio Send
-      setIsTyping(true);
-      try {
-        const mockBlob = new Blob(["mock_audio"], { type: "audio/wav" });
-        const res = await api.sendAudioMessage(activeConversationId, mockBlob);
-        if (res.code === 200) {
-          // Re-fetch messages to get the newly created ones from the backend
-          // Because sendAudioMessage API only returns text, but backend created messages
-          loadMessages();
-        }
-      } catch (e) {
-        console.error("Audio upload failed", e);
-      } finally {
-        setIsTyping(false);
+      // 停止录音
+      if (mediaRecorder) {
+        mediaRecorder.stop();
       }
     } else {
-      setIsRecording(true);
+      // 开始录音
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        const chunks: Blob[] = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          // 停止所有音频轨道
+          stream.getTracks().forEach(track => track.stop());
+          
+          // 合并音频数据
+          const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+          
+          // 发送音频消息
+          setIsTyping(true);
+          try {
+            const res = await api.sendAudioMessage(
+              activeConversationId,
+              audioBlob
+            );
+            
+            if (res.code === 200) {
+              // 重新加载消息列表
+              loadMessages();
+            } else {
+              console.error('发送音频消息失败:', res.message);
+            }
+          } catch (e) {
+            console.error("音频上传失败", e);
+          } finally {
+            setIsTyping(false);
+            setIsRecording(false);
+          }
+        };
+
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+      } catch (e) {
+        console.error("无法访问麦克风", e);
+        alert("无法访问麦克风，请检查浏览器权限");
+      }
     }
   };
 
@@ -179,10 +258,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.role === 'user' ? 'bg-gray-800 text-white' : 'bg-indigo-100 text-indigo-600'
+            <div key={msg.message_id} className={`flex gap-4 ${msg.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 text-white' : 'bg-indigo-100 text-indigo-600'
                 }`}>
-                {msg.role === 'user' ? (
+                {msg.message_type === 'user' ? (
                   <User size={16} />
                 ) : (
                   activeCharacter?.avatar ? <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" /> : <Bot size={16} />
@@ -190,7 +269,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </div>
 
               <div className={`max-w-[75%] space-y-2`}>
-                <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.role === 'user'
+                <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
                   ? 'bg-blue-600 text-white rounded-tr-none'
                   : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
                   }`}>
@@ -216,7 +295,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
 
                 {/* Message Tools for AI */}
-                {msg.role === 'assistant' && (
+                {msg.message_type === 'assistant' && (
                   <div className="flex gap-2 px-1">
                     <button className="text-gray-400 hover:text-gray-600 transition-colors"><Copy size={14} /></button>
                     <button className="text-gray-400 hover:text-gray-600 transition-colors"><Volume2 size={14} /></button>
