@@ -4,31 +4,35 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core.logger import get_logger
+from core.middleware.logging_middleware import LoggingMiddleware
 from core.dependencies import get_app_storage, get_checkpointer
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health
 )
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动
-    print("初始化系统...")
+    logger.info("初始化系统...")
     
     # 预热单例实例（触发初始化）
     get_app_storage()
     checkpointer = get_checkpointer()
     
-    print("✓ 系统初始化完成")
-    
+    logger.info("✓ 系统初始化完成")   
+
     yield
     
     # 关闭
-    print("关闭系统...")
+    logger.info("关闭系统...")
     if hasattr(checkpointer, 'conn') and checkpointer.conn:
         checkpointer.conn.close()
-    print("✓ 系统已关闭")
+    logger.info("✓ 系统已关闭")
 
 
 # 创建 FastAPI 应用
@@ -38,6 +42,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# 日志中间件（需要在CORS之前添加）
+app.add_middleware(LoggingMiddleware)
 
 # CORS 中间件
 app.add_middleware(
