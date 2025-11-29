@@ -62,23 +62,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Main Content (Right Column) */}
-                    <div className="flex-1 bg-gray-900 p-8 overflow-y-auto">
-                        <div className="max-w-2xl mx-auto">
-                            <h3 className="text-lg font-medium text-white mb-6 border-b border-gray-800 pb-2">
-                                {tabs.find(t => t.id === activeTab)?.label}
-                            </h3>
-
-                            {/* Content Area */}
-                            <div className="mt-4">
+                    <div className="flex-1 bg-gray-900 flex flex-col overflow-hidden">
+                        <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto p-6 h-full">
+                            {/* Content Area - No Title */}
+                            <div className="flex-1 min-h-0 relative">
                                 {activeTab === 'general' && (
-                                    <div className="text-gray-500 italic">
-                                        General settings configuration will go here.
+                                    <div className="h-full overflow-y-auto">
+                                        <div className="text-gray-500 italic">
+                                            General settings configuration will go here.
+                                        </div>
                                     </div>
                                 )}
                                 {activeTab === 'asr' && <ASRSettings />}
                                 {activeTab === 'tts' && (
-                                    <div className="text-gray-500 italic">
-                                        TTS settings configuration will go here.
+                                    <div className="h-full overflow-y-auto">
+                                        <div className="text-gray-500 italic">
+                                            TTS settings configuration will go here.
+                                        </div>
                                     </div>
                                 )}
                             </div>

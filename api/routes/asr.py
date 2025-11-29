@@ -19,8 +19,8 @@ class ASRTestRequest(BaseModel):
 
 class ASRConfigRequest(BaseModel):
     """保存配置请求"""
-    provider_id: str
-    config: Dict[str, Any]
+    provider_id: Optional[str] = None  # 允许为空，表示禁用ASR
+    config: Dict[str, Any] = {}
 
 
 @router.get("/providers", response_model=ResponseModel)
@@ -57,20 +57,28 @@ async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Dep
         if result["success"]:
             return ResponseModel(
                 code=200,
-                message="连接测试成功",
+                message=result.get("message", "连接测试成功"),
                 data=result
             )
         else:
             return ResponseModel(
                 code=400,
-                message="连接测试失败",
+                message=result.get("message", "连接测试失败"),
                 data=result
             )
     
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"配置错误: {str(e)}")
+        return ResponseModel(
+            code=400,
+            message=f"配置错误: {str(e)}",
+            data={"success": False, "message": str(e)}
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"测试失败: {str(e)}")
+        return ResponseModel(
+            code=500,
+            message=f"测试失败: {str(e)}",
+            data={"success": False, "message": str(e)}
+        )
 
 
 @router.post("/config", response_model=ResponseModel)
@@ -81,10 +89,24 @@ async def save_config(
     """保存并应用配置
     
     验证通过后，持久化存储并切换当前生效服务商
+    如果provider_id为空，则禁用ASR功能
     """
     try:
         service = agent_manager.asr_factory.config_service
         factory = agent_manager.asr_factory
+        
+        # 如果provider_id为空或"none"，禁用ASR
+        if not req.provider_id or req.provider_id.lower() == "none":
+            success = service.disable_asr()
+            if success:
+                factory.clear_cache()
+                return ResponseModel(
+                    code=200,
+                    message="ASR已禁用",
+                    data={"provider_id": None}
+                )
+            else:
+                raise HTTPException(status_code=500, detail="禁用ASR失败")
         
         # 获取服务商名称
         provider_name = factory._PROVIDERS.get(req.provider_id, (None, None))[1]

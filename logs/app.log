@@ -3759,3 +3759,219 @@ See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.ch
 2025-11-29 18:06:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
 2025-11-29 18:06:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
 2025-11-29 18:06:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:10:04 | INFO     | __main__:lifespan:39 - 关闭系统...
+2025-11-29 18:10:04 | INFO     | __main__:lifespan:41 - ✓ 系统已关闭
+2025-11-29 18:10:06 | INFO     | __main__:lifespan:26 - 初始化系统...
+2025-11-29 18:10:06 | INFO     | __main__:lifespan:34 - ✓ 系统初始化完成
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:10:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:10:10 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:10:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:10:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-29 18:10:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-29 18:10:18 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:10:18 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:10:19 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-29 18:10:19 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-29 18:10:29 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:10:29 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:10:53 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:10:54 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 200
+2025-11-29 18:10:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:11:08 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 500
+2025-11-29 18:13:28 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:13:30 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 500
+2025-11-29 18:13:34 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:13:35 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 500
+2025-11-29 18:13:36 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:13:36 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:13:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:13:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:13:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:13:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:13:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:13:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:17:24 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:17:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 500
+2025-11-29 18:18:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:18:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:19:11 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:19:11 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:19:26 | INFO     | __main__:lifespan:39 - 关闭系统...
+2025-11-29 18:19:26 | INFO     | __main__:lifespan:41 - ✓ 系统已关闭
+2025-11-29 18:19:28 | INFO     | __main__:lifespan:26 - 初始化系统...
+2025-11-29 18:19:28 | INFO     | __main__:lifespan:34 - ✓ 系统初始化完成
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:19:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:19:32 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:19:32 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:19:32 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:19:32 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:19:34 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:19:34 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:19:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:19:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 200
+2025-11-29 18:20:04 | INFO     | __main__:lifespan:39 - 关闭系统...
+2025-11-29 18:20:04 | INFO     | __main__:lifespan:41 - ✓ 系统已关闭
+2025-11-29 18:30:38 | INFO     | __main__:lifespan:26 - 初始化系统...
+2025-11-29 18:30:38 | INFO     | __main__:lifespan:34 - ✓ 系统初始化完成
+2025-11-29 18:30:40 | INFO     | __main__:lifespan:39 - 关闭系统...
+2025-11-29 18:30:40 | INFO     | __main__:lifespan:41 - ✓ 系统已关闭
+2025-11-29 18:31:42 | INFO     | __main__:lifespan:26 - 初始化系统...
+2025-11-29 18:31:42 | INFO     | __main__:lifespan:34 - ✓ 系统初始化完成
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:31:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:31:48 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:31:48 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:31:50 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 18:32:02 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 200
+2025-11-29 18:32:31 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:32:35 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:32:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:32:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:32:58 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:32:58 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:33:02 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:06 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:33:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:33:10 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:13 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:33:13 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:26 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:33:27 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/transcribe
+2025-11-29 18:33:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/transcribe 200
+2025-11-29 18:33:49 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-29 18:33:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-29 18:34:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-29 18:34:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-29 18:36:26 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:36:26 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:36:26 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:36:26 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:36:44 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:36:44 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:36:44 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:36:44 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:37:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-29 18:37:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-29 18:37:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/messages
+2025-11-29 18:37:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/messages 200
+2025-11-29 18:41:17 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:41:17 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:41:20 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:41:20 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:41:21 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:41:21 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:41:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:41:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:41:42 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:41:42 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:42:14 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:42:14 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:42:37 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:42:37 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:42:49 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:42:49 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:42:52 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:42:52 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:44:01 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:44:01 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:44:35 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:44:35 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:44:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:44:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:44:39 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:44:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:44:39 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:44:39 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:44:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:44:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:49:57 | INFO     | __main__:lifespan:39 - 关闭系统...
+2025-11-29 18:49:57 | INFO     | __main__:lifespan:41 - ✓ 系统已关闭
+2025-11-29 18:50:01 | INFO     | __main__:lifespan:26 - 初始化系统...
+2025-11-29 18:50:01 | INFO     | __main__:lifespan:34 - ✓ 系统初始化完成
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:50:25 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 18:50:26 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:50:26 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 18:50:26 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 18:50:26 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 18:50:28 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 18:50:28 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 18:50:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:50:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:50:44 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:50:44 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 18:50:48 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 18:50:48 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 200
+2025-11-29 19:02:03 | INFO     | __main__:lifespan:26 - 初始化系统...
+2025-11-29 19:02:03 | INFO     | __main__:lifespan:34 - ✓ 系统初始化完成
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 19:02:05 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 19:02:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 19:02:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 19:02:06 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 19:02:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 19:02:09 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 19:02:09 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 19:02:33 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 19:02:45 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 200

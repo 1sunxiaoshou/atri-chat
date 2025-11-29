@@ -107,16 +107,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMsg]);
     scrollToBottom();
 
-    // 创建一个临时的 AI 消息用于流式更新
+    // 显示"正在输入"状态
+    setIsTyping(true);
+
+    // 准备 AI 消息 ID
     const aiMsgId = Date.now() + 1;
-    const aiMsg: Message = {
-      message_id: aiMsgId,
-      conversation_id: activeConversationId,
-      message_type: 'assistant',
-      content: '',
-      created_at: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, aiMsg]);
+    let hasReceivedFirstToken = false;
 
     try {
       const result = await api.sendMessage(
@@ -127,39 +123,82 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         activeModel?.provider_id || '',
         // 流式更新回调
         (streamContent: string) => {
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.message_id === aiMsgId
-                ? { ...msg, content: streamContent }
-                : msg
-            )
-          );
+          // 收到第一个 token 时，创建 AI 消息
+          if (!hasReceivedFirstToken) {
+            hasReceivedFirstToken = true;
+            setIsTyping(false);
+            const aiMsg: Message = {
+              message_id: aiMsgId,
+              conversation_id: activeConversationId,
+              message_type: 'assistant',
+              content: streamContent,
+              created_at: new Date().toISOString()
+            };
+            setMessages(prev => [...prev, aiMsg]);
+          } else {
+            // 后续更新消息内容
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.message_id === aiMsgId
+                  ? { ...msg, content: streamContent }
+                  : msg
+              )
+            );
+          }
           scrollToBottom();
         }
       );
 
+      setIsTyping(false);
+
       // 检查是否有错误
       if (result.code !== 200 || (result.data as any)?.error) {
         const errorMsg = (result.data as any)?.error || result.message || '发送消息失败';
-        // 更新 AI 消息为错误提示
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.message_id === aiMsgId
-              ? { ...msg, content: `❌ **错误**: ${errorMsg}` }
-              : msg
-          )
-        );
+        
+        if (hasReceivedFirstToken) {
+          // 如果已经创建了消息，更新为错误提示
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.message_id === aiMsgId
+                ? { ...msg, content: `❌ **错误**: ${errorMsg}` }
+                : msg
+            )
+          );
+        } else {
+          // 如果还没创建消息，创建一个错误消息
+          const errorMessage: Message = {
+            message_id: aiMsgId,
+            conversation_id: activeConversationId,
+            message_type: 'assistant',
+            content: `❌ **错误**: ${errorMsg}`,
+            created_at: new Date().toISOString()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        }
       }
     } catch (e) {
       console.error("发送消息异常", e);
+      setIsTyping(false);
+      
       // 异常时显示错误消息
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.message_id === aiMsgId
-            ? { ...msg, content: `❌ **错误**: ${e instanceof Error ? e.message : '发送消息失败，请稍后重试'}` }
-            : msg
-        )
-      );
+      if (hasReceivedFirstToken) {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.message_id === aiMsgId
+              ? { ...msg, content: `❌ **错误**: ${e instanceof Error ? e.message : '发送消息失败，请稍后重试'}` }
+              : msg
+          )
+        );
+      } else {
+        const errorMessage: Message = {
+          message_id: aiMsgId,
+          conversation_id: activeConversationId,
+          message_type: 'assistant',
+          content: `❌ **错误**: ${e instanceof Error ? e.message : '发送消息失败，请稍后重试'}`,
+          created_at: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
     }
   };
 
@@ -293,22 +332,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.message_id} className={`flex gap-4 ${msg.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 text-white' : 'bg-indigo-100 text-indigo-600'
-                }`}>
-                {msg.message_type === 'user' ? (
-                  <User size={16} />
-                ) : (
-                  activeCharacter?.avatar ? <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" /> : <Bot size={16} />
-                )}
-              </div>
-
-              <div className={`max-w-[75%] space-y-2`}>
-                <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-none'
-                  : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
+          <>
+            {messages.map((msg) => (
+              <div key={msg.message_id} className={`flex gap-4 ${msg.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 text-white' : 'bg-indigo-100 text-indigo-600'
                   }`}>
+                  {msg.message_type === 'user' ? (
+                    <User size={16} />
+                  ) : (
+                    activeCharacter?.avatar ? <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" /> : <Bot size={16} />
+                  )}
+                </div>
+
+                <div className={`max-w-[75%] space-y-2`}>
+                  <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
+                    ? 'bg-blue-600 text-white rounded-tr-none'
+                    : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
+                    }`}>
                   <div className={`markdown-content ${msg.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -396,9 +436,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 )}
               </div>
             </div>
-          ))
-        )}
+            ))}
 
+            {/* 打字指示器 */}
+            {isTyping && (
+              <div className="flex gap-4">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 text-indigo-600">
+                  {activeCharacter?.avatar ? (
+                    <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" />
+                  ) : (
+                    <Bot size={16} />
+                  )}
+                </div>
+                <div className="max-w-[75%]">
+                  <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-white border border-gray-100">
+                    <div className="flex gap-1.5 items-center">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         <div ref={messagesEndRef} />
       </div>

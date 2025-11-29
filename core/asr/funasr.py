@@ -118,7 +118,7 @@ class FunASR(ASRBase):
     async def test_connection(self) -> Dict[str, Any]:
         """测试连接
         
-        检查模型文件是否存在并尝试加载
+        检查模型文件是否存在，模型已在__init__中加载，无需重复加载
         """
         try:
             # 检查主模型路径
@@ -147,25 +147,14 @@ class FunASR(ASRBase):
                         "message": f"标点模型文件不存在: {self.punc_model}"
                     }
             
-            # 尝试加载模型（这会比较慢，但无法避免）
-            from funasr import AutoModel
-            try:
-                test_model = AutoModel(
-                    model=self.model_name,
-                    vad_model=self.vad_model,
-                    punc_model=self.punc_model,
-                    device=self.device,
-                    disable_update=True,
-                )
-                # 模型加载成功
-                del test_model  # 释放内存
-                return {"success": True, "message": "模型加载成功"}
-            
-            except Exception as e:
+            # 模型已在__init__中加载，这里只需验证self.model是否可用
+            if self.model is None:
                 return {
                     "success": False,
-                    "message": f"模型加载失败: {str(e)}"
+                    "message": "模型未正确初始化"
                 }
+            
+            return {"success": True, "message": "模型已加载并可用"}
         
         except Exception as e:
             return {

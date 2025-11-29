@@ -208,6 +208,17 @@ class ASRConfigService:
         except Exception:
             return None
     
+    def disable_asr(self) -> bool:
+        """禁用ASR功能（取消所有active状态）
+        
+        Returns:
+            是否成功
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE asr_settings SET is_active = 0")
+            conn.commit()
+        return True
+    
     def _mask_sensitive_fields(self, config: Dict[str, Any], provider_id: str) -> Dict[str, Any]:
         """脱敏敏感字段
         
