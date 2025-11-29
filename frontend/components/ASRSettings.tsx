@@ -12,6 +12,7 @@ const ASRSettings: React.FC = () => {
     const [testing, setTesting] = useState(false);
     const [saving, setSaving] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
@@ -25,15 +26,12 @@ const ASRSettings: React.FC = () => {
             if (res.code === 200) {
                 setProviders(res.data.providers);
                 setActiveProviderId(res.data.active_provider);
-                // If there is an active provider, select it by default, otherwise select the first one or empty
                 if (res.data.active_provider) {
                     setSelectedProviderId(res.data.active_provider);
                     const active = res.data.providers.find(p => p.id === res.data.active_provider);
                     if (active && active.config) {
                         setFormData(active.config);
                     }
-                } else if (res.data.providers.length > 0) {
-                    // Don't auto-select if no active provider, let user choose "None" or a provider
                 }
             }
         } catch (error) {
@@ -47,6 +45,7 @@ const ASRSettings: React.FC = () => {
         const newId = e.target.value;
         setSelectedProviderId(newId);
         setTestResult(null);
+        setSaveResult(null);
 
         if (!newId) {
             setFormData({});
@@ -55,10 +54,6 @@ const ASRSettings: React.FC = () => {
 
         const provider = providers.find(p => p.id === newId);
         if (provider) {
-            // If we have config for this provider (e.g. it was active or we fetched details), use it
-            // Note: The API might not return config for all providers in the list, only active. 
-            // But based on the doc, we might need to handle empty config for new setup.
-            // For now, assume we start fresh or use what's available.
             setFormData(provider.config || {});
         }
     };
@@ -66,6 +61,7 @@ const ASRSettings: React.FC = () => {
     const handleInputChange = (key: string, value: string) => {
         setFormData((prev: any) => ({ ...prev, [key]: value }));
         setTestResult(null);
+        setSaveResult(null);
     };
 
     const toggleSecret = (key: string) => {
@@ -76,50 +72,72 @@ const ASRSettings: React.FC = () => {
         if (!selectedProviderId) return;
         setTesting(true);
         setTestResult(null);
+        setSaveResult(null);
         try {
             const res = await api.testASRConnection(selectedProviderId, formData);
-            if (res.code === 200) {
-                setTestResult({ success: true, message: 'Connection successful' });
+            if (res.code === 200 && res.data?.success) {
+                setTestResult({ success: true, message: res.data.message || res.message || '连接成功' });
             } else {
-                setTestResult({ success: false, message: res.message || 'Connection failed' });
+                const errorMsg = res.data?.message || res.message || '连接失败';
+                setTestResult({ success: false, message: errorMsg });
             }
-        } catch (error) {
-            setTestResult({ success: false, message: 'Network error or server unavailable' });
+        } catch (error: any) {
+            const errorMsg = error?.message || '网络错误或服务不可用';
+            setTestResult({ success: false, message: errorMsg });
         } finally {
             setTesting(false);
         }
     };
 
     const handleSave = async () => {
-        if (!selectedProviderId) return;
         setSaving(true);
+        setSaveResult(null);
+        setTestResult(null);
+
         try {
-            const res = await api.saveASRConfig(selectedProviderId, formData);
+            const res = await api.saveASRConfig(
+                selectedProviderId || 'none',
+                selectedProviderId ? formData : {}
+            );
+
             if (res.code === 200) {
-                setActiveProviderId(selectedProviderId);
-                // Update the provider in the list with the new config
-                setProviders(prev => prev.map(p =>
-                    p.id === selectedProviderId
-                        ? { ...p, is_configured: true, config: formData }
-                        : p
-                ));
-                // Show success feedback?
+                setActiveProviderId(selectedProviderId || null);
+                setSaveResult({
+                    success: true,
+                    message: selectedProviderId ? '配置已保存' : 'ASR已禁用'
+                });
+
+                setTimeout(() => setSaveResult(null), 3000);
+
+                if (selectedProviderId) {
+                    setProviders(prev => prev.map(p =>
+                        p.id === selectedProviderId
+                            ? { ...p, is_configured: true, config: formData }
+                            : p
+                    ));
+                }
+            } else {
+                setSaveResult({
+                    success: false,
+                    message: res.message || '保存失败'
+                });
             }
-        } catch (error) {
-            console.error('Failed to save config:', error);
+        } catch (error: any) {
+            setSaveResult({
+                success: false,
+                message: error?.message || '网络错误'
+            });
         } finally {
             setSaving(false);
         }
     };
 
-    // 动态渲染表单字段（根据后端返回的 config 自动生成）
     const renderFormFields = () => {
-        if (!selectedProviderId) return <div className="text-gray-500 italic">Select a provider to configure.</div>;
+        if (!selectedProviderId) return <div className="text-gray-500 italic">选择服务商以进行配置</div>;
 
-        // 从 formData 动态生成字段
         const configKeys = Object.keys(formData);
         if (configKeys.length === 0) {
-            return <div className="text-gray-500 italic">No configuration available for this provider.</div>;
+            return <div className="text-gray-500 italic">该服务商暂无配置项</div>;
         }
 
         const fields = configKeys.map(key => ({
@@ -133,7 +151,7 @@ const ASRSettings: React.FC = () => {
                 {fields.map((field) => {
                     const currentValue = formData[field.key];
                     const displayValue = currentValue === null || currentValue === undefined ? '' : String(currentValue);
-                    
+
                     return (
                         <div key={field.key} className="space-y-1">
                             <label className="block text-sm font-medium text-gray-300">
@@ -172,74 +190,98 @@ const ASRSettings: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8">
-            {/* Provider Selector */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
-                    ASR Provider
-                </label>
-                <div className="relative">
-                    <select
-                        value={selectedProviderId}
-                        onChange={handleProviderChange}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                        <option value="">None (Disable ASR)</option>
-                        {providers.map(p => (
-                            <option key={p.id} value={p.id}>
-                                {p.name} {p.is_configured ? '✅' : '⚠️'}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        ▼
+        <div className="flex flex-col h-full space-y-4">
+            {/* 顶部区域：Provider 选择器 + 结果通知 */}
+            <div className="flex-shrink-0 space-y-3">
+                {/* Provider 选择器 */}
+                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
+                    <div className="flex items-center gap-4">
+                        <label className="text-sm font-medium text-gray-300 whitespace-nowrap">
+                            Provider
+                        </label>
+                        <div className="relative flex-1">
+                            <select
+                                value={selectedProviderId}
+                                onChange={handleProviderChange}
+                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-gray-600"
+                            >
+                                <option value="">无（禁用ASR）</option>
+                                {providers.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name} {p.is_configured ? '✅' : '⚠️'}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                ▼
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                {/* 结果通知区域 - 固定位置 */}
+                <div className="min-h-[52px] flex items-center">
+                    {saveResult && (
+                        <div className={`w-full p-3 rounded-lg border text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2 ${saveResult.success
+                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                            }`}>
+                            {saveResult.success ? <Check size={16} /> : <AlertTriangle size={16} />}
+                            <span className="flex-1">{saveResult.message}</span>
+                        </div>
+                    )}
+
+                    {testResult && !saveResult && (
+                        <div className={`w-full p-3 rounded-lg border text-sm flex items-start gap-2 animate-in fade-in slide-in-from-top-2 ${testResult.success
+                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                            }`}>
+                            {testResult.success ? <Check size={16} className="mt-0.5" /> : <AlertTriangle size={16} className="mt-0.5" />}
+                            <div className="flex-1">
+                                <div className="font-medium">{testResult.success ? '连接测试成功' : '连接测试失败'}</div>
+                                {testResult.message && <div className="opacity-90 mt-1 text-xs">{testResult.message}</div>}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Dynamic Form */}
-            <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-800">
-                {renderFormFields()}
+            {/* 中部：配置表单区域 */}
+            <div className="flex-1 min-h-0 flex flex-col">
+                {selectedProviderId ? (
+                    <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-800 flex-1 overflow-y-auto custom-scrollbar">
+                        {renderFormFields()}
+                    </div>
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 italic bg-gray-800/30 rounded-xl border border-gray-800 border-dashed">
+                        <div className="mb-2 text-4xl">⚙️</div>
+                        <div>请选择上方的服务商进行配置</div>
+                    </div>
+                )}
             </div>
 
-            {/* Action Footer */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-800">
-                {/* Test Connection */}
+            {/* 底部：操作按钮 - 固定位置 */}
+            <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-2">
                 {selectedProviderId && (
                     <button
                         onClick={handleTestConnection}
                         disabled={testing}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${testResult?.success
-                                ? 'text-green-400 bg-green-400/10 hover:bg-green-400/20'
-                                : testResult?.success === false
-                                    ? 'text-red-400 bg-red-400/10 hover:bg-red-400/20'
-                                    : 'text-gray-300 hover:bg-gray-800'
-                            }`}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all border border-gray-700 hover:border-gray-600 bg-gray-800 hover:bg-gray-750 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {testing ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />}
-                        {testing ? 'Testing...' : testResult?.success ? 'Connection Valid' : testResult?.success === false ? 'Connection Failed' : 'Test Connection'}
+                        {testing ? <Loader2 className="animate-spin" size={18} /> : <Activity size={18} />}
+                        <span>测试连接</span>
                     </button>
                 )}
 
-                <div className="flex-1"></div>
-
-                {/* Save Button */}
                 <button
                     onClick={handleSave}
-                    disabled={saving || !selectedProviderId}
-                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
+                    disabled={saving}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
                 >
                     {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    <span>Save & Apply</span>
+                    <span>保存配置</span>
                 </button>
             </div>
-
-            {/* Error Message Display */}
-            {testResult?.success === false && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm animate-in fade-in slide-in-from-top-1">
-                    {testResult.message}
-                </div>
-            )}
         </div>
     );
 };
