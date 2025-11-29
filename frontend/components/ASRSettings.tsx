@@ -190,10 +190,40 @@ const ASRSettings: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full space-y-4">
-            {/* 顶部区域：Provider 选择器 + 结果通知 */}
-            <div className="flex-shrink-0 space-y-3">
-                {/* Provider 选择器 */}
+        <div className="flex flex-col h-full space-y-4 relative">
+            {/* Toast 通知 - 固定在右上角 */}
+            {(saveResult || testResult) && (
+                <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {saveResult && (
+                        <div className={`min-w-[300px] max-w-[400px] p-4 rounded-lg border shadow-lg backdrop-blur-sm flex items-start gap-3 ${saveResult.success
+                                ? 'bg-green-500/90 border-green-400/50 text-white'
+                                : 'bg-red-500/90 border-red-400/50 text-white'
+                            }`}>
+                            {saveResult.success ? <Check size={20} className="flex-shrink-0 mt-0.5" /> : <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />}
+                            <div className="flex-1 min-w-0">
+                                <div className="font-semibold">{saveResult.success ? '保存成功' : '保存失败'}</div>
+                                <div className="text-sm opacity-90 mt-1">{saveResult.message}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {testResult && !saveResult && (
+                        <div className={`min-w-[300px] max-w-[400px] p-4 rounded-lg border shadow-lg backdrop-blur-sm flex items-start gap-3 ${testResult.success
+                                ? 'bg-green-500/90 border-green-400/50 text-white'
+                                : 'bg-red-500/90 border-red-400/50 text-white'
+                            }`}>
+                            {testResult.success ? <Check size={20} className="flex-shrink-0 mt-0.5" /> : <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />}
+                            <div className="flex-1 min-w-0">
+                                <div className="font-semibold">{testResult.success ? '测试成功' : '测试失败'}</div>
+                                <div className="text-sm opacity-90 mt-1 break-words">{testResult.message}</div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* 顶部：Provider 选择器 */}
+            <div className="flex-shrink-0">
                 <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-medium text-gray-300 whitespace-nowrap">
@@ -203,46 +233,34 @@ const ASRSettings: React.FC = () => {
                             <select
                                 value={selectedProviderId}
                                 onChange={handleProviderChange}
-                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-gray-600"
+                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 pr-10 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-gray-600 cursor-pointer"
+                                style={{
+                                    backgroundImage: 'none'
+                                }}
                             >
-                                <option value="">无（禁用ASR）</option>
+                                <option value="" className="bg-gray-800 text-gray-400">
+                                    无（禁用ASR）
+                                </option>
                                 {providers.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.name} {p.is_configured ? '✅' : '⚠️'}
+                                    <option
+                                        key={p.id}
+                                        value={p.id}
+                                        className="bg-gray-800 py-2"
+                                        style={{
+                                            color: p.is_configured ? '#86efac' : '#fbbf24'
+                                        }}
+                                    >
+                                        {p.is_configured ? '● ' : '○ '}{p.name}{p.is_configured ? ' (已配置)' : ' (未配置)'}
                                     </option>
                                 ))}
                             </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                ▼
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* 结果通知区域 - 固定位置 */}
-                <div className="min-h-[52px] flex items-center">
-                    {saveResult && (
-                        <div className={`w-full p-3 rounded-lg border text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2 ${saveResult.success
-                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                            : 'bg-red-500/10 border-red-500/20 text-red-400'
-                            }`}>
-                            {saveResult.success ? <Check size={16} /> : <AlertTriangle size={16} />}
-                            <span className="flex-1">{saveResult.message}</span>
-                        </div>
-                    )}
-
-                    {testResult && !saveResult && (
-                        <div className={`w-full p-3 rounded-lg border text-sm flex items-start gap-2 animate-in fade-in slide-in-from-top-2 ${testResult.success
-                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                            : 'bg-red-500/10 border-red-500/20 text-red-400'
-                            }`}>
-                            {testResult.success ? <Check size={16} className="mt-0.5" /> : <AlertTriangle size={16} className="mt-0.5" />}
-                            <div className="flex-1">
-                                <div className="font-medium">{testResult.success ? '连接测试成功' : '连接测试失败'}</div>
-                                {testResult.message && <div className="opacity-90 mt-1 text-xs">{testResult.message}</div>}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
