@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import AdminDashboard from './components/AdminDashboard';
+import SettingsModal from './components/SettingsModal';
 import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api';
 import { useLanguage } from './contexts/LanguageContext';
@@ -13,6 +14,9 @@ const App: React.FC = () => {
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [models, setModels] = useState<Model[]>([]);
+
+  // Settings Modal State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Helper function to get character ID (supports both character_id and id)
   const getCharacterId = (char: Character): number => {
@@ -36,22 +40,14 @@ const App: React.FC = () => {
 
   const activeModel = models.find(m => m.model_id === (activeModelId || activeCharacter?.primary_model_id)) || null;
 
-  // 初始化加载数据
   useEffect(() => {
     loadGlobalData();
     loadConversations(selectedCharacterId);
-  }, []); // 只在组件挂载时执行一次
+  }, [selectedCharacterId]); // Reload conversations when character selection changes
 
-  // 当选择的角色变化时，重新加载对话列表
+  // Reload data when returning from Admin view to ensure new characters/models appear
   useEffect(() => {
-    if (characters.length > 0) { // 确保角色已加载
-      loadConversations(selectedCharacterId);
-    }
-  }, [selectedCharacterId]);
-
-  // 从管理页面返回时，刷新数据
-  useEffect(() => {
-    if (viewMode === 'chat' && characters.length > 0) {
+    if (viewMode === 'chat') {
       loadGlobalData(true);
       loadConversations(selectedCharacterId);
     }
@@ -130,6 +126,7 @@ const App: React.FC = () => {
         characters={characters.filter(c => c.enabled)}
         selectedCharacterId={selectedCharacterId}
         onSelectCharacter={handleCharacterSelect}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       <main className="flex-1 h-full relative">
@@ -178,6 +175,11 @@ const App: React.FC = () => {
           <AdminDashboard onBack={() => setViewMode('chat')} />
         )}
       </main>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

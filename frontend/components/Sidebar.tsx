@@ -14,6 +14,7 @@ interface SidebarProps {
   characters: Character[];
   selectedCharacterId: number | null;
   onSelectCharacter: (id: number | null) => void;
+  onOpenSettings: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -26,7 +27,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onDeleteConversation,
   characters,
   selectedCharacterId,
-  onSelectCharacter
+  onSelectCharacter,
+  onOpenSettings
 }) => {
   const { t, language, setLanguage } = useLanguage();
 
@@ -263,7 +265,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           {language === 'en' ? '中文' : 'English'}
         </button>
 
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800/50 hover:text-white transition-colors">
+        <button
+          onClick={onOpenSettings}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800/50 hover:text-white transition-colors"
+        >
           <Settings size={18} />
           {t('sidebar.settings')}
         </button>

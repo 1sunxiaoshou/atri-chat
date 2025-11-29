@@ -1,6 +1,6 @@
 """FunASR 实现"""
 import os
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 from pathlib import Path
 
 
@@ -9,6 +9,22 @@ from .base import ASRBase
 
 class FunASR(ASRBase):
     """FunASR 实现（阿里达摩院语音识别）"""
+    
+    @classmethod
+    def get_config_template(cls) -> Dict[str, Any]:
+        """获取配置模板"""
+        return {
+            "model": None,
+            "device": "cpu",
+            "vad_model": None,
+            "punc_model": None,
+            "language": "zh"
+        }
+    
+    @classmethod
+    def get_sensitive_fields(cls) -> list[str]:
+        """获取敏感字段列表"""
+        return []  # FunASR本地模型，无敏感字段
     
     def __init__(self, config: dict):
         """初始化
@@ -98,3 +114,61 @@ class FunASR(ASRBase):
                 return result[0]
         
         return ""
+    
+    async def test_connection(self) -> Dict[str, Any]:
+        """测试连接
+        
+        检查模型文件是否存在并尝试加载
+        """
+        try:
+            # 检查主模型路径
+            model_path = Path(self.model_name)
+            if not model_path.exists():
+                return {
+                    "success": False,
+                    "message": f"模型文件不存在: {self.model_name}"
+                }
+            
+            # 检查VAD模型（如果配置了）
+            if self.vad_model:
+                vad_path = Path(self.vad_model)
+                if not vad_path.exists():
+                    return {
+                        "success": False,
+                        "message": f"VAD模型文件不存在: {self.vad_model}"
+                    }
+            
+            # 检查标点模型（如果配置了）
+            if self.punc_model:
+                punc_path = Path(self.punc_model)
+                if not punc_path.exists():
+                    return {
+                        "success": False,
+                        "message": f"标点模型文件不存在: {self.punc_model}"
+                    }
+            
+            # 尝试加载模型（这会比较慢，但无法避免）
+            from funasr import AutoModel
+            try:
+                test_model = AutoModel(
+                    model=self.model_name,
+                    vad_model=self.vad_model,
+                    punc_model=self.punc_model,
+                    device=self.device,
+                    disable_update=True,
+                )
+                # 模型加载成功
+                del test_model  # 释放内存
+                return {"success": True, "message": "模型加载成功"}
+            
+            except Exception as e:
+                return {
+                    "success": False,
+                    "message": f"模型加载失败: {str(e)}"
+                }
+        
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"测试失败: {str(e)}"
+            }

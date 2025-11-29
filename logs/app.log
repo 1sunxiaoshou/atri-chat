@@ -3507,3 +3507,55 @@ See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.ch
 2025-11-28 22:47:05 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
 2025-11-28 23:18:29 | INFO     | __main__:lifespan:22 - 初始化系统...
 2025-11-28 23:18:29 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-29 16:26:07 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-29 16:26:07 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/characters
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/characters 200
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations 200
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/models
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/models 200
+2025-11-29 16:26:22 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 16:26:45 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/16/messages
+2025-11-29 16:26:45 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/16/messages 200
+2025-11-29 16:26:46 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/conversations/17/messages
+2025-11-29 16:26:46 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/conversations/17/messages 200
+2025-11-29 16:27:07 | INFO     | __main__:lifespan:35 - 关闭系统...
+2025-11-29 16:27:07 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
+2025-11-29 17:02:07 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-29 17:02:07 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-29 17:02:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /docs
+2025-11-29 17:02:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /docs 200
+2025-11-29 17:02:56 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /openapi.json
+2025-11-29 17:02:56 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /openapi.json 200
+2025-11-29 17:03:15 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 17:03:15 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 17:03:29 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 17:03:29 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 17:03:38 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/test
+2025-11-29 17:03:38 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/test 422
+2025-11-29 17:03:40 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 17:03:40 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 422
+2025-11-29 17:03:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 17:03:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 17:10:59 | INFO     | __main__:lifespan:35 - 关闭系统...
+2025-11-29 17:10:59 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
+2025-11-29 17:11:01 | INFO     | __main__:lifespan:22 - 初始化系统...
+2025-11-29 17:11:01 | INFO     | __main__:lifespan:30 - ✓ 系统初始化完成
+2025-11-29 17:11:06 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 17:11:06 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 17:12:43 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/providers
+2025-11-29 17:12:43 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/providers 200
+2025-11-29 17:12:59 | INFO     | core.middleware.logging_middleware:dispatch:18 - → GET /api/v1/asr/providers
+2025-11-29 17:12:59 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← GET /api/v1/asr/providers 200
+2025-11-29 17:16:55 | INFO     | core.middleware.logging_middleware:dispatch:18 - → POST /api/v1/asr/config
+2025-11-29 17:16:55 | INFO     | core.middleware.logging_middleware:dispatch:33 - ← POST /api/v1/asr/config 422
+2025-11-29 17:17:09 | INFO     | __main__:lifespan:35 - 关闭系统...
+2025-11-29 17:17:09 | INFO     | __main__:lifespan:37 - ✓ 系统已关闭
