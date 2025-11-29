@@ -5,21 +5,17 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime
 from pathlib import Path
 
-from .crypto import ConfigCrypto
-
 
 class ASRConfigService:
     """ASR配置管理服务"""
     
-    def __init__(self, db_path: str = "data/app.db", crypto: Optional[ConfigCrypto] = None):
+    def __init__(self, db_path: str = "data/app.db"):
         """初始化
         
         Args:
             db_path: 数据库路径
-            crypto: 加密工具实例
         """
         self.db_path = db_path
-        self.crypto = crypto or ConfigCrypto()
         self._init_table()
     
     def _init_table(self):
@@ -62,15 +58,14 @@ class ASRConfigService:
             name: 服务商显示名称
             config_template: 配置模板
         """
-        # 加密配置模板
+        # 直接存储JSON（不加密）
         config_json = json.dumps(config_template, ensure_ascii=False)
-        encrypted = self.crypto.encrypt(config_json)
         
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 INSERT INTO asr_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
                 VALUES (?, ?, 0, 0, ?, ?)
-            """, (provider_id, name, encrypted, datetime.now().isoformat()))
+            """, (provider_id, name, config_json, datetime.now().isoformat()))
             conn.commit()
     
     def get_all_providers(self) -> Dict[str, Any]:
@@ -105,17 +100,17 @@ class ASRConfigService:
             # 返回配置（已配置时脱敏，未配置时返回模板）
             if row["config_data"]:
                 try:
-                    decrypted = self.crypto.decrypt(row["config_data"])
-                    config = json.loads(decrypted)
+                    config = json.loads(row["config_data"])
                     
                     if row["is_configured"]:
                         # 已配置：脱敏敏感字段
                         provider_data["config"] = self._mask_sensitive_fields(config, row["provider_id"])
                     else:
-                        # 未配置：返回模板（所有值为None或默认值）
+                        # 未配置：返回完整模板（供前端显示表单）
                         provider_data["config"] = config
-                except Exception:
-                    pass
+                except Exception as e:
+                    # 记录JSON解析失败的错误
+                    print(f"⚠️  解析 {row['provider_id']} 配置失败: {e}")
             
             providers.append(provider_data)
             
@@ -128,7 +123,7 @@ class ASRConfigService:
         }
     
     def get_provider_config(self, provider_id: str) -> Optional[Dict[str, Any]]:
-        """获取指定服务商的配置（解密后的明文）
+        """获取指定服务商的配置（明文）
         
         Args:
             provider_id: 服务商ID
@@ -149,8 +144,7 @@ class ASRConfigService:
             return None
         
         try:
-            decrypted = self.crypto.decrypt(row["config_data"])
-            return json.loads(decrypted)
+            return json.loads(row["config_data"])
         except Exception:
             return None
     
@@ -166,9 +160,8 @@ class ASRConfigService:
         Returns:
             是否成功
         """
-        # 加密配置
+        # 直接存储JSON（不加密）
         config_json = json.dumps(config, ensure_ascii=False)
-        encrypted = self.crypto.encrypt(config_json)
         
         with sqlite3.connect(self.db_path) as conn:
             # 如果设置为active，先取消其他的active状态
@@ -185,7 +178,7 @@ class ASRConfigService:
                     is_configured = 1,
                     config_data = excluded.config_data,
                     updated_at = excluded.updated_at
-            """, (provider_id, name, int(set_active), encrypted, datetime.now().isoformat()))
+            """, (provider_id, name, int(set_active), config_json, datetime.now().isoformat()))
             conn.commit()
         
         return True
@@ -210,8 +203,7 @@ class ASRConfigService:
             return None
         
         try:
-            decrypted = self.crypto.decrypt(row["config_data"])
-            config = json.loads(decrypted)
+            config = json.loads(row["config_data"])
             return (row["provider_id"], config)
         except Exception:
             return None

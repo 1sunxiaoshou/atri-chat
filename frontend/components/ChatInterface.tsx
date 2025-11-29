@@ -27,7 +27,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingAudio, setIsProcessingAudio] = useState(false);
+  const [asrEnabled, setAsrEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    checkASRStatus();
+  }, []);
+
+  const checkASRStatus = async () => {
+    try {
+      const res = await api.getASRProviders();
+      if (res.code === 200 && res.data.active_provider) {
+        setAsrEnabled(true);
+      } else {
+        setAsrEnabled(false);
+      }
+    } catch (e) {
+      console.error("Failed to check ASR status", e);
+      setAsrEnabled(false);
+    }
+  };
 
   useEffect(() => {
     if (activeConversationId) {
@@ -41,16 +61,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (res.code === 200) {
         // 后端返回格式：data 是消息数组或包含 messages 字段的对象
         let messageList: Message[] = [];
-        
+
         if (Array.isArray(res.data)) {
           messageList = res.data;
         } else if (res.data && typeof res.data === 'object' && 'messages' in res.data) {
           messageList = (res.data as any).messages || [];
         }
-        
+
         // 确保消息格式正确（message_type 字段必须存在）
         const validMessages = messageList.filter(msg => msg.message_type && (msg.message_type === 'user' || msg.message_type === 'assistant'));
-        
+
         setMessages(validMessages);
         scrollToBottom();
       } else {
@@ -107,9 +127,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         activeModel?.provider_id || '',
         // 流式更新回调
         (streamContent: string) => {
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.message_id === aiMsgId 
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.message_id === aiMsgId
                 ? { ...msg, content: streamContent }
                 : msg
             )
@@ -122,9 +142,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (result.code !== 200 || (result.data as any)?.error) {
         const errorMsg = (result.data as any)?.error || result.message || '发送消息失败';
         // 更新 AI 消息为错误提示
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.message_id === aiMsgId 
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.message_id === aiMsgId
               ? { ...msg, content: `❌ **错误**: ${errorMsg}` }
               : msg
           )
@@ -133,9 +153,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (e) {
       console.error("发送消息异常", e);
       // 异常时显示错误消息
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.message_id === aiMsgId 
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.message_id === aiMsgId
             ? { ...msg, content: `❌ **错误**: ${e instanceof Error ? e.message : '发送消息失败，请稍后重试'}` }
             : msg
         )
@@ -168,29 +188,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         recorder.onstop = async () => {
           // 停止所有音频轨道
           stream.getTracks().forEach(track => track.stop());
-          
+
           // 合并音频数据
           const audioBlob = new Blob(chunks, { type: 'audio/wav' });
-          
-          // 发送音频消息
-          setIsTyping(true);
+
+          setIsRecording(false);
+          setIsProcessingAudio(true);
+
+          // 发送音频进行转录
           try {
-            const res = await api.sendAudioMessage(
-              activeConversationId,
-              audioBlob
-            );
-            
+            const res = await api.transcribeAudio(audioBlob);
+
             if (res.code === 200) {
-              // 重新加载消息列表
-              loadMessages();
+              setInputValue(prev => prev + (prev ? ' ' : '') + res.data.text);
             } else {
-              console.error('发送音频消息失败:', res.message);
+              console.error('语音转录失败:', res.message);
+              // 可以添加 Toast 提示
             }
           } catch (e) {
-            console.error("音频上传失败", e);
+            console.error("语音转录异常", e);
           } finally {
-            setIsTyping(false);
-            setIsRecording(false);
+            setIsProcessingAudio(false);
+            setMediaRecorder(null);
           }
         };
 
@@ -298,14 +317,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         code({ node, inline, className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || '');
                           const codeContent = String(children).replace(/\n$/, '');
-                          
+
                           return !inline ? (
                             <div className="my-3 bg-gray-900 rounded-md overflow-hidden">
                               <div className="px-3 py-1 bg-gray-800 text-xs text-gray-400 flex justify-between items-center">
                                 <span>{match ? match[1] : t('chat.code')}</span>
-                                <Copy 
-                                  size={12} 
-                                  className="cursor-pointer hover:text-white" 
+                                <Copy
+                                  size={12}
+                                  className="cursor-pointer hover:text-white"
                                   onClick={() => navigator.clipboard.writeText(codeContent)}
                                 />
                               </div>
@@ -402,7 +421,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   handleSend();
                 }
               }}
-              placeholder={isRecording ? t('chat.recordingPlaceholder') : t('chat.placeholder')}
+              placeholder={isRecording ? t('chat.recordingPlaceholder') : isProcessingAudio ? "正在转换语音..." : t('chat.placeholder')}
               disabled={isRecording}
               className="w-full max-h-40 p-4 pr-32 bg-transparent border-none focus:ring-0 resize-none text-gray-700 placeholder-gray-400 outline-none custom-scrollbar disabled:bg-gray-50 disabled:text-gray-400"
               rows={1}
@@ -415,8 +434,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </button>
               <button
                 onClick={toggleRecording}
-                className={`p-2 rounded-xl transition-colors ${isRecording ? 'text-red-500 bg-red-50 animate-pulse' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
-                title={isRecording ? "Stop and Send" : "Record Audio"}
+                disabled={!asrEnabled || isProcessingAudio}
+                className={`p-2 rounded-xl transition-colors ${!asrEnabled
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : isRecording
+                      ? 'text-red-500 bg-red-50 animate-pulse'
+                      : isProcessingAudio
+                        ? 'text-blue-500 bg-blue-50 animate-pulse'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                  }`}
+                title={!asrEnabled ? "ASR not configured" : isRecording ? "Stop Recording" : "Record Audio"}
               >
                 <Mic size={20} />
               </button>

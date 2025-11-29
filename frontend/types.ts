@@ -19,7 +19,7 @@ export interface Provider {
   description?: string;
   config_json: ProviderConfig;
   logo?: string;
-  template_type: 'openai' | 'anthropic' | 'google' | 'tongyi' | 'local';
+  template_type: string;  // 动态模板类型，不再硬编码
 }
 
 // 3. Models
@@ -77,3 +77,16 @@ export interface AudioMessageData {
 // UI State Types
 export type ViewMode = 'chat' | 'admin';
 export type AdminTab = 'providers' | 'models' | 'characters';
+
+// 7. ASR
+export interface ASRProvider {
+  id: string;
+  name: string;
+  is_configured: boolean;
+  config?: any;
+}
+
+export interface ASRConfigResponse {
+  active_provider: string | null;
+  providers: ASRProvider[];
+}
