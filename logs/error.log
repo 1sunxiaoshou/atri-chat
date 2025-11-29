@@ -131,3 +131,18 @@ See https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.ch
 2025-11-28 21:58:17 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/16/messages - AgentManager.__init__() missing 1 required positional argument: 'store'
 2025-11-28 21:59:03 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/16/messages - AgentManager.__init__() missing 1 required positional argument: 'store'
 2025-11-28 22:01:09 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/16/messages - AgentManager.__init__() missing 1 required positional argument: 'store'
+2025-11-29 17:32:12 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/17/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:12 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:14 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/16/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:15 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/17/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:16 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/16/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:36 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:36 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/17/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:39 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:46 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:48 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:32:49 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:33:58 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/asr/providers - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:33:58 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/17/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:34:01 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/16/messages - Fernet key must be 32 url-safe base64-encoded bytes.
+2025-11-29 17:34:01 | ERROR    | core.middleware.logging_middleware:dispatch:50 - ✗ GET /api/v1/conversations/17/messages - Fernet key must be 32 url-safe base64-encoded bytes.

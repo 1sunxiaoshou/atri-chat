@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Settings, Mic, Volume2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import ASRSettings from './ASRSettings';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -49,8 +50,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as SettingsTab)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                            : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
                                         }`}
                                 >
                                     <Icon size={18} />
@@ -67,10 +68,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 {tabs.find(t => t.id === activeTab)?.label}
                             </h3>
 
-                            {/* Content Area - Currently Empty */}
-                            <div className="text-gray-500 italic">
-                                {/* Placeholder content */}
-                                Configuration panel for {tabs.find(t => t.id === activeTab)?.label} will go here.
+                            {/* Content Area */}
+                            <div className="mt-4">
+                                {activeTab === 'general' && (
+                                    <div className="text-gray-500 italic">
+                                        General settings configuration will go here.
+                                    </div>
+                                )}
+                                {activeTab === 'asr' && <ASRSettings />}
+                                {activeTab === 'tts' && (
+                                    <div className="text-gray-500 italic">
+                                        TTS settings configuration will go here.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

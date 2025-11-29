@@ -1,7 +1,7 @@
-import { Provider, Model, Character, Conversation, Message, ApiResponse, SendMessageData, AudioMessageData } from '../types';
+import { Provider, Model, Character, Conversation, Message, ApiResponse, SendMessageData, AudioMessageData, ASRConfigResponse } from '../types';
 
 // 动态获取 API 地址：生产环境使用相对路径，开发环境使用 localhost
-const BASE_URL = import.meta.env.PROD 
+const BASE_URL = import.meta.env.PROD
     ? '/api/v1'  // 生产环境：使用相对路径（前后端同域）
     : 'http://localhost:8000/api/v1';  // 开发环境：使用完整地址
 
@@ -84,11 +84,11 @@ export const api = {
         // 先获取模型信息
         const getResponse = await fetch(`${BASE_URL}/models/${providerId}/${modelId}`);
         const modelData = await handleResponse<any>(getResponse);
-        
+
         if (modelData.code !== 200) {
             return modelData;
         }
-        
+
         // 更新模型
         const response = await fetch(`${BASE_URL}/models/${providerId}/${modelId}`, {
             method: 'PUT',
@@ -175,10 +175,10 @@ export const api = {
     },
 
     sendMessage: async (
-        conversationId: number | string, 
-        content: string, 
-        characterId: number | string, 
-        modelId: string, 
+        conversationId: number | string,
+        content: string,
+        characterId: number | string,
+        modelId: string,
         providerId: string,
         onChunk?: (content: string) => void
     ): Promise<ApiResponse<SendMessageData>> => {
@@ -214,10 +214,10 @@ export const api = {
 
                     // 解码并累积到 buffer
                     buffer += decoder.decode(value, { stream: true });
-                    
+
                     // 按行分割
                     const lines = buffer.split('\n');
-                    
+
                     // 保留最后一个不完整的行
                     buffer = lines.pop() || '';
 
@@ -226,7 +226,7 @@ export const api = {
                             try {
                                 const data = JSON.parse(line.slice(6));
                                 console.log('[SSE] Received:', data); // 调试日志
-                                
+
                                 // 检查是否有错误
                                 if (data.error) {
                                     return {
@@ -239,7 +239,7 @@ export const api = {
                                         }
                                     };
                                 }
-                                
+
                                 if (data.done) {
                                     break;
                                 }
@@ -300,7 +300,7 @@ export const api = {
     uploadProviderLogo: async (file: File, providerId?: string): Promise<ApiResponse<{ url: string; filename: string; provider_id?: string }>> => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         let url = import.meta.env.PROD ? '/api/upload/provider-logo' : 'http://localhost:8000/api/upload/provider-logo';
         if (providerId) {
             url += `?provider_id=${providerId}`;
@@ -311,5 +311,54 @@ export const api = {
             body: formData
         });
         return handleResponse<{ url: string; filename: string; provider_id?: string }>(response);
+    },
+
+    // ==================== ASR (语音转文本) ====================
+    /** 获取ASR配置列表与状态 */
+    getASRProviders: async (): Promise<ApiResponse<ASRConfigResponse>> => {
+        const response = await fetch(`${BASE_URL}/asr/providers`);
+        return handleResponse<ASRConfigResponse>(response);
+    },
+
+    /** 测试ASR连接 */
+    testASRConnection: async (providerId: string, config: any): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/asr/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider_id: providerId, config })
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 保存ASR配置 */
+    saveASRConfig: async (providerId: string, config: any): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/asr/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider_id: providerId, config })
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 语音转文本 */
+    transcribeAudio: async (file: Blob, language?: string): Promise<ApiResponse<{ text: string }>> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (language) {
+            formData.append('language', language);
+        }
+
+        const response = await fetch(`${BASE_URL}/asr/transcribe`, {
+            method: 'POST',
+            body: formData
+        });
+        return handleResponse<{ text: string }>(response);
+    },
+
+    // ==================== Provider Templates ====================
+    /** 获取所有供应商模板 */
+    getProviderTemplates: async (): Promise<ApiResponse<any[]>> => {
+        const response = await fetch(`${BASE_URL}/providers/templates/list`);
+        return handleResponse<any[]>(response);
     }
 };

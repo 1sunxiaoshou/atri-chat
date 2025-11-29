@@ -15,6 +15,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [providerTemplates, setProviderTemplates] = useState<any[]>([]);
 
   // Helper function to get character ID (supports both character_id and id)
   const getCharacterId = (char: Character): number => {
@@ -40,6 +41,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
   useEffect(() => {
     fetchData();
+    fetchTemplates();
   }, []);
 
   const fetchData = async () => {
@@ -51,17 +53,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     setCharacters(c.data);
   };
 
+  const fetchTemplates = async () => {
+    try {
+      const res = await api.getProviderTemplates();
+      if (res.code === 200) {
+        setProviderTemplates(res.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch provider templates:', error);
+    }
+  };
+
   // --- Provider Handlers ---
   const handleOpenProviderModal = (provider?: Provider) => {
     if (provider) {
       setEditingProvider({ ...provider });
     } else {
+      // 使用第一个模板作为默认值
+      const defaultTemplate = providerTemplates[0];
+      const defaultConfigJson: any = {};
+      
+      if (defaultTemplate) {
+        // 根据模板字段生成默认配置
+        defaultTemplate.config_fields?.forEach((field: any) => {
+          defaultConfigJson[field.field_name] = field.default_value || '';
+        });
+      }
+      
       setEditingProvider({
         provider_id: '',
         name: '',
-        template_type: 'openai',
+        template_type: defaultTemplate?.template_type || 'openai',
         description: '',
-        config_json: { api_key: '', base_url: '' }
+        config_json: defaultConfigJson
       });
     }
     setIsProviderModalOpen(true);
@@ -612,15 +636,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">供应商模板</label>
                   <select
-                    value={editingProvider.template_type || 'openai'}
-                    onChange={(e) => setEditingProvider({ ...editingProvider, template_type: e.target.value as any })}
+                    value={editingProvider.template_type || providerTemplates[0]?.template_type || 'openai'}
+                    onChange={(e) => {
+                      const selectedTemplate = providerTemplates.find(t => t.template_type === e.target.value);
+                      const newConfigJson: any = {};
+                      
+                      // 根据选中的模板生成配置字段
+                      if (selectedTemplate) {
+                        selectedTemplate.config_fields?.forEach((field: any) => {
+                          newConfigJson[field.field_name] = field.default_value || '';
+                        });
+                      }
+                      
+                      setEditingProvider({ 
+                        ...editingProvider, 
+                        template_type: e.target.value as any,
+                        config_json: newConfigJson
+                      });
+                    }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   >
-                    <option value="openai">OpenAI 兼容</option>
-                    <option value="anthropic">Anthropic (Claude)</option>
-                    <option value="google">Google (Gemini)</option>
-                    <option value="tongyi">通义千问</option>
-                    <option value="local">本地模型 (Ollama)</option>
+                    {providerTemplates.map(template => (
+                      <option key={template.template_type} value={template.template_type}>
+                        {template.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
