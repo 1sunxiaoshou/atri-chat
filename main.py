@@ -1,6 +1,7 @@
 """FastAPI 主应用入口"""
 from contextlib import asynccontextmanager
 from pathlib import Path
+from dotenv import load_dotenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,8 +10,11 @@ from core.logger import get_logger
 from core.middleware.logging_middleware import LoggingMiddleware
 from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
 from api.routes import (
-    characters, conversations, messages, models, providers, tts, health, upload
+    characters, conversations, messages, models, providers, tts, health, upload, asr
 )
+
+# 加载 .env 文件
+load_dotenv()
 
 logger = get_logger(__name__)
 
@@ -76,6 +80,7 @@ app.include_router(messages.router, prefix="/api/v1", tags=["messages"])
 app.include_router(models.router, prefix="/api/v1", tags=["models"])
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
 app.include_router(tts.router, prefix="/api/v1", tags=["tts"])
+app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # 挂载前端静态文件（必须在最后，避免覆盖 API 路由）
