@@ -12,19 +12,52 @@ class FunASR(ASRBase):
     
     @classmethod
     def get_config_template(cls) -> Dict[str, Any]:
-        """获取配置模板"""
+        """获取配置模板（带UI元数据）"""
         return {
-            "model": None,
-            "device": "cpu",
-            "vad_model": None,
-            "punc_model": None,
-            "language": "zh"
+            "model": {
+                "type": "file",
+                "label": "主模型路径",
+                "description": "FunASR主模型文件路径或模型ID",
+                "default": "paraformer-zh",
+                "required": True,
+                "placeholder": "asr_models/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
+                "accept": ""  # 目录选择
+            },
+            "device": {
+                "type": "select",
+                "label": "运行设备",
+                "description": "选择模型运行的设备",
+                "default": "cpu",
+                "required": True,
+                "options": ["cpu", "cuda"]
+            },
+            "vad_model": {
+                "type": "file",
+                "label": "VAD模型路径",
+                "description": "语音活动检测模型路径（可选）",
+                "default": None,
+                "required": False,
+                "placeholder": "asr_models/speech_fsmn_vad_zh-cn-16k-common-pytorch",
+                "accept": ""
+            },
+            "punc_model": {
+                "type": "file",
+                "label": "标点模型路径",
+                "description": "标点恢复模型路径（可选）",
+                "default": None,
+                "required": False,
+                "placeholder": "asr_models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
+                "accept": ""
+            },
+            "language": {
+                "type": "select",
+                "label": "语言",
+                "description": "识别语言",
+                "default": "zh",
+                "required": True,
+                "options": ["zh", "en", "auto"]
+            }
         }
-    
-    @classmethod
-    def get_sensitive_fields(cls) -> list[str]:
-        """获取敏感字段列表"""
-        return []  # FunASR本地模型，无敏感字段
     
     def __init__(self, config: dict):
         """初始化
@@ -71,7 +104,11 @@ class FunASR(ASRBase):
             try:
                 result = self._recognize(audio_path)
             finally:
-                os.unlink(audio_path)
+                # 确保临时文件被删除
+                try:
+                    os.unlink(audio_path)
+                except OSError:
+                    pass
         else:
             # 文件路径
             audio_path = str(audio)

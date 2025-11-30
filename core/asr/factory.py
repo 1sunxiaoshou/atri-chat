@@ -1,33 +1,37 @@
 """ASR 工厂类"""
+import importlib
 from typing import Optional, Dict, Any
 
+from core.logger import get_logger
 from .base import ASRBase
 from .service import ASRConfigService
+
+logger = get_logger(__name__)
 
 
 class ASRFactory:
     """ASR 工厂类，负责创建和管理 ASR 实例（从数据库读取配置）"""
     
-    # 提供商映射表（懒加载）
     _PROVIDERS = {
         "openai": ("openai_whisper.OpenAIWhisperASR", "OpenAI Whisper"),
         "funasr": ("funasr.FunASR", "FunASR"),
     }
     
     def __init__(self, db_path: str = "data/app.db"):
-        """初始化
-        
-        Args:
-            db_path: 数据库路径
-        """
-        self.config_service = ASRConfigService(db_path)
-        self._instances = {}
-        
-        # 初始化所有已知的服务商
+        self.db_path = db_path
+        # 传入template_loader避免循环导入
+        self.config_service = ASRConfigService(db_path, template_loader=self._load_template)
+        self._instances: Dict[str, ASRBase] = {}
+        self._config_versions: Dict[str, str] = {}  # 跟踪配置版本
         self._init_providers()
     
+    def _load_template(self, provider_id: str) -> Dict[str, Any]:
+        """加载服务商配置模板"""
+        provider_class = self._get_provider_class(provider_id)
+        return provider_class.get_config_template()
+    
     def _get_provider_class(self, provider: str):
-        """动态导入提供商类（懒加载）"""
+        """动态加载提供商类"""
         if provider not in self._PROVIDERS:
             raise ValueError(f"未知的ASR提供商: {provider}")
         
@@ -35,82 +39,77 @@ class ASRFactory:
         module_name, class_name = module_path.rsplit(".", 1)
         
         try:
-            # 使用相对导入
-            import importlib
             module = importlib.import_module(f".{module_name}", package="core.asr")
             return getattr(module, class_name)
         except (ImportError, AttributeError) as e:
             raise ValueError(f"无法加载ASR提供商 {provider}: {e}")
     
     def _init_providers(self):
-        """初始化所有已知的服务商到数据库"""
-        for provider_id, (_, provider_name) in self._PROVIDERS.items():
+        """注册所有已知服务商到数据库"""
+        for pid, (_, name) in self._PROVIDERS.items():
             try:
-                # 检查是否已存在
-                if not self.config_service.provider_exists(provider_id):
-                    # 获取配置模板
-                    provider_class = self._get_provider_class(provider_id)
-                    template = provider_class.get_config_template()
-                    
-                    # 创建初始记录（未配置状态）
-                    self.config_service.init_provider(
-                        provider_id=provider_id,
-                        name=provider_name,
-                        config_template=template
-                    )
+                cls = self._get_provider_class(pid)
+                # init_provider 内部使用 INSERT OR IGNORE，不会重复插入
+                self.config_service.init_provider(pid, name, cls.get_config_template())
+                logger.debug(f"ASR提供商 {pid} 已注册")
             except Exception as e:
-                # 初始化失败不应该阻止系统启动
-                print(f"⚠️  初始化ASR提供商 {provider_id} 失败: {e}")
+                logger.error(f"初始化ASR提供商 {pid} 失败: {e}")
     
     def create_asr(self, provider: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> ASRBase:
-        """创建 ASR 实例
-        
-        Args:
-            provider: 提供商名称，不指定则使用当前active的提供商
-            config: 配置字典，不指定则从数据库读取
-            
-        Returns:
-            ASR 实例
-            
-        Raises:
-            ValueError: 当提供商不存在或未配置时
-        """
-        # 如果提供了config，直接创建实例（用于测试连接）
+        """创建 ASR 实例"""
+        # 场景1：测试连接（显式传入配置，不走缓存）
         if config is not None:
             if not provider:
                 raise ValueError("使用自定义配置时必须指定provider")
-            provider_class = self._get_provider_class(provider)
-            return provider_class(config)
+            return self._get_provider_class(provider)(config)
         
-        # 从数据库读取配置
+        # 场景2：从数据库加载配置
         if provider:
-            # 指定了provider，读取该provider的配置
-            provider_config = self.config_service.get_provider_config(provider)
-            if not provider_config:
+            config = self.config_service.get_provider_config(provider)
+            if not config:
                 raise ValueError(f"ASR提供商 {provider} 未配置")
         else:
-            # 未指定provider，使用active的provider
+            # 未指定则获取当前 Active 的提供商
             active = self.config_service.get_active_provider()
             if not active:
                 raise ValueError("未设置活动的ASR提供商，请先配置")
-            provider, provider_config = active
+            provider, config = active
         
-        # 检查缓存
+        # 生成配置版本标识（用于检测配置变化）
+        import json
+        config_version = json.dumps(config, sort_keys=True)
+        
+        # 检查缓存是否有效
         if provider in self._instances:
-            return self._instances[provider]
-        
-        # 动态导入并创建实例
-        provider_class = self._get_provider_class(provider)
-        instance = provider_class(provider_config)
-        
-        # 缓存实例
+            # 如果配置未变化，返回缓存实例
+            if self._config_versions.get(provider) == config_version:
+                return self._instances[provider]
+            else:
+                # 配置已变化，清除旧实例
+                logger.info(f"检测到 {provider} 配置变化，重新创建实例")
+                del self._instances[provider]
+                del self._config_versions[provider]
+
+        # 实例化并缓存
+        instance = self._get_provider_class(provider)(config)
         self._instances[provider] = instance
+        self._config_versions[provider] = config_version
         return instance
     
     def get_default_asr(self) -> ASRBase:
-        """获取默认 ASR 实例（当前active的）"""
         return self.create_asr()
     
-    def clear_cache(self):
-        """清空实例缓存"""
-        self._instances.clear()
+    def clear_cache(self, provider: Optional[str] = None):
+        """清除缓存
+        
+        Args:
+            provider: 指定清除某个服务商的缓存，None则清除所有
+        """
+        if provider:
+            self._instances.pop(provider, None)
+            self._config_versions.pop(provider, None)
+            logger.info(f"已清除 {provider} 的缓存")
+        else:
+            self._instances.clear()
+            self._config_versions.clear()
+            logger.info("已清除所有ASR实例缓存")

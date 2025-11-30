@@ -13,18 +13,44 @@ class OpenAIWhisperASR(ASRBase):
     
     @classmethod
     def get_config_template(cls) -> Dict[str, Any]:
-        """获取配置模板"""
+        """获取配置模板（带UI元数据）"""
         return {
-            "api_key": None,
-            "base_url": "https://api.openai.com/v1",
-            "model": "whisper-1",
-            "temperature": 0.0
+            "api_key": {
+                "type": "password",
+                "label": "API密钥",
+                "description": "OpenAI API密钥，可从 https://platform.openai.com/api-keys 获取",
+                "default": None,
+                "required": True,
+                "placeholder": "sk-...",
+                "sensitive": True
+            },
+            "base_url": {
+                "type": "string",
+                "label": "API地址",
+                "description": "OpenAI API基础URL，使用代理或第三方服务时修改",
+                "default": "https://api.openai.com/v1",
+                "required": False,
+                "placeholder": "https://api.openai.com/v1"
+            },
+            "model": {
+                "type": "select",
+                "label": "模型",
+                "description": "选择Whisper模型版本",
+                "default": "whisper-1",
+                "required": True,
+                "options": ["whisper-1"]
+            },
+            "temperature": {
+                "type": "number",
+                "label": "温度",
+                "description": "采样温度，范围0-1，较低的值使输出更确定",
+                "default": 0.0,
+                "required": False,
+                "min": 0.0,
+                "max": 1.0,
+                "step": 0.1
+            }
         }
-    
-    @classmethod
-    def get_sensitive_fields(cls) -> list[str]:
-        """获取敏感字段列表"""
-        return ["api_key"]
     
     def __init__(self, config: dict):
         """初始化
@@ -53,14 +79,9 @@ class OpenAIWhisperASR(ASRBase):
         # 处理不同输入类型
         if isinstance(audio, bytes):
             # bytes需要包装成文件对象
-            from io import BytesIO
-            audio_file = BytesIO(audio)
+            audio_file = io.BytesIO(audio)
             audio_file.name = "audio.wav"
-        else:
-            # 文件路径
-            audio_file = open(audio, "rb")
-        
-        try:
+            
             response = self.client.audio.transcriptions.create(
                 model=self.model,
                 file=audio_file,
@@ -68,9 +89,16 @@ class OpenAIWhisperASR(ASRBase):
                 temperature=self.temperature
             )
             return response.text
-        finally:
-            if hasattr(audio_file, 'close'):
-                audio_file.close()
+        else:
+            # 文件路径
+            with open(audio, "rb") as audio_file:
+                response = self.client.audio.transcriptions.create(
+                    model=self.model,
+                    file=audio_file,
+                    language=lang,
+                    temperature=self.temperature
+                )
+                return response.text
     
     async def transcribe_async(
         self,
@@ -82,13 +110,9 @@ class OpenAIWhisperASR(ASRBase):
         
         # 处理不同输入类型
         if isinstance(audio, bytes):
-            from io import BytesIO
-            audio_file = BytesIO(audio)
+            audio_file = io.BytesIO(audio)
             audio_file.name = "audio.wav"
-        else:
-            audio_file = open(audio, "rb")
-        
-        try:
+            
             response = await self.async_client.audio.transcriptions.create(
                 model=self.model,
                 file=audio_file,
@@ -96,9 +120,16 @@ class OpenAIWhisperASR(ASRBase):
                 temperature=self.temperature
             )
             return response.text
-        finally:
-            if hasattr(audio_file, 'close'):
-                audio_file.close()
+        else:
+            # 文件路径 - 异步读取
+            with open(audio, "rb") as audio_file:
+                response = await self.async_client.audio.transcriptions.create(
+                    model=self.model,
+                    file=audio_file,
+                    language=lang,
+                    temperature=self.temperature
+                )
+                return response.text
     
     async def test_connection(self) -> Dict[str, Any]:
         """测试连接

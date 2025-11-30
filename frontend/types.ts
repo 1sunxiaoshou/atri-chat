@@ -79,11 +79,27 @@ export type ViewMode = 'chat' | 'admin';
 export type AdminTab = 'providers' | 'models' | 'characters';
 
 // 7. ASR
+export interface ASRConfigField {
+  type: 'string' | 'password' | 'number' | 'select' | 'file';
+  label: string;
+  description: string;
+  default: any;
+  required: boolean;
+  placeholder?: string;
+  sensitive?: boolean;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  accept?: string;
+  value?: any;
+}
+
 export interface ASRProvider {
   id: string;
   name: string;
   is_configured: boolean;
-  config?: any;
+  config?: Record<string, ASRConfigField>;
 }
 
 export interface ASRConfigResponse {

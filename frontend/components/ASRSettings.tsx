@@ -58,8 +58,11 @@ const ASRSettings: React.FC = () => {
         }
     };
 
-    const handleInputChange = (key: string, value: string) => {
-        setFormData((prev: any) => ({ ...prev, [key]: value }));
+    const handleInputChange = (key: string, value: any) => {
+        setFormData((prev: any) => ({
+            ...prev,
+            [key]: { ...prev[key], value }
+        }));
         setTestResult(null);
         setSaveResult(null);
     };
@@ -68,22 +71,41 @@ const ASRSettings: React.FC = () => {
         setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
+    const extractValues = (config: any): any => {
+        const values: any = {};
+        for (const key in config) {
+            if (config[key]?.value !== undefined) {
+                values[key] = config[key].value;
+            } else if (config[key]?.default !== undefined) {
+                values[key] = config[key].default;
+            } else {
+                values[key] = config[key];
+            }
+        }
+        return values;
+    };
+
     const handleTestConnection = async () => {
         if (!selectedProviderId) return;
         setTesting(true);
         setTestResult(null);
         setSaveResult(null);
         try {
-            const res = await api.testASRConnection(selectedProviderId, formData);
+            const values = extractValues(formData);
+            const res = await api.testASRConnection(selectedProviderId, values);
             if (res.code === 200 && res.data?.success) {
                 setTestResult({ success: true, message: res.data.message || res.message || '连接成功' });
             } else {
                 const errorMsg = res.data?.message || res.message || '连接失败';
                 setTestResult({ success: false, message: errorMsg });
             }
+
+            setTimeout(() => setTestResult(null), 3000);
         } catch (error: any) {
             const errorMsg = error?.message || '网络错误或服务不可用';
             setTestResult({ success: false, message: errorMsg });
+
+            setTimeout(() => setTestResult(null), 3000);
         } finally {
             setTesting(false);
         }
@@ -95,9 +117,10 @@ const ASRSettings: React.FC = () => {
         setTestResult(null);
 
         try {
+            const values = selectedProviderId ? extractValues(formData) : {};
             const res = await api.saveASRConfig(
                 selectedProviderId || 'none',
-                selectedProviderId ? formData : {}
+                values
             );
 
             if (res.code === 200) {
@@ -140,40 +163,73 @@ const ASRSettings: React.FC = () => {
             return <div className="text-gray-500 italic">该服务商暂无配置项</div>;
         }
 
-        const fields = configKeys.map(key => ({
-            key,
-            label: key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-            type: key.includes('key') || key.includes('secret') || key.includes('password') ? 'password' : 'text',
-        }));
-
         return (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                {fields.map((field) => {
-                    const currentValue = formData[field.key];
-                    const displayValue = currentValue === null || currentValue === undefined ? '' : String(currentValue);
+                {configKeys.map((key) => {
+                    const fieldConfig = formData[key];
+                    
+                    // 检查是否为有效的元数据格式
+                    if (!fieldConfig || typeof fieldConfig !== 'object' || !('type' in fieldConfig)) {
+                        console.error(`配置字段 ${key} 格式错误，应为元数据格式`);
+                        return null;
+                    }
+
+                    // 使用元数据渲染
+                    const { type, label, description, required, placeholder, options, min, max, step, value } = fieldConfig;
+                    const currentValue = value !== undefined ? value : (fieldConfig.default || '');
+                    const isPassword = type === 'password' || fieldConfig.sensitive;
 
                     return (
-                        <div key={field.key} className="space-y-1">
+                        <div key={key} className="space-y-1">
                             <label className="block text-sm font-medium text-gray-300">
-                                {field.label}
+                                {label}
+                                {required && <span className="text-red-400 ml-1">*</span>}
                             </label>
-                            <div className="relative">
+                            {description && (
+                                <p className="text-xs text-gray-400 mb-1">{description}</p>
+                            )}
+                            
+                            {type === 'select' ? (
+                                <select
+                                    value={currentValue}
+                                    onChange={(e) => handleInputChange(key, e.target.value)}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                >
+                                    {options?.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            ) : type === 'number' ? (
                                 <input
-                                    type={field.type === 'password' && showSecrets[field.key] ? 'text' : field.type}
-                                    value={displayValue}
-                                    onChange={(e) => handleInputChange(field.key, e.target.value)}
+                                    type="number"
+                                    value={currentValue}
+                                    onChange={(e) => handleInputChange(key, parseFloat(e.target.value))}
+                                    min={min}
+                                    max={max}
+                                    step={step}
+                                    placeholder={placeholder}
                                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                                 />
-                                {field.type === 'password' && (
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleSecret(field.key)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                                    >
-                                        {showSecrets[field.key] ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                )}
-                            </div>
+                            ) : (
+                                <div className="relative">
+                                    <input
+                                        type={isPassword && !showSecrets[key] ? 'password' : 'text'}
+                                        value={currentValue}
+                                        onChange={(e) => handleInputChange(key, e.target.value)}
+                                        placeholder={placeholder}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    />
+                                    {isPassword && (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSecret(key)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                        >
+                                            {showSecrets[key] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -190,14 +246,14 @@ const ASRSettings: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full space-y-4 relative">
-            {/* Toast 通知 - 固定在右上角 */}
+        <>
+            {/* Toast 通知 - 固定在右上角，独立于组件布局 */}
             {(saveResult || testResult) && (
                 <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
                     {saveResult && (
                         <div className={`min-w-[300px] max-w-[400px] p-4 rounded-lg border shadow-lg backdrop-blur-sm flex items-start gap-3 ${saveResult.success
-                                ? 'bg-green-500/90 border-green-400/50 text-white'
-                                : 'bg-red-500/90 border-red-400/50 text-white'
+                            ? 'bg-green-500/90 border-green-400/50 text-white'
+                            : 'bg-red-500/90 border-red-400/50 text-white'
                             }`}>
                             {saveResult.success ? <Check size={20} className="flex-shrink-0 mt-0.5" /> : <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />}
                             <div className="flex-1 min-w-0">
@@ -209,8 +265,8 @@ const ASRSettings: React.FC = () => {
 
                     {testResult && !saveResult && (
                         <div className={`min-w-[300px] max-w-[400px] p-4 rounded-lg border shadow-lg backdrop-blur-sm flex items-start gap-3 ${testResult.success
-                                ? 'bg-green-500/90 border-green-400/50 text-white'
-                                : 'bg-red-500/90 border-red-400/50 text-white'
+                            ? 'bg-green-500/90 border-green-400/50 text-white'
+                            : 'bg-red-500/90 border-red-400/50 text-white'
                             }`}>
                             {testResult.success ? <Check size={20} className="flex-shrink-0 mt-0.5" /> : <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />}
                             <div className="flex-1 min-w-0">
@@ -222,85 +278,87 @@ const ASRSettings: React.FC = () => {
                 </div>
             )}
 
-            {/* 顶部：Provider 选择器 */}
-            <div className="flex-shrink-0">
-                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
-                    <div className="flex items-center gap-4">
-                        <label className="text-sm font-medium text-gray-300 whitespace-nowrap">
-                            Provider
-                        </label>
-                        <div className="relative flex-1">
-                            <select
-                                value={selectedProviderId}
-                                onChange={handleProviderChange}
-                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 pr-10 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-gray-600 cursor-pointer"
-                                style={{
-                                    backgroundImage: 'none'
-                                }}
-                            >
-                                <option value="" className="bg-gray-800 text-gray-400">
-                                    无（禁用ASR）
-                                </option>
-                                {providers.map(p => (
-                                    <option
-                                        key={p.id}
-                                        value={p.id}
-                                        className="bg-gray-800 py-2"
-                                        style={{
-                                            color: p.is_configured ? '#86efac' : '#fbbf24'
-                                        }}
-                                    >
-                                        {p.is_configured ? '● ' : '○ '}{p.name}{p.is_configured ? ' (已配置)' : ' (未配置)'}
+            <div className="flex flex-col h-full space-y-4">
+                {/* 顶部：Provider 选择器 */}
+                <div className="flex-shrink-0">
+                    <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
+                        <div className="flex items-center gap-4">
+                            <label className="text-sm font-medium text-gray-300 whitespace-nowrap">
+                                Provider
+                            </label>
+                            <div className="relative flex-1">
+                                <select
+                                    value={selectedProviderId}
+                                    onChange={handleProviderChange}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 pr-10 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-gray-600 cursor-pointer"
+                                    style={{
+                                        backgroundImage: 'none'
+                                    }}
+                                >
+                                    <option value="" className="bg-gray-800 text-gray-400">
+                                        无
                                     </option>
-                                ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
+                                    {providers.map(p => (
+                                        <option
+                                            key={p.id}
+                                            value={p.id}
+                                            className="bg-gray-800 py-2"
+                                            style={{
+                                                color: p.is_configured ? '#379e5dff' : '#fbbf24'
+                                            }}
+                                        >
+                                            {p.is_configured ? '● ' : '○ '}{p.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* 中部：配置表单区域 */}
-            <div className="flex-1 min-h-0 flex flex-col">
-                {selectedProviderId ? (
-                    <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-800 flex-1 overflow-y-auto custom-scrollbar">
-                        {renderFormFields()}
-                    </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-500 italic bg-gray-800/30 rounded-xl border border-gray-800 border-dashed">
-                        <div className="mb-2 text-4xl">⚙️</div>
-                        <div>请选择上方的服务商进行配置</div>
-                    </div>
-                )}
-            </div>
+                {/* 中部：配置表单区域 */}
+                <div className="flex-1 min-h-0 flex flex-col">
+                    {selectedProviderId ? (
+                        <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-800 flex-1 overflow-y-auto custom-scrollbar">
+                            {renderFormFields()}
+                        </div>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-500 italic bg-gray-800/30 rounded-xl border border-gray-800 border-dashed">
+                            <div className="mb-2 text-4xl">⚙️</div>
+                            <div>请选择上方的服务商进行配置</div>
+                        </div>
+                    )}
+                </div>
 
-            {/* 底部：操作按钮 - 固定位置 */}
-            <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-2">
-                {selectedProviderId && (
+                {/* 底部：操作按钮 - 固定位置 */}
+                <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-2">
+                    {selectedProviderId && (
+                        <button
+                            onClick={handleTestConnection}
+                            disabled={testing}
+                            className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all border border-gray-700 hover:border-gray-600 bg-gray-800 hover:bg-gray-750 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {testing ? <Loader2 className="animate-spin" size={18} /> : <Activity size={18} />}
+                            <span>测试连接</span>
+                        </button>
+                    )}
+
                     <button
-                        onClick={handleTestConnection}
-                        disabled={testing}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all border border-gray-700 hover:border-gray-600 bg-gray-800 hover:bg-gray-750 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
                     >
-                        {testing ? <Loader2 className="animate-spin" size={18} /> : <Activity size={18} />}
-                        <span>测试连接</span>
+                        {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                        <span>保存配置</span>
                     </button>
-                )}
-
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
-                >
-                    {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    <span>保存配置</span>
-                </button>
-            </div>
-        </div>
+                </div>
+            </div >
+        </>
     );
 };
 

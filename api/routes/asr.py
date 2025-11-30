@@ -7,8 +7,10 @@ from core.asr.service import ASRConfigService
 from core.asr.factory import ASRFactory
 from core.dependencies import get_agent
 from core import AgentManager
+from core.logger import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 class ASRTestRequest(BaseModel):
@@ -38,6 +40,7 @@ async def get_providers(agent_manager: AgentManager = Depends(get_agent)):
             data=data
         )
     except Exception as e:
+        logger.error(f"获取ASR配置列表失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取配置失败: {str(e)}")
 
 
@@ -48,6 +51,8 @@ async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Dep
     不保存配置，仅验证参数有效性
     """
     try:
+        logger.info(f"测试ASR连接: provider={req.provider_id}")
+        
         # 使用提供的配置创建临时ASR实例
         asr = agent_manager.asr_factory.create_asr(provider=req.provider_id, config=req.config)
         
@@ -55,12 +60,14 @@ async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Dep
         result = await asr.test_connection()
         
         if result["success"]:
+            logger.info(f"ASR连接测试成功: provider={req.provider_id}")
             return ResponseModel(
                 code=200,
                 message=result.get("message", "连接测试成功"),
                 data=result
             )
         else:
+            logger.warning(f"ASR连接测试失败: provider={req.provider_id}, reason={result.get('message')}")
             return ResponseModel(
                 code=400,
                 message=result.get("message", "连接测试失败"),
@@ -68,12 +75,14 @@ async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Dep
             )
     
     except ValueError as e:
+        logger.error(f"ASR配置错误: provider={req.provider_id}, error={e}")
         return ResponseModel(
             code=400,
             message=f"配置错误: {str(e)}",
             data={"success": False, "message": str(e)}
         )
     except Exception as e:
+        logger.error(f"ASR测试异常: provider={req.provider_id}, error={e}")
         return ResponseModel(
             code=500,
             message=f"测试失败: {str(e)}",
@@ -97,9 +106,11 @@ async def save_config(
         
         # 如果provider_id为空或"none"，禁用ASR
         if not req.provider_id or req.provider_id.lower() == "none":
+            logger.info("禁用ASR功能")
             success = service.disable_asr()
             if success:
                 factory.clear_cache()
+                logger.info("ASR已禁用")
                 return ResponseModel(
                     code=200,
                     message="ASR已禁用",
@@ -113,7 +124,9 @@ async def save_config(
         if not provider_name:
             raise ValueError(f"未知的ASR提供商: {req.provider_id}")
         
-        # 保存配置
+        logger.info(f"保存ASR配置: provider={req.provider_id}")
+        
+        # 保存配置（内部会进行验证）
         success = service.save_config(
             provider_id=req.provider_id,
             name=provider_name,
@@ -122,9 +135,10 @@ async def save_config(
         )
         
         if success:
-            # 清空ASR工厂缓存，下次使用时会重新加载
-            factory.clear_cache()
+            # 清空指定服务商的缓存，下次使用时会重新加载
+            factory.clear_cache(req.provider_id)
             
+            logger.info(f"ASR配置保存成功: provider={req.provider_id}")
             return ResponseModel(
                 code=200,
                 message="配置保存成功",
@@ -134,8 +148,10 @@ async def save_config(
             raise HTTPException(status_code=500, detail="保存配置失败")
     
     except ValueError as e:
+        logger.error(f"ASR配置验证失败: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"保存ASR配置失败: {e}")
         raise HTTPException(status_code=500, detail=f"保存配置失败: {str(e)}")
 
 
@@ -150,8 +166,11 @@ async def transcribe_audio(
     使用当前active的ASR服务商进行转录
     """
     try:
+        logger.info(f"开始语音转录: filename={file.filename}, language={language}")
+        
         # 读取音频数据
         audio_bytes = await file.read()
+        logger.debug(f"音频文件大小: {len(audio_bytes)} bytes")
         
         # 获取ASR实例
         asr = agent_manager.asr_factory.get_default_asr()
@@ -159,6 +178,7 @@ async def transcribe_audio(
         # 执行转录
         text = await asr.transcribe_async(audio_bytes, language)
         
+        logger.info(f"转录成功: text_length={len(text)}")
         return ResponseModel(
             code=200,
             message="转录成功",
@@ -166,6 +186,8 @@ async def transcribe_audio(
         )
     
     except ValueError as e:
+        logger.error(f"ASR配置错误: {e}")
         raise HTTPException(status_code=400, detail=f"配置错误: {str(e)}")
     except Exception as e:
+        logger.error(f"语音转录失败: {e}")
         raise HTTPException(status_code=500, detail=f"转录失败: {str(e)}")
