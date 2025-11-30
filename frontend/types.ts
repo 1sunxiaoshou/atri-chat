@@ -67,6 +67,8 @@ export interface Message {
 
 export interface SendMessageData {
   message: string; // AI回复的纯文本内容
+  error?: string; // 错误信息
+  error_type?: string; // 错误类型
 }
 
 export interface AudioMessageData {

@@ -16,6 +16,8 @@ class TTSFactory:
         "gpt_sovits": ("gpt_sovits.GPTSoVITSTTS", "GPT-SoVITS"),
     }
     
+    _providers_initialized = False  # 类级别标志，避免重复初始化
+    
     def __init__(self, db_path: str = "data/app.db"):
         self.db_path = db_path
         self.config_service = TTSConfigService(db_path, template_loader=self._load_template)
@@ -44,13 +46,31 @@ class TTSFactory:
     
     def _init_providers(self):
         """注册所有已知服务商到数据库"""
+        # 使用类级别标志避免重复初始化
+        if TTSFactory._providers_initialized:
+            return
+        
         for pid, (_, name) in self._PROVIDERS.items():
             try:
                 cls = self._get_provider_class(pid)
+                # 检查是否已存在，避免重复日志
+                with self.config_service._get_connection() as conn:
+                    cursor = conn.execute(
+                        "SELECT 1 FROM tts_settings WHERE provider_id = ?",
+                        (pid,)
+                    )
+                    exists = cursor.fetchone() is not None
+                
+                # init_provider 内部使用 INSERT OR IGNORE，不会重复插入
                 self.config_service.init_provider(pid, name, cls.get_config_template())
-                logger.debug(f"TTS提供商 {pid} 已注册")
+                
+                # 只在首次注册时打印日志
+                if not exists:
+                    logger.debug(f"TTS提供商 {pid} 已注册")
             except Exception as e:
                 logger.error(f"初始化TTS提供商 {pid} 失败: {e}")
+        
+        TTSFactory._providers_initialized = True
     
     def create_tts(self, provider: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> TTSBase:
         """创建 TTS 实例"""

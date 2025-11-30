@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { ASRProvider } from '../types';
 import { Check, AlertTriangle, Eye, EyeOff, Loader2, Save, Activity } from 'lucide-react';
+import { useASR } from '../contexts/ASRContext';
 
 const ASRSettings: React.FC = () => {
+    const { refreshASRStatus } = useASR();
     const [providers, setProviders] = useState<ASRProvider[]>([]);
     const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
     const [selectedProviderId, setSelectedProviderId] = useState<string>('');
@@ -129,6 +131,9 @@ const ASRSettings: React.FC = () => {
                     success: true,
                     message: selectedProviderId ? '配置已保存' : 'ASR已禁用'
                 });
+
+                // 刷新全局ASR状态
+                await refreshASRStatus();
 
                 setTimeout(() => setSaveResult(null), 3000);
 

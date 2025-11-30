@@ -180,7 +180,8 @@ export const api = {
         characterId: number | string,
         modelId: string,
         providerId: string,
-        onChunk?: (content: string) => void
+        onChunk?: (content: string) => void,
+        onStatus?: (status: string) => void
     ): Promise<ApiResponse<SendMessageData>> => {
         const body = {
             conversation_id: conversationId,
@@ -243,7 +244,21 @@ export const api = {
                                 if (data.done) {
                                     break;
                                 }
-                                if (data.content) {
+
+                                // 处理新的 JSON 格式
+                                if (data.type === 'status' && data.content) {
+                                    // 工具调用状态
+                                    if (onStatus) {
+                                        onStatus(data.content);
+                                    }
+                                } else if (data.type === 'text' && data.content) {
+                                    // 实际文本内容
+                                    fullContent += data.content;
+                                    if (onChunk) {
+                                        onChunk(fullContent);
+                                    }
+                                } else if (data.content) {
+                                    // 兼容旧格式（如果没有 type 字段）
                                     fullContent += data.content;
                                     if (onChunk) {
                                         onChunk(fullContent);
@@ -389,13 +404,30 @@ export const api = {
         return handleResponse<any>(response);
     },
 
-    /** 文本转语音 */
-    synthesizeSpeech: async (text: string, language?: string): Promise<ApiResponse<{ audio: string }>> => {
-        const response = await fetch(`${BASE_URL}/tts/synthesize`, {
+    /** TTS 流式合成（PCM raw 格式） */
+    synthesizeSpeechStream: async (text: string, language?: string): Promise<{ stream: ReadableStream<Uint8Array>, sampleRate: number, channels: number }> => {
+        const response = await fetch(`${BASE_URL}/tts/synthesize?stream=true`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text, language })
         });
-        return handleResponse<{ audio: string }>(response);
+
+        if (!response.ok) {
+            throw new Error(`TTS 失败: ${response.status}`);
+        }
+
+        if (!response.body) {
+            throw new Error('响应体为空');
+        }
+
+        // 从响应头读取音频参数
+        const sampleRate = parseInt(response.headers.get('X-Sample-Rate') || '32000');
+        const channels = parseInt(response.headers.get('X-Channels') || '1');
+
+        return {
+            stream: response.body,
+            sampleRate,
+            channels
+        };
     }
 };

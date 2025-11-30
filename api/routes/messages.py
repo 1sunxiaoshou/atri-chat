@@ -22,15 +22,16 @@ async def send_message(
         import json
         try:
             # 流式生成内容
-            async for content in agent_manager.send_message_stream(
+            async for json_str in agent_manager.send_message_stream(
                 user_message=req.content,
                 conversation_id=req.conversation_id,
                 character_id=req.character_id,
                 model_id=req.model_id,
                 provider_id=req.provider_id
             ):
-                if content: 
-                    yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
+                if json_str: 
+                    # 直接转发 JSON 字符串，不需要再次包装
+                    yield f"data: {json_str}\n\n"
             
             # 发送结束标记
             yield f"data: {json.dumps({'done': True})}\n\n"
@@ -99,31 +100,6 @@ async def get_conversation_history(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/tts/synthesize", response_model=ResponseModel)
-async def text_to_speech(
-    req: TextToSpeechRequest,
-    agent_manager: AgentManager = Depends(get_agent)
-):
-    """文本转语音"""
-    try:
-        audio_bytes = agent_manager.text_to_speech(
-            text=req.text,
-            tts_provider=req.tts_provider,
-            language=req.language
-        )
-        return ResponseModel(
-            code=200,
-            message="转换成功",
-            data={
-                "audio_bytes_length": len(audio_bytes),
-                "note": "返回的是二进制音频数据"
-            }
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/cache/info", response_model=ResponseModel)
 async def get_cache_info(agent_manager: AgentManager = Depends(get_agent)):

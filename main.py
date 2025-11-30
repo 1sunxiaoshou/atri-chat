@@ -59,6 +59,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Sample-Rate", "X-Channels", "X-Bit-Depth"],  # 暴露自定义响应头
     max_age=3600,  # 预检请求缓存1小时，减少OPTIONS请求
 )
 

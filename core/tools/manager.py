@@ -1,7 +1,6 @@
 """工具管理器 - 处理角色工具配置"""
 from typing import List, Optional
-from langchain_core.tools import BaseTool
-
+from langchain.tools import BaseTool
 from .registry import ToolRegistry
 
 
