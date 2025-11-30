@@ -360,5 +360,42 @@ export const api = {
     getProviderTemplates: async (): Promise<ApiResponse<any[]>> => {
         const response = await fetch(`${BASE_URL}/providers/templates/list`);
         return handleResponse<any[]>(response);
+    },
+
+    // ==================== TTS (文本转语音) ====================
+    /** 获取TTS配置列表与状态 */
+    getTTSProviders: async (): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/tts/providers`);
+        return handleResponse<any>(response);
+    },
+
+    /** 测试TTS连接 */
+    testTTSConnection: async (providerId: string, config: any): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/tts/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider_id: providerId, config })
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 保存TTS配置 */
+    saveTTSConfig: async (providerId: string, config: any): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/tts/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider_id: providerId, config })
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 文本转语音 */
+    synthesizeSpeech: async (text: string, language?: string): Promise<ApiResponse<{ audio: string }>> => {
+        const response = await fetch(`${BASE_URL}/tts/synthesize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, language })
+        });
+        return handleResponse<{ audio: string }>(response);
     }
 };

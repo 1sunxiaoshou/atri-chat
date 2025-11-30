@@ -79,7 +79,7 @@ app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"
 app.include_router(messages.router, prefix="/api/v1", tags=["messages"])
 app.include_router(models.router, prefix="/api/v1", tags=["models"])
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
-app.include_router(tts.router, prefix="/api/v1", tags=["tts"])
+app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
 app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 

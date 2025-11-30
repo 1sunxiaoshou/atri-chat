@@ -106,3 +106,32 @@ export interface ASRConfigResponse {
   active_provider: string | null;
   providers: ASRProvider[];
 }
+
+// 8. TTS
+export interface TTSConfigField {
+  type: 'string' | 'password' | 'number' | 'select' | 'file';
+  label: string;
+  description: string;
+  default: any;
+  required: boolean;
+  placeholder?: string;
+  sensitive?: boolean;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  accept?: string;
+  value?: any;
+}
+
+export interface TTSProvider {
+  id: string;
+  name: string;
+  is_configured: boolean;
+  config?: Record<string, TTSConfigField>;
+}
+
+export interface TTSConfigResponse {
+  active_provider: string | null;
+  providers: TTSProvider[];
+}

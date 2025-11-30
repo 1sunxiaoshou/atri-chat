@@ -25,8 +25,7 @@ class AgentManager:
         app_storage: AppStorage,
         store: SqliteStore,
         checkpointer: SqliteSaver,
-        tool_registry: Optional[ToolRegistry] = None,
-        tts_config_path: str = "config/tts.yaml"
+        tool_registry: Optional[ToolRegistry] = None
     ):
         """初始化 AgentManager
         
@@ -35,7 +34,6 @@ class AgentManager:
             store: 长期记忆存储实例（跨会话数据）
             checkpointer: 检查点存储实例（对话历史）
             tool_registry: 工具注册表实例（可选）
-            tts_config_path: TTS配置文件路径
         """
         self.app_storage = app_storage
         self.store = store
@@ -49,7 +47,7 @@ class AgentManager:
         
         # ASR和TTS管理
         self.asr_factory = ASRFactory(db_path=app_storage.db_path)
-        self.tts_factory = TTSFactory(tts_config_path)
+        self.tts_factory = TTSFactory(db_path=app_storage.db_path)
         
         # Agent 实例缓存：{(character_id, model_id, provider_id): agent}
         self._agent_cache: Dict[Tuple[int, str, str], Any] = {}
