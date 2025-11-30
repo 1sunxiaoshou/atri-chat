@@ -3,9 +3,11 @@ import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as Imag
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { Character, Message, Model, Provider } from '../types';
+import { Character, Message, Model } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useASR } from '../contexts/ASRContext';
+import { StreamTTSPlayer } from '../utils/streamTTSPlayer';
 
 interface ChatInterfaceProps {
   activeConversationId: number;
@@ -23,31 +25,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   availableModels
 }) => {
   const { t } = useLanguage();
+  const { asrEnabled } = useASR();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
-  const [asrEnabled, setAsrEnabled] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState<string | number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    checkASRStatus();
-  }, []);
-
-  const checkASRStatus = async () => {
-    try {
-      const res = await api.getASRProviders();
-      if (res.code === 200 && res.data.active_provider) {
-        setAsrEnabled(true);
-      } else {
-        setAsrEnabled(false);
-      }
-    } catch (e) {
-      console.error("Failed to check ASR status", e);
-      setAsrEnabled(false);
-    }
-  };
+  const streamPlayerRef = useRef<StreamTTSPlayer | null>(null);
 
   useEffect(() => {
     if (activeConversationId) {
@@ -146,6 +132,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             );
           }
           scrollToBottom();
+        },
+        // 工具调用状态回调
+        (status: string) => {
+          // 显示工具调用状态（例如：正在使用工具: xxx...）
+          if (!hasReceivedFirstToken) {
+            hasReceivedFirstToken = true;
+            setIsTyping(false);
+            const aiMsg: Message = {
+              message_id: aiMsgId,
+              conversation_id: activeConversationId,
+              message_type: 'assistant',
+              content: `_${status}_`,
+              created_at: new Date().toISOString()
+            };
+            setMessages(prev => [...prev, aiMsg]);
+          } else {
+            // 更新状态信息
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.message_id === aiMsgId
+                  ? { ...msg, content: `_${status}_` }
+                  : msg
+              )
+            );
+          }
+          scrollToBottom();
         }
       );
 
@@ -203,7 +215,56 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+
+  // TTS 播放功能（使用流式播放管理器）
+  const handlePlayTTS = async (messageId: string | number, text: string) => {
+    try {
+      // 如果正在播放同一条消息，则停止播放
+      if (playingMessageId === messageId) {
+        if (streamPlayerRef.current) {
+          streamPlayerRef.current.onStop();
+        }
+        setPlayingMessageId(null);
+        return;
+      }
+
+      // 停止之前的播放
+      if (streamPlayerRef.current && playingMessageId !== null) {
+        await streamPlayerRef.current.dispose();
+        streamPlayerRef.current = null;
+      }
+
+      setPlayingMessageId(messageId);
+
+      // 获取音量设置
+      const volumeSetting = localStorage.getItem('audioVolume');
+      const volume = volumeSetting ? Number(volumeSetting) / 100 : 1.0;
+
+      // 创建新的流式播放器
+      if (!streamPlayerRef.current) {
+        streamPlayerRef.current = new StreamTTSPlayer(volume);
+      }
+
+      // 开始播放（内部会处理缓存和恢复逻辑）
+      await streamPlayerRef.current.onPlay(text, async () => {
+        return await api.synthesizeSpeechStream(text);
+      });
+
+      // 播放完成后，检查状态是否还是当前消息（防止用户中途切换）
+      const state = streamPlayerRef.current.getState();
+      if (state.playerState === 'paused' && state.networkState === 'finished') {
+        setPlayingMessageId(null);
+      }
+
+    } catch (error) {
+      console.error('TTS 播放失败:', error);
+      setPlayingMessageId(null);
+      if (streamPlayerRef.current) {
+        await streamPlayerRef.current.dispose();
+        streamPlayerRef.current = null;
+      }
+    }
+  };
 
   const toggleRecording = async () => {
     if (isRecording) {
@@ -354,9 +415,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[rehypeHighlight]}
                       components={{
-                        code({ node, inline, className, children, ...props }) {
+                        code({ node, className, children, ...props }: any) {
                           const match = /language-(\w+)/.exec(className || '');
                           const codeContent = String(children).replace(/\n$/, '');
+                          const inline = !className;
 
                           return !inline ? (
                             <div className="my-3 bg-gray-900 rounded-md overflow-hidden">
@@ -429,9 +491,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {/* Message Tools for AI */}
                 {msg.message_type === 'assistant' && (
                   <div className="flex gap-2 px-1">
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors"><Copy size={14} /></button>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors"><Volume2 size={14} /></button>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors"><RotateCcw size={14} /></button>
+                    <button 
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={() => navigator.clipboard.writeText(msg.content)}
+                      title="复制"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button 
+                      className={`transition-colors ${playingMessageId === msg.message_id ? 'text-blue-600 animate-pulse' : 'text-gray-400 hover:text-gray-600'}`}
+                      onClick={() => handlePlayTTS(msg.message_id, msg.content)}
+                      title={playingMessageId === msg.message_id ? "停止播放" : "朗读"}
+                    >
+                      <Volume2 size={14} />
+                    </button>
+                    <button 
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      title="重新生成"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
                   </div>
                 )}
               </div>

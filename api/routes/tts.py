@@ -1,5 +1,6 @@
 """TTS配置管理路由"""
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from api.schemas import ResponseModel
@@ -161,39 +162,79 @@ async def save_config(
         raise HTTPException(status_code=500, detail=f"保存配置失败: {str(e)}")
 
 
-@router.post("/synthesize", response_model=ResponseModel)
+@router.post("/synthesize")
 async def synthesize_speech(
     req: TTSSynthesizeRequest,
+    stream: bool = False,
     agent_manager: AgentManager = Depends(get_agent)
 ):
     """文本转语音
     
     使用当前active的TTS服务商进行合成
+    
+    Args:
+        stream: True=PCM流式(AudioContext播放), False=WAV完整文件
     """
     try:
-        logger.info(f"开始语音合成: text_length={len(req.text)}, language={req.language}")
+        logger.info(f"开始语音合成: text_length={len(req.text)}, language={req.language}, stream={stream}")
         
         # 获取TTS实例
         tts = agent_manager.tts_factory.get_default_tts()
+        logger.info(f"获取到TTS实例: {type(tts).__name__}, 支持流式={tts.supports_streaming()}")
         
-        # 执行合成
-        audio_bytes = await tts.synthesize_async(req.text, req.language)
+        # 流式模式（PCM raw 格式，使用 AudioContext 播放）
+        if stream:
+            # 创建生成器
+            generator = tts.synthesize_stream(req.text, req.language, media_type="raw")
+            
+            # 预先读取第一个chunk以获取采样率
+            try:
+                first_chunk = await generator.__anext__()
+                sample_rate = getattr(tts, 'sample_rate', 32000)
+                logger.info(f"TTS采样率: {sample_rate}Hz")
+            except StopAsyncIteration:
+                raise HTTPException(status_code=500, detail="TTS生成失败：无数据")
+            except Exception as e:
+                logger.error(f"获取采样率失败: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=f"TTS失败: {str(e)}")
+            
+            async def audio_stream():
+                try:
+                    # 先返回第一个chunk
+                    yield first_chunk
+                    # 继续返回剩余chunks
+                    async for chunk in generator:
+                        yield chunk
+                except Exception as e:
+                    logger.error(f"流式合成失败: {e}", exc_info=True)
+                    raise
+            
+            return StreamingResponse(
+                audio_stream(),
+                media_type="application/octet-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                    "X-Sample-Rate": str(sample_rate),
+                    "X-Channels": "1",
+                    "X-Bit-Depth": "16",
+                }
+            )
         
-        logger.info(f"合成成功: audio_size={len(audio_bytes)} bytes")
-        
-        # 返回音频数据（base64编码）
-        import base64
-        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
-        
-        return ResponseModel(
-            code=200,
-            message="合成成功",
-            data={"audio": audio_base64}
-        )
+        # 非流式模式（返回完整 WAV 文件）
+        else:
+            audio_bytes = await tts.synthesize_async(req.text, req.language)
+            logger.info(f"合成成功: audio_size={len(audio_bytes)} bytes")
+            
+            from fastapi.responses import Response
+            return Response(
+                content=audio_bytes,
+                media_type="audio/wav",
+            )
     
     except ValueError as e:
-        logger.error(f"TTS配置错误: {e}")
+        logger.error(f"TTS配置错误: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"配置错误: {str(e)}")
     except Exception as e:
-        logger.error(f"语音合成失败: {e}")
+        logger.error(f"语音合成失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"合成失败: {str(e)}")

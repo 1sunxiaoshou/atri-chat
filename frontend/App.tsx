@@ -6,6 +6,7 @@ import SettingsModal from './components/SettingsModal';
 import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api';
 import { useLanguage } from './contexts/LanguageContext';
+import { ASRProvider } from './contexts/ASRContext';
 
 const App: React.FC = () => {
   const { t } = useLanguage();

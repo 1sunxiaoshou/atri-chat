@@ -3,6 +3,7 @@ import { X, Settings, Mic, Volume2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import ASRSettings from './ASRSettings';
 import TTSSettings from './TTSSettings';
+import GeneralSettings from './GeneralSettings';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -67,13 +68,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto p-6 h-full">
                             {/* Content Area - No Title */}
                             <div className="flex-1 min-h-0 relative">
-                                {activeTab === 'general' && (
-                                    <div className="h-full overflow-y-auto">
-                                        <div className="text-gray-500 italic">
-                                            General settings configuration will go here.
-                                        </div>
-                                    </div>
-                                )}
+                                {activeTab === 'general' && <GeneralSettings />}
                                 {activeTab === 'asr' && <ASRSettings />}
                                 {activeTab === 'tts' && <TTSSettings />}
                             </div>

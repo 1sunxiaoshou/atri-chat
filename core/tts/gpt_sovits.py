@@ -1,6 +1,6 @@
 """GPT-SoVITS TTS 实现"""
 import httpx
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, AsyncGenerator
 from pathlib import Path
 
 from .base import TTSBase
@@ -62,35 +62,14 @@ class GPTSoVITSTTS(TTSBase):
         self.prompt_text = config.get("prompt_text", "")
         self.prompt_language = config.get("prompt_language", "zh")
         self.text_language = config.get("text_language", "zh")
-    
-    def synthesize(
-        self,
-        text: str,
-        language: Optional[str] = None
-    ) -> bytes:
-        """文字转语音（同步） - 使用 POST /tts"""
-        lang = language or self.text_language
-        
-        # 构建 JSON 请求体（注意字段名！）
-        json_data = {
-            "text": text,
-            "text_lang": lang,                     
-            "ref_audio_path": self.refer_wav_path,
-            "prompt_text": self.prompt_text,
-            "prompt_lang": self.prompt_language,   
-        }
-        
-        with httpx.Client(timeout=60.0) as client:
-            response = client.post(self.api_url, json=json_data)  # ← 改为 POST + json
-            response.raise_for_status()
-            return response.content
-    
+        self.sample_rate = 48000 
+
     async def synthesize_async(
         self,
         text: str,
         language: Optional[str] = None
     ) -> bytes:
-        """文字转语音（异步）"""
+        """文字转语音（非流式）"""
         lang = language or self.text_language
         
         json_data = {
@@ -102,40 +81,79 @@ class GPTSoVITSTTS(TTSBase):
         }
         
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(self.api_url, json=json_data)  # ← POST + json
+            response = await client.post(self.api_url, json=json_data)
             response.raise_for_status()
             return response.content
     
-    async def test_connection(self) -> Dict[str, Any]:
-        """测试连接"""
-        try:
-            # 检查参考音频文件是否存在
-            if self.refer_wav_path:
-                refer_path = Path(self.refer_wav_path)
-                if not refer_path.exists():
-                    return {
-                        "success": False,
-                        "message": f"参考音频文件不存在: {self.refer_wav_path}"
-                    }
-            
-            # 测试API连接
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                # 尝试访问健康检查端点或发送测试请求
-                base_url = self.api_url.replace("/tts", "")
-                response = await client.get(f"{base_url}/")
-                
-                if response.status_code == 200:
-                    return {"success": True, "message": "连接成功"}
-                else:
-                    return {
-                        "success": False,
-                        "message": f"服务响应异常: {response.status_code}"
-                    }
+    async def synthesize_stream(
+        self,
+        text: str,
+        language: Optional[str] = None,
+        media_type: str = "wav"
+    ) -> AsyncGenerator[bytes, None]:
+        """文字转语音（流式输出）
         
+        注意：为了获取采样率，我们总是请求wav格式，然后提取PCM数据
+        """
+        lang = language or self.text_language
+        
+        json_data = {
+            "text": text,
+            "text_lang": lang,
+            "ref_audio_path": self.refer_wav_path,
+            "prompt_text": self.prompt_text,
+            "prompt_lang": self.prompt_language,
+            "streaming_mode": True,
+            "media_type": "wav",  # 总是请求wav格式以获取采样率
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            async with client.stream("POST", self.api_url, json=json_data) as response:
+                response.raise_for_status()
+                
+                first_chunk = True
+                async for chunk in response.aiter_bytes(chunk_size=4096):
+                    if chunk:
+                        if first_chunk and len(chunk) >= 44 and chunk[:4] == b'RIFF':
+                            # 从WAV头读取采样率（字节24-27）
+                            import struct
+                            self.sample_rate = struct.unpack('<I', chunk[24:28])[0]
+                            
+                            # 如果需要raw格式，跳过WAV头（44字节）
+                            if media_type == "raw":
+                                yield chunk[44:]
+                            else:
+                                yield chunk
+                            first_chunk = False
+                        else:
+                            yield chunk
+                            first_chunk = False
+    
+    def supports_streaming(self) -> bool:
+        """支持流式传输"""
+        return True
+    
+    async def test_connection(self) -> Dict[str, Any]:
+        """测试连接：只要能收到 HTTP 响应（无论状态码），即视为可用"""
+        try:      
+            # 测试 API 连接：直接请求配置的 api_url
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(self.api_url)
+
+                return {
+                    "success": True,
+                    "message": f"连接成功（状态码: {response.status_code}）"
+                }
+
         except httpx.ConnectError:
             return {
                 "success": False,
                 "message": f"无法连接到服务: {self.api_url}"
+            }
+        except httpx.TimeoutException:
+            return {
+                "success": False,
+                "message": f"连接超时: {self.api_url}"
             }
         except Exception as e:
             return {

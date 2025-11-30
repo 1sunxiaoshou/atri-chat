@@ -1,14 +1,17 @@
 """Agent 业务逻辑管理器"""
+import json
 import sqlite3
 from typing import Dict, Tuple, Optional, Any, List, Union
 from pathlib import Path
 from langchain.agents import create_agent
+from langchain.messages import AIMessageChunk
 from langgraph.checkpoint.sqlite import SqliteSaver
 from .store import SqliteStore
 from .storage import AppStorage
 from .models.factory import ModelFactory
 from .tools.manager import ToolManager
 from .tools.registry import ToolRegistry
+from .tools.memory_tools import create_memory_tools
 from .middleware.manager import MiddlewareManager
 from .asr.factory import ASRFactory
 from .tts.factory import TTSFactory
@@ -126,10 +129,14 @@ class AgentManager:
             # 3. 获取角色的工具列表
             tools = self.tool_manager.get_character_tools(character_id)
             
-            # 4. 获取角色的中间件列表
+            # 4. 添加长期记忆工具
+            memory_tools = create_memory_tools(self.store)
+            tools.extend(memory_tools)
+            
+            # 5. 获取角色的中间件列表
             middlewares = self.middleware_manager.get_character_middleware(character_id)
             
-            # 5. 创建 agent（使用角色的 system_prompt、工具和中间件）
+            # 6. 创建 agent（使用角色的 system_prompt、工具和中间件）
             agent = create_agent(
                 model=model,
                 tools=tools,
@@ -167,7 +174,9 @@ class AgentManager:
             provider_id: 供应商ID
             
         Yields:
-            流式响应的文本块
+            JSON格式的流式响应字符串:
+            - {"type": "status", "content": "正在使用工具: xxx..."}
+            - {"type": "text", "content": "实际回复内容片段"}
             
         Raises:
             ValueError: 当会话、角色或模型不存在时
@@ -179,40 +188,74 @@ class AgentManager:
             raise ValueError(f"会话 {conversation_id} 不存在")
         
         try:
-            # 2. 获取或创建 agent 实例（启用流式模式）
+            # 2. 获取或创建 agent 实例
             agent = self.get_or_create_agent(character_id, model_id, provider_id, streaming=True)
             
             full_response = ""
             
             # 3. 异步流式调用 agent
-            async for event in agent.astream(
+            # 使用 stream_mode="messages" 获取详细的消息流
+            # 直接在这里解包 message 和 metadata
+            async for message, metadata in agent.astream(
                 {"messages": [{"role": "user", "content": user_message}]},
                 config={"configurable": {"thread_id": str(conversation_id)}},
                 stream_mode="messages"
             ):
-                # event 是 (message, metadata) 元组
-                if isinstance(event, tuple) and len(event) == 2:
-                    message, metadata = event
-                    # 检查是否是 AIMessageChunk（流式块）
-                    if hasattr(message, 'content') and message.content:
-                        chunk = message.content
-                        full_response += chunk
-                        yield chunk
+                # 过滤：只关注 AI 的输出片段 (忽略 UserMessage 和 ToolMessage)
+                if not isinstance(message, AIMessageChunk):
+                    continue
+                
+                # --- 分支 A: 处理工具调用状态 (Tool Call) ---
+                # 当 AI 决定调用工具时，tool_call_chunks 会包含数据
+                if message.tool_call_chunks:
+                    chunk = message.tool_call_chunks[0]
+                    # 通常只有第一个 chunk 包含工具名称 (name)，后续 chunk 是参数 (args)
+                    # 我们只在检测到工具名称时通知前端，避免刷屏
+                    if "name" in chunk and chunk["name"]:
+                        yield json.dumps({
+                            "type": "status",
+                            "content": f"正在使用工具: {chunk['name']}..."
+                        }, ensure_ascii=False)
+
+                # --- 分支 B: 处理文本回复内容 (Content) ---
+                # 当 AI 生成回答时，content 会包含文本
+                if message.content:
+                    chunk_text = ""
+                    
+                    # 兼容性处理：某些模型 content 是字符串，某些是列表
+                    if isinstance(message.content, str):
+                        chunk_text = message.content
+                    elif isinstance(message.content, list):
+                        for block in message.content:
+                            if isinstance(block, str):
+                                chunk_text += block
+                            elif isinstance(block, dict) and 'text' in block:
+                                chunk_text += block['text']
+                    
+                    # 如果提取到了有效文本，且不为空
+                    if chunk_text:
+                        # 拼接完整回复（用于后续存库）
+                        full_response += chunk_text
+                        
+                        # 推送给前端（类型为 text）
+                        yield json.dumps({
+                            "type": "text",
+                            "content": chunk_text
+                        }, ensure_ascii=False)
             
             # 4. 流结束后保存完整对话
-            self.app_storage.add_message(conversation_id, "user", user_message)
-            self.app_storage.add_message(conversation_id, "assistant", full_response)
-            
-            # 5. 如果是新会话，自动生成标题
-            if conversation["title"] == "New Chat":
-                title = user_message.replace("\n", " ").strip()
-                if len(title) > 30:
-                    title = title[:30] + "..."
-                self.app_storage.update_conversation(conversation_id, title=title)
+            # 仅保存实际的文本对话内容，工具调用的中间状态不存入业务数据库
+            if full_response:
+                self.app_storage.add_message(conversation_id, "user", user_message)
+                self.app_storage.add_message(conversation_id, "assistant", full_response)
                 
-        except ValueError:
-            # 重新抛出 ValueError（配置错误）
-            raise
+                # 5. 如果是新会话，自动生成标题
+                if conversation["title"] == "New Chat":
+                    title = user_message.replace("\n", " ").strip()
+                    if len(title) > 30:
+                        title = title[:30] + "..."
+                    self.app_storage.update_conversation(conversation_id, title=title)
+
         except Exception as e:
             # 捕获模型调用异常
             error_msg = str(e)

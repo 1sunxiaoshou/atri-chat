@@ -252,7 +252,14 @@ class TTSConfigService:
                 continue
             
             merged[key] = field_config.copy()
-            merged[key]["value"] = values.get(key, field_config.get("default"))
+            value = values.get(key, field_config.get("default"))
+            
+            # 对文件路径类型进行规范化处理
+            if field_config.get("type") == "file" and isinstance(value, str):
+                # 将所有反斜杠统一为单个反斜杠（Windows路径）
+                value = value.replace("\\\\", "\\")
+            
+            merged[key]["value"] = value
         return merged
     
     def get_active_provider(self) -> Optional[tuple[str, Dict[str, Any]]]:
