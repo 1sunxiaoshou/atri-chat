@@ -1,7 +1,25 @@
 """ASR 基类接口"""
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict, Any, Literal
 from pathlib import Path
+from typing_extensions import TypedDict
+
+
+class ConfigField(TypedDict, total=False):
+    """配置字段元数据"""
+    type: Literal["string", "password", "number", "select", "file"]
+    label: str
+    description: str
+    default: Any
+    required: bool
+    placeholder: str
+    sensitive: bool
+    options: list[str]
+    min: float
+    max: float
+    step: float
+    accept: str
+    value: Any
 
 
 class ASRBase(ABC):
@@ -9,29 +27,36 @@ class ASRBase(ABC):
     
     @classmethod
     @abstractmethod
-    def get_config_template(cls) -> Dict[str, Any]:
-        """获取配置模板
+    def get_config_template(cls) -> Dict[str, ConfigField]:
+        """获取配置模板（带UI元数据）
         
-        返回该服务商需要的配置字段及其默认值（通常为None）
+        返回该服务商需要的配置字段及其UI渲染信息
         
         Returns:
             配置模板字典，例如：
             {
-                "api_key": None,
-                "model": "whisper-1",
-                "base_url": "https://api.openai.com/v1"
+                "api_key": {
+                    "type": "password",
+                    "label": "API密钥",
+                    "description": "OpenAI API密钥",
+                    "default": None,
+                    "required": True,
+                    "placeholder": "sk-...",
+                    "sensitive": True
+                },
+                "model": {
+                    "type": "select",
+                    "label": "模型",
+                    "description": "选择Whisper模型",
+                    "default": "whisper-1",
+                    "required": True,
+                    "options": ["whisper-1"]
+                }
             }
         """
         pass
     
-    @classmethod
-    def get_sensitive_fields(cls) -> list[str]:
-        """获取敏感字段列表（需要脱敏的字段）
-        
-        Returns:
-            敏感字段名称列表，例如：["api_key", "secret_key"]
-        """
-        return []
+
     
     @abstractmethod
     def transcribe(
