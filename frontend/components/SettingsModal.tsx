@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Settings, Mic, Volume2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import ASRSettings from './ASRSettings';
+import TTSSettings from './TTSSettings';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -74,13 +75,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                     </div>
                                 )}
                                 {activeTab === 'asr' && <ASRSettings />}
-                                {activeTab === 'tts' && (
-                                    <div className="h-full overflow-y-auto">
-                                        <div className="text-gray-500 italic">
-                                            TTS settings configuration will go here.
-                                        </div>
-                                    </div>
-                                )}
+                                {activeTab === 'tts' && <TTSSettings />}
                             </div>
                         </div>
                     </div>

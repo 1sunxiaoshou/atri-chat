@@ -1,4 +1,4 @@
-"""ASR配置管理服务"""
+"""TTS配置管理服务"""
 import json
 import sqlite3
 from typing import List, Dict, Optional, Any, Callable
@@ -11,8 +11,8 @@ from core.logger import get_logger
 logger = get_logger(__name__)
 
 
-class ASRConfigService:
-    """ASR配置管理服务"""
+class TTSConfigService:
+    """TTS配置管理服务"""
     
     def __init__(self, db_path: str = "data/app.db", template_loader: Optional[Callable[[str], Dict[str, Any]]] = None):
         """初始化
@@ -38,7 +38,7 @@ class ASRConfigService:
         """初始化数据库表"""
         with self._get_connection() as conn:
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS asr_settings (
+                CREATE TABLE IF NOT EXISTS tts_settings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     provider_id VARCHAR(50) UNIQUE NOT NULL,
                     name VARCHAR(100) NOT NULL,
@@ -51,22 +51,6 @@ class ASRConfigService:
             conn.commit()
     
     def init_provider(self, provider_id: str, name: str, config_template: Dict[str, Any]):
-        """检查服务商是否已存在
-        
-        Args:
-            provider_id: 服务商ID
-            
-        Returns:
-            是否存在
-        """
-        with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT 1 FROM asr_settings WHERE provider_id = ?",
-                (provider_id,)
-            )
-            return cursor.fetchone() is not None
-    
-    def init_provider(self, provider_id: str, name: str, config_template: Dict[str, Any]):
         """初始化服务商（创建未配置的初始记录）
         
         Args:
@@ -74,13 +58,11 @@ class ASRConfigService:
             name: 服务商显示名称
             config_template: 配置模板（带UI元数据）
         """
-        # 存储模板（不包含value，前端用于渲染表单）
         config_json = json.dumps(config_template, ensure_ascii=False)
         
         with self._get_connection() as conn:
-            # 使用 INSERT OR IGNORE 避免重复插入错误
             conn.execute("""
-                INSERT OR IGNORE INTO asr_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
+                INSERT OR IGNORE INTO tts_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
                 VALUES (?, ?, 0, 0, ?, ?)
             """, (provider_id, name, config_json, datetime.now().isoformat()))
             conn.commit()
@@ -90,7 +72,7 @@ class ASRConfigService:
         
         Returns:
             {
-                "active_provider": "openai" or None,
+                "active_provider": "gpt_sovits" or None,
                 "providers": [...]
             }
         """
@@ -98,7 +80,7 @@ class ASRConfigService:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT provider_id, name, is_active, is_configured, config_data
-                FROM asr_settings
+                FROM tts_settings
                 ORDER BY id
             """)
             rows = cursor.fetchall()
@@ -114,7 +96,6 @@ class ASRConfigService:
                 "config": None
             }
             
-            # 返回配置（不脱敏）
             if row["config_data"]:
                 try:
                     config = json.loads(row["config_data"])
@@ -145,7 +126,7 @@ class ASRConfigService:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT config_data, is_configured
-                FROM asr_settings
+                FROM tts_settings
                 WHERE provider_id = ?
             """, (provider_id,))
             row = cursor.fetchone()
@@ -155,28 +136,18 @@ class ASRConfigService:
         
         try:
             full_config = json.loads(row["config_data"])
-            # 提取实际值（去掉元数据）
             return self._extract_values(full_config)
         except json.JSONDecodeError as e:
             logger.error(f"解析 {provider_id} 配置失败: {e}")
             return None
     
     def _extract_values(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """从配置中提取实际值
-        
-        Args:
-            config: 完整配置（带元数据）
-            
-        Returns:
-            仅包含字段名和值的字典
-        """
+        """从配置中提取实际值"""
         values = {}
         for key, field_config in config.items():
             if isinstance(field_config, dict) and "type" in field_config:
-                # 从value字段提取，如果没有则使用default
                 values[key] = field_config.get("value", field_config.get("default"))
             else:
-                # 不应该出现这种情况，但为了安全还是处理一下
                 logger.warning(f"配置字段 {key} 格式异常，应为元数据格式")
                 values[key] = field_config
         return values
@@ -193,26 +164,21 @@ class ASRConfigService:
         Returns:
             是否成功
         """
-        # 获取模板
         template = self._get_template(provider_id)
         if not template:
             raise ValueError(f"无法获取服务商 {provider_id} 的配置模板")
         
-        # 验证配置
         self._validate_config(template, config)
         
-        # 将用户提交的值合并到模板中
         full_config = self._merge_values(template, config)
         config_json = json.dumps(full_config, ensure_ascii=False)
         
         with self._get_connection() as conn:
-            # 如果设置为active，先取消其他的active状态
             if set_active:
-                conn.execute("UPDATE asr_settings SET is_active = 0")
+                conn.execute("UPDATE tts_settings SET is_active = 0")
             
-            # 插入或更新配置
             conn.execute("""
-                INSERT INTO asr_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
+                INSERT INTO tts_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
                 VALUES (?, ?, ?, 1, ?, ?)
                 ON CONFLICT(provider_id) DO UPDATE SET
                     name = excluded.name,
@@ -226,27 +192,17 @@ class ASRConfigService:
         return True
     
     def _validate_config(self, template: Dict[str, Any], config: Dict[str, Any]):
-        """验证配置
-        
-        Args:
-            template: 配置模板
-            config: 用户提交的配置
-            
-        Raises:
-            ValueError: 配置验证失败
-        """
+        """验证配置"""
         for key, field_meta in template.items():
             if not isinstance(field_meta, dict) or "type" not in field_meta:
                 logger.error(f"配置模板字段 {key} 格式错误")
                 continue
             
-            # 检查必填字段
             if field_meta.get("required", False):
                 value = config.get(key)
                 if value is None or value == "":
                     raise ValueError(f"字段 '{field_meta.get('label', key)}' 是必填项")
             
-            # 检查数字类型的范围
             if field_meta.get("type") == "number" and key in config:
                 value = config[key]
                 if value is not None:
@@ -257,7 +213,6 @@ class ASRConfigService:
                     if max_val is not None and value > max_val:
                         raise ValueError(f"字段 '{field_meta.get('label', key)}' 的值不能大于 {max_val}")
             
-            # 检查选项类型的值
             if field_meta.get("type") == "select" and key in config:
                 value = config[key]
                 options = field_meta.get("options", [])
@@ -265,19 +220,11 @@ class ASRConfigService:
                     raise ValueError(f"字段 '{field_meta.get('label', key)}' 的值必须是以下之一: {', '.join(options)}")
     
     def _get_template(self, provider_id: str) -> Optional[Dict[str, Any]]:
-        """获取服务商的配置模板
-        
-        Args:
-            provider_id: 服务商ID
-            
-        Returns:
-            配置模板，失败返回None
-        """
-        # 先从数据库读取
+        """获取服务商的配置模板"""
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
-                "SELECT config_data FROM asr_settings WHERE provider_id = ?",
+                "SELECT config_data FROM tts_settings WHERE provider_id = ?",
                 (provider_id,)
             )
             row = cursor.fetchone()
@@ -288,7 +235,6 @@ class ASRConfigService:
             except json.JSONDecodeError as e:
                 logger.error(f"解析 {provider_id} 配置模板失败: {e}")
         
-        # 数据库中没有，使用template_loader获取
         if self.template_loader:
             try:
                 return self.template_loader(provider_id)
@@ -298,22 +244,13 @@ class ASRConfigService:
         return None
     
     def _merge_values(self, template: Dict[str, Any], values: Dict[str, Any]) -> Dict[str, Any]:
-        """将用户值合并到模板中
-        
-        Args:
-            template: 配置模板（带元数据）
-            values: 用户提交的值
-            
-        Returns:
-            合并后的完整配置
-        """
+        """将用户值合并到模板中"""
         merged = {}
         for key, field_config in template.items():
             if not isinstance(field_config, dict) or "type" not in field_config:
                 logger.error(f"配置模板字段 {key} 格式错误，应为元数据格式")
                 continue
             
-            # 保留元数据，添加value
             merged[key] = field_config.copy()
             merged[key]["value"] = values.get(key, field_config.get("default"))
         return merged
@@ -322,13 +259,13 @@ class ASRConfigService:
         """获取当前生效的服务商配置（仅返回值）
         
         Returns:
-            (provider_id, config) 或 None，config仅包含字段名和值
+            (provider_id, config) 或 None
         """
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT provider_id, config_data
-                FROM asr_settings
+                FROM tts_settings
                 WHERE is_active = 1 AND is_configured = 1
                 LIMIT 1
             """)
@@ -339,20 +276,19 @@ class ASRConfigService:
         
         try:
             full_config = json.loads(row["config_data"])
-            # 提取实际值
             config = self._extract_values(full_config)
             return (row["provider_id"], config)
         except json.JSONDecodeError as e:
             logger.error(f"解析活动服务商配置失败: {e}")
             return None
     
-    def disable_asr(self) -> bool:
-        """禁用ASR功能（取消所有active状态）
+    def disable_tts(self) -> bool:
+        """禁用TTS功能（取消所有active状态）
         
         Returns:
             是否成功
         """
         with self._get_connection() as conn:
-            conn.execute("UPDATE asr_settings SET is_active = 0")
+            conn.execute("UPDATE tts_settings SET is_active = 0")
             conn.commit()
         return True
