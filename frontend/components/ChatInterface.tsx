@@ -33,6 +33,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | number | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamPlayerRef = useRef<StreamTTSPlayer | null>(null);
 
@@ -216,6 +217,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
+  // 复制消息内容
+  const handleCopyMessage = async (messageId: string | number, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      
+      // 2秒后清除复制状态
+      setTimeout(() => {
+        setCopiedMessageId(null);
+      }, 2000);
+    } catch (error) {
+      console.error('复制失败:', error);
+    }
+  };
 
   // TTS 播放功能（使用流式播放管理器）
   const handlePlayTTS = async (messageId: string | number, text: string) => {
@@ -423,11 +439,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {msg.message_type === 'assistant' && (
                   <div className="flex gap-2 px-1">
                     <button 
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
-                      onClick={() => navigator.clipboard.writeText(msg.content)}
-                      title="复制"
+                      className={`transition-colors relative group ${
+                        copiedMessageId === msg.message_id 
+                          ? 'text-green-600' 
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                      onClick={() => handleCopyMessage(msg.message_id, msg.content)}
+                      title={copiedMessageId === msg.message_id ? "已复制" : "复制"}
                     >
                       <Copy size={14} />
+                      {copiedMessageId === msg.message_id && (
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-green-600 text-white text-xs rounded whitespace-nowrap">
+                          已复制
+                        </span>
+                      )}
                     </button>
                     <button 
                       className={`transition-colors ${playingMessageId === msg.message_id ? 'text-blue-600 animate-pulse' : 'text-gray-400 hover:text-gray-600'}`}
