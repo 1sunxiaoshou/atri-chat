@@ -11,10 +11,13 @@ from .storage import AppStorage
 from .models.factory import ModelFactory
 from .tools.manager import ToolManager
 from .tools.registry import ToolRegistry
-from .tools.memory_tools import create_memory_tools
+from .tools.memory_tools import get_memory_tools, AgentContext
 from .middleware.manager import MiddlewareManager
 from .asr.factory import ASRFactory
 from .tts.factory import TTSFactory
+from .logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class AgentManager:
@@ -38,6 +41,7 @@ class AgentManager:
             checkpointer: 检查点存储实例（对话历史）
             tool_registry: 工具注册表实例（可选）
         """
+        logger.info("初始化 AgentManager")
         self.app_storage = app_storage
         self.store = store
         self.checkpointer = checkpointer
@@ -129,8 +133,8 @@ class AgentManager:
             # 3. 获取角色的工具列表
             tools = self.tool_manager.get_character_tools(character_id)
             
-            # 4. 添加长期记忆工具
-            memory_tools = create_memory_tools(self.store)
+            # 4. 添加长期记忆工具（使用 ToolRuntime 参数）
+            memory_tools = get_memory_tools()
             tools.extend(memory_tools)
             
             # 5. 获取角色的中间件列表
@@ -193,12 +197,15 @@ class AgentManager:
             
             full_response = ""
             
-            # 3. 异步流式调用 agent
+            # 3. 异步流式调用 agent，注入 runtime context
             # 使用 stream_mode="messages" 获取详细的消息流
             # 直接在这里解包 message 和 metadata
             async for message, metadata in agent.astream(
                 {"messages": [{"role": "user", "content": user_message}]},
-                config={"configurable": {"thread_id": str(conversation_id)}},
+                config={
+                    "configurable": {"thread_id": str(conversation_id)}
+                },
+                context=AgentContext(character_id=character_id),
                 stream_mode="messages"
             ):
                 # 过滤：只关注 AI 的输出片段 (忽略 UserMessage 和 ToolMessage)

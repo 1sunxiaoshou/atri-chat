@@ -130,6 +130,7 @@ const App: React.FC = () => {
               activeModel={activeModel}
               availableModels={models.filter(m => m.enabled)}
               onUpdateModel={setActiveModelId}
+              onConversationUpdated={() => loadConversations(selectedCharacterId)}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50/30">
