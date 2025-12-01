@@ -241,21 +241,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const volumeSetting = localStorage.getItem('audioVolume');
       const volume = volumeSetting ? Number(volumeSetting) / 100 : 1.0;
 
-      // 创建新的流式播放器
+      // 创建新的流式播放器（带播放完成回调）
       if (!streamPlayerRef.current) {
-        streamPlayerRef.current = new StreamTTSPlayer(volume);
+        streamPlayerRef.current = new StreamTTSPlayer(volume, () => {
+          // 播放完成后清除播放状态
+          setPlayingMessageId(null);
+        });
       }
 
       // 开始播放（内部会处理缓存和恢复逻辑）
       await streamPlayerRef.current.onPlay(text, async () => {
         return await api.synthesizeSpeechStream(text);
       });
-
-      // 播放完成后，检查状态是否还是当前消息（防止用户中途切换）
-      const state = streamPlayerRef.current.getState();
-      if (state.playerState === 'paused' && state.networkState === 'finished') {
-        setPlayingMessageId(null);
-      }
 
     } catch (error) {
       console.error('TTS 播放失败:', error);
