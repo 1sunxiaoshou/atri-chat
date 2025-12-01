@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users, Globe } from 'lucide-react';
 import { Conversation, ViewMode, Character } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getCharacterId, getConversationId } from '../utils/helpers';
 
 interface SidebarProps {
   viewMode: ViewMode;
@@ -31,16 +32,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onOpenSettings
 }) => {
   const { t, language, setLanguage } = useLanguage();
-
-  // Helper function to get character ID (supports both character_id and id)
-  const getCharacterId = (char: Character): number => {
-    return (char.character_id || char.id || 0) as number;
-  };
-
-  // Helper function to get conversation ID
-  const getConversationId = (conv: Conversation): number => {
-    return Number(conv.conversation_id || conv.id || 0);
-  };
 
   // Local state for handling sorting locally (since backend doesn't persist order in this mock)
   const [localCharacters, setLocalCharacters] = useState<Character[]>(characters);

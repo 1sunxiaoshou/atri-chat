@@ -36,9 +36,13 @@ export class StreamTTSPlayer {
   
   // 当前文本（用于判断是否是新请求）
   private currentText: string = '';
+  
+  // 播放完成回调
+  private onPlaybackComplete?: () => void;
 
-  constructor(volume: number = 1.0) {
+  constructor(volume: number = 1.0, onPlaybackComplete?: () => void) {
     this.volume = volume;
+    this.onPlaybackComplete = onPlaybackComplete;
   }
 
   /**

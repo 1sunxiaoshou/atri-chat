@@ -7,6 +7,7 @@ import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api';
 import { useLanguage } from './contexts/LanguageContext';
 import { ASRProvider } from './contexts/ASRContext';
+import { getCharacterId, getConversationId } from './utils/helpers';
 
 const App: React.FC = () => {
   const { t } = useLanguage();
@@ -18,16 +19,6 @@ const App: React.FC = () => {
 
   // Settings Modal State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  // Helper function to get character ID (supports both character_id and id)
-  const getCharacterId = (char: Character): number => {
-    return (char.character_id || char.id || 0) as number;
-  };
-
-  // Helper function to get conversation ID
-  const getConversationId = (conv: Conversation): number => {
-    return Number(conv.conversation_id || conv.id || 0);
-  };
 
   // Character Selection State
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
