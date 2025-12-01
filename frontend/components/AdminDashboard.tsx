@@ -4,6 +4,7 @@ import { Provider, Model, Character, AdminTab } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AvatarEditor } from './AvatarEditor';
+import { getCharacterId } from '../utils/helpers';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -16,11 +17,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [models, setModels] = useState<Model[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [providerTemplates, setProviderTemplates] = useState<any[]>([]);
-
-  // Helper function to get character ID (supports both character_id and id)
-  const getCharacterId = (char: Character): number => {
-    return (char.character_id || char.id || 0) as number;
-  };
 
   // Provider Modal State
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
