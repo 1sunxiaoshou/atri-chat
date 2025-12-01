@@ -34,6 +34,9 @@ export class StreamTTSPlayer {
   // 音频参数
   private volume: number = 1.0;
   
+  // 缓存配置
+  private readonly MIN_BUFFER_CHUNKS = 7; // 最少缓存n个chunk再开始播放
+  
   // 当前文本（用于判断是否是新请求）
   private currentText: string = '';
   
@@ -182,6 +185,11 @@ export class StreamTTSPlayer {
         if (done) {
           console.log('[StreamTTS] 流式接收完毕');
           this.networkState = 'finished';
+          
+          // 流结束时，如果还没开始播放，立即开始
+          if (this.playerState === 'playing' && this.currentPlayingIndex === -1) {
+            this.playNextChunk();
+          }
           break;
         }
 
@@ -194,8 +202,11 @@ export class StreamTTSPlayer {
 
           console.log(`[StreamTTS] 收到第 ${this.audioQueue.length} 个分片`);
 
-          // 如果当前处于"播放状态"且"没有声音在播"，触发播放
-          if (this.playerState === 'playing' && this.currentPlayingIndex === -1) {
+          // 达到最小缓存数量且还没开始播放时，开始播放
+          if (this.playerState === 'playing' && 
+              this.currentPlayingIndex === -1 && 
+              this.audioQueue.length >= this.MIN_BUFFER_CHUNKS) {
+            console.log(`[StreamTTS] 已缓存 ${this.MIN_BUFFER_CHUNKS} 个分片，开始播放`);
             this.playNextChunk();
           }
         }
@@ -210,48 +221,46 @@ export class StreamTTSPlayer {
   }
 
   /**
-   * 播放核心逻辑
+   * 播放核心逻辑（不等待播放完成，立即提交所有可用的 chunk）
    */
-  private async playNextChunk(): Promise<void> {
+  private playNextChunk(): void {
     // 1. 边界检查：如果没有处于播放状态（用户点了停止），坚决不播
     if (this.playerState !== 'playing') {
       console.log('[StreamTTS] 检测到处于暂停状态，停止自动播放下一句');
       return;
     }
 
-    // 2. 检查队列是否有数据
-    if (this.currentIndex >= this.audioQueue.length) {
-      console.log('[StreamTTS] 缓冲已播完，等待新数据或结束');
-      this.currentPlayingIndex = -1;
+    // 2. 将所有未播放的 chunk 提交给播放器
+    while (this.currentIndex < this.audioQueue.length) {
+      const chunk = this.audioQueue[this.currentIndex];
+      const chunkIndex = this.currentIndex;
       
-      if (this.networkState === 'finished') {
-        console.log('[StreamTTS] 全部播放完毕');
-        this.playerState = 'paused';
-      }
-      return;
-    }
+      console.log(`[StreamTTS] 提交第 ${chunkIndex + 1} 个分片到播放队列`);
 
-    // 3. 取出当前分片
-    const chunk = this.audioQueue[this.currentIndex];
-    this.currentPlayingIndex = this.currentIndex;
-
-    console.log(`[StreamTTS] 播放第 ${this.currentIndex + 1} 个分片`);
-
-    try {
-      // 4. 播放
       if (this.pcmPlayer) {
-        await this.pcmPlayer.playChunk(chunk.data);
+        // 不等待，立即提交下一个
+        this.pcmPlayer.playChunk(chunk.data).then(() => {
+          // 检查是否是最后一个 chunk
+          if (chunkIndex === this.audioQueue.length - 1 && this.networkState === 'finished') {
+            console.log('[StreamTTS] 全部播放完毕');
+            this.playerState = 'paused';
+            
+            // 触发播放完成回调
+            if (this.onPlaybackComplete) {
+              this.onPlaybackComplete();
+            }
+          }
+        }).catch((error) => {
+          // 用户停止播放会触发这里，这是正常的
+          if (error instanceof Error && error.message === 'Playback stopped by user') {
+            console.log('[StreamTTS] 用户停止播放');
+          } else {
+            console.error('[StreamTTS] 播放分片失败:', error);
+          }
+        });
       }
 
-      // 5. 播放完成后，准备播下一句
       this.currentIndex++;
-      this.currentPlayingIndex = -1;
-
-      // 6. 递归调用尝试播下一句（会在开头检查 playerState）
-      await this.playNextChunk();
-    } catch (error) {
-      console.error('[StreamTTS] 播放分片失败:', error);
-      this.currentPlayingIndex = -1;
     }
   }
 

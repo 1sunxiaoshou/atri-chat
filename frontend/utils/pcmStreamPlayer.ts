@@ -17,6 +17,7 @@ export class PCMStreamPlayer {
   private volume: number;
   private gainNode: GainNode;
   private activeSourceNodes: AudioBufferSourceNode[] = [];
+  private pendingResolvers: Array<{ resolve: () => void; reject: (reason?: any) => void }> = [];
 
   constructor(
     volume: number = 1.0,
@@ -39,54 +40,78 @@ export class PCMStreamPlayer {
    * 播放单个音频块
    */
   async playChunk(pcmData: Uint8Array): Promise<void> {
-    // 将 Uint8Array 转换为 Int16Array（PCM 16-bit）
-    const int16Array = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.byteLength / 2);
-    
-    // 转换为 Float32Array（AudioContext 需要）
-    const float32Array = new Float32Array(int16Array.length);
-    for (let i = 0; i < int16Array.length; i++) {
-      float32Array[i] = int16Array[i] / 32768.0; // 归一化到 [-1, 1]
-    }
+    return new Promise<void>((resolve, reject) => {
+      // 记录 resolver，以便在 stopPlayback 时可以 reject
+      const resolver = { resolve, reject };
+      this.pendingResolvers.push(resolver);
 
-    // 创建 AudioBuffer
-    const audioBuffer = this.audioContext.createBuffer(
-      this.channels,
-      float32Array.length / this.channels,
-      this.sampleRate
-    );
+      try {
+        // 将 Uint8Array 转换为 Int16Array（PCM 16-bit）
+        const int16Array = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.byteLength / 2);
+        
+        // 转换为 Float32Array（AudioContext 需要）
+        const float32Array = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+          float32Array[i] = int16Array[i] / 32768.0; // 归一化到 [-1, 1]
+        }
 
-    // 填充数据
-    for (let channel = 0; channel < this.channels; channel++) {
-      const channelData = audioBuffer.getChannelData(channel);
-      for (let i = 0; i < channelData.length; i++) {
-        channelData[i] = float32Array[i * this.channels + channel];
+        // 创建 AudioBuffer
+        const audioBuffer = this.audioContext.createBuffer(
+          this.channels,
+          float32Array.length / this.channels,
+          this.sampleRate
+        );
+
+        // 填充数据
+        for (let channel = 0; channel < this.channels; channel++) {
+          const channelData = audioBuffer.getChannelData(channel);
+          for (let i = 0; i < channelData.length; i++) {
+            channelData[i] = float32Array[i * this.channels + channel];
+          }
+        }
+
+        // 创建音频源节点
+        const source = this.audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+
+        // 连接到全局增益节点
+        source.connect(this.gainNode);
+
+        // 计算播放时间，确保无缝衔接
+        const startTime = Math.max(this.nextStartTime, this.audioContext.currentTime);
+        
+        // 播放结束后清理并 resolve Promise
+        source.onended = () => {
+          const index = this.activeSourceNodes.indexOf(source);
+          if (index > -1) {
+            this.activeSourceNodes.splice(index, 1);
+          }
+          
+          // 从 pending resolvers 中移除并 resolve
+          const resolverIndex = this.pendingResolvers.indexOf(resolver);
+          if (resolverIndex > -1) {
+            this.pendingResolvers.splice(resolverIndex, 1);
+          }
+          resolve();
+        };
+
+        // 记录活跃的源节点
+        this.activeSourceNodes.push(source);
+
+        // 开始播放
+        source.start(startTime);
+
+        // 更新下一个块的开始时间
+        this.nextStartTime = startTime + audioBuffer.duration;
+      } catch (error) {
+        // 从 pending resolvers 中移除
+        const resolverIndex = this.pendingResolvers.indexOf(resolver);
+        if (resolverIndex > -1) {
+          this.pendingResolvers.splice(resolverIndex, 1);
+        }
+        reject(error);
       }
-    }
-
-    // 创建音频源节点
-    const source = this.audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-
-    // 连接到全局增益节点
-    source.connect(this.gainNode);
-
-    // 计算播放时间，确保无缝衔接
-    const startTime = Math.max(this.nextStartTime, this.audioContext.currentTime);
-    source.start(startTime);
-
-    // 记录活跃的源节点
-    this.activeSourceNodes.push(source);
-
-    // 播放结束后清理
-    source.onended = () => {
-      const index = this.activeSourceNodes.indexOf(source);
-      if (index > -1) {
-        this.activeSourceNodes.splice(index, 1);
-      }
-    };
-
-    // 更新下一个块的开始时间
-    this.nextStartTime = startTime + audioBuffer.duration;
+    });
   }
 
   /**
@@ -102,6 +127,12 @@ export class PCMStreamPlayer {
       }
     });
     this.activeSourceNodes = [];
+    
+    // Reject 所有等待中的 Promise
+    this.pendingResolvers.forEach(({ reject }) => {
+      reject(new Error('Playback stopped by user'));
+    });
+    this.pendingResolvers = [];
     
     // 重置时间
     this.nextStartTime = 0;
