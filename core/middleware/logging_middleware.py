@@ -5,7 +5,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, category="API")
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -18,6 +18,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         logger.info(
             f"→ {request.method} {request.url.path}",
             extra={
+                "category": "API",
                 "method": request.method,
                 "path": request.url.path,
                 "query": dict(request.query_params),
@@ -30,14 +31,15 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             process_time = time.time() - start_time
             
             # 记录响应信息
-            logger.info(
+            log_level = "info" if response.status_code < 400 else "warning" if response.status_code < 500 else "error"
+            getattr(logger, log_level)(
                 f"← {request.method} {request.url.path} {response.status_code}",
                 extra={
+                    "category": "API",
                     "method": request.method,
                     "path": request.url.path,
                     "status_code": response.status_code,
                     "process_time": f"{process_time:.3f}s",
-                    "performance": True,
                 }
             )
             
@@ -50,10 +52,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             logger.error(
                 f"✗ {request.method} {request.url.path} - {str(exc)}",
                 extra={
+                    "category": "API",
                     "method": request.method,
                     "path": request.url.path,
                     "error": str(exc),
                     "process_time": f"{process_time:.3f}s",
-                }
+                },
+                exc_info=True
             )
             raise

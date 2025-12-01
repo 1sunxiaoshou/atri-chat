@@ -5,6 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from .models.config import ProviderConfig, ModelConfig, ModelType, Capability
+from .logger import get_logger
+
+logger = get_logger(__name__, category="DATABASE")
 
 
 class AppStorage:
@@ -13,6 +16,7 @@ class AppStorage:
     def __init__(self, db_path: str = "data/app.db"):
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"初始化 AppStorage", extra={"db_path": db_path})
         self._init_db()
     
     def _init_db(self):
@@ -399,8 +403,11 @@ class AppStorage:
                     (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled)
                 )
                 conn.commit()
-                return cursor.lastrowid
-        except sqlite3.IntegrityError:
+                character_id = cursor.lastrowid
+                logger.info(f"添加角色成功", extra={"character_id": character_id, "name": name})
+                return character_id
+        except sqlite3.IntegrityError as e:
+            logger.error(f"添加角色失败", extra={"name": name, "error": str(e)})
             return None
     
     def get_character(self, character_id: int) -> Optional[Dict[str, Any]]:
@@ -493,8 +500,11 @@ class AppStorage:
                     (character_id, title, now, now)
                 )
                 conn.commit()
-                return cursor.lastrowid
-        except sqlite3.IntegrityError:
+                conversation_id = cursor.lastrowid
+                logger.info(f"创建会话成功", extra={"conversation_id": conversation_id, "character_id": character_id, "title": title})
+                return conversation_id
+        except sqlite3.IntegrityError as e:
+            logger.error(f"创建会话失败", extra={"character_id": character_id, "error": str(e)})
             return None
     
     def get_conversation(self, conversation_id: int) -> Optional[Dict[str, Any]]:
@@ -583,8 +593,19 @@ class AppStorage:
                     (now, conversation_id)
                 )
                 conn.commit()
-                return cursor.lastrowid
-        except sqlite3.IntegrityError:
+                message_id = cursor.lastrowid
+                logger.debug(
+                    f"添加消息成功",
+                    extra={
+                        "message_id": message_id,
+                        "conversation_id": conversation_id,
+                        "message_type": message_type,
+                        "content_length": len(content)
+                    }
+                )
+                return message_id
+        except sqlite3.IntegrityError as e:
+            logger.error(f"添加消息失败", extra={"conversation_id": conversation_id, "error": str(e)})
             return None
     
     def get_message(self, message_id: int) -> Optional[Dict[str, Any]]:

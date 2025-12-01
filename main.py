@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from core.logger import get_logger
+from core.logger import get_logger, get_log_level
 from core.middleware.logging_middleware import LoggingMiddleware
 from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
 from api.routes import (
@@ -16,14 +16,14 @@ from api.routes import (
 # 加载 .env 文件
 load_dotenv()
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, category="GENERAL")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动
-    logger.info("初始化系统...")
+    logger.info(f"初始化系统... (日志级别: {get_log_level()})")
     
     # 预热单例实例（触发初始化）
     get_app_storage()
