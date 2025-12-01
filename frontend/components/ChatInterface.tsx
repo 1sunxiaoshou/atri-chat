@@ -16,6 +16,7 @@ interface ChatInterfaceProps {
   activeModel: Model | null;
   onUpdateModel: (modelId: string) => void;
   availableModels: Model[];
+  onConversationUpdated?: () => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -23,7 +24,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   activeCharacter,
   activeModel,
   onUpdateModel,
-  availableModels
+  availableModels,
+  onConversationUpdated
 }) => {
   const { t } = useLanguage();
   const { asrEnabled } = useASR();
@@ -164,6 +166,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       );
 
       setIsTyping(false);
+
+      // 消息发送成功后，刷新会话列表以获取更新的标题
+      if (result.code === 200 && !((result.data as any)?.error)) {
+        onConversationUpdated?.();
+      }
 
       // 检查是否有错误
       if (result.code !== 200 || (result.data as any)?.error) {

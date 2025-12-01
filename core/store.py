@@ -137,13 +137,26 @@ class SqliteStore(BaseStore):
             for row in cursor:
                 yield f"{row[0]}/{row[1]}"
     
-    def batch(self, *args, **kwargs):
+    def batch(self, ops):
         """批处理操作（同步）"""
-        raise NotImplementedError("batch 操作不支持")
+        # 默认实现：逐个执行操作
+        results = []
+        for op in ops:
+            if op[0] == "put":
+                self.put(op[1], op[2], op[3])
+                results.append(None)
+            elif op[0] == "get":
+                results.append(self.get(op[1], op[2]))
+            elif op[0] == "delete":
+                results.append(self.delete(op[1], op[2]))
+            elif op[0] == "search":
+                results.append(self.search(op[1], op[2] if len(op) > 2 else None))
+        return results
     
-    async def abatch(self, *args, **kwargs):
+    async def abatch(self, ops):
         """批处理操作（异步）"""
-        raise NotImplementedError("abatch 操作不支持")
+        # 简单实现：调用同步版本
+        return self.batch(ops)
     
     def _parse_key(self, key: str) -> Tuple[str, str]:
         """解析键为命名空间和项键
@@ -343,3 +356,50 @@ class SqliteStore(BaseStore):
             )
             conn.commit()
             return cursor.rowcount
+    
+    def list_namespaces(self, prefix: Optional[Tuple] = None) -> List[Tuple]:
+        """列出所有命名空间
+        
+        Args:
+            prefix: 可选的命名空间前缀
+            
+        Returns:
+            命名空间元组列表
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            if prefix:
+                prefix_str = self._namespace_to_str(prefix)
+                cursor = conn.execute(
+                    "SELECT DISTINCT namespace FROM store_items WHERE namespace LIKE ?",
+                    (f"{prefix_str}%",)
+                )
+            else:
+                cursor = conn.execute("SELECT DISTINCT namespace FROM store_items")
+            
+            namespaces = []
+            for row in cursor:
+                namespaces.append(self._str_to_namespace(row[0]))
+            
+            return namespaces
+    
+    # ==================== 异步方法 ====================
+    
+    async def aget(self, namespace: Tuple, key: str) -> Optional[Item]:
+        """异步获取单个项"""
+        return self.get(namespace, key)
+    
+    async def aput(self, namespace: Tuple, key: str, value: dict) -> None:
+        """异步存储一个项"""
+        self.put(namespace, key, value)
+    
+    async def adelete(self, namespace: Tuple, key: str) -> bool:
+        """异步删除单个项"""
+        return self.delete(namespace, key)
+    
+    async def asearch(self, namespace: Tuple, query: Optional[str] = None, limit: int = 10) -> List[Item]:
+        """异步搜索命名空间中的项"""
+        return self.search(namespace, query, limit)
+    
+    async def alist_namespaces(self, prefix: Optional[Tuple] = None) -> List[Tuple]:
+        """异步列出所有命名空间"""
+        return self.list_namespaces(prefix)
