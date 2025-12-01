@@ -17,7 +17,7 @@ from .asr.factory import ASRFactory
 from .tts.factory import TTSFactory
 from .logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, category="BUSINESS")
 
 
 class AgentManager:
@@ -41,7 +41,7 @@ class AgentManager:
             checkpointer: 检查点存储实例（对话历史）
             tool_registry: 工具注册表实例（可选）
         """
-        logger.info("初始化 AgentManager")
+        logger.info("初始化 AgentManager", extra={"operation": "init"})
         self.app_storage = app_storage
         self.store = store
         self.checkpointer = checkpointer
@@ -58,6 +58,7 @@ class AgentManager:
         
         # Agent 实例缓存：{(character_id, model_id, provider_id): agent}
         self._agent_cache: Dict[Tuple[int, str, str], Any] = {}
+        logger.debug("AgentManager 初始化完成", extra={"cache_size": 0})
     
     def get_or_create_agent(
         self,
@@ -87,13 +88,25 @@ class AgentManager:
         
         # 如果有动态参数，不使用缓存
         if model_kwargs:
+            logger.debug(
+                f"创建临时 Agent 实例（带动态参数）",
+                extra={"character_id": character_id, "model_id": model_id, "provider_id": provider_id}
+            )
             return self._create_agent(character_id, model_id, provider_id, **model_kwargs)
         
         # 检查缓存
         if cache_key in self._agent_cache:
+            logger.debug(
+                f"使用缓存的 Agent 实例",
+                extra={"character_id": character_id, "model_id": model_id, "provider_id": provider_id}
+            )
             return self._agent_cache[cache_key]
         
         # 创建新实例并缓存
+        logger.info(
+            f"创建新 Agent 实例",
+            extra={"character_id": character_id, "model_id": model_id, "provider_id": provider_id}
+        )
         agent = self._create_agent(character_id, model_id, provider_id)
         self._agent_cache[cache_key] = agent
         
@@ -122,23 +135,31 @@ class AgentManager:
         """
         try:
             # 1. 获取角色配置（包含 system_prompt）
+            logger.debug(f"获取角色配置", extra={"character_id": character_id})
             character = self.app_storage.get_character(character_id)
             if not character:
+                logger.error(f"角色不存在", extra={"character_id": character_id})
                 raise ValueError(f"角色 {character_id} 不存在")
             
             # 2. 使用 ModelFactory 创建模型实例（支持动态参数）
-            # ModelFactory.create_model 现在会抛出详细的 ValueError
+            logger.debug(
+                f"创建模型实例",
+                extra={"provider_id": provider_id, "model_id": model_id, "kwargs": model_kwargs}
+            )
             model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
             
             # 3. 获取角色的工具列表
             tools = self.tool_manager.get_character_tools(character_id)
+            logger.debug(f"加载角色工具", extra={"character_id": character_id, "tool_count": len(tools)})
             
             # 4. 添加长期记忆工具（使用 ToolRuntime 参数）
             memory_tools = get_memory_tools()
             tools.extend(memory_tools)
+            logger.debug(f"添加记忆工具", extra={"memory_tool_count": len(memory_tools)})
             
             # 5. 获取角色的中间件列表
             middlewares = self.middleware_manager.get_character_middleware(character_id)
+            logger.debug(f"加载中间件", extra={"character_id": character_id, "middleware_count": len(middlewares)})
             
             # 6. 创建 agent（使用角色的 system_prompt、工具和中间件）
             agent = create_agent(
@@ -150,13 +171,30 @@ class AgentManager:
                 store=self.store
             )
             
+            logger.info(
+                f"Agent 创建成功",
+                extra={
+                    "character_id": character_id,
+                    "character_name": character["name"],
+                    "model": f"{provider_id}/{model_id}",
+                    "tool_count": len(tools),
+                    "middleware_count": len(middlewares)
+                }
+            )
             return agent
             
-        except ValueError:
-            # 重新抛出 ValueError（包含详细错误信息）
+        except ValueError as e:
+            logger.error(
+                f"创建 Agent 失败（配置错误）",
+                extra={"character_id": character_id, "error": str(e)}
+            )
             raise
         except Exception as e:
-            # 捕获其他异常并转换为 ValueError
+            logger.error(
+                f"创建 Agent 失败（未知错误）",
+                extra={"character_id": character_id, "error": str(e)},
+                exc_info=True
+            )
             raise ValueError(f"创建 Agent 失败: {str(e)}")
     
 
@@ -186,20 +224,35 @@ class AgentManager:
             ValueError: 当会话、角色或模型不存在时
             RuntimeError: 当模型调用失败时
         """
+        logger.info(
+            f"开始处理消息",
+            extra={
+                "conversation_id": conversation_id,
+                "character_id": character_id,
+                "model": f"{provider_id}/{model_id}",
+                "message_length": len(user_message)
+            }
+        )
+        
         # 1. 验证会话是否存在
         conversation = self.app_storage.get_conversation(conversation_id)
         if not conversation:
+            logger.error(f"会话不存在", extra={"conversation_id": conversation_id})
             raise ValueError(f"会话 {conversation_id} 不存在")
         
         try:
             # 2. 获取或创建 agent 实例
+            logger.debug(f"获取 Agent 实例", extra={"character_id": character_id})
             agent = self.get_or_create_agent(character_id, model_id, provider_id, streaming=True)
             
             full_response = ""
+            chunk_count = 0
+            tool_call_count = 0
             
             # 3. 异步流式调用 agent，注入 runtime context
             # 使用 stream_mode="messages" 获取详细的消息流
             # 直接在这里解包 message 和 metadata
+            logger.debug(f"开始流式调用模型", extra={"conversation_id": conversation_id})
             async for message, metadata in agent.astream(
                 {"messages": [{"role": "user", "content": user_message}]},
                 config={
@@ -219,6 +272,11 @@ class AgentManager:
                     # 通常只有第一个 chunk 包含工具名称 (name)，后续 chunk 是参数 (args)
                     # 我们只在检测到工具名称时通知前端，避免刷屏
                     if "name" in chunk and chunk["name"]:
+                        tool_call_count += 1
+                        logger.debug(
+                            f"工具调用",
+                            extra={"tool_name": chunk["name"], "conversation_id": conversation_id}
+                        )
                         yield json.dumps({
                             "type": "status",
                             "content": f"正在使用工具: {chunk['name']}..."
@@ -243,6 +301,7 @@ class AgentManager:
                     if chunk_text:
                         # 拼接完整回复（用于后续存库）
                         full_response += chunk_text
+                        chunk_count += 1
                         
                         # 推送给前端（类型为 text）
                         yield json.dumps({
@@ -253,6 +312,15 @@ class AgentManager:
             # 4. 流结束后保存完整对话
             # 仅保存实际的文本对话内容，工具调用的中间状态不存入业务数据库
             if full_response:
+                logger.debug(
+                    f"保存对话消息",
+                    extra={
+                        "conversation_id": conversation_id,
+                        "response_length": len(full_response),
+                        "chunk_count": chunk_count,
+                        "tool_call_count": tool_call_count
+                    }
+                )
                 self.app_storage.add_message(conversation_id, "user", user_message)
                 self.app_storage.add_message(conversation_id, "assistant", full_response)
                 
@@ -262,10 +330,31 @@ class AgentManager:
                     if len(title) > 30:
                         title = title[:30] + "..."
                     self.app_storage.update_conversation(conversation_id, title=title)
+                    logger.debug(f"自动生成会话标题", extra={"conversation_id": conversation_id, "title": title})
+                
+                logger.info(
+                    f"消息处理完成",
+                    extra={
+                        "conversation_id": conversation_id,
+                        "response_length": len(full_response),
+                        "chunk_count": chunk_count,
+                        "tool_call_count": tool_call_count
+                    }
+                )
 
         except Exception as e:
             # 捕获模型调用异常
             error_msg = str(e)
+            logger.error(
+                f"消息处理失败",
+                extra={
+                    "conversation_id": conversation_id,
+                    "error": error_msg,
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
+            
             # 常见错误类型识别
             if "API key" in error_msg or "authentication" in error_msg.lower():
                 raise RuntimeError(f"模型认证失败，请检查 API Key 配置: {error_msg}")

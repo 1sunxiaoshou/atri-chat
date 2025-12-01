@@ -6,7 +6,7 @@ from core.logger import get_logger
 from .base import ASRBase
 from .service import ASRConfigService
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, category="MODEL")
 
 
 class ASRFactory:
@@ -80,19 +80,23 @@ class ASRFactory:
         if config is not None:
             if not provider:
                 raise ValueError("使用自定义配置时必须指定provider")
+            logger.debug(f"创建临时 ASR 实例（测试配置）", extra={"provider": provider})
             return self._get_provider_class(provider)(config)
         
         # 场景2：从数据库加载配置
         if provider:
             config = self.config_service.get_provider_config(provider)
             if not config:
+                logger.error(f"ASR 提供商未配置", extra={"provider": provider})
                 raise ValueError(f"ASR提供商 {provider} 未配置")
         else:
             # 未指定则获取当前 Active 的提供商
             active = self.config_service.get_active_provider()
             if not active:
+                logger.error("未设置活动的 ASR 提供商")
                 raise ValueError("未设置活动的ASR提供商，请先配置")
             provider, config = active
+            logger.debug(f"使用活动的 ASR 提供商", extra={"provider": provider})
         
         # 生成配置版本标识（用于检测配置变化）
         import json
@@ -102,14 +106,16 @@ class ASRFactory:
         if provider in self._instances:
             # 如果配置未变化，返回缓存实例
             if self._config_versions.get(provider) == config_version:
+                logger.debug(f"使用缓存的 ASR 实例", extra={"provider": provider})
                 return self._instances[provider]
             else:
                 # 配置已变化，清除旧实例
-                logger.info(f"检测到 {provider} 配置变化，重新创建实例")
+                logger.info(f"检测到 ASR 配置变化，重新创建实例", extra={"provider": provider})
                 del self._instances[provider]
                 del self._config_versions[provider]
 
         # 实例化并缓存
+        logger.info(f"创建新 ASR 实例", extra={"provider": provider})
         instance = self._get_provider_class(provider)(config)
         self._instances[provider] = instance
         self._config_versions[provider] = config_version
