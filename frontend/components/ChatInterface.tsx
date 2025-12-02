@@ -3,12 +3,13 @@ import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as Imag
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { Character, Message, Model } from '../types';
+import { Character, Message, Model, ModelParameters } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useASR } from '../contexts/ASRContext';
 import { StreamTTSPlayer } from '../utils/streamTTSPlayer';
 import { createMarkdownComponents } from '../utils/markdownConfig';
+import ModelConfigPopover from './ModelConfigPopover';
 
 interface ChatInterfaceProps {
   activeConversationId: number;
@@ -36,6 +37,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | number | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
+  const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamPlayerRef = useRef<StreamTTSPlayer | null>(null);
 
@@ -111,6 +113,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         Number(activeCharacter?.character_id || activeCharacter?.id),
         activeModel?.model_id || '',
         activeModel?.provider_id || '',
+        modelParameters, // 传递模型参数
         // 流式更新回调
         (streamContent: string) => {
           // 收到第一个 token 时，创建 AI 消息
@@ -367,7 +370,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <div className="relative group">
             <select
               className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-1.5 px-4 pr-8 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-gray-100 transition-colors"
@@ -382,6 +385,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </select>
             <Sparkles size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
+          <ModelConfigPopover
+            parameters={modelParameters}
+            onParametersChange={setModelParameters}
+            model={activeModel || undefined}
+          />
           <button
             className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
             title={t('chat.clearContext')}

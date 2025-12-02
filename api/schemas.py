@@ -35,8 +35,8 @@ class ModelRequest(BaseModel):
     """模型请求"""
     provider_id: str = Field(..., description="供应商ID")
     model_id: str = Field(..., description="模型ID")
-    model_type: str = Field(..., description="模型类型,见ModelType类")
-    capabilities: List[str] = Field(default=["base"], description="模型能力,见Capability类")
+    model_type: str = Field(..., description="模型类型: text, embedding, rerank")
+    capabilities: List[str] = Field(default=["base"], description="模型能力: base, chat, vision, function_calling, reasoning")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -51,8 +51,8 @@ class ModelResponse(BaseModel):
 
 class ModelUpdateRequest(BaseModel):
     """模型更新请求"""
-    model_type: str = Field(..., description="模型类型,见ModelType类")
-    capabilities: List[str] = Field(default=["base"], description="模型能力,见Capability类")
+    model_type: str = Field(..., description="模型类型: text, embedding, rerank")
+    capabilities: List[str] = Field(default=["base"], description="模型能力: base, chat, vision, function_calling, reasoning")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -160,6 +160,10 @@ class MessageRequest(BaseModel):
     model_id: str = Field(..., description="模型ID")
     provider_id: str = Field(..., description="供应商ID")
     content: str = Field(..., description="消息内容")
+    temperature: Optional[float] = Field(None, description="温度参数")
+    max_tokens: Optional[int] = Field(None, description="最大token数")
+    top_p: Optional[float] = Field(None, description="Top-p采样参数")
+    reasoning_effort: Optional[str] = Field(None, description="思考模式: medium 表示开启")
 
 
 class MessageResponse(BaseModel):
@@ -194,19 +198,6 @@ class TextToSpeechRequest(BaseModel):
     text: str = Field(..., description="要转换的文本")
     tts_provider: Optional[str] = Field(None, description="TTS提供商")
     language: Optional[str] = Field(None, description="语言代码")
-
-
-# ==================== 缓存相关 ====================
-
-class CacheInfoResponse(BaseModel):
-    """缓存信息响应"""
-    cached_agents: int
-    cache_keys: List[Dict[str, Any]]
-
-
-class ClearCacheRequest(BaseModel):
-    """清空缓存请求"""
-    character_id: Optional[int] = Field(None, description="角色ID（可选）")
 
 
 

@@ -26,7 +26,7 @@ export interface Provider {
 export interface Model {
   provider_id: string;
   model_id: string;
-  model_type: 'text' | 'embedding';
+  model_type: 'text' | 'embedding' | 'rerank';
   capabilities: string[];
   enabled: boolean;
 }
@@ -69,6 +69,14 @@ export interface SendMessageData {
   message: string; // AI回复的纯文本内容
   error?: string; // 错误信息
   error_type?: string; // 错误类型
+}
+
+// 模型参数配置
+export interface ModelParameters {
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+  reasoning_effort?: 'medium'; // 只有开启时才传 'medium'
 }
 
 export interface AudioMessageData {

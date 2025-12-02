@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Form
 from fastapi.responses import StreamingResponse
 from api.schemas import (
     ResponseModel, MessageRequest, MessageResponse, ConversationHistoryResponse,
-    TextToSpeechRequest, CacheInfoResponse, ClearCacheRequest
+    TextToSpeechRequest
 )
 from core import AppStorage, AgentManager
 from core.dependencies import get_storage, get_agent
@@ -21,49 +21,53 @@ async def send_message(
     async def generate():
         import json
         try:
+            # 构建模型动态参数
+            model_kwargs = {}
+            if req.temperature is not None:
+                model_kwargs["temperature"] = req.temperature
+            if req.max_tokens is not None:
+                model_kwargs["max_tokens"] = req.max_tokens
+            if req.top_p is not None:
+                model_kwargs["top_p"] = req.top_p
+            if req.reasoning_effort is not None:
+                model_kwargs["reasoning_effort"] = req.reasoning_effort
+            
+            # 记录模型参数
+            from core.logger import get_logger
+            logger = get_logger(__name__, category="API")
+            if model_kwargs:
+                logger.info(
+                    "使用自定义模型参数",
+                    extra={
+                        "conversation_id": req.conversation_id,
+                        "model_params": model_kwargs
+                    }
+                )
+            
             # 流式生成内容
             async for json_str in agent_manager.send_message_stream(
                 user_message=req.content,
                 conversation_id=req.conversation_id,
                 character_id=req.character_id,
                 model_id=req.model_id,
-                provider_id=req.provider_id
+                provider_id=req.provider_id,
+                **model_kwargs
             ):
                 if json_str: 
                     # 直接转发 JSON 字符串，不需要再次包装
                     yield f"data: {json_str}\n\n"
             
-            # 发送结束标记
-            yield f"data: {json.dumps({'done': True})}\n\n"
+        except (ValueError, RuntimeError, Exception) as e:
+            # 统一错误处理
+            error_type = {
+                ValueError: "config_error",
+                RuntimeError: "model_error"
+            }.get(type(e), "unknown_error")
+            
+            yield f"data: {json.dumps({'error': str(e), 'error_type': error_type}, ensure_ascii=False)}\n\n"
         
-        except ValueError as e:
-            # 配置错误（会话、角色、模型不存在或未启用）
-            error_data = {
-                "error": str(e),
-                "error_type": "config_error",
-                "message": "配置错误，请检查会话、角色或模型设置"
-            }
-            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
-        
-        except RuntimeError as e:
-            # 模型调用错误（API Key、网络、超时等）
-            error_data = {
-                "error": str(e),
-                "error_type": "model_error",
-                "message": "模型调用失败"
-            }
-            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
-        
-        except Exception as e:
-            # 其他未知错误
-            error_data = {
-                "error": str(e),
-                "error_type": "unknown_error",
-                "message": "服务器内部错误"
-            }
-            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+        finally:
+            # 始终发送结束标记
             yield f"data: {json.dumps({'done': True})}\n\n"
 
     return StreamingResponse(
@@ -72,8 +76,7 @@ async def send_message(
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲
-            "Content-Type": "text/event-stream; charset=utf-8",
+            "X-Accel-Buffering": "no"
         }
     )
 
@@ -101,32 +104,4 @@ async def get_conversation_history(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/cache/info", response_model=ResponseModel)
-async def get_cache_info(agent_manager: AgentManager = Depends(get_agent)):
-    """获取缓存信息"""
-    try:
-        cache_info = agent_manager.get_cache_info()
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data=cache_info
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.post("/cache/clear", response_model=ResponseModel)
-async def clear_cache(
-    req: ClearCacheRequest,
-    agent_manager: AgentManager = Depends(get_agent)
-):
-    """清空Agent缓存"""
-    try:
-        count = agent_manager.clear_agent_cache(req.character_id)
-        return ResponseModel(
-            code=200,
-            message="清空成功",
-            data={"cleared_count": count}
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

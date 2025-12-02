@@ -90,9 +90,6 @@ async def update_character(
         if not success:
             raise HTTPException(status_code=404, detail="角色不存在或未做任何修改")
         
-        # 清空该角色的 Agent 缓存
-        agent_manager.clear_agent_cache(character_id)
-        
         return ResponseModel(
             code=200,
             message="更新成功",
@@ -115,9 +112,6 @@ async def delete_character(
         success = app_storage.delete_character(character_id)
         if not success:
             raise HTTPException(status_code=404, detail="角色不存在")
-        
-        # 清空该角色的Agent缓存
-        agent_manager.clear_agent_cache(character_id)
         
         return ResponseModel(
             code=200,

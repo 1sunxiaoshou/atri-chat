@@ -105,8 +105,21 @@ class OpenAIProvider(BaseProvider):
             "model": model_id,
             "api_key": config.get("api_key"),
             "base_url": config.get("base_url"),
-            **merged,
         }
+        
+        # 添加标准参数
+        if "temperature" in merged:
+            params["temperature"] = merged["temperature"]
+        if "max_tokens" in merged:
+            params["max_tokens"] = merged["max_tokens"]
+        if "top_p" in merged:
+            params["top_p"] = merged["top_p"]
+        if "streaming" in merged:
+            params["streaming"] = merged["streaming"]
+        
+        # 添加 reasoning_effort 参数（OpenAI o1 系列模型支持）
+        if "reasoning_effort" in merged:
+            params["reasoning_effort"] = merged["reasoning_effort"]
         
         return ChatOpenAI(**params)
     
@@ -147,8 +160,25 @@ class AnthropicProvider(BaseProvider):
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
-            **merged,
         }
+        
+        # 添加标准参数
+        if "temperature" in merged:
+            params["temperature"] = merged["temperature"]
+        if "max_tokens" in merged:
+            params["max_tokens"] = merged["max_tokens"]
+        if "top_p" in merged:
+            params["top_p"] = merged["top_p"]
+        if "streaming" in merged:
+            params["streaming"] = merged["streaming"]
+        
+        # Anthropic 的 extended thinking 通过 thinking 参数控制
+        if "reasoning_effort" in merged:
+            # 将 reasoning_effort 映射为 thinking 参数
+            effort_map = {"low": {"type": "enabled", "budget_tokens": 1000}, 
+                         "medium": {"type": "enabled", "budget_tokens": 5000},
+                         "high": {"type": "enabled", "budget_tokens": 10000}}
+            params["thinking"] = effort_map.get(merged["reasoning_effort"], {"type": "enabled"})
         
         return ChatAnthropic(**params)
     
