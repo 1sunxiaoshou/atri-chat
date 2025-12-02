@@ -4,15 +4,13 @@ import sqlite3
 from typing import Dict, Tuple, Optional, Any, List, Union
 from pathlib import Path
 from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
 from langchain.messages import AIMessageChunk
 from langgraph.checkpoint.sqlite import SqliteSaver
 from .store import SqliteStore
 from .storage import AppStorage
 from .models.factory import ModelFactory
-from .tools.manager import ToolManager
-from .tools.registry import ToolRegistry
 from .tools.memory_tools import get_memory_tools, AgentContext
-from .middleware.manager import MiddlewareManager
 from .asr.factory import ASRFactory
 from .tts.factory import TTSFactory
 from .logger import get_logger
@@ -30,8 +28,7 @@ class AgentManager:
         self,
         app_storage: AppStorage,
         store: SqliteStore,
-        checkpointer: SqliteSaver,
-        tool_registry: Optional[ToolRegistry] = None
+        checkpointer: SqliteSaver
     ):
         """初始化 AgentManager
         
@@ -39,18 +36,12 @@ class AgentManager:
             app_storage: 应用存储实例（角色、会话、消息）
             store: 长期记忆存储实例（跨会话数据）
             checkpointer: 检查点存储实例（对话历史）
-            tool_registry: 工具注册表实例（可选）
         """
         logger.info("初始化 AgentManager", extra={"operation": "init"})
         self.app_storage = app_storage
         self.store = store
         self.checkpointer = checkpointer
         self.model_factory = ModelFactory(app_storage)
-        
-        # 工具和中间件管理
-        self.tool_registry = tool_registry or ToolRegistry()
-        self.tool_manager = ToolManager(app_storage, self.tool_registry)
-        self.middleware_manager = MiddlewareManager(app_storage)
         
         # ASR和TTS管理
         self.asr_factory = ASRFactory(db_path=app_storage.db_path)
@@ -148,24 +139,22 @@ class AgentManager:
             )
             model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
             
-            # 3. 获取角色的工具列表
-            tools = self.tool_manager.get_character_tools(character_id)
-            logger.debug(f"加载角色工具", extra={"character_id": character_id, "tool_count": len(tools)})
+            # 3. 获取工具列表（长期记忆工具）
+            tools = get_memory_tools()
+            logger.debug(f"加载工具", extra={"character_id": character_id, "tool_count": len(tools)})
             
-            # 4. 添加长期记忆工具（使用 ToolRuntime 参数）
-            memory_tools = get_memory_tools()
-            tools.extend(memory_tools)
-            logger.debug(f"添加记忆工具", extra={"memory_tool_count": len(memory_tools)})
+            summarization_middleware = SummarizationMiddleware(
+                model=model,
+                trigger=("tokens", 20000), 
+                keep=("tokens", 8000)
+            )
+            logger.debug(f"创建摘要中间件", extra={"character_id": character_id})
             
-            # 5. 获取角色的中间件列表
-            middlewares = self.middleware_manager.get_character_middleware(character_id)
-            logger.debug(f"加载中间件", extra={"character_id": character_id, "middleware_count": len(middlewares)})
-            
-            # 6. 创建 agent（使用角色的 system_prompt、工具和中间件）
+            # 5. 创建 agent（使用角色的 system_prompt、工具和中间件）
             agent = create_agent(
                 model=model,
                 tools=tools,
-                middleware=middlewares,
+                middleware=[summarization_middleware],
                 system_prompt=character["system_prompt"],
                 checkpointer=self.checkpointer,
                 store=self.store
@@ -177,8 +166,7 @@ class AgentManager:
                     "character_id": character_id,
                     "character_name": character["name"],
                     "model": f"{provider_id}/{model_id}",
-                    "tool_count": len(tools),
-                    "middleware_count": len(middlewares)
+                    "tool_count": len(tools)
                 }
             )
             return agent
@@ -250,8 +238,7 @@ class AgentManager:
             tool_call_count = 0
             
             # 3. 异步流式调用 agent，注入 runtime context
-            # 使用 stream_mode="messages" 获取详细的消息流
-            # 直接在这里解包 message 和 metadata
+
             logger.debug(f"开始流式调用模型", extra={"conversation_id": conversation_id})
             async for message, metadata in agent.astream(
                 {"messages": [{"role": "user", "content": user_message}]},

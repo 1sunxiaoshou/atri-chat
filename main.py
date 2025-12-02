@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from dotenv import load_dotenv
 
+# 必须在导入其他模块之前加载环境变量
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -12,9 +15,6 @@ from core.dependencies import get_app_storage, init_checkpointer, close_checkpoi
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health, upload, asr
 )
-
-# 加载 .env 文件
-load_dotenv()
 
 logger = get_logger(__name__, category="GENERAL")
 

@@ -53,7 +53,7 @@ def _add_category_handlers():
     logger.add(
         LOG_DIR / "api.log",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[method]} {extra[path]} | {message}",
-        level="INFO",
+        level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "API",
         rotation="100 MB",
         retention="7 days",
@@ -64,7 +64,7 @@ def _add_category_handlers():
     logger.add(
         LOG_DIR / "business.log",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
-        level="INFO",
+        level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "BUSINESS",
         rotation="100 MB",
         retention="7 days",
@@ -75,7 +75,7 @@ def _add_category_handlers():
     logger.add(
         LOG_DIR / "database.log",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
-        level="DEBUG",
+        level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "DATABASE",
         rotation="100 MB",
         retention="7 days",
@@ -86,7 +86,7 @@ def _add_category_handlers():
     logger.add(
         LOG_DIR / "model.log",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
-        level="INFO",
+        level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "MODEL",
         rotation="100 MB",
         retention="7 days",
@@ -97,7 +97,7 @@ def _add_category_handlers():
     logger.add(
         LOG_DIR / "performance.log",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[function]} | 耗时: {extra[elapsed_time]} - {message}",
-        level="INFO",
+        level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "PERFORMANCE",
         rotation="100 MB",
         retention="7 days",
