@@ -17,6 +17,7 @@ class Capability(str, Enum):
     CHAT = "chat"  # 对话能力
     VISION = "vision"  # 视觉能力
     FUNCTION_CALLING = "function_calling"  # 函数调用能力
+    REASONING = "reasoning"  # 推理能力（支持 reasoning_effort 参数）
 
 
 class ProviderConfig(BaseModel):
@@ -47,6 +48,10 @@ class ModelConfig(BaseModel):
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def is_reasoning_model(self) -> bool:
+        """判断是否为推理模型"""
+        return Capability.REASONING in self.capabilities
 
 
 class ConfigField(BaseModel):

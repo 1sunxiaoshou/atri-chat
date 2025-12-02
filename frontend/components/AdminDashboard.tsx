@@ -24,7 +24,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
   // Model Modal State
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
-  const [newModel, setNewModel] = useState<Partial<Model>>({ capabilities: ['chat'] });
+  const [newModel, setNewModel] = useState<Partial<Model>>({ capabilities: ['base'] });
 
   // Model Filter State
   const [modelFilterProvider, setModelFilterProvider] = useState<string>('');
@@ -120,7 +120,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       provider_id: providers[0]?.provider_id || '',
       model_id: '',
       model_type: 'text',
-      capabilities: ['chat'],
+      capabilities: ['base'],
       enabled: true
     });
     setIsModelModalOpen(true);
@@ -758,17 +758,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{t('admin.modelType')}</label>
                 <select
                   value={newModel.model_type}
-                  onChange={(e) => setNewModel({ ...newModel, model_type: e.target.value as 'text' | 'embedding' })}
+                  onChange={(e) => setNewModel({ ...newModel, model_type: e.target.value as any })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                  <option value="text">Text (Chat)</option>
+                  <option value="text">Text</option>
                   <option value="embedding">Embedding</option>
+                  <option value="rerank">Rerank</option>
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">{t('admin.capabilities')}</label>
-                <div className="flex gap-4">
-                  {['chat', 'completion', 'function_calling'].map(cap => (
+                <div className="flex flex-wrap gap-4">
+                  {['base', 'chat', 'vision', 'function_calling', 'reasoning'].map(cap => (
                     <label key={cap} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"

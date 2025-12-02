@@ -1,8 +1,6 @@
 """Agent 业务逻辑管理器"""
 import json
-import sqlite3
-from typing import Dict, Tuple, Optional, Any, List, Union
-from pathlib import Path
+from typing import Dict, Optional, Any, List
 from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain.messages import AIMessageChunk
@@ -47,70 +45,16 @@ class AgentManager:
         self.asr_factory = ASRFactory(db_path=app_storage.db_path)
         self.tts_factory = TTSFactory(db_path=app_storage.db_path)
         
-        # Agent 实例缓存：{(character_id, model_id, provider_id): agent}
-        self._agent_cache: Dict[Tuple[int, str, str], Any] = {}
-        logger.debug("AgentManager 初始化完成", extra={"cache_size": 0})
+        logger.debug("AgentManager 初始化完成")
     
-    def get_or_create_agent(
+    def create_agent(
         self,
         character_id: int,
         model_id: str,
         provider_id: str,
         **model_kwargs
     ) -> Any:
-        """获取或创建 Agent 实例
-        
-        Args:
-            character_id: 角色ID
-            model_id: 模型ID
-            provider_id: 供应商ID
-            **model_kwargs: 模型动态参数（temperature, max_tokens等）
-            
-        Returns:
-            Agent 实例
-            
-        Raises:
-            ValueError: 当角色或模型不存在时
-            
-        Note:
-            如果传入了 model_kwargs，将不使用缓存，每次都创建新实例
-        """
-        cache_key = (character_id, model_id, provider_id)
-        
-        # 如果有动态参数，不使用缓存
-        if model_kwargs:
-            logger.debug(
-                f"创建临时 Agent 实例（带动态参数）",
-                extra={"character_id": character_id, "model_id": model_id, "provider_id": provider_id}
-            )
-            return self._create_agent(character_id, model_id, provider_id, **model_kwargs)
-        
-        # 检查缓存
-        if cache_key in self._agent_cache:
-            logger.debug(
-                f"使用缓存的 Agent 实例",
-                extra={"character_id": character_id, "model_id": model_id, "provider_id": provider_id}
-            )
-            return self._agent_cache[cache_key]
-        
-        # 创建新实例并缓存
-        logger.info(
-            f"创建新 Agent 实例",
-            extra={"character_id": character_id, "model_id": model_id, "provider_id": provider_id}
-        )
-        agent = self._create_agent(character_id, model_id, provider_id)
-        self._agent_cache[cache_key] = agent
-        
-        return agent
-    
-    def _create_agent(
-        self,
-        character_id: int,
-        model_id: str,
-        provider_id: str,
-        **model_kwargs
-    ) -> Any:
-        """创建 Agent 实例
+        """创建 Agent 实例（每次都创建新实例）
         
         Args:
             character_id: 角色ID
@@ -124,66 +68,53 @@ class AgentManager:
         Raises:
             ValueError: 当角色、模型不存在或创建失败时
         """
-        try:
-            # 1. 获取角色配置（包含 system_prompt）
-            logger.debug(f"获取角色配置", extra={"character_id": character_id})
-            character = self.app_storage.get_character(character_id)
-            if not character:
-                logger.error(f"角色不存在", extra={"character_id": character_id})
-                raise ValueError(f"角色 {character_id} 不存在")
-            
-            # 2. 使用 ModelFactory 创建模型实例（支持动态参数）
-            logger.debug(
-                f"创建模型实例",
-                extra={"provider_id": provider_id, "model_id": model_id, "kwargs": model_kwargs}
-            )
-            model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
-            
-            # 3. 获取工具列表（长期记忆工具）
-            tools = get_memory_tools()
-            logger.debug(f"加载工具", extra={"character_id": character_id, "tool_count": len(tools)})
-            
-            summarization_middleware = SummarizationMiddleware(
-                model=model,
-                trigger=("tokens", 20000), 
-                keep=("tokens", 8000)
-            )
-            logger.debug(f"创建摘要中间件", extra={"character_id": character_id})
-            
-            # 5. 创建 agent（使用角色的 system_prompt、工具和中间件）
-            agent = create_agent(
-                model=model,
-                tools=tools,
-                middleware=[summarization_middleware],
-                system_prompt=character["system_prompt"],
-                checkpointer=self.checkpointer,
-                store=self.store
-            )
-            
-            logger.info(
-                f"Agent 创建成功",
-                extra={
-                    "character_id": character_id,
-                    "character_name": character["name"],
-                    "model": f"{provider_id}/{model_id}",
-                    "tool_count": len(tools)
-                }
-            )
-            return agent
-            
-        except ValueError as e:
-            logger.error(
-                f"创建 Agent 失败（配置错误）",
-                extra={"character_id": character_id, "error": str(e)}
-            )
-            raise
-        except Exception as e:
-            logger.error(
-                f"创建 Agent 失败（未知错误）",
-                extra={"character_id": character_id, "error": str(e)},
-                exc_info=True
-            )
-            raise ValueError(f"创建 Agent 失败: {str(e)}")
+        # 1. 获取角色配置（包含 system_prompt）
+        logger.debug(f"获取角色配置", extra={"character_id": character_id})
+        character = self.app_storage.get_character(character_id)
+        if not character:
+            logger.error(f"角色不存在", extra={"character_id": character_id})
+            raise ValueError(f"角色 {character_id} 不存在")
+        
+        # 2. 使用 ModelFactory 创建模型实例（支持动态参数）
+        logger.debug(
+            f"创建模型实例",
+            extra={"provider_id": provider_id, "model_id": model_id, "kwargs": model_kwargs}
+        )
+        model = self.model_factory.create_model(provider_id, model_id, **model_kwargs)
+        
+        # 3. 获取工具列表和创建中间件
+        tools = get_memory_tools()
+        summarization_middleware = SummarizationMiddleware(
+            model=model,
+            trigger=("tokens", 20000), 
+            keep=("tokens", 8000)
+        )
+        logger.debug(
+            f"加载工具和中间件",
+            extra={"character_id": character_id, "tool_count": len(tools)}
+        )
+        
+        # 4. 创建 agent（使用角色的 system_prompt、工具和中间件）
+        agent = create_agent(
+            model=model,
+            tools=tools,
+            middleware=[summarization_middleware],
+            system_prompt=character["system_prompt"],
+            checkpointer=self.checkpointer,
+            store=self.store
+        )
+        
+        logger.info(
+            f"Agent 创建成功",
+            extra={
+                "character_id": character_id,
+                "character_name": character["name"],
+                "model": f"{provider_id}/{model_id}",
+                "tool_count": len(tools)
+            }
+        )
+        return agent
+
     
 
     async def send_message_stream(
@@ -192,7 +123,8 @@ class AgentManager:
         conversation_id: int,
         character_id: int,
         model_id: str,
-        provider_id: str
+        provider_id: str,
+        **model_kwargs
     ):
         """异步流式发送消息并获取响应
         
@@ -202,6 +134,7 @@ class AgentManager:
             character_id: 角色ID
             model_id: 模型ID
             provider_id: 供应商ID
+            **model_kwargs: 模型动态参数（temperature, max_tokens, top_p, reasoning_effort等）
             
         Yields:
             JSON格式的流式响应字符串:
@@ -229,9 +162,16 @@ class AgentManager:
             raise ValueError(f"会话 {conversation_id} 不存在")
         
         try:
-            # 2. 获取或创建 agent 实例
-            logger.debug(f"获取 Agent 实例", extra={"character_id": character_id})
-            agent = self.get_or_create_agent(character_id, model_id, provider_id, streaming=True)
+            # 2. 创建 agent 实例（传递动态参数）
+            logger.debug(
+                f"创建 Agent 实例",
+                extra={"character_id": character_id, "model_kwargs": model_kwargs}
+            )
+            agent = self.create_agent(
+                character_id, model_id, provider_id, 
+                streaming=True, 
+                **model_kwargs
+            )
             
             full_response = ""
             chunk_count = 0
@@ -421,49 +361,7 @@ class AgentManager:
         
         return result
     
-    def clear_agent_cache(self, character_id: Optional[int] = None) -> int:
-        """清空 Agent 缓存
-        
-        用于配置更新后强制重新创建 agent 实例。
-        
-        Args:
-            character_id: 可选，只清空指定角色的缓存
-            
-        Returns:
-            清空的缓存数量
-        """
-        if character_id is None:
-            # 清空所有缓存
-            count = len(self._agent_cache)
-            self._agent_cache.clear()
-            return count
-        else:
-            # 只清空指定角色的缓存
-            keys_to_remove = [
-                key for key in self._agent_cache.keys()
-                if key[0] == character_id
-            ]
-            for key in keys_to_remove:
-                del self._agent_cache[key]
-            return len(keys_to_remove)
-    
-    def get_cache_info(self) -> Dict[str, Any]:
-        """获取缓存信息
-        
-        Returns:
-            包含缓存统计的字典
-        """
-        return {
-            "cached_agents": len(self._agent_cache),
-            "cache_keys": [
-                {
-                    "character_id": key[0],
-                    "model_id": key[1],
-                    "provider_id": key[2]
-                }
-                for key in self._agent_cache.keys()
-            ]
-        }
+
     
 
     async def text_to_speech_async(

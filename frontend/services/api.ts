@@ -180,16 +180,38 @@ export const api = {
         characterId: number | string,
         modelId: string,
         providerId: string,
+        modelParameters?: {
+            temperature?: number;
+            max_tokens?: number;
+            top_p?: number;
+            reasoning_effort?: 'medium';
+        },
         onChunk?: (content: string) => void,
         onStatus?: (status: string) => void
     ): Promise<ApiResponse<SendMessageData>> => {
-        const body = {
+        const body: any = {
             conversation_id: conversationId,
             character_id: characterId,
             model_id: modelId,
             provider_id: providerId,
             content
         };
+
+        // 添加模型参数
+        if (modelParameters) {
+            if (modelParameters.temperature !== undefined) {
+                body.temperature = modelParameters.temperature;
+            }
+            if (modelParameters.max_tokens !== undefined) {
+                body.max_tokens = modelParameters.max_tokens;
+            }
+            if (modelParameters.top_p !== undefined) {
+                body.top_p = modelParameters.top_p;
+            }
+            if (modelParameters.reasoning_effort !== undefined) {
+                body.reasoning_effort = modelParameters.reasoning_effort;
+            }
+        }
 
         const response = await fetch(`${BASE_URL}/messages`, {
             method: 'POST',
