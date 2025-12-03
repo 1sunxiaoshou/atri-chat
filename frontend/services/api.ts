@@ -184,10 +184,10 @@ export const api = {
             temperature?: number;
             max_tokens?: number;
             top_p?: number;
-            reasoning_effort?: 'medium';
         },
         onChunk?: (content: string) => void,
-        onStatus?: (status: string) => void
+        onStatus?: (status: string) => void,
+        onReasoning?: (reasoning: string) => void
     ): Promise<ApiResponse<SendMessageData>> => {
         const body: any = {
             conversation_id: conversationId,
@@ -208,9 +208,6 @@ export const api = {
             if (modelParameters.top_p !== undefined) {
                 body.top_p = modelParameters.top_p;
             }
-            if (modelParameters.reasoning_effort !== undefined) {
-                body.reasoning_effort = modelParameters.reasoning_effort;
-            }
         }
 
         const response = await fetch(`${BASE_URL}/messages`, {
@@ -227,6 +224,7 @@ export const api = {
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
+        let fullReasoning = '';
         let buffer = ''; // 用于累积不完整的行
 
         if (reader) {
@@ -273,14 +271,14 @@ export const api = {
                                     if (onStatus) {
                                         onStatus(data.content);
                                     }
+                                } else if (data.type === 'reasoning' && data.content) {
+                                    // 思维链内容（累积）
+                                    fullReasoning += data.content;
+                                    if (onReasoning) {
+                                        onReasoning(fullReasoning);
+                                    }
                                 } else if (data.type === 'text' && data.content) {
                                     // 实际文本内容
-                                    fullContent += data.content;
-                                    if (onChunk) {
-                                        onChunk(fullContent);
-                                    }
-                                } else if (data.content) {
-                                    // 兼容旧格式（如果没有 type 字段）
                                     fullContent += data.content;
                                     if (onChunk) {
                                         onChunk(fullContent);

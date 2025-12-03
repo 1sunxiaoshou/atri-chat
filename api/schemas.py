@@ -163,7 +163,6 @@ class MessageRequest(BaseModel):
     temperature: Optional[float] = Field(None, description="温度参数")
     max_tokens: Optional[int] = Field(None, description="最大token数")
     top_p: Optional[float] = Field(None, description="Top-p采样参数")
-    reasoning_effort: Optional[str] = Field(None, description="思考模式: medium 表示开启")
 
 
 class MessageResponse(BaseModel):
