@@ -117,10 +117,6 @@ class OpenAIProvider(BaseProvider):
         if "streaming" in merged:
             params["streaming"] = merged["streaming"]
         
-        # 添加 reasoning_effort 参数（OpenAI o1 系列模型支持）
-        if "reasoning_effort" in merged:
-            params["reasoning_effort"] = merged["reasoning_effort"]
-        
         return ChatOpenAI(**params)
     
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
@@ -171,14 +167,6 @@ class AnthropicProvider(BaseProvider):
             params["top_p"] = merged["top_p"]
         if "streaming" in merged:
             params["streaming"] = merged["streaming"]
-        
-        # Anthropic 的 extended thinking 通过 thinking 参数控制
-        if "reasoning_effort" in merged:
-            # 将 reasoning_effort 映射为 thinking 参数
-            effort_map = {"low": {"type": "enabled", "budget_tokens": 1000}, 
-                         "medium": {"type": "enabled", "budget_tokens": 5000},
-                         "high": {"type": "enabled", "budget_tokens": 10000}}
-            params["thinking"] = effort_map.get(merged["reasoning_effort"], {"type": "enabled"})
         
         return ChatAnthropic(**params)
     

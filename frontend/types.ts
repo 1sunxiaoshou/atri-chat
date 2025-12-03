@@ -61,6 +61,7 @@ export interface Message {
   conversation_id: string | number;
   message_type: 'user' | 'assistant';
   content: string;
+  reasoning?: string; // 思维链内容
   created_at: string;
   isStreaming?: boolean; // UI only
 }
@@ -76,7 +77,6 @@ export interface ModelParameters {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
-  reasoning_effort?: 'medium'; // 只有开启时才传 'medium'
 }
 
 export interface AudioMessageData {

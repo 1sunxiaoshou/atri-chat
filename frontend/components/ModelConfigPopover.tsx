@@ -44,13 +44,9 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
     onParametersChange({
       temperature: undefined,
       max_tokens: undefined,
-      top_p: undefined,
-      reasoning_effort: undefined
+      top_p: undefined
     });
   };
-
-  // 判断是否支持思考模式（通过 capabilities 判断）
-  const supportsReasoning = model?.capabilities?.includes('reasoning') ?? false;
 
   return (
     <div className="relative" ref={popoverRef}>
@@ -144,29 +140,6 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
                 控制采样的多样性
               </p>
             </div>
-
-            {/* Reasoning Mode */}
-            {supportsReasoning && (
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
-                    思考模式 (Reasoning)
-                  </label>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={parameters.reasoning_effort === 'medium'}
-                      onChange={(e) => handleChange('reasoning_effort', e.target.checked ? 'medium' : undefined)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  启用深度思考模式，提高回答质量
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Footer */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as ImageIcon, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -38,6 +38,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [playingMessageId, setPlayingMessageId] = useState<string | number | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
+  const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamPlayerRef = useRef<StreamTTSPlayer | null>(null);
 
@@ -160,6 +161,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               prev.map(msg =>
                 msg.message_id === aiMsgId
                   ? { ...msg, content: `_${status}_` }
+                  : msg
+              )
+            );
+          }
+          scrollToBottom();
+        },
+        // 思维链回调（接收完整内容）
+        (reasoning: string) => {
+          // 更新或创建消息的思维链内容
+          if (!hasReceivedFirstToken) {
+            hasReceivedFirstToken = true;
+            setIsTyping(false);
+            const aiMsg: Message = {
+              message_id: aiMsgId,
+              conversation_id: activeConversationId,
+              message_type: 'assistant',
+              content: '',
+              reasoning: reasoning,
+              created_at: new Date().toISOString()
+            };
+            setMessages(prev => [...prev, aiMsg]);
+          } else {
+            // 更新思维链内容（api.ts 已经累积好了）
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.message_id === aiMsgId
+                  ? { ...msg, reasoning: reasoning }
                   : msg
               )
             );
@@ -435,6 +463,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
 
                 <div className={`max-w-[75%] space-y-2`}>
+                  {/* 思维链显示 (仅 AI 消息) */}
+                  {msg.message_type === 'assistant' && msg.reasoning && (
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => {
+                          const newExpanded = new Set(expandedReasoning);
+                          if (newExpanded.has(msg.message_id)) {
+                            newExpanded.delete(msg.message_id);
+                          } else {
+                            newExpanded.add(msg.message_id);
+                          }
+                          setExpandedReasoning(newExpanded);
+                        }}
+                        className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-purple-700">
+                          <Brain size={16} />
+                          <span className="text-sm font-medium">思维链</span>
+                        </div>
+                        {expandedReasoning.has(msg.message_id) ? (
+                          <ChevronUp size={16} className="text-purple-600" />
+                        ) : (
+                          <ChevronDown size={16} className="text-purple-600" />
+                        )}
+                      </button>
+                      {expandedReasoning.has(msg.message_id) && (
+                        <div className="px-4 py-3 border-t border-purple-200 bg-white/50">
+                          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                            {msg.reasoning}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 消息内容 */}
                   <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
                     ? 'bg-blue-600 text-white rounded-tr-none'
                     : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'

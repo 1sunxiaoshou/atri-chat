@@ -29,8 +29,6 @@ async def send_message(
                 model_kwargs["max_tokens"] = req.max_tokens
             if req.top_p is not None:
                 model_kwargs["top_p"] = req.top_p
-            if req.reasoning_effort is not None:
-                model_kwargs["reasoning_effort"] = req.reasoning_effort
             
             # 记录模型参数
             from core.logger import get_logger

@@ -17,7 +17,7 @@ class Capability(str, Enum):
     CHAT = "chat"  # 对话能力
     VISION = "vision"  # 视觉能力
     FUNCTION_CALLING = "function_calling"  # 函数调用能力
-    REASONING = "reasoning"  # 推理能力（支持 reasoning_effort 参数）
+    REASONING = "reasoning"  # 推理能力（模型自动返回思维链）
 
 
 class ProviderConfig(BaseModel):

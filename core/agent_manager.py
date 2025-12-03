@@ -134,11 +134,12 @@ class AgentManager:
             character_id: 角色ID
             model_id: 模型ID
             provider_id: 供应商ID
-            **model_kwargs: 模型动态参数（temperature, max_tokens, top_p, reasoning_effort等）
+            **model_kwargs: 模型动态参数（temperature, max_tokens, top_p等）
             
         Yields:
             JSON格式的流式响应字符串:
             - {"type": "status", "content": "正在使用工具: xxx..."}
+            - {"type": "reasoning", "content": "思维链内容"}
             - {"type": "text", "content": "实际回复内容片段"}
             
         Raises:
@@ -192,6 +193,7 @@ class AgentManager:
                 if not isinstance(message, AIMessageChunk):
                     continue
                 
+                
                 # --- 分支 A: 处理工具调用状态 (Tool Call) ---
                 # 当 AI 决定调用工具时，tool_call_chunks 会包含数据
                 if message.tool_call_chunks:
@@ -209,7 +211,17 @@ class AgentManager:
                             "content": f"正在使用工具: {chunk['name']}..."
                         }, ensure_ascii=False)
 
-                # --- 分支 B: 处理文本回复内容 (Content) ---
+                # --- 分支 B: 处理思维链内容 (Reasoning Content) ---
+                if hasattr(message, 'additional_kwargs') and 'reasoning_content' in message.additional_kwargs:
+                    reasoning_chunk = message.additional_kwargs['reasoning_content']
+                    if reasoning_chunk:
+                        # 推送思维链内容给前端
+                        yield json.dumps({
+                            "type": "reasoning",
+                            "content": reasoning_chunk
+                        }, ensure_ascii=False)
+                
+                # --- 分支 C: 处理文本回复内容 (Content) ---
                 # 当 AI 生成回答时，content 会包含文本
                 if message.content:
                     chunk_text = ""
@@ -221,8 +233,18 @@ class AgentManager:
                         for block in message.content:
                             if isinstance(block, str):
                                 chunk_text += block
-                            elif isinstance(block, dict) and 'text' in block:
-                                chunk_text += block['text']
+                            elif isinstance(block, dict):
+                                # 处理思维链内容（某些模型可能在 content_blocks 中返回）
+                                if block.get('type') == 'reasoning' and 'reasoning' in block:
+                                    reasoning_text = block['reasoning']
+                                    # 推送思维链内容给前端
+                                    yield json.dumps({
+                                        "type": "reasoning",
+                                        "content": reasoning_text
+                                    }, ensure_ascii=False)
+                                # 处理普通文本
+                                elif 'text' in block:
+                                    chunk_text += block['text']
                     
                     # 如果提取到了有效文本，且不为空
                     if chunk_text:
