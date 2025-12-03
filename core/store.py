@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple, Iterator
 from langgraph.store.base import BaseStore, Item
+from .paths import get_store_db_path
 
 
 class SqliteStore(BaseStore):
@@ -13,14 +14,14 @@ class SqliteStore(BaseStore):
     用于在 LangGraph 中跨线程保存和检索用户信息、偏好等业务数据。
     """
     
-    def __init__(self, db_path: str = "data/store.db"):
+    def __init__(self, db_path: Optional[str] = None):
         """初始化 SQLite Store
         
         Args:
             db_path: SQLite 数据库文件路径
         """
-        self.db_path = db_path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path or get_store_db_path()
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     
     def _init_db(self):

@@ -12,9 +12,19 @@ VALID_LEVELS = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITIC
 if LOG_LEVEL not in VALID_LEVELS:
     LOG_LEVEL = "INFO"
 
-# 日志目录
-LOG_DIR = Path("logs")
-LOG_DIR.mkdir(exist_ok=True)
+# 日志目录（延迟导入避免循环依赖）
+def _get_log_dir() -> Path:
+    """获取日志目录"""
+    try:
+        from core.paths import get_logs_dir
+        return get_logs_dir()
+    except ImportError:
+        # 如果paths模块还未初始化，使用默认路径
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        return log_dir
+
+LOG_DIR = _get_log_dir()
 
 # 移除默认处理器
 logger.remove()

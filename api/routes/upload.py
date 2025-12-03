@@ -4,15 +4,15 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 import uuid
 import shutil
+from core.paths import get_path_manager
 
 router = APIRouter()
 
-# 上传目录配置
-UPLOAD_DIR = Path("data/uploads")
-AVATAR_DIR = UPLOAD_DIR / "avatars"
+# 获取路径管理器
+path_manager = get_path_manager()
 
-# 创建目录
-AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+# 上传目录配置
+AVATAR_DIR = path_manager.avatars_dir
 
 # 允许的图片格式
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
