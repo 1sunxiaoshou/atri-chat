@@ -6,8 +6,8 @@ import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .store import SqliteStore
 from .storage import AppStorage
-from .store import SqliteStore
 from .agent_manager import AgentManager
+from .paths import get_app_db_path, get_store_db_path, get_checkpoints_db_path
 
 
 # ==================== 全局变量 ====================
@@ -20,12 +20,12 @@ _aiosqlite_conn = None
 @lru_cache()
 def get_app_storage() -> AppStorage:
     """获取 AppStorage 单例"""
-    return AppStorage(db_path="data/app.db")
+    return AppStorage(db_path=get_app_db_path())
 
 @lru_cache()
 def get_store() -> SqliteStore:
     """获取 SqliteStore 单例"""
-    return SqliteStore(db_path="data/store.db")
+    return SqliteStore(db_path=get_store_db_path())
 
 def get_checkpointer() -> AsyncSqliteSaver:
     """获取 AsyncSqliteSaver 单例"""
@@ -40,7 +40,7 @@ async def init_checkpointer() -> AsyncSqliteSaver:
     global _checkpointer_instance, _aiosqlite_conn
     
     # 创建 aiosqlite 连接
-    _aiosqlite_conn = await aiosqlite.connect("data/checkpoints.db")
+    _aiosqlite_conn = await aiosqlite.connect(get_checkpoints_db_path())
     
     # 使用连接创建 AsyncSqliteSaver
     _checkpointer_instance = AsyncSqliteSaver(_aiosqlite_conn)

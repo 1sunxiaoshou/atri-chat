@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 from .models.config import ProviderConfig, ModelConfig, ModelType, Capability
 from .logger import get_logger
+from .paths import get_app_db_path
 
 logger = get_logger(__name__, category="DATABASE")
 
@@ -13,10 +14,10 @@ logger = get_logger(__name__, category="DATABASE")
 class AppStorage:
     """应用统一存储"""
     
-    def __init__(self, db_path: str = "data/app.db"):
-        self.db_path = db_path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"初始化 AppStorage", extra={"db_path": db_path})
+    def __init__(self, db_path: Optional[str] = None):
+        self.db_path = db_path or get_app_db_path()
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"初始化 AppStorage", extra={"db_path": self.db_path})
         self._init_db()
     
     def _init_db(self):

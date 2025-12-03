@@ -7,6 +7,7 @@ from pathlib import Path
 from contextlib import contextmanager
 
 from core.logger import get_logger
+from core.paths import get_app_db_path
 
 logger = get_logger(__name__)
 
@@ -14,14 +15,14 @@ logger = get_logger(__name__)
 class ASRConfigService:
     """ASR配置管理服务"""
     
-    def __init__(self, db_path: str = "data/app.db", template_loader: Optional[Callable[[str], Dict[str, Any]]] = None):
+    def __init__(self, db_path: Optional[str] = None, template_loader: Optional[Callable[[str], Dict[str, Any]]] = None):
         """初始化
         
         Args:
             db_path: 数据库路径
             template_loader: 模板加载器函数，用于获取provider的配置模板（避免循环导入）
         """
-        self.db_path = db_path
+        self.db_path = db_path or get_app_db_path()
         self.template_loader = template_loader
         self._init_table()
     

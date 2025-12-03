@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from core.logger import get_logger, get_log_level
 from core.middleware.logging_middleware import LoggingMiddleware
 from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
+from core.paths import get_path_manager
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health, upload, asr
 )
@@ -63,15 +64,14 @@ app.add_middleware(
     max_age=3600,  # 预检请求缓存1小时，减少OPTIONS请求
 )
 
+# 获取路径管理器
+path_manager = get_path_manager()
+
 # 挂载静态文件目录
-static_dir = Path(__file__).parent / "static"
-static_dir.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+app.mount("/static", StaticFiles(directory=str(path_manager.static_dir)), name="static")
 
 # 挂载上传文件目录
-uploads_dir = Path(__file__).parent / "data" / "uploads"
-uploads_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+app.mount("/uploads", StaticFiles(directory=str(path_manager.uploads_dir)), name="uploads")
 
 # 注册路由（必须在前端静态文件挂载之前）
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
@@ -85,10 +85,9 @@ app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # 挂载前端静态文件（必须在最后，避免覆盖 API 路由）
-# frontend_dist = Path(__file__).parent / "frontend" / "dist"
-# if frontend_dist.exists():
-#     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
-#     logger.info(f"✓ 前端静态文件已挂载: {frontend_dist}")
+# if path_manager.frontend_dist.exists():
+#     app.mount("/", StaticFiles(directory=str(path_manager.frontend_dist), html=True), name="frontend")
+#     logger.info(f"✓ 前端静态文件已挂载: {path_manager.frontend_dist}")
 
 
 if __name__ == "__main__":
