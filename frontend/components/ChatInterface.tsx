@@ -39,6 +39,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
+  const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamPlayerRef = useRef<StreamTTSPlayer | null>(null);
 
@@ -399,20 +400,83 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative group">
-            <select
-              className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-1.5 px-4 pr-8 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-gray-100 transition-colors"
-              value={activeModel?.model_id || ''}
-              onChange={(e) => onUpdateModel(e.target.value)}
-            >
-              {availableModels.map(m => (
-                <option key={m.model_id} value={m.model_id}>
-                  {m.model_id} ({m.provider_id})
-                </option>
-              ))}
-            </select>
-            <Sparkles size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <div className="relative group min-w-[200px]">
+            {/* 装饰性背景光晕 (可选，增加 AI 氛围) */}
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-20 transition duration-500 blur" />
+            
+            <div className="relative flex items-center">
+              {/* 左侧图标：增强语义 */}
+              <Sparkles size={14} className="absolute left-3 text-blue-500 pointer-events-none" />
+              
+              <select
+                className="appearance-none w-full bg-white border border-gray-200 text-gray-700 py-2 pl-9 pr-10 rounded-full text-sm font-medium shadow-sm transition-all
+                hover:border-blue-400 hover:bg-gray-50 
+                focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 
+                cursor-pointer truncate"
+                value={activeModel?.model_id || ''}
+                onChange={(e) => onUpdateModel(e.target.value)}
+              >
+                <option value="" disabled>选择模型...</option>
+                
+                {/* 逻辑优化：按 Provider 分组显示 */}
+                {Object.entries(
+                  availableModels.reduce((acc, model) => {
+                    (acc[model.provider_id] = acc[model.provider_id] || []).push(model);
+                    return acc;
+                  }, {} as Record<string, typeof availableModels>)
+                ).map(([provider, models]) => (
+                  <optgroup key={provider} label={provider} className="font-semibold text-gray-900 not-italic">
+                    {models.map((m) => (
+                      <option key={m.model_id} value={m.model_id} className="text-gray-700">
+                        {m.model_id}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+
+              {/* 右侧箭头：符合用户习惯 */}
+              <ChevronDown size={14} className="absolute right-3 text-gray-400 pointer-events-none group-hover:text-gray-600 transition-colors" />
+            </div>
           </div>
+          
+          {/* Display Mode Toggle */}
+          <div className="relative bg-gray-100/80 p-1 rounded-lg flex items-center h-9 w-[180px]">
+            {/* 滑块背景动画 */}
+            <div
+              className="absolute top-1 bottom-1 left-1 bg-white rounded-md shadow-sm ring-1 ring-black/5 transition-all duration-300 ease-out"
+              style={{
+                width: 'calc((100% - 8px) / 3)', // 动态计算宽度：(总宽 - padding) / 3
+                transform: `translateX(${
+                  ['normal', 'vrm', 'live2d'].indexOf(vrmDisplayMode) * 100
+                }%)`
+              }}
+            />
+            
+            {/* 按钮组 */}
+            <div className="grid grid-cols-3 w-full h-full relative">
+              {[
+                { id: 'normal', label: '正常' },
+                { id: 'vrm', label: 'VRM' },
+                { id: 'live2d', label: 'Live2D' }
+              ].map((mode) => {
+                const isActive = vrmDisplayMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => setVrmDisplayMode(mode.id as any)}
+                    className={`
+                      relative z-10 flex items-center justify-center text-xs font-medium transition-colors duration-200 rounded-md
+                      ${isActive ? 'text-black font-semibold' : 'text-gray-500 hover:text-gray-700'}
+                    `}
+                  >
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <ModelConfigPopover
             parameters={modelParameters}
             onParametersChange={setModelParameters}
