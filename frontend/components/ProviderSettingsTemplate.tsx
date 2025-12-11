@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Loader2, Save, Activity } from 'lucide-react';
 import Toast, { ToastMessage } from './Toast';
 import { extractConfigValues } from '../utils/helpers';
+import Select from './ui/Select';
 
 interface ConfigField {
   type: 'string' | 'password' | 'number' | 'select' | 'file';
@@ -83,8 +85,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     }
   };
 
-  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newId = e.target.value;
+  const handleProviderChange = (newId: string) => {
     setSelectedProviderId(newId);
     setTestResult(null);
     setSaveResult(null);
@@ -148,7 +149,6 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
         setActiveProviderId(selectedProviderId || null);
         setSaveResult(result);
         
-        // 调用回调（如刷新全局状态）
         if (onConfigSaved) {
           await onConfigSaved();
         }
@@ -177,12 +177,12 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
 
   const renderFormFields = () => {
     if (!selectedProviderId) {
-      return <div className="text-gray-500 italic">选择服务商以进行配置</div>;
+      return <div className="text-gray-500 dark:text-gray-500 italic">选择服务商以进行配置</div>;
     }
 
     const configKeys = Object.keys(formData);
     if (configKeys.length === 0) {
-      return <div className="text-gray-500 italic">该服务商暂无配置项</div>;
+      return <div className="text-gray-500 dark:text-gray-500 italic">该服务商暂无配置项</div>;
     }
 
     return (
@@ -201,24 +201,21 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
 
           return (
             <div key={key} className="space-y-1">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {label}
-                {required && <span className="text-red-400 ml-1">*</span>}
+                {required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
               </label>
               {description && (
-                <p className="text-xs text-gray-400 mb-1">{description}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{description}</p>
               )}
               
               {type === 'select' ? (
-                <select
+                <Select
                   value={currentValue}
-                  onChange={(e) => handleInputChange(key, e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                >
-                  {options?.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                  onChange={(val) => handleInputChange(key, val)}
+                  options={options?.map(opt => ({ label: opt, value: opt })) || []}
+                  className="w-full"
+                />
               ) : type === 'number' ? (
                 <input
                   type="number"
@@ -228,7 +225,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                   max={max}
                   step={step}
                   placeholder={placeholder}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               ) : type === 'file' ? (
                 <input
@@ -236,7 +233,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                   value={currentValue}
                   onChange={(e) => handleInputChange(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-mono text-sm"
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-mono text-sm"
                 />
               ) : (
                 <div className="relative">
@@ -245,13 +242,13 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                     value={currentValue}
                     onChange={(e) => handleInputChange(key, e.target.value)}
                     placeholder={placeholder}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   />
                   {isPassword && (
                     <button
                       type="button"
                       onClick={() => toggleSecret(key)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
                     >
                       {showSecrets[key] ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -273,48 +270,35 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     );
   }
 
+  const providerOptions = [
+    { label: '无', value: '' },
+    ...providers.map(p => ({
+      label: p.name,
+      value: p.id,
+      icon: p.is_configured ? <span className="text-green-500">●</span> : <span className="text-yellow-500">○</span>
+    }))
+  ];
+
   return (
     <>
-      {/* Toast 通知 */}
       <Toast message={saveResult} title={{ success: '保存成功', error: '保存失败' }} />
       {!saveResult && <Toast message={testResult} title={{ success: '测试成功', error: '测试失败' }} />}
 
       <div className="flex flex-col h-full space-y-4">
         {/* Provider 选择器 */}
         <div className="flex-shrink-0">
-          <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
+          <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-4">
-              <label className="text-sm font-medium text-gray-300 whitespace-nowrap">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                 Provider
               </label>
-              <div className="relative flex-1">
-                <select
+              <div className="flex-1">
+                <Select
                   value={selectedProviderId}
                   onChange={handleProviderChange}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 pr-10 text-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-gray-600 cursor-pointer"
-                  style={{ backgroundImage: 'none' }}
-                >
-                  <option value="" className="bg-gray-800 text-gray-400">
-                    无
-                  </option>
-                  {providers.map(p => (
-                    <option
-                      key={p.id}
-                      value={p.id}
-                      className="bg-gray-800 py-2"
-                      style={{
-                        color: p.is_configured ? '#379e5dff' : '#fbbf24'
-                      }}
-                    >
-                      {p.is_configured ? '● ' : '○ '}{p.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                  options={providerOptions}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
@@ -323,11 +307,11 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
         {/* 配置表单区域 */}
         <div className="flex-1 min-h-0 flex flex-col">
           {selectedProviderId ? (
-            <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-800 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-6 border border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto custom-scrollbar">
               {renderFormFields()}
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 italic bg-gray-800/30 rounded-xl border border-gray-800 border-dashed">
+            <div className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-500 italic bg-gray-100 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-800 border-dashed">
               <div className="mb-2 text-4xl">{emptyStateIcon}</div>
               <div>{emptyStateText}</div>
             </div>
@@ -340,7 +324,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
             <button
               onClick={handleTestConnection}
               disabled={testing}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all border border-gray-700 hover:border-gray-600 bg-gray-800 hover:bg-gray-750 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testing ? <Loader2 className="animate-spin" size={18} /> : <Activity size={18} />}
               <span>测试连接</span>
@@ -350,7 +334,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
+            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20"
           >
             {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
             <span>保存配置</span>

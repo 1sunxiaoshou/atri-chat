@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users, Globe } from 'lucide-react';
+import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users } from 'lucide-react';
 import { Conversation, ViewMode, Character } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCharacterId, getConversationId } from '../utils/helpers';
@@ -31,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSelectCharacter,
   onOpenSettings
 }) => {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
 
   // Local state for handling sorting locally (since backend doesn't persist order in this mock)
   const [localCharacters, setLocalCharacters] = useState<Character[]>(characters);
@@ -81,16 +82,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   const onDragStart = (e: React.DragEvent, item: Character) => {
     setDraggedItem(item);
     e.dataTransfer.effectAllowed = 'move';
-    // Remove default ghost transparency to make it look a bit better if desired, 
-    // or just let default behavior happen. 
   };
 
   const onDragOver = (e: React.DragEvent, targetItem: Character) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault(); 
 
     if (!draggedItem || getCharacterId(draggedItem) === getCharacterId(targetItem)) return;
 
-    // Simple swap logic
     const fromIndex = localCharacters.findIndex(c => getCharacterId(c) === getCharacterId(draggedItem));
     const toIndex = localCharacters.findIndex(c => getCharacterId(c) === getCharacterId(targetItem));
 
@@ -107,7 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-72 bg-gray-900 text-gray-300 border-r border-gray-800 flex-shrink-0 transition-all duration-300">
+    <div className="flex flex-col h-full w-72 bg-gray-950 text-gray-300 border-r border-gray-800 flex-shrink-0 transition-all duration-300">
 
       {/* Header Section */}
       <div className="flex flex-col border-b border-gray-800 bg-gray-900/50">
@@ -194,7 +192,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ) : (
           conversations.map((conv) => {
-            // Find character for this conversation to display avatar small icon if "All" is selected
             const char = characters.find(c => getCharacterId(c) === Number(conv.character_id));
             const convId = getConversationId(conv);
 
@@ -210,7 +207,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                   onSelectConversation(convId);
                 }}
               >
-                {/* Show character mini-avatar if viewing All, else generic icon */}
                 {selectedCharacterId === null && char ? (
                   <img src={char.avatar} className="w-5 h-5 rounded-full object-cover border border-gray-600 flex-shrink-0 opacity-80" alt="" />
                 ) : (
@@ -245,15 +241,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <LayoutDashboard size={18} />
           {t('sidebar.adminDashboard')}
-        </button>
-
-        {/* Language Switcher */}
-        <button
-          onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800/50 hover:text-white transition-colors"
-        >
-          <Globe size={18} />
-          {language === 'en' ? '中文' : 'English'}
         </button>
 
         <button

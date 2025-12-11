@@ -26,14 +26,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl w-full max-w-4xl h-[600px] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl w-full max-w-4xl h-[600px] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900/50">
-                    <h2 className="text-xl font-semibold text-white">{t('settings.title') || 'Settings'}</h2>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('settings.title') || 'Settings'}</h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-gray-800 rounded-lg"
+                        className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg"
                     >
                         <X size={20} />
                     </button>
@@ -43,7 +43,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <div className="flex flex-1 overflow-hidden">
 
                     {/* Sidebar (Left Column) */}
-                    <div className="w-64 bg-gray-900/50 border-r border-gray-800 flex-shrink-0 overflow-y-auto p-4 space-y-2">
+                    <div className="w-64 bg-gray-50 dark:bg-gray-900/50 border-r border-gray-200 dark:border-gray-800 flex-shrink-0 overflow-y-auto p-4 space-y-2">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -52,8 +52,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as SettingsTab)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20'
+                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
                                         }`}
                                 >
                                     <Icon size={18} />
@@ -64,7 +64,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Main Content (Right Column) */}
-                    <div className="flex-1 bg-gray-900 flex flex-col overflow-hidden">
+                    <div className="flex-1 bg-white dark:bg-gray-900 flex flex-col overflow-hidden">
                         <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto p-6 h-full">
                             {/* Content Area - No Title */}
                             <div className="flex-1 min-h-0 relative">

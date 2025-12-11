@@ -223,7 +223,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const renderProviders = () => (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-gray-800">{t('admin.providers')}</h3>
+        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t('admin.providers')}</h3>
         <button
           onClick={() => handleOpenProviderModal()}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -233,29 +233,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {providers.map((p) => (
-          <div key={p.provider_id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 text-blue-500">
+          <div key={p.provider_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 text-blue-500 dark:text-blue-400">
               <CheckCircle size={18} />
             </div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center border border-gray-100 dark:border-gray-600">
                 {p.logo ? (
                   <img src={p.logo.startsWith('http') ? p.logo : 'http://localhost:8000' + p.logo} alt={p.name} className="w-full h-full object-contain rounded-lg" />
                 ) : (
-                  <Server size={20} className="text-gray-600" />
+                  <Server size={20} className="text-gray-600 dark:text-gray-400" />
                 )}
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">{p.name}</h4>
-                <span className="text-xs text-gray-500 uppercase tracking-wide bg-gray-100 px-2 py-0.5 rounded-full">{p.template_type}</span>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</h4>
+                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{p.template_type}</span>
               </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6 min-h-[40px]">{p.description || "No description provided."}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 min-h-[40px]">{p.description || "No description provided."}</p>
             <div className="space-y-3">
               {Object.keys(p.config_json).slice(0, 2).map(key => (
-                <div key={key} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2">
-                  <span className="text-gray-500 capitalize">{key.replace('_', ' ')}</span>
-                  <span className="font-mono text-gray-700 truncate max-w-[120px]">
+                <div key={key} className="flex justify-between items-center text-sm border-b border-gray-50 dark:border-gray-700 pb-2">
+                  <span className="text-gray-500 dark:text-gray-400 capitalize">{key.replace('_', ' ')}</span>
+                  <span className="font-mono text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
                     {key.includes('key') ? '••••••••' : p.config_json[key]}
                   </span>
                 </div>
@@ -264,13 +264,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             <div className="mt-6 flex gap-2">
               <button
                 onClick={() => handleOpenProviderModal(p)}
-                className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 text-sm border border-gray-200 dark:border-gray-600 rounded-lg py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDeleteProvider(p.provider_id)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                className="p-2 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-transparent hover:border-red-100 dark:hover:border-red-800"
               >
                 <Trash size={16} />
               </button>
@@ -294,7 +294,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-gray-800">{t('admin.models')}</h3>
+        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t('admin.models')}</h3>
         <div className="flex gap-2">
           <button
             onClick={handleOpenModelModal}
@@ -309,15 +309,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       </div>
 
       {/* 筛选器 */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
         <div className="flex gap-4 items-center">
-          <span className="text-sm font-medium text-gray-700">筛选:</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.filter')}:</span>
           <select
             value={modelFilterProvider}
             onChange={(e) => setModelFilterProvider(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           >
-            <option value="">所有供应商</option>
+            <option value="">{t('admin.allProviders')}</option>
             {[...new Set(models.map(m => m.provider_id))].map(pid => (
               <option key={pid} value={pid}>{pid}</option>
             ))}
@@ -325,20 +325,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           <select
             value={modelFilterType}
             onChange={(e) => setModelFilterType(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           >
-            <option value="">所有类型</option>
+            <option value="">{t('admin.allTypes')}</option>
             <option value="text">Text</option>
             <option value="embedding">Embedding</option>
           </select>
           <select
             value={modelFilterEnabled}
             onChange={(e) => setModelFilterEnabled(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           >
-            <option value="">所有状态</option>
-            <option value="enabled">已启用</option>
-            <option value="disabled">已禁用</option>
+            <option value="">{t('admin.allStatus')}</option>
+            <option value="enabled">{t('admin.enabled')}</option>
+            <option value="disabled">{t('admin.disabled')}</option>
           </select>
           {(modelFilterProvider || modelFilterType || modelFilterEnabled) && (
             <button
@@ -347,42 +347,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 setModelFilterType('');
                 setModelFilterEnabled('');
               }}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 underline"
             >
-              清除筛选
+              {t('admin.clearFilter')}
             </button>
           )}
-          <span className="text-sm text-gray-500 ml-auto">
-            显示 {filteredModels.length} / {models.length} 个模型
+          <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+            {t('admin.showing')} {filteredModels.length} {t('admin.of')} {models.length} {t('admin.modelsCount')}
           </span>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+          <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
             <tr>
-              <th className="px-6 py-4">Model ID</th>
-              <th className="px-6 py-4">Provider</th>
-              <th className="px-6 py-4">Type</th>
-              <th className="px-6 py-4">Capabilities</th>
-              <th className="px-6 py-4 text-right">Status</th>
+              <th className="px-6 py-4">{t('admin.modelId')}</th>
+              <th className="px-6 py-4">{t('admin.providers')}</th>
+              <th className="px-6 py-4">{t('admin.modelType')}</th>
+              <th className="px-6 py-4">{t('admin.capabilities')}</th>
+              <th className="px-6 py-4 text-right">{t('admin.status')}</th>
               <th className="px-6 py-4 w-10"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {filteredModels.map((m) => (
-              <tr key={`${m.provider_id}-${m.model_id}`} className="hover:bg-gray-50/50 transition-colors group">
-                <td className="px-6 py-4 font-medium text-gray-900">{m.model_id}</td>
+              <tr key={`${m.provider_id}-${m.model_id}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{m.model_id}</td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
                     {m.provider_id}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-gray-500">{m.model_type}</td>
-                <td className="px-6 py-4 text-gray-500 flex gap-1">
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{m.model_type}</td>
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400 flex gap-1">
                   {m.capabilities.map(cap => (
-                    <span key={cap} className="px-2 py-0.5 bg-gray-100 rounded text-xs">{cap}</span>
+                    <span key={cap} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">{cap}</span>
                   ))}
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -396,7 +396,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => handleDeleteModel(m.provider_id, m.model_id)}
-                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash size={16} />
                   </button>
@@ -413,9 +413,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const renderCharacters = () => (
     <div className="flex gap-6 h-[calc(100vh-200px)] animate-fadeIn">
       {/* List */}
-      <div className="w-1/3 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col shadow-sm">
-        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h4 className="font-semibold text-gray-700">{t('admin.characterList')}</h4>
+      <div className="w-1/3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden flex flex-col shadow-sm">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+          <h4 className="font-semibold text-gray-700 dark:text-gray-300">{t('admin.characterList')}</h4>
           <button
             onClick={handleCreateClick}
             className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
@@ -432,12 +432,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               <div
                 key={charId}
                 onClick={() => setEditingCharacter(c)}
-                className={`p-4 flex items-center gap-3 cursor-pointer border-l-4 transition-all ${editingCharId === charId ? 'bg-blue-50 border-blue-500' : 'border-transparent hover:bg-gray-50'}`}
+                className={`p-4 flex items-center gap-3 cursor-pointer border-l-4 transition-all ${editingCharId === charId ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
               >
-                <img src={c.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + c.name} alt={c.name} className="w-10 h-10 rounded-full object-cover bg-gray-200" />
+                <img src={c.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + c.name} alt={c.name} className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700" />
                 <div className="overflow-hidden flex-1">
-                  <p className="font-medium text-gray-900 truncate">{c.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{c.description || c.primary_model_id}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{c.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || c.primary_model_id}</p>
                 </div>
               </div>
             );
@@ -446,17 +446,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       </div>
 
       {/* Edit Form */}
-      <div className="flex-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col overflow-y-auto">
+      <div className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm flex flex-col overflow-y-auto">
         {editingCharacter ? (
           <>
             <div className="flex justify-between items-start mb-6">
-              <h3 className="text-lg font-bold text-gray-800">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
                 {getCharacterId(editingCharacter) === 0 ? t('admin.createCharacter') : t('admin.editCharacter')}
               </h3>
               {getCharacterId(editingCharacter) !== 0 && (
                 <button
                   onClick={() => handleDeleteCharacter(getCharacterId(editingCharacter))}
-                  className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1"
+                  className="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1"
                 >
                   <Trash size={14} /> {t('admin.delete')}
                 </button>
@@ -470,31 +470,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               >
                 <img 
                   src={editingCharacter.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + editingCharacter.name} 
-                  className="w-20 h-20 rounded-full object-cover bg-gray-100 border-2 border-gray-200 group-hover:border-blue-400 transition-all" 
+                  className="w-20 h-20 rounded-full object-cover bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all" 
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-white text-xs font-medium">点击编辑</span>
+                  <span className="text-white text-xs font-medium">{t('admin.clickEdit')}</span>
                 </div>
               </div>
               <div className="flex-1 space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t('admin.name')}</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.name')}</label>
                   <input
                     type="text"
                     value={editingCharacter.name}
                     onChange={(e) => setEditingCharacter({ ...editingCharacter, name: e.target.value })}
                     placeholder="e.g. Coding Assistant"
-                    className="text-xl font-bold text-gray-900 border-b border-gray-200 focus:border-blue-500 outline-none w-full bg-transparent py-1"
+                    className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 outline-none w-full bg-transparent py-1"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{t('admin.description')}</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.description')}</label>
                   <input
                     type="text"
                     value={editingCharacter.description || ''}
                     onChange={(e) => setEditingCharacter({ ...editingCharacter, description: e.target.value })}
                     placeholder="Short description..."
-                    className="text-sm text-gray-600 border-b border-gray-200 focus:border-blue-500 outline-none w-full bg-transparent py-1"
+                    className="text-sm text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 outline-none w-full bg-transparent py-1"
                   />
                 </div>
               </div>
@@ -503,7 +503,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             <div className="flex flex-col gap-6 flex-1 min-h-0">
               <div className="grid grid-cols-2 gap-4 flex-shrink-0">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.defaultModel')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.defaultModel')}</label>
                   <select
                     value={editingCharacter.primary_model_id}
                     onChange={(e) => {
@@ -514,7 +514,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         primary_provider_id: selectedModel?.provider_id || ''
                       });
                     }}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     {models.filter(m => m.enabled).map(m => (
                       <option key={m.model_id} value={m.model_id}>{m.model_id} ({m.provider_id})</option>
@@ -522,45 +522,45 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.ttsConfig')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.ttsConfig')}</label>
                   <input
                     type="text"
                     value={editingCharacter.tts_id || ''}
                     onChange={(e) => setEditingCharacter({ ...editingCharacter, tts_id: e.target.value })}
                     placeholder="e.g. tts_001"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
               </div>
 
               <div className="flex-1 flex flex-col min-h-[200px]">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.systemPrompt')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.systemPrompt')}</label>
                 <textarea
                   value={editingCharacter.system_prompt}
                   onChange={(e) => setEditingCharacter({ ...editingCharacter, system_prompt: e.target.value })}
                   placeholder="You are a helpful AI assistant..."
-                  className="w-full flex-1 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm font-mono leading-relaxed focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  className="w-full flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg p-4 text-sm font-mono leading-relaxed focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
-                <p className="text-xs text-gray-400 mt-2 text-right">{t('admin.systemPromptHelp')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-right">{t('admin.systemPromptHelp')}</p>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
-              <button onClick={() => setEditingCharacter(null)} className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">{t('admin.cancel')}</button>
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 flex-shrink-0">
+              <button onClick={() => setEditingCharacter(null)} className="px-6 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors">{t('admin.cancel')}</button>
               <button
                 onClick={handleSaveCharacter}
                 disabled={!editingCharacter.name || !editingCharacter.primary_model_id}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={18} /> {getCharacterId(editingCharacter) === 0 ? t('admin.create') : t('admin.save')}
               </button>
             </div>
           </>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400">
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
             <Users size={64} className="mb-4 opacity-20" />
             <p>{t('admin.selectChar')}</p>
-            <button onClick={handleCreateClick} className="mt-4 text-blue-600 hover:underline">{t('admin.createNew')}</button>
+            <button onClick={handleCreateClick} className="mt-4 text-blue-600 dark:text-blue-400 hover:underline">{t('admin.createNew')}</button>
           </div>
         )}
       </div>
@@ -568,10 +568,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   );
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 relative">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900/50 relative">
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 px-8 pt-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('admin.title')}</h2>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-8 pt-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('admin.title')}</h2>
         <div className="flex gap-8">
           {[
             { id: 'providers', label: t('admin.providers'), icon: Server },
@@ -581,13 +581,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as AdminTab)}
-              className={`pb-4 px-2 flex items-center gap-2 font-medium transition-all relative ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+              className={`pb-4 px-2 flex items-center gap-2 font-medium transition-all relative ${activeTab === tab.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
             >
               <tab.icon size={18} />
               {tab.label}
               {activeTab === tab.id && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full" />
               )}
             </button>
           ))}
@@ -606,12 +606,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       {/* Provider Modal */}
       {isProviderModalOpen && editingProvider && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn scale-95 opacity-0 fill-mode-forwards" style={{ animation: 'fadeInScale 0.2s forwards' }}>
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-gray-800 text-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn scale-95 opacity-0 fill-mode-forwards" style={{ animation: 'fadeInScale 0.2s forwards' }}>
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-lg">
                 {editingProvider.provider_id ? t('admin.editProvider') : t('admin.addProvider')}
               </h3>
-              <button onClick={() => setIsProviderModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setIsProviderModalOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <X size={20} />
               </button>
             </div>
@@ -630,7 +630,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">供应商模板</label>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.providerTemplate')}</label>
                   <select
                     value={editingProvider.template_type || providerTemplates[0]?.template_type || 'openai'}
                     onChange={(e) => {
@@ -650,7 +650,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         config_json: newConfigJson
                       });
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     {providerTemplates.map(template => (
                       <option key={template.template_type} value={template.template_type}>
@@ -662,22 +662,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{t('admin.providerName')}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.providerName')}</label>
                 <input
                   type="text"
                   value={editingProvider.name || ''}
                   onChange={(e) => setEditingProvider({ ...editingProvider, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="Display Name"
                 />
               </div>
 
               {/* Config JSON Fields */}
-              <div className="pt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Configuration</h4>
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Configuration</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">{t('admin.apiKey')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('admin.apiKey')}</label>
                     <input
                       type="password"
                       value={editingProvider.config_json?.api_key || ''}
@@ -685,12 +685,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         ...editingProvider,
                         config_json: { ...editingProvider.config_json, api_key: e.target.value }
                       })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                      className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
                       placeholder="sk-..."
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">{t('admin.baseUrl')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('admin.baseUrl')}</label>
                     <input
                       type="text"
                       value={editingProvider.config_json?.base_url || ''}
@@ -698,21 +698,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         ...editingProvider,
                         config_json: { ...editingProvider.config_json, base_url: e.target.value }
                       })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                      className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
                       placeholder="https://api..."
                     />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-              <button onClick={() => setIsProviderModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
+              <button onClick={() => setIsProviderModalOpen(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors">
                 {t('admin.cancel')}
               </button>
               <button
                 onClick={handleSaveProvider}
                 disabled={!editingProvider.provider_id}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('admin.save')}
               </button>
@@ -724,20 +724,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       {/* Model Modal */}
       {isModelModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn scale-95 opacity-0 fill-mode-forwards" style={{ animation: 'fadeInScale 0.2s forwards' }}>
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-gray-800 text-lg">{t('admin.addModel')}</h3>
-              <button onClick={() => setIsModelModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn scale-95 opacity-0 fill-mode-forwards" style={{ animation: 'fadeInScale 0.2s forwards' }}>
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-lg">{t('admin.addModel')}</h3>
+              <button onClick={() => setIsModelModalOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <X size={20} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{t('admin.providers')}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.providers')}</label>
                 <select
                   value={newModel.provider_id}
                   onChange={(e) => setNewModel({ ...newModel, provider_id: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   {providers.map(p => (
                     <option key={p.provider_id} value={p.provider_id}>{p.name || p.provider_id}</option>
@@ -745,21 +745,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{t('admin.modelId')}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.modelId')}</label>
                 <input
                   type="text"
                   value={newModel.model_id || ''}
                   onChange={(e) => setNewModel({ ...newModel, model_id: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="e.g. gpt-4-turbo"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{t('admin.modelType')}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.modelType')}</label>
                 <select
                   value={newModel.model_type}
                   onChange={(e) => setNewModel({ ...newModel, model_type: e.target.value as any })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   <option value="text">Text</option>
                   <option value="embedding">Embedding</option>
@@ -767,7 +767,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">{t('admin.capabilities')}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{t('admin.capabilities')}</label>
                 <div className="flex flex-wrap gap-4">
                   {['base', 'chat', 'vision', 'function_calling', 'reasoning'].map(cap => (
                     <label key={cap} className="flex items-center gap-2 cursor-pointer">
@@ -784,20 +784,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         }}
                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700 capitalize">{cap.replace('_', ' ')}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{cap.replace('_', ' ')}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-              <button onClick={() => setIsModelModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
+              <button onClick={() => setIsModelModalOpen(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors">
                 {t('admin.cancel')}
               </button>
               <button
                 onClick={handleSaveModel}
                 disabled={!newModel.model_id}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('admin.create')}
               </button>
