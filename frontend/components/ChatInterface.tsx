@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as ImageIcon, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -10,6 +11,7 @@ import { useASR } from '../contexts/ASRContext';
 import { StreamTTSPlayer } from '../utils/streamTTSPlayer';
 import { createMarkdownComponents } from '../utils/markdownConfig';
 import ModelConfigPopover from './ModelConfigPopover';
+import Select from './ui/Select';
 
 interface ChatInterfaceProps {
   activeConversationId: number;
@@ -53,7 +55,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       const res = await api.getMessages(activeConversationId);
       if (res.code === 200) {
-        // 后端返回格式：data 是消息数组或包含 messages 字段的对象
         let messageList: Message[] = [];
 
         if (Array.isArray(res.data)) {
@@ -62,7 +63,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           messageList = (res.data as any).messages || [];
         }
 
-        // 确保消息格式正确（message_type 字段必须存在）
         const validMessages = messageList.filter(msg => msg.message_type && (msg.message_type === 'user' || msg.message_type === 'assistant'));
 
         setMessages(validMessages);
@@ -89,7 +89,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const content = inputValue;
     setInputValue('');
 
-    // 立即添加用户消息
     const userMsgId = Date.now();
     const userMsg: Message = {
       message_id: userMsgId,
@@ -101,10 +100,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMsg]);
     scrollToBottom();
 
-    // 显示"正在输入"状态
     setIsTyping(true);
 
-    // 准备 AI 消息 ID
     const aiMsgId = Date.now() + 1;
     let hasReceivedFirstToken = false;
 
@@ -115,10 +112,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         Number(activeCharacter?.character_id || activeCharacter?.id),
         activeModel?.model_id || '',
         activeModel?.provider_id || '',
-        modelParameters, // 传递模型参数
-        // 流式更新回调
+        modelParameters,
         (streamContent: string) => {
-          // 收到第一个 token 时，创建 AI 消息
           if (!hasReceivedFirstToken) {
             hasReceivedFirstToken = true;
             setIsTyping(false);
@@ -131,7 +126,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             };
             setMessages(prev => [...prev, aiMsg]);
           } else {
-            // 后续更新消息内容
             setMessages(prev =>
               prev.map(msg =>
                 msg.message_id === aiMsgId
@@ -142,9 +136,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
           scrollToBottom();
         },
-        // 工具调用状态回调
         (status: string) => {
-          // 显示工具调用状态（例如：正在使用工具: xxx...）
           if (!hasReceivedFirstToken) {
             hasReceivedFirstToken = true;
             setIsTyping(false);
@@ -157,7 +149,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             };
             setMessages(prev => [...prev, aiMsg]);
           } else {
-            // 更新状态信息
             setMessages(prev =>
               prev.map(msg =>
                 msg.message_id === aiMsgId
@@ -168,9 +159,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
           scrollToBottom();
         },
-        // 思维链回调（接收完整内容）
         (reasoning: string) => {
-          // 更新或创建消息的思维链内容
           if (!hasReceivedFirstToken) {
             hasReceivedFirstToken = true;
             setIsTyping(false);
@@ -184,7 +173,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             };
             setMessages(prev => [...prev, aiMsg]);
           } else {
-            // 更新思维链内容（api.ts 已经累积好了）
             setMessages(prev =>
               prev.map(msg =>
                 msg.message_id === aiMsgId
@@ -199,17 +187,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       setIsTyping(false);
 
-      // 消息发送成功后，刷新会话列表以获取更新的标题
       if (result.code === 200 && !((result.data as any)?.error)) {
         onConversationUpdated?.();
       }
 
-      // 检查是否有错误
       if (result.code !== 200 || (result.data as any)?.error) {
         const errorMsg = (result.data as any)?.error || result.message || '发送消息失败';
         
         if (hasReceivedFirstToken) {
-          // 如果已经创建了消息，更新为错误提示
           setMessages(prev =>
             prev.map(msg =>
               msg.message_id === aiMsgId
@@ -218,7 +203,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             )
           );
         } else {
-          // 如果还没创建消息，创建一个错误消息
           const errorMessage: Message = {
             message_id: aiMsgId,
             conversation_id: activeConversationId,
@@ -233,7 +217,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       console.error("发送消息异常", e);
       setIsTyping(false);
       
-      // 异常时显示错误消息
       if (hasReceivedFirstToken) {
         setMessages(prev =>
           prev.map(msg =>
@@ -257,13 +240,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  // 复制消息内容
   const handleCopyMessage = async (messageId: string | number, content: string) => {
     try {
       await navigator.clipboard.writeText(content);
       setCopiedMessageId(messageId);
       
-      // 2秒后清除复制状态
       setTimeout(() => {
         setCopiedMessageId(null);
       }, 2000);
@@ -272,10 +253,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  // TTS 播放功能（使用流式播放管理器）
   const handlePlayTTS = async (messageId: string | number, text: string) => {
     try {
-      // 如果正在播放同一条消息，则停止播放
       if (playingMessageId === messageId) {
         if (streamPlayerRef.current) {
           streamPlayerRef.current.onStop();
@@ -284,7 +263,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         return;
       }
 
-      // 停止之前的播放
       if (streamPlayerRef.current && playingMessageId !== null) {
         await streamPlayerRef.current.dispose();
         streamPlayerRef.current = null;
@@ -292,19 +270,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       setPlayingMessageId(messageId);
 
-      // 获取音量设置
       const volumeSetting = localStorage.getItem('audioVolume');
       const volume = volumeSetting ? Number(volumeSetting) / 100 : 1.0;
 
-      // 创建新的流式播放器（带播放完成回调）
       if (!streamPlayerRef.current) {
         streamPlayerRef.current = new StreamTTSPlayer(volume, () => {
-          // 播放完成后清除播放状态
           setPlayingMessageId(null);
         });
       }
 
-      // 开始播放（内部会处理缓存和恢复逻辑）
       await streamPlayerRef.current.onPlay(text, async () => {
         return await api.synthesizeSpeechStream(text);
       });
@@ -321,12 +295,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const toggleRecording = async () => {
     if (isRecording) {
-      // 停止录音
       if (mediaRecorder) {
         mediaRecorder.stop();
       }
     } else {
-      // 开始录音
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
@@ -339,16 +311,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         };
 
         recorder.onstop = async () => {
-          // 停止所有音频轨道
           stream.getTracks().forEach(track => track.stop());
-
-          // 合并音频数据
           const audioBlob = new Blob(chunks, { type: 'audio/wav' });
 
           setIsRecording(false);
           setIsProcessingAudio(true);
 
-          // 发送音频进行转录
           try {
             const res = await api.transcribeAudio(audioBlob);
 
@@ -356,7 +324,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               setInputValue(prev => prev + (prev ? ' ' : '') + res.data.text);
             } else {
               console.error('语音转录失败:', res.message);
-              // 可以添加 Toast 提示
             }
           } catch (e) {
             console.error("语音转录异常", e);
@@ -376,12 +343,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const modelOptions = availableModels.map(m => ({
+    label: m.model_id,
+    value: m.model_id,
+    group: m.provider_id
+  }));
+
   return (
-    <div className="flex flex-col h-full bg-white relative">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900 transition-colors relative">
       {/* Header */}
-      <div className="h-16 border-b border-gray-100 flex items-center justify-between px-6 bg-white/80 backdrop-blur-sm z-10 sticky top-0">
+      <div className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 sticky top-0 transition-colors">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 border border-indigo-200 overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 overflow-hidden">
             {activeCharacter?.avatar ? (
               <img src={activeCharacter.avatar} alt={activeCharacter.name} className="w-full h-full object-cover" />
             ) : (
@@ -389,10 +362,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             )}
           </div>
           <div>
-            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               {activeCharacter?.name || t('chat.selectCharacter')}
             </h2>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               {t('chat.online')}
             </div>
@@ -400,60 +373,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative group min-w-[200px]">
-            {/* 装饰性背景光晕 (可选，增加 AI 氛围) */}
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-20 transition duration-500 blur" />
-            
-            <div className="relative flex items-center">
-              {/* 左侧图标：增强语义 */}
-              <Sparkles size={14} className="absolute left-3 text-blue-500 pointer-events-none" />
-              
-              <select
-                className="appearance-none w-full bg-white border border-gray-200 text-gray-700 py-2 pl-9 pr-10 rounded-full text-sm font-medium shadow-sm transition-all
-                hover:border-blue-400 hover:bg-gray-50 
-                focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 
-                cursor-pointer truncate"
+          <div className="w-56">
+             <Select
                 value={activeModel?.model_id || ''}
-                onChange={(e) => onUpdateModel(e.target.value)}
-              >
-                <option value="" disabled>选择模型...</option>
-                
-                {/* 逻辑优化：按 Provider 分组显示 */}
-                {Object.entries(
-                  availableModels.reduce((acc, model) => {
-                    (acc[model.provider_id] = acc[model.provider_id] || []).push(model);
-                    return acc;
-                  }, {} as Record<string, typeof availableModels>)
-                ).map(([provider, models]) => (
-                  <optgroup key={provider} label={provider} className="font-semibold text-gray-900 not-italic">
-                    {models.map((m) => (
-                      <option key={m.model_id} value={m.model_id} className="text-gray-700">
-                        {m.model_id}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-
-              {/* 右侧箭头：符合用户习惯 */}
-              <ChevronDown size={14} className="absolute right-3 text-gray-400 pointer-events-none group-hover:text-gray-600 transition-colors" />
-            </div>
+                onChange={onUpdateModel}
+                options={modelOptions}
+                placeholder="选择模型..."
+             />
           </div>
           
           {/* Display Mode Toggle */}
-          <div className="relative bg-gray-100/80 p-1 rounded-lg flex items-center h-9 w-[180px]">
+          <div className="relative bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex items-center h-9 w-[180px] border border-gray-200 dark:border-gray-700">
             {/* 滑块背景动画 */}
             <div
-              className="absolute top-1 bottom-1 left-1 bg-white rounded-md shadow-sm ring-1 ring-black/5 transition-all duration-300 ease-out"
+              className="absolute top-1 bottom-1 left-1 bg-white dark:bg-gray-700 rounded-md shadow-sm ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300 ease-out"
               style={{
-                width: 'calc((100% - 8px) / 3)', // 动态计算宽度：(总宽 - padding) / 3
+                width: 'calc((100% - 8px) / 3)',
                 transform: `translateX(${
                   ['normal', 'vrm', 'live2d'].indexOf(vrmDisplayMode) * 100
                 }%)`
               }}
             />
             
-            {/* 按钮组 */}
             <div className="grid grid-cols-3 w-full h-full relative">
               {[
                 { id: 'normal', label: '正常' },
@@ -467,7 +408,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     onClick={() => setVrmDisplayMode(mode.id as any)}
                     className={`
                       relative z-10 flex items-center justify-center text-xs font-medium transition-colors duration-200 rounded-md
-                      ${isActive ? 'text-black font-semibold' : 'text-gray-500 hover:text-gray-700'}
+                      ${isActive ? 'text-black dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}
                     `}
                   >
                     {mode.label}
@@ -483,7 +424,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             model={activeModel || undefined}
           />
           <button
-            className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors"
             title={t('chat.clearContext')}
           >
             <RotateCcw size={18} />
@@ -495,19 +436,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 overflow-hidden">
+            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 overflow-hidden">
               {activeCharacter?.avatar ? (
                 <img src={activeCharacter.avatar} alt="Character" className="w-full h-full object-cover" />
               ) : (
-                <Sparkles size={40} className="text-gray-400" />
+                <Sparkles size={40} className="text-gray-400 dark:text-gray-500" />
               )}
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
               {activeCharacter ? `${t('chat.chatWith')} ${activeCharacter.name}` : t('chat.welcome')}
             </h3>
             <div className="flex gap-2 mt-4">
               {[t('chat.suggestion.summarize'), t('chat.suggestion.code'), t('chat.suggestion.translate')].map(suggestion => (
-                <button key={suggestion} onClick={() => setInputValue(suggestion)} className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-full text-sm text-gray-600 border border-gray-200 transition-colors">
+                <button key={suggestion} onClick={() => setInputValue(suggestion)} className="px-4 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-colors">
                   {suggestion}
                 </button>
               ))}
@@ -517,7 +458,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <>
             {messages.map((msg) => (
               <div key={msg.message_id} className={`flex gap-4 ${msg.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 text-white' : 'bg-indigo-100 text-indigo-600'
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 dark:bg-gray-700 text-white' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
                   }`}>
                   {msg.message_type === 'user' ? (
                     <User size={16} />
@@ -527,9 +468,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
 
                 <div className={`max-w-[75%] space-y-2`}>
-                  {/* 思维链显示 (仅 AI 消息) */}
                   {msg.message_type === 'assistant' && msg.reasoning && (
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl overflow-hidden">
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
                       <button
                         onClick={() => {
                           const newExpanded = new Set(expandedReasoning);
@@ -540,21 +480,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           }
                           setExpandedReasoning(newExpanded);
                         }}
-                        className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 transition-colors"
+                        className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors"
                       >
-                        <div className="flex items-center gap-2 text-purple-700">
+                        <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
                           <Brain size={16} />
                           <span className="text-sm font-medium">思维链</span>
                         </div>
                         {expandedReasoning.has(msg.message_id) ? (
-                          <ChevronUp size={16} className="text-purple-600" />
+                          <ChevronUp size={16} className="text-purple-600 dark:text-purple-400" />
                         ) : (
-                          <ChevronDown size={16} className="text-purple-600" />
+                          <ChevronDown size={16} className="text-purple-600 dark:text-purple-400" />
                         )}
                       </button>
                       {expandedReasoning.has(msg.message_id) && (
-                        <div className="px-4 py-3 border-t border-purple-200 bg-white/50">
-                          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        <div className="px-4 py-3 border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
+                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                             {msg.reasoning}
                           </div>
                         </div>
@@ -562,10 +502,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     </div>
                   )}
 
-                  {/* 消息内容 */}
                   <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
                     ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
+                    : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
                     }`}>
                   <div className={`markdown-content ${msg.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
                     <ReactMarkdown
@@ -578,14 +517,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   </div>
                 </div>
 
-                {/* Message Tools for AI */}
                 {msg.message_type === 'assistant' && (
                   <div className="flex gap-2 px-1">
                     <button 
                       className={`transition-colors relative group ${
                         copiedMessageId === msg.message_id 
                           ? 'text-green-600' 
-                          : 'text-gray-400 hover:text-gray-600'
+                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                       }`}
                       onClick={() => handleCopyMessage(msg.message_id, msg.content)}
                       title={copiedMessageId === msg.message_id ? "已复制" : "复制"}
@@ -598,14 +536,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       )}
                     </button>
                     <button 
-                      className={`transition-colors ${playingMessageId === msg.message_id ? 'text-blue-600 animate-pulse' : 'text-gray-400 hover:text-gray-600'}`}
+                      className={`transition-colors ${playingMessageId === msg.message_id ? 'text-blue-600 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                       onClick={() => handlePlayTTS(msg.message_id, msg.content)}
                       title={playingMessageId === msg.message_id ? "停止播放" : "朗读"}
                     >
                       <Volume2 size={14} />
                     </button>
                     <button 
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                       title="重新生成"
                     >
                       <RotateCcw size={14} />
@@ -616,10 +554,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             ))}
 
-            {/* 打字指示器 */}
             {isTyping && (
               <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 text-indigo-600">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                   {activeCharacter?.avatar ? (
                     <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" />
                   ) : (
@@ -627,7 +564,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   )}
                 </div>
                 <div className="max-w-[75%]">
-                  <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-white border border-gray-100">
+                  <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                     <div className="flex gap-1.5 items-center">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -644,14 +581,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white">
+      <div className="p-4 bg-white dark:bg-gray-900 transition-colors">
         <div className="max-w-4xl mx-auto relative">
           <div className={`absolute bottom-full left-0 mb-4 px-4 py-2 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 text-sm transition-all duration-300 ${isRecording ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             {t('chat.recordingBanner')}
           </div>
 
-          <div className={`relative bg-white shadow-xl shadow-gray-200/50 rounded-2xl border transition-all overflow-hidden ${isRecording ? 'border-red-400 ring-4 ring-red-50' : 'border-gray-200 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500'}`}>
+          <div className={`relative bg-white dark:bg-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-black/20 rounded-2xl border transition-all overflow-hidden ${isRecording ? 'border-red-400 ring-4 ring-red-50' : 'border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500'}`}>
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -663,25 +600,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }}
               placeholder={isRecording ? t('chat.recordingPlaceholder') : isProcessingAudio ? "正在转换语音..." : t('chat.placeholder')}
               disabled={isRecording}
-              className="w-full max-h-40 p-4 pr-32 bg-transparent border-none focus:ring-0 resize-none text-gray-700 placeholder-gray-400 outline-none custom-scrollbar disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full max-h-40 p-4 pr-32 bg-transparent border-none focus:ring-0 resize-none text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none custom-scrollbar disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
               rows={1}
               style={{ minHeight: '60px' }}
             />
 
             <div className="absolute bottom-2 right-2 flex items-center gap-1">
-              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+              <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
                 <ImageIcon size={20} />
               </button>
               <button
                 onClick={toggleRecording}
                 disabled={!asrEnabled || isProcessingAudio}
                 className={`p-2 rounded-xl transition-colors ${!asrEnabled
-                    ? 'text-gray-300 cursor-not-allowed'
+                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                     : isRecording
                       ? 'text-red-500 bg-red-50 animate-pulse'
                       : isProcessingAudio
                         ? 'text-blue-500 bg-blue-50 animate-pulse'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 title={!asrEnabled ? "ASR not configured" : isRecording ? "Stop Recording" : "Record Audio"}
               >
@@ -692,14 +629,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 disabled={(!inputValue.trim() && !isRecording) || isTyping}
                 className={`p-2 rounded-xl transition-colors ml-1 ${inputValue.trim() && !isTyping
                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                  : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-500 cursor-not-allowed'
                   }`}
               >
                 <Send size={20} />
               </button>
             </div>
           </div>
-          <div className="text-center mt-2 text-xs text-gray-400">
+          <div className="text-center mt-2 text-xs text-gray-400 dark:text-gray-500">
             {t('chat.disclaimer')}
           </div>
         </div>

@@ -229,7 +229,7 @@ class TongyiProvider(BaseProvider):
         return ProviderMetadata(
             provider_id="tongyi",
             name="Tongyi",
-            description="Alibaba Tongyi Qianwen API provider",
+            description="阿里旗下的百炼大模型服务平台",
             logo="/static/logos/tongyi.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="通义千问API密钥"),
