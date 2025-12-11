@@ -4,14 +4,14 @@ import { Send, Mic, Sparkles, Bot, User, Copy, Volume2, RotateCcw, Image as Imag
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { Character, Message, Model, ModelParameters } from '../types';
-import { api } from '../services/api';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useASR } from '../contexts/ASRContext';
-import { StreamTTSPlayer } from '../utils/streamTTSPlayer';
-import { createMarkdownComponents } from '../utils/markdownConfig';
+import { Character, Message, Model, ModelParameters } from '../../types';
+import { api } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useASR } from '../../contexts/ASRContext';
+import { StreamTTSPlayer } from '../../utils/streamTTSPlayer';
+import { createMarkdownComponents } from '../../utils/markdownConfig';
 import ModelConfigPopover from './ModelConfigPopover';
-import Select from './ui/Select';
+import Select from '../ui/Select';
 
 interface ChatInterfaceProps {
   activeConversationId: number;

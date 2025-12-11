@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Loader2, Save, Activity } from 'lucide-react';
-import Toast, { ToastMessage } from './Toast';
-import { extractConfigValues } from '../utils/helpers';
-import Select from './ui/Select';
+import { Save, Activity, Loader2 } from 'lucide-react';
+import Toast, { ToastMessage } from '../Toast';
+import { extractConfigValues } from '../../utils/helpers';
+import { Button, Select, Input } from '../ui';
+import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '../../utils/constants';
 
 interface ConfigField {
   type: 'string' | 'password' | 'number' | 'select' | 'file';
@@ -59,7 +60,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<ToastMessage | null>(null);
   const [saveResult, setSaveResult] = useState<ToastMessage | null>(null);
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+
 
   useEffect(() => {
     loadProviders();
@@ -110,9 +111,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     setSaveResult(null);
   };
 
-  const toggleSecret = (key: string) => {
-    setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+
 
   const handleTestConnection = async () => {
     if (!selectedProviderId) return;
@@ -217,7 +216,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                   className="w-full"
                 />
               ) : type === 'number' ? (
-                <input
+                <Input
                   type="number"
                   value={currentValue}
                   onChange={(e) => handleInputChange(key, parseFloat(e.target.value))}
@@ -225,35 +224,23 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                   max={max}
                   step={step}
                   placeholder={placeholder}
-                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               ) : type === 'file' ? (
-                <input
+                <Input
                   type="text"
                   value={currentValue}
                   onChange={(e) => handleInputChange(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-mono text-sm"
+                  className="font-mono text-sm"
                 />
               ) : (
-                <div className="relative">
-                  <input
-                    type={isPassword && !showSecrets[key] ? 'password' : 'text'}
-                    value={currentValue}
-                    onChange={(e) => handleInputChange(key, e.target.value)}
-                    placeholder={placeholder}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  />
-                  {isPassword && (
-                    <button
-                      type="button"
-                      onClick={() => toggleSecret(key)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
-                    >
-                      {showSecrets[key] ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  )}
-                </div>
+                <Input
+                  type={isPassword ? 'password' : 'text'}
+                  value={currentValue}
+                  onChange={(e) => handleInputChange(key, e.target.value)}
+                  placeholder={placeholder}
+                  showPasswordToggle={isPassword}
+                />
               )}
             </div>
           );
@@ -321,24 +308,26 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
         {/* 操作按钮 */}
         <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-2">
           {selectedProviderId && (
-            <button
+            <Button
               onClick={handleTestConnection}
               disabled={testing}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              loading={testing}
+              icon={<Activity />}
             >
-              {testing ? <Loader2 className="animate-spin" size={18} /> : <Activity size={18} />}
-              <span>测试连接</span>
-            </button>
+              测试连接
+            </Button>
           )}
 
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20"
+            variant="primary"
+            loading={saving}
+            icon={<Save />}
           >
-            {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-            <span>保存配置</span>
-          </button>
+            保存配置
+          </Button>
         </div>
       </div>
     </>
