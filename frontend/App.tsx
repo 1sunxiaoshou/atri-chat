@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import ChatInterface from './components/ChatInterface';
-import AdminDashboard from './components/AdminDashboard';
-import SettingsModal from './components/SettingsModal';
+import ChatInterface from './components/chat/ChatInterface';
+import AdminDashboard from './components/admin/AdminDashboard';
+import SettingsModal from './components/settings/SettingsModal';
 import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api';
 import { useLanguage } from './contexts/LanguageContext';

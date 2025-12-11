@@ -1,6 +1,6 @@
 import React from 'react';
-import { api } from '../services/api';
-import { useASR } from '../contexts/ASRContext';
+import { api } from '../../services/api';
+import { useASR } from '../../contexts/ASRContext';
 import ProviderSettingsTemplate from './ProviderSettingsTemplate';
 
 const ASRSettings: React.FC = () => {

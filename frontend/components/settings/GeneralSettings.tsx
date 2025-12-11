@@ -1,45 +1,38 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Volume2, Database, Save, Globe, Moon, Sun, Monitor } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
-import Select from './ui/Select';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../hooks/useSettings';
+import { Button, Select } from '../ui';
+import { SUCCESS_MESSAGES } from '../../utils/constants';
 
 interface GeneralSettingsProps {
-  onSettingsChange?: (settings: GeneralSettingsData) => void;
-}
-
-export interface GeneralSettingsData {
-  audioVolume: number;
-  audioCacheLimit: number;
+  onSettingsChange?: (settings: { audioVolume: number; audioCacheLimit: number }) => void;
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) => {
   const { language, setLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
-  
-  const [audioVolume, setAudioVolume] = useState<number>(100);
-  const [audioCacheLimit, setAudioCacheLimit] = useState<number>(50);
-  const [saveMessage, setSaveMessage] = useState<string>('');
+  const { settings, saveSettings } = useSettings();
+  const [saveMessage, setSaveMessage] = React.useState<string>('');
 
-  // Load local audio settings
-  useEffect(() => {
-    const savedVolume = localStorage.getItem('audioVolume');
-    const savedCacheLimit = localStorage.getItem('audioCacheLimit');
-    
-    if (savedVolume) setAudioVolume(Number(savedVolume));
-    if (savedCacheLimit) setAudioCacheLimit(Number(savedCacheLimit));
-  }, []);
+  const handleVolumeChange = (volume: number) => {
+    saveSettings({ audioVolume: volume });
+    if (onSettingsChange) {
+      onSettingsChange({ ...settings, audioVolume: volume });
+    }
+  };
+
+  const handleCacheLimitChange = (limit: number) => {
+    saveSettings({ audioCacheLimit: limit });
+    if (onSettingsChange) {
+      onSettingsChange({ ...settings, audioCacheLimit: limit });
+    }
+  };
 
   const handleSave = () => {
-    localStorage.setItem('audioVolume', audioVolume.toString());
-    localStorage.setItem('audioCacheLimit', audioCacheLimit.toString());
-    
-    if (onSettingsChange) {
-      onSettingsChange({ audioVolume, audioCacheLimit });
-    }
-
-    setSaveMessage('设置已保存');
+    setSaveMessage(SUCCESS_MESSAGES.SAVE_SUCCESS);
     setTimeout(() => setSaveMessage(''), 2000);
   };
 
@@ -129,12 +122,12 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                 type="range"
                 min="0"
                 max="100"
-                value={audioVolume}
-                onChange={(e) => setAudioVolume(Number(e.target.value))}
+                value={settings.audioVolume}
+                onChange={(e) => handleVolumeChange(Number(e.target.value))}
                 className="flex-1 h-2 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
               />
               <div className="w-16 text-right">
-                <span className="text-gray-900 dark:text-white font-medium">{audioVolume}%</span>
+                <span className="text-gray-900 dark:text-white font-medium">{settings.audioVolume}%</span>
               </div>
             </div>
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500">
@@ -167,8 +160,8 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                 min="10"
                 max="200"
                 step="10"
-                value={audioCacheLimit}
-                onChange={(e) => setAudioCacheLimit(Number(e.target.value))}
+                value={settings.audioCacheLimit}
+                onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
                 className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               />
               <div className="text-gray-600 dark:text-gray-400 text-sm">
@@ -188,13 +181,14 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
               {saveMessage}
             </span>
           )}
-          <button
+          <Button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20"
+            icon={<Save />}
+            variant="primary"
+            size="lg"
           >
-            <Save size={18} />
-            <span>{language === 'zh' ? '保存设置' : 'Save Settings'}</span>
-          </button>
+            {language === 'zh' ? '保存设置' : 'Save Settings'}
+          </Button>
         </div>
       </div>
     </div>

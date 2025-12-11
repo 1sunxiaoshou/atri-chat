@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Settings, X } from 'lucide-react';
-import { ModelParameters, Model } from '../types';
-import { useLanguage } from '../contexts/LanguageContext';
+import { ModelParameters, Model } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ModelConfigPopoverProps {
   parameters: ModelParameters;

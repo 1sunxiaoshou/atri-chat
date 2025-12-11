@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Cpu, Users, Plus, Trash, Save, X, CheckCircle, RotateCcw } from 'lucide-react';
-import { Provider, Model, Character, AdminTab } from '../types';
-import { api } from '../services/api';
-import { useLanguage } from '../contexts/LanguageContext';
-import { AvatarEditor } from './AvatarEditor';
-import { getCharacterId } from '../utils/helpers';
+import { Provider, Model, Character, AdminTab } from '../../types';
+import { api } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { AvatarEditor } from '../AvatarEditor';
+import { getCharacterId } from '../../utils/helpers';
 
 interface AdminDashboardProps {
   onBack: () => void;
