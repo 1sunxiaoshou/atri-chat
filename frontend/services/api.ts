@@ -246,7 +246,6 @@ export const api = {
                         if (line.startsWith('data: ')) {
                             try {
                                 const data = JSON.parse(line.slice(6));
-                                console.log('[SSE] Received:', data); // 调试日志
 
                                 // 检查是否有错误
                                 if (data.error) {
