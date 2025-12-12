@@ -159,10 +159,15 @@ AI生成带标记文本: "[State:开心][Action:打招呼]你好！[State:好奇
 
 **作用**：瞬时触发动作，只作用于紧跟的文本片段
 
-**可用动作**：
+**动作来源**：
+- ✅ **数据库动态获取**：动作列表从 `vrm_animations` 表读取
+- ✅ **与VRM模型关联**：每个VRM模型有自己的动作集
+- ✅ **支持自定义**：用户可以上传自定义动作文件
 
-| 类型 | 动作名 | 英文ID | 时长 |
-|------|--------|--------|------|
+**标准动作示例**：
+
+| 类型 | 动作名（中文） | 英文ID | 时长 |
+|------|---------------|--------|------|
 | 短动作 | 打招呼 | wave | 1-2s |
 | 短动作 | 挠头 | scratch_head | 1-2s |
 | 短动作 | 弹手指 | snap_fingers | 1s |
@@ -174,10 +179,16 @@ AI生成带标记文本: "[State:开心][Action:打招呼]你好！[State:好奇
 | 长动作 | 土下座 | dogeza | 3-5s |
 | 长动作 | 喝水 | drink | 3-4s |
 
+**注意**：
+- 实际可用动作取决于数据库中为该VRM模型配置的动作
+- AI生成标记时会根据角色关联的VRM模型动态获取动作列表
+- 使用未配置的动作会保留原始中文名并记录警告
+
 **示例**：
 ```
 [Action:打招呼]你好呀！
 [Action:挠头]嗯...让我想想。
+[Action:跳舞]开始表演！  # 自定义动作
 ```
 
 ### 3.2 标记规则
@@ -226,6 +237,25 @@ AI生成带标记文本: "[State:开心][Action:打招呼]你好！[State:好奇
 ## 4. 后端实现
 
 ### 4.1 数据库设计
+
+#### 4.1.0 关系说明
+
+**核心关系**：
+```
+角色 (characters) ──┐
+                    ├─→ VRM模型 (vrm_models) ──→ 动作 (vrm_animations)
+角色 (characters) ──┘
+```
+
+- **角色 → VRM模型**：多对一（多个角色可以共享同一个VRM模型）
+- **VRM模型 → 动作**：一对多（一个VRM模型有多个动作）
+- **动作映射**：动态从数据库获取，支持自定义
+
+**数据流**：
+1. 用户选择角色 → 获取角色的 `vrm_model_id`
+2. 根据 `vrm_model_id` 查询动作列表 → 构建动作映射
+3. 动作映射传递给标记解析器 → 解析AI生成的标记
+4. 前端根据解析结果播放动作
 
 #### 4.1.1 VRM模型表
 
@@ -301,10 +331,34 @@ ALTER TABLE characters ADD COLUMN vrm_model_id TEXT;
 **功能**：
 - 解析嵌入式标记
 - 计算标记在纯文本中的位置
-- 映射中文名到英文ID
+- 映射中文名到英文ID（动作映射动态获取）
+
+**关键特性**：
+- ✅ **动态动作映射**：从数据库获取VRM模型的实际动作列表
+- ✅ **固定表情映射**：使用VRM规范定义的标准表情
+- ✅ **精确位置计算**：使用正向扫描算法，避免位置偏移错误
+- ✅ **未知动作处理**：保留原始中文名并记录警告日志
+
+**初始化**：
+```python
+# 从数据库获取动作映射
+animations = app_storage.list_vrm_animations(vrm_model_id)
+action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
+
+# 创建解析器（传入动作映射）
+parser = VRMMarkupParser(action_mapping=action_mapping)
+```
 
 **关键方法**：
 ```python
+def __init__(self, action_mapping: Optional[Dict[str, str]] = None):
+    """初始化解析器
+    
+    Args:
+        action_mapping: 动作映射字典（中文名 -> 英文ID），从数据库动态获取
+    """
+    self.action_mapping = action_mapping or {}
+
 def parse(self, marked_text: str) -> Tuple[str, List[VRMMarkup]]:
     """解析带标记的文本
     
@@ -318,7 +372,18 @@ def parse(self, marked_text: str) -> Tuple[str, List[VRMMarkup]]:
 
 **示例**：
 ```python
-parser = VRMMarkupParser()
+# 1. 从数据库获取动作映射
+animations = app_storage.list_vrm_animations("model-001")
+action_mapping = {
+    "打招呼": "wave",
+    "挠头": "scratch_head",
+    "跳舞": "dance"  # 自定义动作
+}
+
+# 2. 创建解析器
+parser = VRMMarkupParser(action_mapping=action_mapping)
+
+# 3. 解析文本
 clean_text, markups = parser.parse("[State:开心][Action:打招呼]你好！")
 
 # clean_text = "你好！"
@@ -326,19 +391,48 @@ clean_text, markups = parser.parse("[State:开心][Action:打招呼]你好！")
 #     VRMMarkup(type="state", value="happy", position=0),
 #     VRMMarkup(type="action", value="wave", position=0)
 # ]
+
+# 4. 未知动作处理
+clean_text2, markups2 = parser.parse("[Action:未知动作]测试")
+# markups2[0].value = "未知动作"  # 保留原始中文名
+# 同时记录警告日志
 ```
+
+**优势**：
+- 支持用户自定义动作，无需修改代码
+- 不同VRM模型可以有不同的动作集
+- 动作列表完全由数据库管理，灵活可扩展
 
 #### 4.2.2 音频生成器
 
 **文件**：`core/vrm/audio_generator.py`
 
 **功能**：
-- 按句分割文本
+- 按句分割文本（保留标记）
 - 为每个句子生成TTS音频
 - 计算精确时间戳
 
+**初始化**：
+```python
+# 从数据库获取动作映射
+animations = app_storage.list_vrm_animations(vrm_model_id)
+action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
+
+# 创建音频生成器（传入动作映射）
+audio_gen = AudioGenerator(tts_factory, action_mapping=action_mapping)
+```
+
 **关键方法**：
 ```python
+def __init__(self, tts_factory: TTSFactory, action_mapping: Optional[dict] = None):
+    """初始化音频生成器
+    
+    Args:
+        tts_factory: TTS工厂实例
+        action_mapping: 动作映射字典（中文名 -> 英文ID），从数据库获取
+    """
+    self.parser = VRMMarkupParser(action_mapping=action_mapping)
+
 async def generate_by_sentence(self, marked_text: str) -> List[AudioSegment]:
     """按句生成音频（带精确时间戳）
     
@@ -349,6 +443,11 @@ async def generate_by_sentence(self, marked_text: str) -> List[AudioSegment]:
         音频片段列表
     """
 ```
+
+**句子分割算法改进**：
+- ✅ **正向扫描**：直接在带标记的文本上分割，避免回溯匹配
+- ✅ **标记完整性**：确保标记不会被分割到不同句子
+- ✅ **边界准确**：精确识别句子结束符（。！？.!?）
 
 **数据结构**：
 ```python
@@ -384,23 +483,41 @@ def remove_markup(text: str) -> str:
 ```python
 # core/agent_manager.py
 
-async def send_message_stream(
+async def send_message_stream_vrm(
     self,
     user_message: str,
     conversation_id: int,
     character_id: int,
     model_id: str,
     provider_id: str,
-    display_mode: str = "text",
-    tts_mode: Optional[str] = None,
     **model_kwargs
 ):
-    # 1. 创建Agent（如果是VRM模式，修改system_prompt添加导演指令）
-    if display_mode == "vrm":
-        # 添加VRM标记生成指令到system_prompt
-        pass
+    # 1. 获取角色和VRM模型信息
+    character = self.app_storage.get_character(character_id)
+    vrm_model_id = character.get("vrm_model_id")
     
-    # 2. 流式生成文本
+    # 2. 生成VRM标记指令（基于数据库中的动作列表）
+    if vrm_model_id:
+        animations = self.app_storage.list_vrm_animations(vrm_model_id)
+        action_names = [anim["name_cn"] for anim in animations]
+        vrm_instruction = generate_vrm_instruction(DEFAULT_EXPRESSIONS, action_names)
+    else:
+        vrm_instruction = generate_vrm_instruction(DEFAULT_EXPRESSIONS, [])
+    
+    # 3. 在内存中创建临时角色配置（避免并发问题）
+    temp_character = character.copy()
+    temp_character["system_prompt"] = character["system_prompt"] + vrm_instruction
+    
+    # 4. 创建Agent（使用修改后的prompt）
+    agent = create_agent(
+        model=model,
+        tools=tools,
+        system_prompt=temp_character["system_prompt"],  # 临时prompt
+        checkpointer=self.checkpointer,
+        store=self.store
+    )
+    
+    # 5. 流式生成文本
     full_response = ""
     async for message in agent.astream(...):
         chunk_text = message.content
@@ -409,21 +526,37 @@ async def send_message_stream(
         # 发送文本chunk
         yield json.dumps({"type": "text", "content": chunk_text})
     
-    # 3. 生成音频（如果启用TTS）
-    if display_mode == "vrm" and tts_mode == "sentence":
-        audio_gen = AudioGenerator(self.tts_factory)
-        segments = await audio_gen.generate_by_sentence(full_response)
+    # 6. 生成音频（传入动作映射）
+    if full_response:
+        # 构建动作映射
+        action_mapping = {}
+        if vrm_model_id:
+            animations = self.app_storage.list_vrm_animations(vrm_model_id)
+            action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
+        
+        # 创建音频生成器（传入动作映射）
+        audio_gen = AudioGenerator(self.tts_factory, action_mapping=action_mapping)
+        segments = await audio_gen.generate_by_sentence(
+            full_response,
+            tts_provider=character.get("tts_id", "default")
+        )
         
         # 发送音频片段
         yield json.dumps({
             "type": "audio_segments",
-            "segments": [segment.__dict__ for segment in segments]
+            "segments": audio_gen.to_dict_list(segments)
         })
     
-    # 4. 保存消息（移除标记）
+    # 7. 保存消息（移除标记）
     clean_response = MarkupFilter.remove_markup(full_response)
+    self.app_storage.add_message(conversation_id, "user", user_message)
     self.app_storage.add_message(conversation_id, "assistant", clean_response)
 ```
+
+**关键改进**：
+- ✅ **动态动作列表**：从数据库读取VRM模型的实际动作
+- ✅ **内存中修改prompt**：避免数据库并发写入问题
+- ✅ **动作映射传递**：确保解析器使用正确的映射关系
 
 ---
 
@@ -1350,9 +1483,20 @@ const handleSend = async () => {
 
 #### 9.1.1 AI Prompt设计
 
-**推荐Prompt**：
+**推荐Prompt（动态生成）**：
 
-```
+系统会根据角色关联的VRM模型，从数据库动态获取动作列表，生成个性化的Prompt：
+
+```python
+# 后端自动生成Prompt
+def generate_vrm_instruction(expressions: list[str], actions: list[str]) -> str:
+    """生成VRM标记指令
+    
+    Args:
+        expressions: 表情列表（固定）
+        actions: 动作列表（从数据库获取）
+    """
+    return f"""
 你是一个VRM虚拟角色的动作导演。你的任务是为对话文本添加动作和表情标记。
 
 ## 标记语法
@@ -1361,12 +1505,10 @@ const handleSend = async () => {
 
 ## 可用资源
 ### 表情列表
-- 开心、难过、生气、惊讶、中性、好奇
+{', '.join(expressions)}
 
 ### 动作列表
-- 短动作：打招呼、挠头、弹手指、羞愧
-- 中等动作：兴奋、问候、和平手势、叉腰
-- 长动作：土下座、喝水、摔倒
+{', '.join(actions)}
 
 ## 编排规则
 1. **不修改原文** - 保持文本完整性，只插入标签
@@ -1382,10 +1524,27 @@ const handleSend = async () => {
 输入: "嗯...让我想想，这个功能好像还没做完。"
 输出: "[State:好奇][Action:挠头]嗯...让我想想，[State:难过]这个功能好像还没做完。"
 
-现在，请为以下文本添加标记：
-{user_message}
+请在你的回复中自然地添加这些标记。
+"""
+```
 
-只返回添加标记后的文本，不要有任何其他说明。
+**关键特性**：
+- ✅ **动态动作列表**：根据VRM模型的实际动作生成
+- ✅ **自动适配**：不同角色可以有不同的动作集
+- ✅ **无需手动维护**：添加新动作后自动生效
+
+**示例场景**：
+
+```python
+# 场景1：标准VRM模型
+animations = ["打招呼", "挠头", "弹手指", "羞愧"]
+prompt = generate_vrm_instruction(DEFAULT_EXPRESSIONS, animations)
+# AI只会使用这4个动作
+
+# 场景2：扩展VRM模型（添加了自定义动作）
+animations = ["打招呼", "挠头", "跳舞", "鞠躬", "拍手"]
+prompt = generate_vrm_instruction(DEFAULT_EXPRESSIONS, animations)
+# AI可以使用5个动作，包括自定义的"跳舞"、"鞠躬"、"拍手"
 ```
 
 #### 9.1.2 标记使用原则
@@ -1401,6 +1560,50 @@ const handleSend = async () => {
 - ❌ 在同一句话中添加多个动作
 - ❌ 使用与情感不符的表情
 - ❌ 在长句中间频繁切换表情
+
+#### 9.1.3 自定义动作管理
+
+**添加自定义动作**：
+
+```bash
+# 1. 上传动作文件（.fbx或.bvh）
+POST /api/v1/vrm/models/{vrm_model_id}/animations/upload
+Content-Type: multipart/form-data
+
+file: dance.fbx
+name: "dance"
+name_cn: "跳舞"
+duration: 3.0
+type: "medium"
+```
+
+**使用自定义动作**：
+
+```python
+# 后端自动处理
+# 1. 从数据库获取动作列表（包括自定义动作）
+animations = app_storage.list_vrm_animations(vrm_model_id)
+# 结果: [
+#   {"name": "wave", "name_cn": "打招呼"},
+#   {"name": "dance", "name_cn": "跳舞"},  # 自定义动作
+# ]
+
+# 2. 构建动作映射
+action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
+# 结果: {"打招呼": "wave", "跳舞": "dance"}
+
+# 3. 传递给解析器
+parser = VRMMarkupParser(action_mapping=action_mapping)
+
+# 4. AI生成时会包含自定义动作
+# "[Action:跳舞]开始表演！"
+```
+
+**最佳实践**：
+- ✅ 动作文件应与VRM模型骨骼匹配
+- ✅ 中文名应简洁明了，便于AI理解
+- ✅ 设置合理的时长，避免动作被截断
+- ✅ 按类型分类（short/medium/long）
 
 ### 9.2 性能优化
 
@@ -1965,7 +2168,42 @@ interface VRMResources {
 
 ---
 
-**文档版本**：v1.0.0  
+---
+
+## 更新日志
+
+### v1.1.0 (2025-12-12)
+
+**重要改进**：
+1. **动态动作映射**：动作列表从数据库动态获取，支持用户自定义动作
+2. **句子分割算法优化**：使用正向扫描替代回溯匹配，提高准确性
+3. **标记位置计算修复**：实时维护纯文本长度，避免offset累积错误
+4. **时间戳计算改进**：特殊处理句首/句尾标记，提高触发精度
+5. **并发问题修复**：在内存中修改prompt，避免数据库并发冲突
+
+**详细说明**：
+- `VRMMarkupParser` 现在接收 `action_mapping` 参数，从数据库动态获取
+- `AudioGenerator` 初始化时传入动作映射，确保解析器使用正确的映射
+- `agent_manager.py` 在VRM模式下从数据库读取动作列表并构建映射
+- 未知动作会保留原始中文名并记录警告日志
+- 表情映射保持固定（VRM规范定义的标准表情）
+
+**向后兼容性**：
+- API接口保持不变
+- 前端无需修改
+- 数据库结构无变化
+
+### v1.0.0 (2025-12-01)
+
+**初始版本**：
+- VRM虚拟角色集成基础功能
+- 嵌入式标记语法
+- 按句TTS生成
+- 精确时间戳同步
+
+---
+
+**文档版本**：v1.1.0  
 **最后更新**：2025-12-12  
 **维护者**：开发团队
 

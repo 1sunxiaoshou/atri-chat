@@ -3,7 +3,7 @@ import re
 import wave
 import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 from dataclasses import dataclass, asdict
 from .markup_parser import VRMMarkupParser, VRMMarkup
 from .markup_filter import MarkupFilter
@@ -45,24 +45,33 @@ class AudioGenerator:
     # 句子分割正则（保留分隔符）
     SENTENCE_PATTERN = re.compile(r'([^。！？\.\!\?]+[。！？\.\!\?]+)')
     
-    def __init__(self, tts_factory: TTSFactory):
+    def __init__(self, tts_factory: TTSFactory, action_mapping: Optional[dict] = None):
         """初始化音频生成器
         
         Args:
             tts_factory: TTS工厂实例
+            action_mapping: 动作映射字典（中文名 -> 英文ID），从数据库获取
         """
         self.tts_factory = tts_factory
-        self.parser = VRMMarkupParser()
+        self.parser = VRMMarkupParser(action_mapping=action_mapping)
         self.path_manager = get_path_manager()
         
         # 确保VRM音频目录存在
         self.vrm_audio_dir = self.path_manager.uploads_dir / "vrm_audio"
         self.vrm_audio_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.debug(f"音频生成器初始化完成", extra={"audio_dir": str(self.vrm_audio_dir)})
+        logger.debug(
+            f"音频生成器初始化完成",
+            extra={
+                "audio_dir": str(self.vrm_audio_dir),
+                "action_count": len(action_mapping) if action_mapping else 0
+            }
+        )
     
     def split_sentences(self, text: str) -> List[str]:
         """按句分割文本（保留标记）
+        
+        使用正向扫描，直接在带标记的文本上分割，避免回溯匹配
         
         Args:
             text: 带标记的完整文本
@@ -75,71 +84,64 @@ class AudioGenerator:
             >>> gen.split_sentences("[State:开心]你好！[State:好奇]今天怎么样？")
             ['[State:开心]你好！', '[State:好奇]今天怎么样？']
         """
-        # 先移除标记，按句分割
-        clean_text = MarkupFilter.remove_markup(text)
-        sentences_clean = self.SENTENCE_PATTERN.findall(clean_text)
+        if not text:
+            return []
         
-        if not sentences_clean:
-            # 如果没有匹配到句子（没有标点），返回整个文本
-            return [text]
+        # 句子结束符
+        end_chars = {'。', '！', '？', '.', '!', '?'}
         
-        # 重新匹配带标记的句子
-        sentences_with_markup = []
-        text_pos = 0
+        sentences = []
+        current_sentence = []
+        i = 0
         
-        for clean_sentence in sentences_clean:
-            # 在原文中查找这个句子的位置
-            # 需要考虑标记的存在
-            sentence_start = text.find(clean_sentence, text_pos)
+        while i < len(text):
+            char = text[i]
             
-            if sentence_start == -1:
-                # 如果找不到（可能因为标记），尝试逐字匹配
-                # 这里简化处理：从当前位置开始，找到下一个句子结束符
-                end_chars = ['。', '！', '？', '.', '!', '?']
-                sentence_end = text_pos
-                
-                for i in range(text_pos, len(text)):
-                    if text[i] in end_chars:
-                        sentence_end = i + 1
-                        break
+            # 处理标记（跳过整个标记块）
+            if char == '[':
+                # 找到标记的结束位置
+                end_pos = text.find(']', i)
+                if end_pos != -1:
+                    # 将整个标记添加到当前句子
+                    current_sentence.append(text[i:end_pos + 1])
+                    i = end_pos + 1
                 else:
-                    sentence_end = len(text)
-                
-                sentence_with_markup = text[text_pos:sentence_end]
-                text_pos = sentence_end
+                    # 没有找到结束符，当作普通字符
+                    current_sentence.append(char)
+                    i += 1
+            # 处理句子结束符
+            elif char in end_chars:
+                current_sentence.append(char)
+                # 完成一个句子
+                sentence = ''.join(current_sentence)
+                if sentence.strip():  # 忽略空句子
+                    sentences.append(sentence)
+                current_sentence = []
+                i += 1
+            # 普通字符
             else:
-                # 找到了，提取带标记的句子
-                # 需要包含句子前面的标记
-                markup_start = text_pos
-                
-                # 向前查找标记
-                while markup_start < sentence_start:
-                    if text[markup_start] == '[':
-                        break
-                    markup_start += 1
-                
-                if markup_start >= sentence_start:
-                    markup_start = sentence_start
-                
-                sentence_end = sentence_start + len(clean_sentence)
-                sentence_with_markup = text[markup_start:sentence_end]
-                text_pos = sentence_end
-            
-            sentences_with_markup.append(sentence_with_markup)
+                current_sentence.append(char)
+                i += 1
         
-        # 如果还有剩余文本（没有句子结束符的部分）
-        if text_pos < len(text):
-            sentences_with_markup.append(text[text_pos:])
+        # 处理剩余内容（没有结束符的句子）
+        if current_sentence:
+            sentence = ''.join(current_sentence)
+            if sentence.strip():
+                sentences.append(sentence)
+        
+        # 如果没有分割出任何句子，返回原文
+        if not sentences:
+            sentences = [text]
         
         logger.debug(
             f"句子分割完成",
             extra={
                 "total_length": len(text),
-                "sentence_count": len(sentences_with_markup)
+                "sentence_count": len(sentences)
             }
         )
         
-        return sentences_with_markup
+        return sentences
     
     async def generate_by_sentence(
         self,
@@ -324,6 +326,11 @@ class AudioGenerator:
     ) -> List[TimedMarkup]:
         """计算标记的精确时间戳
         
+        改进算法：考虑标记位置的实际语义，而不是简单的线性插值
+        - 位置为0的标记：触发时间为句子开始
+        - 位置在句子中间的标记：使用线性插值（简化处理）
+        - 位置在句子末尾的标记：触发时间为句子结束前
+        
         Args:
             markups: 标记列表
             clean_text: 纯文本
@@ -338,15 +345,22 @@ class AudioGenerator:
         text_length = len(clean_text)
         
         for markup in markups:
-            # 计算相对位置（0.0 - 1.0）
-            if text_length > 0:
+            # 特殊处理：位置为0的标记（句首标记）
+            if markup.position == 0:
+                timestamp = sentence_start_time
+            # 特殊处理：位置在句尾的标记
+            elif text_length > 0 and markup.position >= text_length:
+                # 句尾标记提前0.1秒触发，避免在句子结束后才触发
+                timestamp = sentence_start_time + max(0, audio_duration - 0.1)
+            # 中间位置：线性插值
+            elif text_length > 0:
+                # 使用字符位置的比例来估算时间
+                # 注意：这是简化处理，实际TTS的时间分布不是完全线性的
                 relative_position = markup.position / text_length
+                timestamp = sentence_start_time + (relative_position * audio_duration)
             else:
-                relative_position = 0.0
-            
-            # 计算绝对时间戳
-            # 公式: timestamp = sentence_start_time + (position / text_length) * audio_duration
-            timestamp = sentence_start_time + (relative_position * audio_duration)
+                # 空文本，默认为句子开始
+                timestamp = sentence_start_time
             
             timed_markups.append(TimedMarkup(
                 type=markup.type,
@@ -362,8 +376,9 @@ class AudioGenerator:
                     "value": markup.value,
                     "position": markup.position,
                     "text_length": text_length,
-                    "relative_position": relative_position,
-                    "timestamp": timestamp
+                    "timestamp": timestamp,
+                    "sentence_start": sentence_start_time,
+                    "audio_duration": audio_duration
                 }
             )
         
