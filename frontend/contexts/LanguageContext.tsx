@@ -85,6 +85,10 @@ const translations: Record<Language, Translations> = {
     'admin.systemPromptHelp': "This prompt defines the AI's personality and behavior.",
     'admin.selectChar': 'Select a character to edit or create a new one',
     'admin.confirmDelete': 'Are you sure you want to delete this character? This will also delete all associated sessions.',
+    'admin.confirmDeleteVRM': 'Delete VRM model {name}?',
+    'admin.uploadSuccess': 'Upload Success',
+    'admin.uploadFailed': 'Upload Failed',
+    'admin.deleteFailed': 'Delete Failed',
     // App
     'app.startChatting': 'Start chatting with',
     'app.selectConversation': 'Select a conversation or start a new chat',
@@ -169,6 +173,10 @@ const translations: Record<Language, Translations> = {
     'admin.systemPromptHelp': '此提示词定义了 AI 的个性和行为。',
     'admin.selectChar': '选择一个角色进行编辑或创建新角色',
     'admin.confirmDelete': '确定要删除该角色吗？这将同时删除所有关联的会话。',
+    'admin.confirmDeleteVRM': '确定删除 VRM 模型 {name} 吗？',
+    'admin.uploadSuccess': '上传成功',
+    'admin.uploadFailed': '上传失败',
+    'admin.deleteFailed': '删除失败',
     // App
     'app.startChatting': '开始对话：',
     'app.selectConversation': '选择一个会话或开始新对话',
@@ -180,7 +188,7 @@ const translations: Record<Language, Translations> = {
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -188,8 +196,14 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('zh');
 
-  const t = (key: string): string => {
-    return translations[language][key] || key;
+  const t = (key: string, params?: Record<string, string | number>): string => {
+    let text = translations[language][key] || key;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(`{${k}}`, String(v));
+      });
+    }
+    return text;
   };
 
   return (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Cpu, Users, Plus, Trash, Save, X, CheckCircle, RotateCcw } from 'lucide-react';
-import { Provider, Model, Character, AdminTab } from '../../types';
+import { Server, Cpu, Users, Plus, Trash, Save, X, CheckCircle, RotateCcw, Box, Video } from 'lucide-react';
+import { Provider, Model, Character, AdminTab, VRMModel } from '../../types';
 import { api } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AvatarEditor } from '../AvatarEditor';
@@ -17,6 +17,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [models, setModels] = useState<Model[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [providerTemplates, setProviderTemplates] = useState<any[]>([]);
+  const [vrmModels, setVrmModels] = useState<VRMModel[]>([]);
 
   // Provider Modal State
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
@@ -44,9 +45,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const p = await api.getProviders();
     const m = await api.getModels();
     const c = await api.getCharacters();
+    const v = await api.getVRMModels();
     setProviders(p.data);
     setModels(m.data);
     setCharacters(c.data);
+    if (v.code === 200) {
+      setVrmModels(v.data || []);
+    }
   };
 
   const fetchTemplates = async () => {
@@ -68,14 +73,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       // 使用第一个模板作为默认值
       const defaultTemplate = providerTemplates[0];
       const defaultConfigJson: any = {};
-      
+
       if (defaultTemplate) {
         // 根据模板字段生成默认配置
         defaultTemplate.config_fields?.forEach((field: any) => {
           defaultConfigJson[field.field_name] = field.default_value || '';
         });
       }
-      
+
       setEditingProvider({
         provider_id: '',
         name: '',
@@ -173,7 +178,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
       // Build update object with only changed fields
       const updateData: Partial<Character> = {};
-      
+
       if (editingCharacter.name !== originalChar.name) {
         updateData.name = editingCharacter.name;
       }
@@ -191,6 +196,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       }
       if (editingCharacter.tts_id !== originalChar.tts_id) {
         updateData.tts_id = editingCharacter.tts_id;
+      }
+      if (editingCharacter.vrm_model_id !== originalChar.vrm_model_id) {
+        updateData.vrm_model_id = editingCharacter.vrm_model_id;
       }
       if (editingCharacter.enabled !== originalChar.enabled) {
         updateData.enabled = editingCharacter.enabled;
@@ -292,69 +300,182 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     });
 
     return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t('admin.models')}</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={handleOpenModelModal}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            <Plus size={16} /> {t('admin.addModel')}
-          </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50">
-            <RotateCcw size={16} /> {t('admin.syncModels')}
-          </button>
+      <div className="space-y-6 animate-fadeIn">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t('admin.models')}</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={handleOpenModelModal}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <Plus size={16} /> {t('admin.addModel')}
+            </button>
+            <button className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50">
+              <RotateCcw size={16} /> {t('admin.syncModels')}
+            </button>
+          </div>
+        </div>
+
+        {/* 筛选器 */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+          <div className="flex gap-4 items-center">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.filter')}:</span>
+            <select
+              value={modelFilterProvider}
+              onChange={(e) => setModelFilterProvider(e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">{t('admin.allProviders')}</option>
+              {[...new Set(models.map(m => m.provider_id))].map(pid => (
+                <option key={pid} value={pid}>{pid}</option>
+              ))}
+            </select>
+            <select
+              value={modelFilterType}
+              onChange={(e) => setModelFilterType(e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">{t('admin.allTypes')}</option>
+              <option value="text">Text</option>
+              <option value="embedding">Embedding</option>
+            </select>
+            <select
+              value={modelFilterEnabled}
+              onChange={(e) => setModelFilterEnabled(e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">{t('admin.allStatus')}</option>
+              <option value="enabled">{t('admin.enabled')}</option>
+              <option value="disabled">{t('admin.disabled')}</option>
+            </select>
+            {(modelFilterProvider || modelFilterType || modelFilterEnabled) && (
+              <button
+                onClick={() => {
+                  setModelFilterProvider('');
+                  setModelFilterType('');
+                  setModelFilterEnabled('');
+                }}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 underline"
+              >
+                {t('admin.clearFilter')}
+              </button>
+            )}
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+              {t('admin.showing')} {filteredModels.length} {t('admin.of')} {models.length} {t('admin.modelsCount')}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="px-6 py-4">{t('admin.modelId')}</th>
+                <th className="px-6 py-4">{t('admin.providers')}</th>
+                <th className="px-6 py-4">{t('admin.modelType')}</th>
+                <th className="px-6 py-4">{t('admin.capabilities')}</th>
+                <th className="px-6 py-4 text-right">{t('admin.status')}</th>
+                <th className="px-6 py-4 w-10"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {filteredModels.map((m) => (
+                <tr key={`${m.provider_id}-${m.model_id}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{m.model_id}</td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      {m.provider_id}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{m.model_type}</td>
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400 flex gap-1">
+                    {m.capabilities.map(cap => (
+                      <span key={cap} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">{cap}</span>
+                    ))}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => api.toggleModel(m.model_id, !m.enabled, m.provider_id).then(fetchData)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${m.enabled ? 'bg-green-500' : 'bg-gray-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${m.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => handleDeleteModel(m.provider_id, m.model_id)}
+                      className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
+    );
+  };
 
-      {/* 筛选器 */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-        <div className="flex gap-4 items-center">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.filter')}:</span>
-          <select
-            value={modelFilterProvider}
-            onChange={(e) => setModelFilterProvider(e.target.value)}
-            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+  // --- VRM Handlers ---
+  const handleUploadVRM = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    // 使用文件名作为默认名称，去掉扩展名
+    const defaultName = file.name.replace(/\.vrm$/i, '');
+    formData.append('name', defaultName);
+
+    try {
+      const res = await api.uploadVRMModel(formData);
+      if (res.code === 200) {
+        await fetchData();
+        alert(t('admin.uploadSuccess') || 'Upload Success');
+      } else {
+        alert(t('admin.uploadFailed') || 'Upload Failed: ' + res.message);
+      }
+    } catch (error) {
+      console.error("Upload VRM failed", error);
+      alert(t('admin.uploadFailed') || 'Upload Failed');
+    }
+    // Reset input
+    e.target.value = '';
+  };
+
+  const handleDeleteVRM = async (id: string, name: string) => {
+    if (window.confirm(t('admin.confirmDeleteVRM', { name }) || `Delete VRM model ${name}?`)) {
+      try {
+        const res = await api.deleteVRMModel(id);
+        if (res.code === 200) {
+          await fetchData();
+        } else {
+          alert(res.message);
+        }
+      } catch (e) {
+        console.error(e);
+        alert(t('admin.deleteFailed') || 'Delete Failed');
+      }
+    }
+  };
+
+  const renderVRMs = () => (
+    <div className="space-y-6 animate-fadeIn">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t('admin.vrmModels') || 'VRM Models'}</h3>
+        <div className="flex gap-2">
+          <button
+            className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50"
+            onClick={fetchData}
           >
-            <option value="">{t('admin.allProviders')}</option>
-            {[...new Set(models.map(m => m.provider_id))].map(pid => (
-              <option key={pid} value={pid}>{pid}</option>
-            ))}
-          </select>
-          <select
-            value={modelFilterType}
-            onChange={(e) => setModelFilterType(e.target.value)}
-            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="">{t('admin.allTypes')}</option>
-            <option value="text">Text</option>
-            <option value="embedding">Embedding</option>
-          </select>
-          <select
-            value={modelFilterEnabled}
-            onChange={(e) => setModelFilterEnabled(e.target.value)}
-            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="">{t('admin.allStatus')}</option>
-            <option value="enabled">{t('admin.enabled')}</option>
-            <option value="disabled">{t('admin.disabled')}</option>
-          </select>
-          {(modelFilterProvider || modelFilterType || modelFilterEnabled) && (
-            <button
-              onClick={() => {
-                setModelFilterProvider('');
-                setModelFilterType('');
-                setModelFilterEnabled('');
-              }}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 underline"
-            >
-              {t('admin.clearFilter')}
-            </button>
-          )}
-          <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
-            {t('admin.showing')} {filteredModels.length} {t('admin.of')} {models.length} {t('admin.modelsCount')}
-          </span>
+            <RotateCcw size={16} /> Refresh
+          </button>
+          <label className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer shadow-lg shadow-blue-600/20">
+            <Plus size={16} /> Upload VRM
+            <input type="file" accept=".vrm" onChange={handleUploadVRM} className="hidden" />
+          </label>
         </div>
       </div>
 
@@ -362,53 +483,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
             <tr>
-              <th className="px-6 py-4">{t('admin.modelId')}</th>
-              <th className="px-6 py-4">{t('admin.providers')}</th>
-              <th className="px-6 py-4">{t('admin.modelType')}</th>
-              <th className="px-6 py-4">{t('admin.capabilities')}</th>
-              <th className="px-6 py-4 text-right">{t('admin.status')}</th>
-              <th className="px-6 py-4 w-10"></th>
+              <th className="px-6 py-4 w-12">#</th>
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">File Path</th>
+              <th className="px-6 py-4">Created At</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredModels.map((m) => (
-              <tr key={`${m.provider_id}-${m.model_id}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{m.model_id}</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                    {m.provider_id}
-                  </span>
+            {vrmModels.map((model, index) => (
+              <tr key={model.vrm_model_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                <td className="px-6 py-4 text-gray-400">{index + 1}</td>
+                <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <Box size={16} className="text-indigo-500" />
+                  {model.name}
                 </td>
-                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{m.model_type}</td>
-                <td className="px-6 py-4 text-gray-500 dark:text-gray-400 flex gap-1">
-                  {m.capabilities.map(cap => (
-                    <span key={cap} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">{cap}</span>
-                  ))}
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{model.model_path}</td>
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                  {new Date(model.created_at || Date.now()).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button
-                    onClick={() => api.toggleModel(m.model_id, !m.enabled, m.provider_id).then(fetchData)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${m.enabled ? 'bg-green-500' : 'bg-gray-200'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${m.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => handleDeleteModel(m.provider_id, m.model_id)}
-                    className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    onClick={() => handleDeleteVRM(model.vrm_model_id, model.name)}
+                    className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete"
                   >
                     <Trash size={16} />
                   </button>
                 </td>
               </tr>
             ))}
+            {vrmModels.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
+                  <Box size={40} className="mx-auto mb-3 opacity-20" />
+                  <p>No VRM models found. Upload one to get started.</p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
     </div>
-    );
-  };
+  );
 
   const renderCharacters = () => (
     <div className="flex gap-6 h-[calc(100vh-200px)] animate-fadeIn">
@@ -464,13 +581,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             </div>
 
             <div className="flex items-center gap-6 mb-8">
-              <div 
+              <div
                 className="relative group cursor-pointer"
                 onClick={() => setIsAvatarEditorOpen(true)}
               >
-                <img 
-                  src={editingCharacter.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + editingCharacter.name} 
-                  className="w-20 h-20 rounded-full object-cover bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all" 
+                <img
+                  src={editingCharacter.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + editingCharacter.name}
+                  className="w-20 h-20 rounded-full object-cover bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all"
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="text-white text-xs font-medium">{t('admin.clickEdit')}</span>
@@ -534,6 +651,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               </div>
 
               <div className="flex-1 flex flex-col min-h-[200px]">
+                <div className="grid grid-cols-2 gap-4 flex-shrink-0 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">VRM Model</label>
+                    <select
+                      value={editingCharacter.vrm_model_id || ''}
+                      onChange={(e) => setEditingCharacter({ ...editingCharacter, vrm_model_id: e.target.value })}
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="">None</option>
+                      {vrmModels.map(m => (
+                        <option key={m.vrm_model_id} value={m.vrm_model_id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.systemPrompt')}</label>
                 <textarea
                   value={editingCharacter.system_prompt}
@@ -577,6 +710,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             { id: 'providers', label: t('admin.providers'), icon: Server },
             { id: 'models', label: t('admin.models'), icon: Cpu },
             { id: 'characters', label: t('admin.characters'), icon: Users },
+            { id: 'vrm', label: 'VRM Models', icon: Box },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -600,6 +734,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           {activeTab === 'providers' && renderProviders()}
           {activeTab === 'models' && renderModels()}
           {activeTab === 'characters' && renderCharacters()}
+          {activeTab === 'vrm' && renderVRMs()}
         </div>
       </div>
 
@@ -636,16 +771,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     onChange={(e) => {
                       const selectedTemplate = providerTemplates.find(t => t.template_type === e.target.value);
                       const newConfigJson: any = {};
-                      
+
                       // 根据选中的模板生成配置字段
                       if (selectedTemplate) {
                         selectedTemplate.config_fields?.forEach((field: any) => {
                           newConfigJson[field.field_name] = field.default_value || '';
                         });
                       }
-                      
-                      setEditingProvider({ 
-                        ...editingProvider, 
+
+                      setEditingProvider({
+                        ...editingProvider,
                         template_type: e.target.value as any,
                         config_json: newConfigJson
                       });
@@ -813,7 +948,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           onSave={async (avatarUrl) => {
             try {
               let finalAvatarUrl = avatarUrl;
-              
+
               // 如果是本地文件（base64），需要上传
               if (avatarUrl.startsWith('data:')) {
                 // 将base64转换为文件并上传
@@ -828,17 +963,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   return;
                 }
               }
-              
+
               // 立即调用 API 更新角色头像
               const charId = getCharacterId(editingCharacter);
               await api.updateCharacter(charId, { avatar: finalAvatarUrl });
-              
+
               // 更新本地状态
               setEditingCharacter({ ...editingCharacter, avatar: finalAvatarUrl });
-              
+
               // 刷新数据
               await fetchData();
-              
+
               setIsAvatarEditorOpen(false);
             } catch (error) {
               console.error('头像保存失败:', error);

@@ -12,6 +12,8 @@ import { StreamTTSPlayer } from '../../utils/streamTTSPlayer';
 import { createMarkdownComponents } from '../../utils/markdownConfig';
 import ModelConfigPopover from './ModelConfigPopover';
 import Select from '../ui/Select';
+import { VRMLoader } from '../../utils/vrmLoader';
+import { VRMTimedPlayer } from '../../utils/vrmTimedPlayer';
 
 interface ChatInterfaceProps {
   activeConversationId: number;
@@ -42,14 +44,108 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
+  const [showVrmError, setShowVrmError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamPlayerRef = useRef<StreamTTSPlayer | null>(null);
+
+  // VRM相关 Refs
+  const vrmCanvasRef = useRef<HTMLCanvasElement>(null);
+  const vrmLoaderRef = useRef<VRMLoader | null>(null);
+  const vrmPlayerRef = useRef<VRMTimedPlayer | null>(null);
+  const [subtitle, setSubtitle] = useState('');
 
   useEffect(() => {
     if (activeConversationId) {
       loadMessages();
     }
   }, [activeConversationId]);
+
+  // 初始化 VRM
+  useEffect(() => {
+    if (vrmDisplayMode === 'vrm' && vrmCanvasRef.current) {
+      if (!vrmLoaderRef.current) {
+        const loader = new VRMLoader(vrmCanvasRef.current);
+        vrmLoaderRef.current = loader;
+
+        // 初始化播放器
+        const streamPlayer = new StreamTTSPlayer(1.0);
+        const player = new VRMTimedPlayer(loader, streamPlayer, (text) => setSubtitle(text));
+        vrmPlayerRef.current = player;
+
+        // 加载模型
+        if (activeCharacter?.vrm_model_id) {
+          loadVRMModel(activeCharacter.vrm_model_id, loader);
+        } else {
+          console.warn("当前角色未配置 VRM 模型ID");
+          setSubtitle('请先为角色配置VRM模型');
+        }
+      }
+    } else {
+      // 切换出 VRM 模式，清理资源
+      if (vrmLoaderRef.current) {
+        vrmLoaderRef.current.dispose();
+        vrmLoaderRef.current = null;
+      }
+      if (vrmPlayerRef.current) {
+        vrmPlayerRef.current.stop();
+        vrmPlayerRef.current = null;
+      }
+      setSubtitle('');
+    }
+  }, [vrmDisplayMode, activeCharacter?.character_id]);
+
+  // 加载VRM模型的函数
+  const loadVRMModel = async (vrmModelId: string, loader: VRMLoader) => {
+    try {
+      setSubtitle('正在加载VRM模型...');
+
+      const response = await api.getVRMModel(vrmModelId);
+      if (response.code === 200 && response.data) {
+        const modelData = response.data;
+
+        // 加载VRM模型
+        await loader.loadModel(modelData.model_path);
+
+        // 加载动画
+        if (modelData.animations && modelData.animations.length > 0) {
+          const animationMap: Record<string, string> = {};
+          modelData.animations.forEach((anim: any) => {
+            animationMap[anim.name] = anim.animation_path;
+          });
+
+          await loader.loadAnimations(animationMap);
+          setSubtitle('VRM模型加载完成');
+        } else {
+          setSubtitle('VRM模型加载完成（无动作）');
+        }
+
+        // 清除提示文字
+        setTimeout(() => setSubtitle(''), 2000);
+      }
+    } catch (error) {
+      console.error('加载VRM模型失败:', error);
+      setSubtitle('VRM模型加载失败，将使用默认显示');
+
+      // 5秒后清除错误提示
+      setTimeout(() => setSubtitle(''), 5000);
+    }
+  };
+
+  // 修正后的 cleanup 逻辑：
+  useEffect(() => {
+    return () => {
+      if (vrmLoaderRef.current) {
+        vrmLoaderRef.current.dispose();
+        vrmLoaderRef.current = null;
+      }
+      if (vrmPlayerRef.current) {
+        vrmPlayerRef.current.stop();
+        vrmPlayerRef.current = null;
+      }
+    };
+  }, []); // 只在组件卸载时彻底清理，或者我们依赖上面的 dep active cleanup
+
+
 
   const loadMessages = async () => {
     try {
@@ -106,13 +202,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     let hasReceivedFirstToken = false;
 
     try {
+      // 准备模型参数
+      const finalModelParams = { ...modelParameters };
+      if (vrmDisplayMode === 'vrm') {
+        // 在 VRM 模式下，强制开启 TTS 和相关配置
+        (finalModelParams as any).display_mode = 'vrm';
+        (finalModelParams as any).enable_tts = true;
+        (finalModelParams as any).tts_mode = 'sentence';
+      }
+
       const result = await api.sendMessage(
         activeConversationId,
         content,
         Number(activeCharacter?.character_id || activeCharacter?.id),
         activeModel?.model_id || '',
         activeModel?.provider_id || '',
-        modelParameters,
+        finalModelParams,
         (streamContent: string) => {
           if (!hasReceivedFirstToken) {
             hasReceivedFirstToken = true;
@@ -160,6 +265,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           scrollToBottom();
         },
         (reasoning: string) => {
+          // ... (reasoning logic same as before)
           if (!hasReceivedFirstToken) {
             hasReceivedFirstToken = true;
             setIsTyping(false);
@@ -182,6 +288,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             );
           }
           scrollToBottom();
+        },
+        (data: any) => {
+          // 处理 VRM 数据
+          if (vrmDisplayMode === 'vrm' && vrmPlayerRef.current) {
+            // 假设 data是 { audio_segments: [...] } 或者已经是 segments 列表
+            // 根据后端实现来定。假设是 { type: 'audio_segments', segments: [...] }
+            // 但 callback里传进来的是 data.content，所以如果是Segments[]
+            if (Array.isArray(data)) {
+              vrmPlayerRef.current.setSegments(data);
+              vrmPlayerRef.current.play();
+            } else if (data.segments) {
+              vrmPlayerRef.current.setSegments(data.segments);
+              vrmPlayerRef.current.play();
+            }
+          }
         }
       );
 
@@ -193,7 +314,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       if (result.code !== 200 || (result.data as any)?.error) {
         const errorMsg = (result.data as any)?.error || result.message || '发送消息失败';
-        
+
         if (hasReceivedFirstToken) {
           setMessages(prev =>
             prev.map(msg =>
@@ -216,7 +337,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (e) {
       console.error("发送消息异常", e);
       setIsTyping(false);
-      
+
       if (hasReceivedFirstToken) {
         setMessages(prev =>
           prev.map(msg =>
@@ -244,7 +365,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       await navigator.clipboard.writeText(content);
       setCopiedMessageId(messageId);
-      
+
       setTimeout(() => {
         setCopiedMessageId(null);
       }, 2000);
@@ -352,7 +473,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900 transition-colors relative">
       {/* Header */}
-      <div className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 sticky top-0 transition-colors">
+      <div className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 sticky top-0 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 overflow-hidden">
             {activeCharacter?.avatar ? (
@@ -374,14 +495,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         <div className="flex items-center gap-2">
           <div className="w-56">
-             <Select
-                value={activeModel?.model_id || ''}
-                onChange={onUpdateModel}
-                options={modelOptions}
-                placeholder="选择模型..."
-             />
+            <Select
+              value={activeModel?.model_id || ''}
+              onChange={onUpdateModel}
+              options={modelOptions}
+              placeholder="选择模型..."
+            />
           </div>
-          
+
           {/* Display Mode Toggle */}
           <div className="relative bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex items-center h-9 w-[180px] border border-gray-200 dark:border-gray-700">
             {/* 滑块背景动画 */}
@@ -389,12 +510,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               className="absolute top-1 bottom-1 left-1 bg-white dark:bg-gray-700 rounded-md shadow-sm ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300 ease-out"
               style={{
                 width: 'calc((100% - 8px) / 3)',
-                transform: `translateX(${
-                  ['normal', 'vrm', 'live2d'].indexOf(vrmDisplayMode) * 100
-                }%)`
+                transform: `translateX(${['normal', 'vrm', 'live2d'].indexOf(vrmDisplayMode) * 100
+                  }%)`
               }}
             />
-            
+
+            {/* Error Popup for VRM */}
+            {showVrmError && (
+              <div className="absolute top-12 right-0 bg-red-100 border border-red-200 text-red-600 text-sm px-3 py-1.5 rounded-lg shadow-lg z-50 animate-fadeIn flex items-center gap-2 whitespace-nowrap">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                请先在角色设置中配置 VRM 模型
+              </div>
+            )}
+
             <div className="grid grid-cols-3 w-full h-full relative">
               {[
                 { id: 'normal', label: '正常' },
@@ -405,7 +533,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return (
                   <button
                     key={mode.id}
-                    onClick={() => setVrmDisplayMode(mode.id as any)}
+                    onClick={() => {
+                      if (mode.id === 'vrm' && !activeCharacter?.vrm_model_id) {
+                        setShowVrmError(true);
+                        setTimeout(() => setShowVrmError(false), 3000);
+                        return;
+                      }
+                      setVrmDisplayMode(mode.id as any);
+                    }}
                     className={`
                       relative z-10 flex items-center justify-center text-xs font-medium transition-colors duration-200 rounded-md
                       ${isActive ? 'text-black dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}
@@ -432,156 +567,176 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 overflow-hidden">
-              {activeCharacter?.avatar ? (
-                <img src={activeCharacter.avatar} alt="Character" className="w-full h-full object-cover" />
-              ) : (
-                <Sparkles size={40} className="text-gray-400 dark:text-gray-500" />
-              )}
-            </div>
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
-              {activeCharacter ? `${t('chat.chatWith')} ${activeCharacter.name}` : t('chat.welcome')}
-            </h3>
-            <div className="flex gap-2 mt-4">
-              {[t('chat.suggestion.summarize'), t('chat.suggestion.code'), t('chat.suggestion.translate')].map(suggestion => (
-                <button key={suggestion} onClick={() => setInputValue(suggestion)} className="px-4 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-colors">
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <div key={msg.message_id} className={`flex gap-4 ${msg.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 dark:bg-gray-700 text-white' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                  }`}>
-                  {msg.message_type === 'user' ? (
-                    <User size={16} />
-                  ) : (
-                    activeCharacter?.avatar ? <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" /> : <Bot size={16} />
-                  )}
-                </div>
-
-                <div className={`max-w-[75%] space-y-2`}>
-                  {msg.message_type === 'assistant' && msg.reasoning && (
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
-                      <button
-                        onClick={() => {
-                          const newExpanded = new Set(expandedReasoning);
-                          if (newExpanded.has(msg.message_id)) {
-                            newExpanded.delete(msg.message_id);
-                          } else {
-                            newExpanded.add(msg.message_id);
-                          }
-                          setExpandedReasoning(newExpanded);
-                        }}
-                        className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                          <Brain size={16} />
-                          <span className="text-sm font-medium">思维链</span>
-                        </div>
-                        {expandedReasoning.has(msg.message_id) ? (
-                          <ChevronUp size={16} className="text-purple-600 dark:text-purple-400" />
-                        ) : (
-                          <ChevronDown size={16} className="text-purple-600 dark:text-purple-400" />
-                        )}
-                      </button>
-                      {expandedReasoning.has(msg.message_id) && (
-                        <div className="px-4 py-3 border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
-                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {msg.reasoning}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
-                    }`}>
-                  <div className={`markdown-content ${msg.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                      components={createMarkdownComponents(msg.message_type, t)}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-
-                {msg.message_type === 'assistant' && (
-                  <div className="flex gap-2 px-1">
-                    <button 
-                      className={`transition-colors relative group ${
-                        copiedMessageId === msg.message_id 
-                          ? 'text-green-600' 
-                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                      }`}
-                      onClick={() => handleCopyMessage(msg.message_id, msg.content)}
-                      title={copiedMessageId === msg.message_id ? "已复制" : "复制"}
-                    >
-                      <Copy size={14} />
-                      {copiedMessageId === msg.message_id && (
-                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-green-600 text-white text-xs rounded whitespace-nowrap">
-                          已复制
-                        </span>
-                      )}
-                    </button>
-                    <button 
-                      className={`transition-colors ${playingMessageId === msg.message_id ? 'text-blue-600 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                      onClick={() => handlePlayTTS(msg.message_id, msg.content)}
-                      title={playingMessageId === msg.message_id ? "停止播放" : "朗读"}
-                    >
-                      <Volume2 size={14} />
-                    </button>
-                    <button 
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                      title="重新生成"
-                    >
-                      <RotateCcw size={14} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            ))}
-
-            {isTyping && (
-              <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                  {activeCharacter?.avatar ? (
-                    <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" />
-                  ) : (
-                    <Bot size={16} />
-                  )}
-                </div>
-                <div className="max-w-[75%]">
-                  <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                    <div className="flex gap-1.5 items-center">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                  </div>
+      {/* Messages / VRM View */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 relative">
+        {vrmDisplayMode === 'vrm' && (
+          <div className="absolute inset-0 z-0 bg-gray-900 flex items-center justify-center overflow-hidden">
+            <canvas ref={vrmCanvasRef} className="w-full h-full block" />
+            {/* Subtitle Overlay */}
+            {subtitle && (
+              <div className="absolute bottom-20 left-0 right-0 p-4 text-center z-10 pointer-events-none">
+                <div className="inline-block bg-black/60 text-white px-6 py-3 rounded-xl text-lg backdrop-blur-sm max-w-[80%]">
+                  {subtitle}
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
 
+        {/* Chat Messages Handling for VRM Mode - Optional: Hide or Overlay? */}
+        {/* For now we hide traditional messages in VRM mode, or maybe show them as an overlay if needed.
+            Let's hide them to focus on VRM, but we might want a toggle or a floating chat. 
+            The requirement says "Showing AI outputs as subtitles", implying we replace the chat flow visually. 
+        */}
+        <div className={`relative z-10 ${vrmDisplayMode === 'vrm' ? 'hidden' : ''}`}>
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 overflow-hidden">
+                {activeCharacter?.avatar ? (
+                  <img src={activeCharacter.avatar} alt="Character" className="w-full h-full object-cover" />
+                ) : (
+                  <Sparkles size={40} className="text-gray-400 dark:text-gray-500" />
+                )}
+              </div>
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                {activeCharacter ? `${t('chat.chatWith')} ${activeCharacter.name}` : t('chat.welcome')}
+              </h3>
+              <div className="flex gap-2 mt-4">
+                {[t('chat.suggestion.summarize'), t('chat.suggestion.code'), t('chat.suggestion.translate')].map(suggestion => (
+                  <button key={suggestion} onClick={() => setInputValue(suggestion)} className="px-4 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-colors">
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {messages.map((msg) => (
+                <div key={msg.message_id} className={`flex gap-4 ${msg.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${msg.message_type === 'user' ? 'bg-gray-800 dark:bg-gray-700 text-white' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                    }`}>
+                    {msg.message_type === 'user' ? (
+                      <User size={16} />
+                    ) : (
+                      activeCharacter?.avatar ? <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" /> : <Bot size={16} />
+                    )}
+                  </div>
+
+                  <div className={`max-w-[75%] space-y-2`}>
+                    {msg.message_type === 'assistant' && msg.reasoning && (
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => {
+                            const newExpanded = new Set(expandedReasoning);
+                            if (newExpanded.has(msg.message_id)) {
+                              newExpanded.delete(msg.message_id);
+                            } else {
+                              newExpanded.add(msg.message_id);
+                            }
+                            setExpandedReasoning(newExpanded);
+                          }}
+                          className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                            <Brain size={16} />
+                            <span className="text-sm font-medium">思维链</span>
+                          </div>
+                          {expandedReasoning.has(msg.message_id) ? (
+                            <ChevronUp size={16} className="text-purple-600 dark:text-purple-400" />
+                          ) : (
+                            <ChevronDown size={16} className="text-purple-600 dark:text-purple-400" />
+                          )}
+                        </button>
+                        {expandedReasoning.has(msg.message_id) && (
+                          <div className="px-4 py-3 border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
+                            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                              {msg.reasoning}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.message_type === 'user'
+                      ? 'bg-blue-600 text-white rounded-tr-none'
+                      : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
+                      }`}>
+                      <div className={`markdown-content ${msg.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeHighlight]}
+                          components={createMarkdownComponents(msg.message_type, t)}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+
+                    {msg.message_type === 'assistant' && (
+                      <div className="flex gap-2 px-1">
+                        <button
+                          className={`transition-colors relative group ${copiedMessageId === msg.message_id
+                            ? 'text-green-600'
+                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                            }`}
+                          onClick={() => handleCopyMessage(msg.message_id, msg.content)}
+                          title={copiedMessageId === msg.message_id ? "已复制" : "复制"}
+                        >
+                          <Copy size={14} />
+                          {copiedMessageId === msg.message_id && (
+                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-green-600 text-white text-xs rounded whitespace-nowrap">
+                              已复制
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          className={`transition-colors ${playingMessageId === msg.message_id ? 'text-blue-600 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                          onClick={() => handlePlayTTS(msg.message_id, msg.content)}
+                          title={playingMessageId === msg.message_id ? "停止播放" : "朗读"}
+                        >
+                          <Volume2 size={14} />
+                        </button>
+                        <button
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                          title="重新生成"
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {isTyping && (
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                    {activeCharacter?.avatar ? (
+                      <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" />
+                    ) : (
+                      <Bot size={16} />
+                    )}
+                  </div>
+                  <div className="max-w-[75%]">
+                    <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                      <div className="flex gap-1.5 items-center">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white dark:bg-gray-900 transition-colors">
+      {/* 在 VRM模式下，InputArea 仍然需要可见，覆盖在 Canvas 上方 */}
+      <div className={`p-4 transition-colors ${vrmDisplayMode === 'vrm' ? 'bg-transparent z-10' : 'bg-white dark:bg-gray-900'}`}>
         <div className="max-w-4xl mx-auto relative">
           <div className={`absolute bottom-full left-0 mb-4 px-4 py-2 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 text-sm transition-all duration-300 ${isRecording ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
@@ -613,12 +768,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 onClick={toggleRecording}
                 disabled={!asrEnabled || isProcessingAudio}
                 className={`p-2 rounded-xl transition-colors ${!asrEnabled
-                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                    : isRecording
-                      ? 'text-red-500 bg-red-50 animate-pulse'
-                      : isProcessingAudio
-                        ? 'text-blue-500 bg-blue-50 animate-pulse'
-                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  : isRecording
+                    ? 'text-red-500 bg-red-50 animate-pulse'
+                    : isProcessingAudio
+                      ? 'text-blue-500 bg-blue-50 animate-pulse'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 title={!asrEnabled ? "ASR not configured" : isRecording ? "Stop Recording" : "Record Audio"}
               >

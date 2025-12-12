@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users } from 'lucide-react';
+import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users, FileVideo } from 'lucide-react';
 import { Conversation, ViewMode, Character } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCharacterId, getConversationId } from '../utils/helpers';
@@ -242,6 +242,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <LayoutDashboard size={18} />
           {t('sidebar.adminDashboard')}
         </button>
+
+
 
         <button
           onClick={onOpenSettings}
