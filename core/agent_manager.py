@@ -383,6 +383,294 @@ class AgentManager:
         
         return result
     
+    async def send_message_stream_vrm(
+        self,
+        user_message: str,
+        conversation_id: int,
+        character_id: int,
+        model_id: str,
+        provider_id: str,
+        **model_kwargs
+    ):
+        """VRM模式的流式消息处理（独立方法，不干扰原有逻辑）
+        
+        Args:
+            user_message: 用户消息内容
+            conversation_id: 会话ID
+            character_id: 角色ID
+            model_id: 模型ID
+            provider_id: 供应商ID
+            **model_kwargs: 模型动态参数（temperature, max_tokens, top_p等）
+            
+        Yields:
+            JSON格式的流式响应字符串:
+            - {"type": "status", "content": "正在使用工具: xxx..."}
+            - {"type": "reasoning", "content": "思维链内容"}
+            - {"type": "text", "content": "实际回复内容片段"}
+            - {"type": "audio_segments", "segments": [...]}
+            
+        Raises:
+            ValueError: 当会话、角色或模型不存在时
+            RuntimeError: 当模型调用失败时
+        """
+        logger.info(
+            f"开始处理VRM消息",
+            extra={
+                "conversation_id": conversation_id,
+                "character_id": character_id,
+                "model": f"{provider_id}/{model_id}",
+                "message_length": len(user_message)
+            }
+        )
+        
+        # 1. 验证会话是否存在
+        conversation = self.app_storage.get_conversation(conversation_id)
+        if not conversation:
+            logger.error(f"会话不存在", extra={"conversation_id": conversation_id})
+            raise ValueError(f"会话 {conversation_id} 不存在")
+        
+        # 2. 获取角色信息（用于获取TTS配置）
+        character = self.app_storage.get_character(character_id)
+        if not character:
+            logger.error(f"角色不存在", extra={"character_id": character_id})
+            raise ValueError(f"角色 {character_id} 不存在")
+        
+        try:
+            # 3. 获取角色关联的VRM模型和动作列表
+            vrm_model_id = character.get("vrm_model_id")
+            
+            if not vrm_model_id:
+                logger.warning(
+                    f"角色未关联VRM模型，使用默认配置",
+                    extra={"character_id": character_id}
+                )
+                # 使用默认表情和动作
+                from core.vrm.prompts import DEFAULT_EXPRESSIONS, generate_vrm_instruction
+                vrm_instruction = generate_vrm_instruction(DEFAULT_EXPRESSIONS, [])
+            else:
+                # 从数据库获取该VRM模型的动作列表
+                animations = self.app_storage.list_vrm_animations(vrm_model_id)
+                
+                # 提取动作的中文名
+                action_names = [anim["name_cn"] for anim in animations]
+                
+                # 使用默认表情列表（表情是VRM规范定义的，不需要从数据库获取）
+                from core.vrm.prompts import DEFAULT_EXPRESSIONS, generate_vrm_instruction
+                vrm_instruction = generate_vrm_instruction(DEFAULT_EXPRESSIONS, action_names)
+                
+                logger.debug(
+                    f"生成VRM标记指令",
+                    extra={
+                        "character_id": character_id,
+                        "vrm_model_id": vrm_model_id,
+                        "action_count": len(action_names)
+                    }
+                )
+            
+            # 4. 临时修改角色的system_prompt，添加VRM标记生成指令
+            original_prompt = character["system_prompt"]
+            modified_prompt = original_prompt + vrm_instruction
+            
+            # 临时更新到数据库（流程结束后恢复）
+            self.app_storage.update_character(character_id, system_prompt=modified_prompt)
+            logger.debug(f"已添加VRM标记生成指令", extra={"character_id": character_id})
+            
+            # 5. 创建 agent 实例
+            logger.debug(
+                f"创建 Agent 实例",
+                extra={"character_id": character_id, "model_kwargs": model_kwargs}
+            )
+            agent = self.create_agent(
+                character_id, model_id, provider_id, 
+                streaming=True, 
+                **model_kwargs
+            )
+            
+            full_response = ""
+            chunk_count = 0
+            tool_call_count = 0
+            
+            # 6. 异步流式调用 agent
+            logger.debug(f"开始流式调用模型", extra={"conversation_id": conversation_id})
+            async for message, metadata in agent.astream(
+                {"messages": [{"role": "user", "content": user_message}]},
+                config={
+                    "configurable": {"thread_id": str(conversation_id)}
+                },
+                context=AgentContext(character_id=character_id),
+                stream_mode="messages"
+            ):
+                # 过滤：只关注 AI 的输出片段
+                if not isinstance(message, AIMessageChunk):
+                    continue
+                
+                # 处理工具调用状态
+                if message.tool_call_chunks:
+                    chunk = message.tool_call_chunks[0]
+                    if "name" in chunk and chunk["name"]:
+                        tool_call_count += 1
+                        logger.debug(
+                            f"工具调用",
+                            extra={"tool_name": chunk["name"], "conversation_id": conversation_id}
+                        )
+                        yield json.dumps({
+                            "type": "status",
+                            "content": f"正在使用工具: {chunk['name']}..."
+                        }, ensure_ascii=False)
+
+                # 处理思维链内容
+                if hasattr(message, 'additional_kwargs') and 'reasoning_content' in message.additional_kwargs:
+                    reasoning_chunk = message.additional_kwargs['reasoning_content']
+                    if reasoning_chunk:
+                        yield json.dumps({
+                            "type": "reasoning",
+                            "content": reasoning_chunk
+                        }, ensure_ascii=False)
+                
+                # 处理文本回复内容
+                if message.content:
+                    chunk_text = ""
+                    
+                    if isinstance(message.content, str):
+                        chunk_text = message.content
+                    elif isinstance(message.content, list):
+                        for block in message.content:
+                            if isinstance(block, str):
+                                chunk_text += block
+                            elif isinstance(block, dict):
+                                if block.get('type') == 'reasoning' and 'reasoning' in block:
+                                    reasoning_text = block['reasoning']
+                                    yield json.dumps({
+                                        "type": "reasoning",
+                                        "content": reasoning_text
+                                    }, ensure_ascii=False)
+                                elif 'text' in block:
+                                    chunk_text += block['text']
+                    
+                    if chunk_text:
+                        full_response += chunk_text
+                        chunk_count += 1
+                        
+                        yield json.dumps({
+                            "type": "text",
+                            "content": chunk_text
+                        }, ensure_ascii=False)
+            
+            # 7. 流结束后处理
+            if full_response:
+                # 移除标记后保存到数据库
+                from core.vrm.markup_filter import MarkupFilter
+                clean_response = MarkupFilter.remove_markup(full_response)
+                
+                logger.debug(
+                    f"保存对话消息",
+                    extra={
+                        "conversation_id": conversation_id,
+                        "original_length": len(full_response),
+                        "clean_length": len(clean_response),
+                        "chunk_count": chunk_count,
+                        "tool_call_count": tool_call_count
+                    }
+                )
+                
+                self.app_storage.add_message(conversation_id, "user", user_message)
+                self.app_storage.add_message(conversation_id, "assistant", clean_response)
+                
+                # 8. 生成VRM音频（按句分割）
+                logger.info(f"开始生成VRM音频", extra={"conversation_id": conversation_id})
+                try:
+                    from core.vrm.audio_generator import AudioGenerator
+                    
+                    # 使用角色绑定的TTS配置
+                    tts_id = character.get("tts_id", "default")
+                    logger.debug(f"使用角色TTS配置", extra={"tts_id": tts_id})
+                    
+                    audio_gen = AudioGenerator(self.tts_factory)
+                    segments = await audio_gen.generate_by_sentence(
+                        full_response,
+                        tts_provider=tts_id  # 使用角色绑定的TTS
+                    )
+                    
+                    # 发送音频片段
+                    segments_dict = audio_gen.to_dict_list(segments)
+                    yield json.dumps({
+                        "type": "audio_segments",
+                        "segments": segments_dict
+                    }, ensure_ascii=False)
+                    
+                    logger.info(
+                        f"VRM音频生成完成",
+                        extra={
+                            "conversation_id": conversation_id,
+                            "segment_count": len(segments),
+                            "total_duration": segments[-1].end_time if segments else 0
+                        }
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"VRM音频生成失败",
+                        extra={"conversation_id": conversation_id, "error": str(e)},
+                        exc_info=True
+                    )
+                    # 音频生成失败不影响文本返回
+                    yield json.dumps({
+                        "type": "error",
+                        "content": f"音频生成失败: {str(e)}"
+                    }, ensure_ascii=False)
+                
+                # 9. 如果是新会话，自动生成标题
+                if conversation["title"] == "New Chat":
+                    title = user_message.replace("\n", " ").strip()
+                    if len(title) > 30:
+                        title = title[:30] + "..."
+                    self.app_storage.update_conversation(conversation_id, title=title)
+                    logger.debug(f"自动生成会话标题", extra={"conversation_id": conversation_id, "title": title})
+                
+                logger.info(
+                    f"VRM消息处理完成",
+                    extra={
+                        "conversation_id": conversation_id,
+                        "response_length": len(full_response),
+                        "chunk_count": chunk_count,
+                        "tool_call_count": tool_call_count
+                    }
+                )
+            
+            # 10. 恢复原始system_prompt
+            self.app_storage.update_character(character_id, system_prompt=original_prompt)
+            logger.debug(f"已恢复原始system_prompt", extra={"character_id": character_id})
+
+        except Exception as e:
+            # 确保恢复原始system_prompt
+            try:
+                self.app_storage.update_character(character_id, system_prompt=original_prompt)
+            except:
+                pass
+            
+            # 捕获模型调用异常
+            error_msg = str(e)
+            logger.error(
+                f"VRM消息处理失败",
+                extra={
+                    "conversation_id": conversation_id,
+                    "error": error_msg,
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
+            
+            # 常见错误类型识别
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                raise RuntimeError(f"模型认证失败，请检查 API Key 配置: {error_msg}")
+            elif "rate limit" in error_msg.lower():
+                raise RuntimeError(f"模型调用频率超限，请稍后重试: {error_msg}")
+            elif "timeout" in error_msg.lower():
+                raise RuntimeError(f"模型调用超时，请检查网络连接: {error_msg}")
+            elif "connection" in error_msg.lower():
+                raise RuntimeError(f"无法连接到模型服务，请检查网络和配置: {error_msg}")
+            else:
+                raise RuntimeError(f"模型调用失败: {error_msg}")
+    
 
     
 

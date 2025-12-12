@@ -153,6 +153,13 @@ class ConversationUpdateRequest(BaseModel):
 
 # ==================== 消息相关 ====================
 
+class DisplayMode(str):
+    """显示模式枚举"""
+    TEXT = "text"
+    VRM = "vrm"
+    LIVE2D = "live2d"
+
+
 class MessageRequest(BaseModel):
     """消息请求"""
     conversation_id: int = Field(..., description="会话ID")
@@ -160,6 +167,7 @@ class MessageRequest(BaseModel):
     model_id: str = Field(..., description="模型ID")
     provider_id: str = Field(..., description="供应商ID")
     content: str = Field(..., description="消息内容")
+    display_mode: str = Field("text", description="显示模式: text/vrm/live2d")
     temperature: Optional[float] = Field(None, description="温度参数")
     max_tokens: Optional[int] = Field(None, description="最大token数")
     top_p: Optional[float] = Field(None, description="Top-p采样参数")
