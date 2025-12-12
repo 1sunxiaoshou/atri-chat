@@ -42,15 +42,30 @@ async def send_message(
                     }
                 )
             
+            # 根据display_mode选择不同的处理方法
+            if req.display_mode == "vrm":
+                # VRM模式：使用专用方法
+                stream_method = agent_manager.send_message_stream_vrm(
+                    user_message=req.content,
+                    conversation_id=req.conversation_id,
+                    character_id=req.character_id,
+                    model_id=req.model_id,
+                    provider_id=req.provider_id,
+                    **model_kwargs
+                )
+            else:
+                # 普通模式：使用原有方法
+                stream_method = agent_manager.send_message_stream(
+                    user_message=req.content,
+                    conversation_id=req.conversation_id,
+                    character_id=req.character_id,
+                    model_id=req.model_id,
+                    provider_id=req.provider_id,
+                    **model_kwargs
+                )
+            
             # 流式生成内容
-            async for json_str in agent_manager.send_message_stream(
-                user_message=req.content,
-                conversation_id=req.conversation_id,
-                character_id=req.character_id,
-                model_id=req.model_id,
-                provider_id=req.provider_id,
-                **model_kwargs
-            ):
+            async for json_str in stream_method:
                 if json_str: 
                     # 直接转发 JSON 字符串，不需要再次包装
                     yield f"data: {json_str}\n\n"

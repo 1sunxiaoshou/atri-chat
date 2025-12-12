@@ -14,7 +14,7 @@ from core.middleware.logging_middleware import LoggingMiddleware
 from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
 from core.paths import get_path_manager
 from api.routes import (
-    characters, conversations, messages, models, providers, tts, health, upload, asr
+    characters, conversations, messages, models, providers, tts, health, upload, asr, vrm
 )
 
 logger = get_logger(__name__, category="GENERAL")
@@ -82,6 +82,7 @@ app.include_router(models.router, prefix="/api/v1", tags=["models"])
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
 app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
 app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
+app.include_router(vrm.router, prefix="/api/v1/vrm", tags=["vrm"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # 挂载前端静态文件（必须在最后，避免覆盖 API 路由）
