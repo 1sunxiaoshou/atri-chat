@@ -467,23 +467,41 @@ class AgentManager:
                     }
                 )
             
-            # 4. 临时修改角色的system_prompt，添加VRM标记生成指令
+            # 4. 准备带VRM指令的system_prompt（不修改数据库）
             original_prompt = character["system_prompt"]
             modified_prompt = original_prompt + vrm_instruction
             
-            # 临时更新到数据库（流程结束后恢复）
-            self.app_storage.update_character(character_id, system_prompt=modified_prompt)
             logger.debug(f"已添加VRM标记生成指令", extra={"character_id": character_id})
             
-            # 5. 创建 agent 实例
+            # 5. 创建临时角色配置（内存中）
+            # 不修改数据库，避免并发问题
+            temp_character = character.copy()
+            temp_character["system_prompt"] = modified_prompt
+            
+            # 6. 使用临时配置创建 agent 实例
             logger.debug(
                 f"创建 Agent 实例",
                 extra={"character_id": character_id, "model_kwargs": model_kwargs}
             )
-            agent = self.create_agent(
-                character_id, model_id, provider_id, 
-                streaming=True, 
-                **model_kwargs
+            
+            # 直接创建模型和agent，不调用create_agent（避免重新读取数据库）
+            model = self.model_factory.create_model(provider_id, model_id, streaming=True, **model_kwargs)
+            tools = get_memory_tools()
+            from langchain.agents.middleware import SummarizationMiddleware
+            summarization_middleware = SummarizationMiddleware(
+                model=model,
+                trigger=("tokens", 20000), 
+                keep=("tokens", 8000)
+            )
+            
+            from langchain.agents import create_agent
+            agent = create_agent(
+                model=model,
+                tools=tools,
+                middleware=[summarization_middleware],
+                system_prompt=modified_prompt,  # 使用修改后的prompt
+                checkpointer=self.checkpointer,
+                store=self.store
             )
             
             full_response = ""
@@ -585,7 +603,17 @@ class AgentManager:
                     tts_id = character.get("tts_id", "default")
                     logger.debug(f"使用角色TTS配置", extra={"tts_id": tts_id})
                     
-                    audio_gen = AudioGenerator(self.tts_factory)
+                    # 构建动作映射（从数据库获取）
+                    action_mapping = {}
+                    if vrm_model_id:
+                        animations = self.app_storage.list_vrm_animations(vrm_model_id)
+                        action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
+                        logger.debug(
+                            f"加载动作映射",
+                            extra={"vrm_model_id": vrm_model_id, "action_count": len(action_mapping)}
+                        )
+                    
+                    audio_gen = AudioGenerator(self.tts_factory, action_mapping=action_mapping)
                     segments = await audio_gen.generate_by_sentence(
                         full_response,
                         tts_provider=tts_id  # 使用角色绑定的TTS
@@ -635,17 +663,8 @@ class AgentManager:
                         "tool_call_count": tool_call_count
                     }
                 )
-            
-            # 10. 恢复原始system_prompt
-            self.app_storage.update_character(character_id, system_prompt=original_prompt)
-            logger.debug(f"已恢复原始system_prompt", extra={"character_id": character_id})
 
         except Exception as e:
-            # 确保恢复原始system_prompt
-            try:
-                self.app_storage.update_character(character_id, system_prompt=original_prompt)
-            except:
-                pass
             
             # 捕获模型调用异常
             error_msg = str(e)

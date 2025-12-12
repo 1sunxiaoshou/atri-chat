@@ -1,6 +1,6 @@
 """VRM标记解析器"""
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
 from ..logger import get_logger
 
@@ -25,7 +25,7 @@ class VRMMarkupParser:
     # 标记正则表达式
     MARKUP_PATTERN = re.compile(r'\[(State|Action):([^\]]+)\]')
     
-    # 表情映射（中文 -> 英文）
+    # 表情映射（中文 -> 英文）- VRM规范定义的标准表情
     STATE_MAPPING = {
         "开心": "happy",
         "难过": "sad",
@@ -35,31 +35,24 @@ class VRMMarkupParser:
         "好奇": "curious"
     }
     
-    # 动作映射（中文 -> 英文）
-    ACTION_MAPPING = {
-        "打招呼": "wave",
-        "挠头": "scratch_head",
-        "弹手指": "snap_fingers",
-        "羞愧": "shy",
-        "兴奋": "excited",
-        "问候": "greet",
-        "和平手势": "peace_sign",
-        "叉腰": "hands_on_hips",
-        "土下座": "dogeza",
-        "喝水": "drink",
-        "摔倒": "fall",
-        "展示全身": "show_body",
-        "深蹲": "squat",
-        "射击": "shoot",
-        "旋转": "spin",
-        "模特姿势": "model_pose",
-        "伸展": "stretch",
-        "运动姿势": "exercise",
-        "玩手机": "play_phone"
-    }
+    def __init__(self, action_mapping: Optional[Dict[str, str]] = None):
+        """初始化解析器
+        
+        Args:
+            action_mapping: 动作映射字典（中文名 -> 英文ID），如果不提供则使用空映射
+        """
+        # 动作映射从外部传入（从数据库动态获取）
+        self.action_mapping = action_mapping or {}
+        
+        logger.debug(
+            f"VRM标记解析器初始化",
+            extra={"action_count": len(self.action_mapping)}
+        )
     
     def parse(self, marked_text: str) -> Tuple[str, List[VRMMarkup]]:
         """解析带标记的文本
+        
+        使用正向扫描，精确计算标记在纯文本中的位置
         
         Args:
             marked_text: 带标记的文本，如 "[State:开心][Action:打招呼]你好！"
@@ -77,39 +70,58 @@ class VRMMarkupParser:
              VRMMarkup(type='action', value='wave', position=0, original_position=14)]
         """
         markups = []
-        clean_text = marked_text
-        offset = 0  # 用于跟踪移除标记后的位置偏移
+        clean_chars = []
+        i = 0
         
-        # 查找所有标记
-        for match in self.MARKUP_PATTERN.finditer(marked_text):
-            markup_type = match.group(1).lower()  # "state" 或 "action"
-            markup_value_cn = match.group(2)  # 中文名
-            original_position = match.start()  # 在原始文本中的位置
+        while i < len(marked_text):
+            char = marked_text[i]
             
-            # 映射中文名到英文ID
-            if markup_type == "state":
-                markup_value_en = self.STATE_MAPPING.get(markup_value_cn, markup_value_cn)
-            elif markup_type == "action":
-                markup_value_en = self.ACTION_MAPPING.get(markup_value_cn, markup_value_cn)
+            # 检测标记开始
+            if char == '[':
+                # 尝试匹配标记
+                match = self.MARKUP_PATTERN.match(marked_text, i)
+                if match:
+                    markup_type = match.group(1).lower()  # "state" 或 "action"
+                    markup_value_cn = match.group(2)  # 中文名
+                    original_position = i
+                    
+                    # 映射中文名到英文ID
+                    if markup_type == "state":
+                        markup_value_en = self.STATE_MAPPING.get(markup_value_cn, markup_value_cn)
+                    elif markup_type == "action":
+                        markup_value_en = self.action_mapping.get(markup_value_cn, markup_value_cn)
+                        if markup_value_cn not in self.action_mapping:
+                            logger.warning(
+                                f"未知动作标记: {markup_value_cn}",
+                                extra={"markup": match.group(0), "available_actions": list(self.action_mapping.keys())}
+                            )
+                    else:
+                        logger.warning(f"未知标记类型: {markup_type}", extra={"markup": match.group(0)})
+                        i = match.end()
+                        continue
+                    
+                    # 标记在纯文本中的位置 = 当前纯文本长度
+                    position_in_clean_text = len(clean_chars)
+                    
+                    markups.append(VRMMarkup(
+                        type=markup_type,
+                        value=markup_value_en,
+                        position=position_in_clean_text,
+                        original_position=original_position
+                    ))
+                    
+                    # 跳过整个标记
+                    i = match.end()
+                else:
+                    # 不是有效标记，当作普通字符
+                    clean_chars.append(char)
+                    i += 1
             else:
-                logger.warning(f"未知标记类型: {markup_type}", extra={"markup": match.group(0)})
-                continue
-            
-            # 计算在纯文本中的位置（考虑之前移除的标记）
-            position_in_clean_text = original_position - offset
-            
-            markups.append(VRMMarkup(
-                type=markup_type,
-                value=markup_value_en,
-                position=position_in_clean_text,
-                original_position=original_position
-            ))
-            
-            # 更新偏移量（标记长度）
-            offset += len(match.group(0))
+                # 普通字符
+                clean_chars.append(char)
+                i += 1
         
-        # 移除所有标记，得到纯文本
-        clean_text = self.MARKUP_PATTERN.sub('', marked_text)
+        clean_text = ''.join(clean_chars)
         
         logger.debug(
             f"解析标记完成",
