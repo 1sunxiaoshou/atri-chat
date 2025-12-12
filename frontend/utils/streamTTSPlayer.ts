@@ -26,20 +26,20 @@ export class StreamTTSPlayer {
   private currentIndex: number = 0;
   private networkState: NetworkState = 'idle';
   private playerState: PlayerState = 'paused';
-  
+
   // 播放器
   private pcmPlayer: PCMStreamPlayer | null = null;
   private currentPlayingIndex: number = -1;
-  
+
   // 音频参数
   private volume: number = 1.0;
-  
+
   // 缓存配置
   private readonly MIN_BUFFER_CHUNKS = 7; // 最少缓存n个chunk再开始播放
-  
+
   // 当前文本（用于判断是否是新请求）
   private currentText: string = '';
-  
+
   // 播放完成回调
   private onPlaybackComplete?: () => void;
 
@@ -56,30 +56,30 @@ export class StreamTTSPlayer {
     fetchMethod: () => Promise<{ stream: ReadableStream<Uint8Array>, sampleRate: number, channels: number }>
   ): Promise<void> {
     // 场景1：之前暂停过，且缓存已完成，现在是恢复播放（同一文本）
-    if (this.currentText === text && 
-        this.audioQueue.length > 0 && 
-        this.currentIndex < this.audioQueue.length &&
-        this.networkState === 'finished') {
+    if (this.currentText === text &&
+      this.audioQueue.length > 0 &&
+      this.currentIndex < this.audioQueue.length &&
+      this.networkState === 'finished') {
       console.log('[StreamTTS] 从本地队列恢复播放...');
       this.resume();
       return;
     }
 
     // 场景2：正在缓存中（未完成），再次点击从头播放
-    if (this.currentText === text && 
-        this.networkState === 'fetching' && 
-        this.audioQueue.length > 0) {
+    if (this.currentText === text &&
+      this.networkState === 'fetching' &&
+      this.audioQueue.length > 0) {
       console.log('[StreamTTS] 缓存未完成，从头播放...');
       // 重置播放索引，从头开始
       this.currentIndex = 0;
       this.currentPlayingIndex = -1;
       this.playerState = 'playing';
-      
+
       // 停止当前播放
       if (this.pcmPlayer) {
         this.pcmPlayer.stopPlayback();
       }
-      
+
       // 从头开始播放
       this.playNextChunk();
       return;
@@ -97,18 +97,18 @@ export class StreamTTSPlayer {
       console.log('[StreamTTS] 从全局缓存播放...');
       this.reset();
       this.currentText = text;
-      
+
       // 将缓存数据加载到队列
       cached.data.forEach((data, index) => {
         this.audioQueue.push({ data, index });
       });
-      
+
       this.networkState = 'finished';
       this.playerState = 'playing';
-      
+
       // 创建播放器
       this.pcmPlayer = new PCMStreamPlayer(this.volume, cached.sampleRate, cached.channels);
-      
+
       // 开始播放
       this.playNextChunk();
       return;
@@ -130,7 +130,7 @@ export class StreamTTSPlayer {
 
       // 开始接收流
       await this.handleStream(stream);
-      
+
       // 流接收完成后，保存到全局缓存
       if (this.audioQueue.length > 0) {
         const cacheData = this.audioQueue.map(chunk => chunk.data);
@@ -165,7 +165,7 @@ export class StreamTTSPlayer {
    */
   private resume(): void {
     this.playerState = 'playing';
-    
+
     // 从当前索引继续播放
     this.playNextChunk();
   }
@@ -178,14 +178,14 @@ export class StreamTTSPlayer {
 
     try {
       let chunkIndex = 0;
-      
+
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
           console.log('[StreamTTS] 流式接收完毕');
           this.networkState = 'finished';
-          
+
           // 流结束时，如果还没开始播放，立即开始
           if (this.playerState === 'playing' && this.currentPlayingIndex === -1) {
             this.playNextChunk();
@@ -203,9 +203,9 @@ export class StreamTTSPlayer {
           console.log(`[StreamTTS] 收到第 ${this.audioQueue.length} 个分片`);
 
           // 达到最小缓存数量且还没开始播放时，开始播放
-          if (this.playerState === 'playing' && 
-              this.currentPlayingIndex === -1 && 
-              this.audioQueue.length >= this.MIN_BUFFER_CHUNKS) {
+          if (this.playerState === 'playing' &&
+            this.currentPlayingIndex === -1 &&
+            this.audioQueue.length >= this.MIN_BUFFER_CHUNKS) {
             console.log(`[StreamTTS] 已缓存 ${this.MIN_BUFFER_CHUNKS} 个分片，开始播放`);
             this.playNextChunk();
           }
@@ -234,7 +234,7 @@ export class StreamTTSPlayer {
     while (this.currentIndex < this.audioQueue.length) {
       const chunk = this.audioQueue[this.currentIndex];
       const chunkIndex = this.currentIndex;
-      
+
       console.log(`[StreamTTS] 提交第 ${chunkIndex + 1} 个分片到播放队列`);
 
       if (this.pcmPlayer) {
@@ -244,7 +244,7 @@ export class StreamTTSPlayer {
           if (chunkIndex === this.audioQueue.length - 1 && this.networkState === 'finished') {
             console.log('[StreamTTS] 全部播放完毕');
             this.playerState = 'paused';
-            
+
             // 触发播放完成回调
             if (this.onPlaybackComplete) {
               this.onPlaybackComplete();
@@ -273,7 +273,7 @@ export class StreamTTSPlayer {
     this.currentIndex = 0;
     this.currentPlayingIndex = -1;
     this.currentText = '';
-    
+
     if (this.pcmPlayer) {
       this.pcmPlayer.stop();
       this.pcmPlayer = null;
@@ -288,6 +288,13 @@ export class StreamTTSPlayer {
     if (this.pcmPlayer) {
       this.pcmPlayer.setVolume(volume);
     }
+  }
+
+  /**
+   * 获取音频分析器节点
+   */
+  getAnalyser(): AnalyserNode | null {
+    return this.pcmPlayer ? this.pcmPlayer.getAnalyser() : null;
   }
 
   /**

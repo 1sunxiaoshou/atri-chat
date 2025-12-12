@@ -17,6 +17,7 @@ export class PCMStreamPlayer {
   private volume: number;
   private gainNode: GainNode;
   private activeSourceNodes: AudioBufferSourceNode[] = [];
+  private analyser: AnalyserNode;
   private pendingResolvers: Array<{ resolve: () => void; reject: (reason?: any) => void }> = [];
 
   constructor(
@@ -29,11 +30,22 @@ export class PCMStreamPlayer {
     this.channels = channels;
     this.volume = volume;
     this.isPlaying = true;
-    
+
     // 创建全局增益节点用于音量控制
     this.gainNode = this.audioContext.createGain();
     this.gainNode.gain.value = volume;
-    this.gainNode.connect(this.audioContext.destination);
+
+    // 创建分析器节点用于口型同步
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 256; // 不需要太高的精度，256够了
+
+    // 连接: source -> gain -> analyser -> destination
+    this.gainNode.connect(this.analyser);
+    this.analyser.connect(this.audioContext.destination);
+  }
+
+  public getAnalyser(): AnalyserNode {
+    return this.analyser;
   }
 
   /**
@@ -48,7 +60,7 @@ export class PCMStreamPlayer {
       try {
         // 将 Uint8Array 转换为 Int16Array（PCM 16-bit）
         const int16Array = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.byteLength / 2);
-        
+
         // 转换为 Float32Array（AudioContext 需要）
         const float32Array = new Float32Array(int16Array.length);
         for (let i = 0; i < int16Array.length; i++) {
@@ -79,14 +91,14 @@ export class PCMStreamPlayer {
 
         // 计算播放时间，确保无缝衔接
         const startTime = Math.max(this.nextStartTime, this.audioContext.currentTime);
-        
+
         // 播放结束后清理并 resolve Promise
         source.onended = () => {
           const index = this.activeSourceNodes.indexOf(source);
           if (index > -1) {
             this.activeSourceNodes.splice(index, 1);
           }
-          
+
           // 从 pending resolvers 中移除并 resolve
           const resolverIndex = this.pendingResolvers.indexOf(resolver);
           if (resolverIndex > -1) {
@@ -127,13 +139,13 @@ export class PCMStreamPlayer {
       }
     });
     this.activeSourceNodes = [];
-    
+
     // Reject 所有等待中的 Promise
     this.pendingResolvers.forEach(({ reject }) => {
       reject(new Error('Playback stopped by user'));
     });
     this.pendingResolvers = [];
-    
+
     // 重置时间
     this.nextStartTime = 0;
   }

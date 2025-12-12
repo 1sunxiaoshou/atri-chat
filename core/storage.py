@@ -404,14 +404,14 @@ class AppStorage:
     
     def add_character(self, name: str, description: str, system_prompt: str,
                      primary_model_id: Optional[str] = None, primary_provider_id: Optional[str] = None, 
-                     tts_id: str = "default", avatar: str = None, avatar_position: str = "center", 
+                     tts_id: str = "default", avatar: str = None, avatar_position: str = "center", vrm_model_id: str = None, 
                      enabled: bool = True) -> Optional[int]:
         """添加角色，返回角色ID"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute(
-                    "INSERT INTO characters (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled)
+                    "INSERT INTO characters (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, vrm_model_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, vrm_model_id, enabled)
                 )
                 conn.commit()
                 character_id = cursor.lastrowid
@@ -425,7 +425,7 @@ class AppStorage:
         """获取角色"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled FROM characters WHERE character_id = ?",
+                "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled, vrm_model_id FROM characters WHERE character_id = ?",
                 (character_id,)
             )
             row = cursor.fetchone()
@@ -440,14 +440,15 @@ class AppStorage:
                     "tts_id": row[6],
                     "avatar": row[7],
                     "avatar_position": row[8],
-                    "enabled": bool(row[9])
+                    "enabled": bool(row[9]),
+                    "vrm_model_id": row[10] if len(row) > 10 else None
                 }
         return None
     
     def list_characters(self, enabled_only: bool = True) -> List[Dict[str, Any]]:
         """列出角色"""
         with sqlite3.connect(self.db_path) as conn:
-            query = "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled FROM characters"
+            query = "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled, vrm_model_id FROM characters"
             if enabled_only:
                 query += " WHERE enabled = 1"
             
@@ -463,7 +464,8 @@ class AppStorage:
                     "tts_id": row[6],
                     "avatar": row[7],
                     "avatar_position": row[8],
-                    "enabled": bool(row[9])
+                    "enabled": bool(row[9]),
+                    "vrm_model_id": row[10] if len(row) > 10 else None
                 }
                 for row in cursor.fetchall()
             ]
@@ -473,7 +475,7 @@ class AppStorage:
         allowed_fields = {
             "name", "description", "system_prompt",
             "primary_model_id", "primary_provider_id",
-            "tts_id", "avatar", "avatar_position", "enabled"
+            "tts_id", "avatar", "avatar_position", "vrm_model_id", "enabled"
         }
 
         # 过滤非法字段（安全）

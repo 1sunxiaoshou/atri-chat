@@ -25,6 +25,7 @@ async def create_character(
             tts_id=req.tts_id,
             avatar=req.avatar,
             avatar_position=req.avatar_position,
+            vrm_model_id=req.vrm_model_id,
             enabled=req.enabled
         )
         if not character_id:

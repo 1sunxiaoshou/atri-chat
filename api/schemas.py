@@ -99,6 +99,7 @@ class CharacterRequest(BaseModel):
     tts_id: Optional[str] = Field("default", description="TTS ID")
     avatar: Optional[str] = Field(None, description="角色头像URL")
     avatar_position: Optional[str] = Field("center", description="头像显示位置: left/center/right")
+    vrm_model_id: Optional[str] = Field(None, description="VRM模型ID")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -126,6 +127,7 @@ class CharacterUpdateRequest(BaseModel):
     tts_id: Optional[str] = None
     avatar: Optional[str] = None
     avatar_position: Optional[str] = None
+    vrm_model_id: Optional[str] = None
     enabled: Optional[bool] = None
 
 

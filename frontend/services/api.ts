@@ -32,6 +32,42 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
 }
 
 export const api = {
+    // ==================== 通用HTTP方法 ====================
+    /** 通用GET请求 */
+    get: async <T = any>(url: string): Promise<ApiResponse<T>> => {
+        const response = await fetch(`${BASE_URL}${url.startsWith('/') ? url.slice(1) : url}`);
+        return handleResponse<T>(response);
+    },
+
+    /** 通用POST请求 */
+    post: async <T = any>(url: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> => {
+        const response = await fetch(`${BASE_URL}${url.startsWith('/') ? url.slice(1) : url}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...options?.headers },
+            body: data instanceof FormData ? data : JSON.stringify(data),
+            ...options
+        });
+        return handleResponse<T>(response);
+    },
+
+    /** 通用PUT请求 */
+    put: async <T = any>(url: string, data?: any): Promise<ApiResponse<T>> => {
+        const response = await fetch(`${BASE_URL}${url.startsWith('/') ? url.slice(1) : url}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return handleResponse<T>(response);
+    },
+
+    /** 通用DELETE请求 */
+    delete: async <T = any>(url: string): Promise<ApiResponse<T>> => {
+        const response = await fetch(`${BASE_URL}${url.startsWith('/') ? url.slice(1) : url}`, {
+            method: 'DELETE'
+        });
+        return handleResponse<T>(response);
+    },
+
     // ==================== 服务商管理 ====================
     /** 获取所有服务商列表 */
     getProviders: async (): Promise<ApiResponse<Provider[]>> => {
@@ -187,7 +223,8 @@ export const api = {
         },
         onChunk?: (content: string) => void,
         onStatus?: (status: string) => void,
-        onReasoning?: (reasoning: string) => void
+        onReasoning?: (reasoning: string) => void,
+        onVrmData?: (data: any) => void
     ): Promise<ApiResponse<SendMessageData>> => {
         const body: any = {
             conversation_id: conversationId,
@@ -196,6 +233,9 @@ export const api = {
             provider_id: providerId,
             content
         };
+        // VRM 模式需要的额外参数，这里我们可以通过 modelParameters 传入或者约定
+        // 如果外部调用时把 vrm 配置放进了 modelParameters，这里会自动带上
+
 
         // 添加模型参数
         if (modelParameters) {
@@ -277,10 +317,13 @@ export const api = {
                                         onReasoning(fullReasoning);
                                     }
                                 } else if (data.type === 'text' && data.content) {
-                                    // 实际文本内容
-                                    fullContent += data.content;
                                     if (onChunk) {
                                         onChunk(fullContent);
+                                    }
+                                } else if (data.type === 'vrm_data' && data.content) {
+                                    // VRM 数据
+                                    if (onVrmData) {
+                                        onVrmData(data.content);
                                     }
                                 }
                             } catch (e) {
@@ -448,5 +491,59 @@ export const api = {
             sampleRate,
             channels
         };
+    },
+
+    // ==================== VRM 管理 ====================
+    /** 获取所有 VRM 模型列表 */
+    getVRMModels: async (): Promise<ApiResponse<any[]>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models`);
+        return handleResponse<any[]>(response);
+    },
+
+    /** 获取VRM模型详情 */
+    getVRMModel: async (modelId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}`);
+
+        return handleResponse<any>(response);
+    },
+
+    /** 获取VRM模型的动画列表 */
+    getVRMAnimations: async (modelId: string): Promise<ApiResponse<any[]>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations`);
+        return handleResponse<any[]>(response);
+    },
+
+    /** 上传 VRM 模型 */
+    uploadVRMModel: async (formData: FormData): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/upload`, {
+            method: 'POST',
+            body: formData, // fetch will automatically set Content-Type to multipart/form-data
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 删除 VRM 模型 */
+    deleteVRMModel: async (modelId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}`, {
+            method: 'DELETE',
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 上传 VRM 动作 */
+    uploadVRMAnimation: async (modelId: string, formData: FormData): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 删除 VRM 动作 */
+    deleteVRMAnimation: async (animationId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations/${animationId}`, {
+            method: 'DELETE',
+        });
+        return handleResponse<any>(response);
     }
 };

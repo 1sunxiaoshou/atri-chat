@@ -43,6 +43,7 @@ export interface Character {
   primary_model_id: string;
   primary_provider_id: string;
   tts_id?: string;
+  vrm_model_id?: string;
   enabled: boolean;
 }
 
@@ -86,7 +87,7 @@ export interface AudioMessageData {
 
 // UI State Types
 export type ViewMode = 'chat' | 'admin';
-export type AdminTab = 'providers' | 'models' | 'characters';
+export type AdminTab = 'providers' | 'models' | 'characters' | 'vrm';
 
 // 7. ASR
 export interface ASRConfigField {
@@ -144,4 +145,26 @@ export interface TTSProvider {
 export interface TTSConfigResponse {
   active_provider: string | null;
   providers: TTSProvider[];
+}
+
+
+// VRM 类型定义
+export interface VRMModel {
+  vrm_model_id: string;
+  name: string;
+  model_path: string;
+  thumbnail_path?: string;
+  description?: string;
+  created_at: string;
+  animations?: VRMAnimation[];
+}
+
+export interface VRMAnimation {
+  animation_id: string;
+  vrm_model_id: string;
+  name: string;
+  name_cn: string;
+  animation_path: string;
+  duration?: number;
+  type: string;
 }
