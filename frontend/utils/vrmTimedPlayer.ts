@@ -2,7 +2,7 @@
  * VRM 定时播放器
  * 负责根据时间戳同步播放音频、动作和表情
  */
-import { VRMLoader } from './vrmLoader';
+import { VRMLoader } from './vrmLoader.js';
 import { StreamTTSPlayer } from './streamTTSPlayer';
 
 export interface AudioSegment {
