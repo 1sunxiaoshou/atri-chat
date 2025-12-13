@@ -78,6 +78,7 @@ export interface ModelParameters {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
+  display_mode?: string;
 }
 
 export interface AudioMessageData {

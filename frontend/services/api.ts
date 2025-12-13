@@ -220,6 +220,7 @@ export const api = {
             temperature?: number;
             max_tokens?: number;
             top_p?: number;
+            display_mode?: string;
         },
         onChunk?: (content: string) => void,
         onStatus?: (status: string) => void,
@@ -231,11 +232,9 @@ export const api = {
             character_id: characterId,
             model_id: modelId,
             provider_id: providerId,
-            content
+            content,
+            display_mode: "text" // 默认值
         };
-        // VRM 模式需要的额外参数，这里我们可以通过 modelParameters 传入或者约定
-        // 如果外部调用时把 vrm 配置放进了 modelParameters，这里会自动带上
-
 
         // 添加模型参数
         if (modelParameters) {
@@ -247,6 +246,9 @@ export const api = {
             }
             if (modelParameters.top_p !== undefined) {
                 body.top_p = modelParameters.top_p;
+            }
+            if (modelParameters.display_mode !== undefined) {
+                body.display_mode = modelParameters.display_mode;
             }
         }
 
@@ -317,14 +319,27 @@ export const api = {
                                         onReasoning(fullReasoning);
                                     }
                                 } else if (data.type === 'text' && data.content) {
+                                    // 文本内容（累积）
+                                    fullContent += data.content;
                                     if (onChunk) {
                                         onChunk(fullContent);
                                     }
                                 } else if (data.type === 'vrm_data' && data.content) {
-                                    // VRM 数据
+                                    // 兼容旧格式的VRM数据
                                     if (onVrmData) {
                                         onVrmData(data.content);
                                     }
+                                } else if (data.type === 'vrm_audio_segment' && data.segment) {
+                                    // 新格式：单个VRM音频段
+                                    if (onVrmData) {
+                                        onVrmData(data.segment);
+                                    }
+                                } else if (data.type === 'vrm_audio_complete') {
+                                    // VRM音频生成完成信号
+                                    console.log('VRM audio generation completed:', data);
+                                } else if (data.type === 'vrm_error') {
+                                    // VRM错误处理
+                                    console.error('VRM error:', data.error, data.details);
                                 }
                             } catch (e) {
                                 console.error('Failed to parse SSE data:', line, e);

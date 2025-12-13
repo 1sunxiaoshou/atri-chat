@@ -119,22 +119,118 @@ async def delete_conversation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/conversations/{conversation_id}/messages", response_model=ResponseModel)
+async def get_conversation_history(
+    conversation_id: int,
+    from_checkpoint: bool = False,
+    agent_manager: AgentManager = Depends(get_agent),
+    app_storage: AppStorage = Depends(get_storage)
+):
+    """获取会话历史"""
+    from core.logger import get_logger
+    logger = get_logger(__name__, category="API")
+    
+    try:
+        logger.info(
+            "获取会话历史",
+            extra={
+                "conversation_id": conversation_id,
+                "from_checkpoint": from_checkpoint
+            }
+        )
+        
+        if from_checkpoint:
+            config = {"configurable": {"thread_id": str(conversation_id)}}
+            checkpoint_tuple = agent_manager.checkpointer.get_tuple(config)
+            
+            if checkpoint_tuple:
+                messages = checkpoint_tuple.checkpoint['channel_values']['messages']
+                messages = [{"type": msg.type, "content": msg.content} for msg in messages]
+            else:
+                messages = []
+        else:
+            messages = app_storage.list_messages(conversation_id)
+            
+        logger.debug(
+            "会话历史获取成功",
+            extra={
+                "conversation_id": conversation_id,
+                "message_count": len(messages)
+            }
+        )
+            
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data={
+                "conversation_id": conversation_id,
+                "messages": messages
+            }
+        )
+    except Exception as e:
+        logger.error(
+            "获取会话历史失败",
+            extra={
+                "conversation_id": conversation_id,
+                "error": str(e)
+            },
+            exc_info=True
+        )
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/conversations/{conversation_id}/clear", response_model=ResponseModel)
 async def clear_conversation_history(
     conversation_id: int,
-    agent_manager: AgentManager = Depends(get_agent)
+    clear_checkpoint: bool = True,
+    clear_messages: bool = True,
+    agent_manager: AgentManager = Depends(get_agent),
+    app_storage: AppStorage = Depends(get_storage)
 ):
     """清空会话历史"""
+    from core.logger import get_logger
+    logger = get_logger(__name__, category="API")
+    
     try:
-        result = agent_manager.clear_conversation_history(
-            conversation_id=conversation_id,
-            clear_checkpoint=True,
-            clear_messages=True
+        logger.info(
+            "清空会话历史",
+            extra={
+                "conversation_id": conversation_id,
+                "clear_checkpoint": clear_checkpoint,
+                "clear_messages": clear_messages
+            }
         )
+        
+        result = {"checkpoint_cleared": 0, "messages_deleted": 0}
+        
+        if clear_checkpoint:
+            agent_manager.checkpointer.delete_thread(thread_id=str(conversation_id))
+            result["checkpoint_cleared"] = 1
+        
+        if clear_messages:
+            count = app_storage.delete_messages_by_conversation(conversation_id)
+            result["messages_deleted"] = count
+            
+        logger.info(
+            "会话历史清空成功",
+            extra={
+                "conversation_id": conversation_id,
+                "result": result
+            }
+        )
+            
         return ResponseModel(
             code=200,
             message="清空成功",
             data=result
         )
     except Exception as e:
+        logger.error(
+            "清空会话历史失败",
+            extra={
+                "conversation_id": conversation_id,
+                "error": str(e)
+            },
+            exc_info=True
+        )
         raise HTTPException(status_code=500, detail=str(e))

@@ -12,8 +12,8 @@ import { StreamTTSPlayer } from '../../utils/streamTTSPlayer';
 import { createMarkdownComponents } from '../../utils/markdownConfig';
 import ModelConfigPopover from './ModelConfigPopover';
 import Select from '../ui/Select';
-import { VRMLoader } from '../../utils/vrmLoader';
-import { VRMTimedPlayer } from '../../utils/vrmTimedPlayer';
+import { VRMLoader } from '../../utils/vrmLoader.js';
+import { VRMTimedPlayer } from '../../utils/vrmTimedPlayer.js';
 
 interface ChatInterfaceProps {
   activeConversationId: number;
@@ -98,24 +98,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const loadVRMModel = async (vrmModelId: string, loader: VRMLoader) => {
     try {
       setSubtitle('正在加载VRM模型...');
+      console.log('开始加载VRM模型:', vrmModelId);
 
       const response = await api.getVRMModel(vrmModelId);
       if (response.code === 200 && response.data) {
         const modelData = response.data;
+        console.log('获取到VRM模型数据:', modelData);
 
-        // 加载VRM模型
-        await loader.loadModel(modelData.model_path);
+        // 加载VRM模型 - 构造完整的URL
+        const baseUrl = import.meta.env.PROD ? '' : 'http://localhost:8000';
+        const modelUrl = `${baseUrl}${modelData.model_path}`;
+        console.log('VRM模型URL:', modelUrl);
+        await loader.loadModel(modelUrl);
 
         // 加载动画
         if (modelData.animations && modelData.animations.length > 0) {
           const animationMap: Record<string, string> = {};
           modelData.animations.forEach((anim: any) => {
-            animationMap[anim.name] = anim.animation_path;
+            // 构造完整的动画URL
+            const animationUrl = `${baseUrl}${anim.animation_path}`;
+            animationMap[anim.name] = animationUrl;
           });
+          console.log('动画映射表:', animationMap);
 
           await loader.loadAnimations(animationMap);
           setSubtitle('VRM模型加载完成');
         } else {
+          console.log('该VRM模型没有动画');
           setSubtitle('VRM模型加载完成（无动作）');
         }
 
@@ -124,6 +133,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     } catch (error) {
       console.error('加载VRM模型失败:', error);
+      console.error('错误详情:', error instanceof Error ? error.message : String(error));
       setSubtitle('VRM模型加载失败，将使用默认显示');
 
       // 5秒后清除错误提示
@@ -205,11 +215,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // 准备模型参数
       const finalModelParams = { ...modelParameters };
       if (vrmDisplayMode === 'vrm') {
-        // 在 VRM 模式下，强制开启 TTS 和相关配置
-        (finalModelParams as any).display_mode = 'vrm';
-        (finalModelParams as any).enable_tts = true;
-        (finalModelParams as any).tts_mode = 'sentence';
+        // 在 VRM 模式下，设置显示模式
+        finalModelParams.display_mode = 'vrm';
+      } else {
+        finalModelParams.display_mode = 'text';
       }
+
+      console.log('发送消息参数:', {
+        conversationId: activeConversationId,
+        characterId: Number(activeCharacter?.character_id || activeCharacter?.id),
+        modelId: activeModel?.model_id || '',
+        providerId: activeModel?.provider_id || '',
+        modelParams: finalModelParams,
+        vrmDisplayMode
+      });
 
       const result = await api.sendMessage(
         activeConversationId,
@@ -736,7 +755,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Input Area */}
       {/* 在 VRM模式下，InputArea 仍然需要可见，覆盖在 Canvas 上方 */}
-      <div className={`p-4 transition-colors ${vrmDisplayMode === 'vrm' ? 'bg-transparent z-10' : 'bg-white dark:bg-gray-900'}`}>
+      <div className={`p-4 transition-colors ${vrmDisplayMode === 'vrm' ? 'absolute bottom-0 left-0 right-0 bg-transparent z-10' : 'bg-white dark:bg-gray-900'}`}>
         <div className="max-w-4xl mx-auto relative">
           <div className={`absolute bottom-full left-0 mb-4 px-4 py-2 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 text-sm transition-all duration-300 ${isRecording ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>

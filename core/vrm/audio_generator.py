@@ -7,6 +7,7 @@ from typing import List, Optional, Dict
 from dataclasses import dataclass, asdict
 from .markup_parser import VRMMarkupParser, VRMMarkup
 from .markup_filter import MarkupFilter
+from .audio_manager import AudioFileManager
 from ..tts.factory import TTSFactory
 from ..logger import get_logger
 from ..paths import get_path_manager
@@ -45,26 +46,43 @@ class AudioGenerator:
     # 句子分割正则（保留分隔符）
     SENTENCE_PATTERN = re.compile(r'([^。！？\.\!\?]+[。！？\.\!\?]+)')
     
-    def __init__(self, tts_factory: TTSFactory, action_mapping: Optional[dict] = None):
+    def __init__(
+        self,
+        tts_factory: TTSFactory,
+        action_mapping: Optional[dict] = None,
+        audio_manager: Optional[AudioFileManager] = None,
+        conversation_id: Optional[int] = None
+    ):
         """初始化音频生成器
         
         Args:
             tts_factory: TTS工厂实例
             action_mapping: 动作映射字典（中文名 -> 英文ID），从数据库获取
+            audio_manager: 音频文件管理器（可选）
+            conversation_id: 会话ID（用于文件生命周期管理）
         """
         self.tts_factory = tts_factory
         self.parser = VRMMarkupParser(action_mapping=action_mapping)
         self.path_manager = get_path_manager()
+        self.conversation_id = conversation_id
         
         # 确保VRM音频目录存在
         self.vrm_audio_dir = self.path_manager.uploads_dir / "vrm_audio"
         self.vrm_audio_dir.mkdir(parents=True, exist_ok=True)
         
+        # 音频文件管理器
+        self.audio_manager = audio_manager or AudioFileManager(
+            audio_dir=self.vrm_audio_dir,
+            ttl_seconds=3600,  # 默认1小时
+            max_size_mb=500    # 默认500MB
+        )
+        
         logger.debug(
-            f"音频生成器初始化完成",
+            "音频生成器初始化完成",
             extra={
                 "audio_dir": str(self.vrm_audio_dir),
-                "action_count": len(action_mapping) if action_mapping else 0
+                "action_count": len(action_mapping) if action_mapping else 0,
+                "conversation_id": conversation_id
             }
         )
     
@@ -278,6 +296,9 @@ class AudioGenerator:
         
         with open(audio_path, 'wb') as f:
             f.write(audio_bytes)
+        
+        # 注册到音频管理器
+        self.audio_manager.register_file(audio_path, self.conversation_id)
         
         # 获取音频时长
         duration = self._get_audio_duration(audio_path)

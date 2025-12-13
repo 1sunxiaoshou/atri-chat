@@ -608,7 +608,7 @@ class AppStorage:
                 conn.commit()
                 message_id = cursor.lastrowid
                 logger.debug(
-                    f"添加消息成功",
+                    f"添加{message_type}消息成功",
                     extra={
                         "message_id": message_id,
                         "conversation_id": conversation_id,

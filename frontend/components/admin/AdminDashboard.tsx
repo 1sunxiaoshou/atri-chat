@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Cpu, Users, Plus, Trash, Save, X, CheckCircle, RotateCcw, Box, Video } from 'lucide-react';
+import { Server, Cpu, Users, Plus, Trash, Save, X, CheckCircle, RotateCcw, Box } from 'lucide-react';
 import { Provider, Model, Character, AdminTab, VRMModel } from '../../types';
 import { api } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AvatarEditor } from '../AvatarEditor';
 import { getCharacterId } from '../../utils/helpers';
+import { Select } from '../ui';
 
 interface AdminDashboardProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
@@ -320,34 +321,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
           <div className="flex gap-4 items-center">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.filter')}:</span>
-            <select
+            <Select
               value={modelFilterProvider}
-              onChange={(e) => setModelFilterProvider(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="">{t('admin.allProviders')}</option>
-              {[...new Set(models.map(m => m.provider_id))].map(pid => (
-                <option key={pid} value={pid}>{pid}</option>
-              ))}
-            </select>
-            <select
+              onChange={setModelFilterProvider}
+              options={[
+                { label: t('admin.allProviders'), value: '' },
+                ...[...new Set(models.map(m => m.provider_id))].map(pid => ({
+                  label: pid,
+                  value: pid
+                }))
+              ]}
+              placeholder={t('admin.allProviders')}
+              className="min-w-[160px]"
+            />
+            <Select
               value={modelFilterType}
-              onChange={(e) => setModelFilterType(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="">{t('admin.allTypes')}</option>
-              <option value="text">Text</option>
-              <option value="embedding">Embedding</option>
-            </select>
-            <select
+              onChange={setModelFilterType}
+              options={[
+                { label: t('admin.allTypes'), value: '' },
+                { label: 'Text', value: 'text' },
+                { label: 'Embedding', value: 'embedding' }
+              ]}
+              placeholder={t('admin.allTypes')}
+              className="min-w-[140px]"
+            />
+            <Select
               value={modelFilterEnabled}
-              onChange={(e) => setModelFilterEnabled(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="">{t('admin.allStatus')}</option>
-              <option value="enabled">{t('admin.enabled')}</option>
-              <option value="disabled">{t('admin.disabled')}</option>
-            </select>
+              onChange={setModelFilterEnabled}
+              options={[
+                { label: t('admin.allStatus'), value: '' },
+                { label: t('admin.enabled'), value: 'enabled' },
+                { label: t('admin.disabled'), value: 'disabled' }
+              ]}
+              placeholder={t('admin.allStatus')}
+              className="min-w-[140px]"
+            />
             {(modelFilterProvider || modelFilterType || modelFilterEnabled) && (
               <button
                 onClick={() => {
@@ -621,22 +629,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               <div className="grid grid-cols-2 gap-4 flex-shrink-0">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.defaultModel')}</label>
-                  <select
+                  <Select
                     value={editingCharacter.primary_model_id}
-                    onChange={(e) => {
-                      const selectedModel = models.find(m => m.model_id === e.target.value);
+                    onChange={(value) => {
+                      const selectedModel = models.find(m => m.model_id === value);
                       setEditingCharacter({
                         ...editingCharacter,
-                        primary_model_id: e.target.value,
+                        primary_model_id: value,
                         primary_provider_id: selectedModel?.provider_id || ''
                       });
                     }}
-                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    {models.filter(m => m.enabled).map(m => (
-                      <option key={m.model_id} value={m.model_id}>{m.model_id} ({m.provider_id})</option>
-                    ))}
-                  </select>
+                    options={models.filter(m => m.enabled).map(m => ({
+                      label: m.model_id,
+                      value: m.model_id,
+                      group: m.provider_id
+                    }))}
+                    placeholder={t('admin.selectModel')}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('admin.ttsConfig')}</label>
@@ -654,16 +664,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <div className="grid grid-cols-2 gap-4 flex-shrink-0 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">VRM Model</label>
-                    <select
+                    <Select
                       value={editingCharacter.vrm_model_id || ''}
-                      onChange={(e) => setEditingCharacter({ ...editingCharacter, vrm_model_id: e.target.value })}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                      <option value="">None</option>
-                      {vrmModels.map(m => (
-                        <option key={m.vrm_model_id} value={m.vrm_model_id}>{m.name}</option>
-                      ))}
-                    </select>
+                      onChange={(value) => setEditingCharacter({ ...editingCharacter, vrm_model_id: value })}
+                      options={[
+                        { label: 'None', value: '' },
+                        ...vrmModels.map(m => ({
+                          label: m.name,
+                          value: m.vrm_model_id
+                        }))
+                      ]}
+                      placeholder="选择 VRM 模型"
+                      className="w-full"
+                    />
                   </div>
                 </div>
 
@@ -766,10 +779,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.providerTemplate')}</label>
-                  <select
+                  <Select
                     value={editingProvider.template_type || providerTemplates[0]?.template_type || 'openai'}
-                    onChange={(e) => {
-                      const selectedTemplate = providerTemplates.find(t => t.template_type === e.target.value);
+                    onChange={(value) => {
+                      const selectedTemplate = providerTemplates.find(t => t.template_type === value);
                       const newConfigJson: any = {};
 
                       // 根据选中的模板生成配置字段
@@ -781,18 +794,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
                       setEditingProvider({
                         ...editingProvider,
-                        template_type: e.target.value as any,
+                        template_type: value as any,
                         config_json: newConfigJson
                       });
                     }}
-                    className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    {providerTemplates.map(template => (
-                      <option key={template.template_type} value={template.template_type}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={providerTemplates.map(template => ({
+                      label: template.name,
+                      value: template.template_type
+                    }))}
+                    placeholder="选择模板类型"
+                    className="w-full"
+                  />
                 </div>
               </div>
 
@@ -869,15 +881,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.providers')}</label>
-                <select
-                  value={newModel.provider_id}
-                  onChange={(e) => setNewModel({ ...newModel, provider_id: e.target.value })}
-                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  {providers.map(p => (
-                    <option key={p.provider_id} value={p.provider_id}>{p.name || p.provider_id}</option>
-                  ))}
-                </select>
+                <Select
+                  value={newModel.provider_id || ''}
+                  onChange={(value) => setNewModel({ ...newModel, provider_id: value })}
+                  options={providers.map(p => ({
+                    label: p.name || p.provider_id,
+                    value: p.provider_id
+                  }))}
+                  placeholder="选择提供商"
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.modelId')}</label>
@@ -891,15 +904,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.modelType')}</label>
-                <select
-                  value={newModel.model_type}
-                  onChange={(e) => setNewModel({ ...newModel, model_type: e.target.value as any })}
-                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="text">Text</option>
-                  <option value="embedding">Embedding</option>
-                  <option value="rerank">Rerank</option>
-                </select>
+                <Select
+                  value={newModel.model_type || 'text'}
+                  onChange={(value) => setNewModel({ ...newModel, model_type: value as any })}
+                  options={[
+                    { label: 'Text', value: 'text' },
+                    { label: 'Embedding', value: 'embedding' },
+                    { label: 'Rerank', value: 'rerank' }
+                  ]}
+                  placeholder="选择模型类型"
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{t('admin.capabilities')}</label>

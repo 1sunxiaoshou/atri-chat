@@ -30,17 +30,19 @@ async def send_message(
             if req.top_p is not None:
                 model_kwargs["top_p"] = req.top_p
             
-            # 记录模型参数
+            # 记录模型参数和显示模式
             from core.logger import get_logger
             logger = get_logger(__name__, category="API")
-            if model_kwargs:
-                logger.info(
-                    "使用自定义模型参数",
-                    extra={
-                        "conversation_id": req.conversation_id,
-                        "model_params": model_kwargs
-                    }
-                )
+            logger.info(
+                "接收到消息请求",
+                extra={
+                    "conversation_id": req.conversation_id,
+                    "character_id": req.character_id,
+                    "display_mode": req.display_mode,
+                    "model_params": model_kwargs,
+                    "content_length": len(req.content)
+                }
+            )
             
             # 根据display_mode选择不同的处理方法
             if req.display_mode == "vrm":
@@ -92,29 +94,5 @@ async def send_message(
             "X-Accel-Buffering": "no"
         }
     )
-
-
-@router.get("/conversations/{conversation_id}/messages", response_model=ResponseModel)
-async def get_conversation_history(
-    conversation_id: int,
-    from_checkpoint: bool = False,
-    agent_manager: AgentManager = Depends(get_agent)
-):
-    """获取会话历史"""
-    try:
-        messages = agent_manager.get_conversation_history(
-            conversation_id=conversation_id,
-            from_checkpoint=from_checkpoint
-        )
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data={
-                "conversation_id": conversation_id,
-                "messages": messages
-            }
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
