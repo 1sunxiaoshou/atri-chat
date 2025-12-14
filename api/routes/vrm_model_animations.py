@@ -1,5 +1,4 @@
 """VRM模型-动作关联管理API"""
-import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
@@ -9,6 +8,7 @@ from core.dependencies import get_app_storage
 from core.storage import AppStorage
 from core.paths import get_path_manager
 from core.logger import get_logger
+from core.utils.file_naming import generate_animation_filename
 
 logger = get_logger(__name__, category="API")
 
@@ -112,7 +112,7 @@ async def batch_add_model_animations(
 @router.post("/{vrm_model_id}/animations/upload", summary="上传动作并关联到模型")
 async def upload_and_link_animation(
     vrm_model_id: str,
-    file: UploadFile = File(..., description="动作文件(.fbx/.bvh)"),
+    file: UploadFile = File(..., description="动作文件(.vrma)"),
     name: str = Form(..., description="动作英文名"),
     name_cn: str = Form(..., description="动作中文名"),
     description: Optional[str] = Form(None, description="动作描述"),
@@ -127,13 +127,12 @@ async def upload_and_link_animation(
             raise HTTPException(status_code=404, detail="VRM模型不存在")
         
         # 验证文件类型
-        if not (file.filename.endswith('.fbx') or file.filename.endswith('.bvh')):
-            raise HTTPException(status_code=400, detail="只支持.fbx或.bvh文件")
+        if not file.filename.endswith('.vrma'):
+            raise HTTPException(status_code=400, detail="只支持.vrma文件")
         
-        # 生成唯一ID和文件名
-        animation_id = f"anim-{uuid.uuid4()}"
+        # 生成唯一ID和文件名（使用新的命名方案）
         file_ext = Path(file.filename).suffix
-        filename = f"{name}{file_ext}"
+        animation_id, filename = generate_animation_filename(name, file_ext)
         
         # 保存文件
         path_manager = get_path_manager()

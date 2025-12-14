@@ -249,20 +249,6 @@ curl -X POST http://localhost:8000/api/v1/vrm/models/model_new/animations/batch 
 curl http://localhost:8000/api/v1/vrm/animations/anim_wave/models
 ```
 
-## 数据迁移
-
-如果你有旧的一对多数据结构，运行迁移脚本：
-
-```bash
-python scripts/migrate_vrm_to_many_to_many.py
-```
-
-迁移脚本会：
-1. 自动备份数据库
-2. 提取唯一动作（去重）
-3. 创建关联表
-4. 保留所有关联关系
-
 ## AI Prompt集成
 
 动作的`description`和`duration`字段用于AI理解和编排：
