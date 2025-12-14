@@ -49,7 +49,7 @@ async def test_vrm_with_real_tts():
     # 检查VRM模型
     vrm_model_id = test_character.get("vrm_model_id")
     if vrm_model_id:
-        animations = storage.list_vrm_animations(vrm_model_id)
+        animations = storage.get_model_animations(vrm_model_id)
         print(f"  VRM模型: {vrm_model_id}")
         print(f"  可用动作: {len(animations)}个")
         for anim in animations[:3]:  # 只显示前3个
