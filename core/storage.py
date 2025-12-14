@@ -64,8 +64,8 @@ class AppStorage:
                 CREATE TABLE IF NOT EXISTS vrm_models (
                     vrm_model_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
-                    model_path TEXT NOT NULL,
-                    thumbnail_path TEXT DEFAULT '/static/default_vrm_thumbnail.png'
+                    filename TEXT NOT NULL,
+                    thumbnail_filename TEXT
                 )
             """)
             
@@ -692,41 +692,39 @@ class AppStorage:
         self, 
         vrm_model_id: str, 
         name: str, 
-        model_path: str,
-        thumbnail_path: Optional[str] = None
+        filename: str,
+        thumbnail_filename: Optional[str] = None
     ) -> bool:
         """添加VRM模型
         
         Args:
             vrm_model_id: 模型ID
             name: 模型名称
-            model_path: 模型文件路径
-            thumbnail_path: 缩略图路径（可选，默认使用默认图）
+            filename: 模型文件名（不含路径）
+            thumbnail_filename: 缩略图文件名（可选）
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                if thumbnail_path:
-                    conn.execute(
-                        "INSERT INTO vrm_models (vrm_model_id, name, model_path, thumbnail_path) VALUES (?, ?, ?, ?)",
-                        (vrm_model_id, name, model_path, thumbnail_path)
-                    )
-                else:
-                    conn.execute(
-                        "INSERT INTO vrm_models (vrm_model_id, name, model_path) VALUES (?, ?, ?)",
-                        (vrm_model_id, name, model_path)
-                    )
+                conn.execute(
+                    "INSERT INTO vrm_models (vrm_model_id, name, filename, thumbnail_filename) VALUES (?, ?, ?, ?)",
+                    (vrm_model_id, name, filename, thumbnail_filename)
+                )
                 conn.commit()
-                logger.info(f"添加VRM模型成功", extra={"vrm_model_id": vrm_model_id, "name": name})
+                logger.info(f"添加VRM模型成功", extra={"vrm_model_id": vrm_model_id, "name": name, "filename": filename})
             return True
         except sqlite3.IntegrityError as e:
             logger.error(f"添加VRM模型失败", extra={"vrm_model_id": vrm_model_id, "error": str(e)})
             return False
     
     def get_vrm_model(self, vrm_model_id: str) -> Optional[Dict[str, Any]]:
-        """获取VRM模型"""
+        """获取VRM模型
+        
+        Returns:
+            包含 vrm_model_id, name, filename, thumbnail_filename 的字典
+        """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT vrm_model_id, name, model_path, thumbnail_path FROM vrm_models WHERE vrm_model_id = ?",
+                "SELECT vrm_model_id, name, filename, thumbnail_filename FROM vrm_models WHERE vrm_model_id = ?",
                 (vrm_model_id,)
             )
             row = cursor.fetchone()
@@ -734,30 +732,34 @@ class AppStorage:
                 return {
                     "vrm_model_id": row[0],
                     "name": row[1],
-                    "model_path": row[2],
-                    "thumbnail_path": row[3]
+                    "filename": row[2],
+                    "thumbnail_filename": row[3]
                 }
         return None
     
     def list_vrm_models(self) -> List[Dict[str, Any]]:
-        """列出所有VRM模型"""
+        """列出所有VRM模型
+        
+        Returns:
+            包含 vrm_model_id, name, filename, thumbnail_filename 的字典列表
+        """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT vrm_model_id, name, model_path, thumbnail_path FROM vrm_models"
+                "SELECT vrm_model_id, name, filename, thumbnail_filename FROM vrm_models"
             )
             return [
                 {
                     "vrm_model_id": row[0],
                     "name": row[1],
-                    "model_path": row[2],
-                    "thumbnail_path": row[3]
+                    "filename": row[2],
+                    "thumbnail_filename": row[3]
                 }
                 for row in cursor.fetchall()
             ]
     
     def update_vrm_model(self, vrm_model_id: str, **updates) -> bool:
         """更新VRM模型"""
-        allowed_fields = {"name", "model_path", "thumbnail_path"}
+        allowed_fields = {"name"}  # 只允许更新名称，文件名不应该被修改
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         
         if not filtered_updates:
@@ -957,7 +959,7 @@ class AppStorage:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
-                SELECT m.vrm_model_id, m.name, m.model_path, m.thumbnail_path
+                SELECT m.vrm_model_id, m.name, m.filename, m.thumbnail_filename
                 FROM vrm_models m
                 INNER JOIN vrm_model_animations ma ON m.vrm_model_id = ma.vrm_model_id
                 WHERE ma.animation_id = ?
@@ -967,8 +969,8 @@ class AppStorage:
                 {
                     "vrm_model_id": row[0],
                     "name": row[1],
-                    "model_path": row[2],
-                    "thumbnail_path": row[3]
+                    "filename": row[2],
+                    "thumbnail_filename": row[3]
                 }
                 for row in cursor.fetchall()
             ]

@@ -509,6 +509,7 @@ export const api = {
     },
 
     // ==================== VRM 管理 ====================
+    // --- VRM 模型 ---
     /** 获取所有 VRM 模型列表 */
     getVRMModels: async (): Promise<ApiResponse<any[]>> => {
         const response = await fetch(`${BASE_URL}/vrm/models`);
@@ -518,21 +519,24 @@ export const api = {
     /** 获取VRM模型详情 */
     getVRMModel: async (modelId: string): Promise<ApiResponse<any>> => {
         const response = await fetch(`${BASE_URL}/vrm/models/${modelId}`);
-
         return handleResponse<any>(response);
-    },
-
-    /** 获取VRM模型的动画列表 */
-    getVRMAnimations: async (modelId: string): Promise<ApiResponse<any[]>> => {
-        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations`);
-        return handleResponse<any[]>(response);
     },
 
     /** 上传 VRM 模型 */
     uploadVRMModel: async (formData: FormData): Promise<ApiResponse<any>> => {
         const response = await fetch(`${BASE_URL}/vrm/models/upload`, {
             method: 'POST',
-            body: formData, // fetch will automatically set Content-Type to multipart/form-data
+            body: formData,
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 更新 VRM 模型 */
+    updateVRMModel: async (modelId: string, data: { name?: string; thumbnail_path?: string }): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         });
         return handleResponse<any>(response);
     },
@@ -545,8 +549,71 @@ export const api = {
         return handleResponse<any>(response);
     },
 
+    // --- VRM 动作 ---
+    /** 获取所有动作列表 */
+    getVRMAnimations: async (): Promise<ApiResponse<any[]>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations`);
+        return handleResponse<any[]>(response);
+    },
+
+    /** 获取动作详情 */
+    getVRMAnimation: async (animationId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations/${animationId}`);
+        return handleResponse<any>(response);
+    },
+
     /** 上传 VRM 动作 */
-    uploadVRMAnimation: async (modelId: string, formData: FormData): Promise<ApiResponse<any>> => {
+    uploadVRMAnimation: async (formData: FormData): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 更新动作信息 */
+    updateVRMAnimation: async (animationId: string, data: { description?: string, duration?: number }): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations/${animationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 删除动作 */
+    deleteVRMAnimation: async (animationId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations/${animationId}`, {
+            method: 'DELETE',
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 查询使用该动作的模型 */
+    getVRMAnimationModels: async (animationId: string): Promise<ApiResponse<any[]>> => {
+        const response = await fetch(`${BASE_URL}/vrm/animations/${animationId}/models`);
+        return handleResponse<any[]>(response);
+    },
+
+    // --- 模型-动作关联 ---
+    /** 获取模型的所有动作 */
+    getModelAnimations: async (modelId: string): Promise<ApiResponse<any[]>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations`);
+        return handleResponse<any[]>(response);
+    },
+
+    /** 为模型添加动作 */
+    addModelAnimation: async (modelId: string, animationId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ animation_id: animationId })
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 上传动作并关联到模型 */
+    uploadAndBindModelAnimation: async (modelId: string, formData: FormData): Promise<ApiResponse<any>> => {
         const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations/upload`, {
             method: 'POST',
             body: formData,
@@ -554,10 +621,30 @@ export const api = {
         return handleResponse<any>(response);
     },
 
-    /** 删除 VRM 动作 */
-    deleteVRMAnimation: async (animationId: string): Promise<ApiResponse<any>> => {
-        const response = await fetch(`${BASE_URL}/vrm/animations/${animationId}`, {
+    /** 批量添加动作到模型 */
+    batchAddModelAnimations: async (modelId: string, animationIds: string[]): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ animation_ids: animationIds })
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 移除模型的动作 */
+    removeModelAnimation: async (modelId: string, animationId: string): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations/${animationId}`, {
             method: 'DELETE',
+        });
+        return handleResponse<any>(response);
+    },
+
+    /** 批量移除模型的动作 */
+    batchRemoveModelAnimations: async (modelId: string, animationIds: string[]): Promise<ApiResponse<any>> => {
+        const response = await fetch(`${BASE_URL}/vrm/models/${modelId}/animations/batch`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ animation_ids: animationIds })
         });
         return handleResponse<any>(response);
     }

@@ -6,6 +6,39 @@ import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { AnimationTransitionManager } from './animationTransition';
 
 /**
+ * Helper function to extract animation duration from a file (e.g. .vrma)
+ */
+export async function getAnimationDuration(file: File): Promise<number> {
+    const url = URL.createObjectURL(file);
+    const loader = new GLTFLoader();
+    // Register VRMA plugin
+    loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
+
+    try {
+        const gltf = await loader.loadAsync(url);
+
+        // Check for VRM Animations
+        const vrmAnimations = gltf.userData.vrmAnimations;
+        if (vrmAnimations && vrmAnimations.length > 0) {
+            // Usually VRMA contains one clip
+            return vrmAnimations[0].duration;
+        }
+
+        // Check for standard glTF animations
+        if (gltf.animations && gltf.animations.length > 0) {
+            return gltf.animations[0].duration;
+        }
+
+        return 0;
+    } catch (error) {
+        console.error('Failed to parse animation duration:', error);
+        return 0;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
+/**
  * VRM资源管理器
  * 负责VRM模型加载、动作加载、场景渲染
  */

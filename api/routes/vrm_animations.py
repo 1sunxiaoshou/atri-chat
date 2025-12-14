@@ -1,5 +1,4 @@
 """VRM动作管理API"""
-import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
@@ -9,6 +8,7 @@ from core.dependencies import get_app_storage
 from core.storage import AppStorage
 from core.paths import get_path_manager
 from core.logger import get_logger
+from core.utils.file_naming import generate_animation_filename
 
 logger = get_logger(__name__, category="API")
 
@@ -17,56 +17,14 @@ router = APIRouter(prefix="/vrm/animations", tags=["VRM Animations"])
 
 # ==================== 请求模型 ====================
 
-class VRMAnimationCreate(BaseModel):
-    """创建VRM动作"""
-    animation_id: str = Field(..., description="动作ID")
-    name: str = Field(..., description="英文ID（唯一）")
-    name_cn: str = Field(..., description="中文名")
-    description: Optional[str] = Field(None, description="动作描述（供AI理解）")
-    duration: Optional[float] = Field(None, description="动作时长（秒）")
-
-
 class VRMAnimationUpdate(BaseModel):
     """更新VRM动作"""
-    name: Optional[str] = Field(None, description="英文ID")
     name_cn: Optional[str] = Field(None, description="中文名")
     description: Optional[str] = Field(None, description="动作描述")
     duration: Optional[float] = Field(None, description="动作时长（秒）")
 
 
 # ==================== API端点 ====================
-
-@router.post("", summary="创建VRM动作")
-async def create_vrm_animation(
-    animation: VRMAnimationCreate,
-    storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
-    """创建VRM动作"""
-    try:
-        success = storage.add_vrm_animation(
-            animation_id=animation.animation_id,
-            name=animation.name,
-            name_cn=animation.name_cn,
-            description=animation.description,
-            duration=animation.duration
-        )
-        
-        if not success:
-            raise HTTPException(status_code=400, detail="动作ID或英文名已存在")
-        
-        logger.info(f"创建VRM动作成功", extra={"animation_id": animation.animation_id, "name": animation.name})
-        
-        return {
-            "success": True,
-            "message": "VRM动作创建成功",
-            "data": storage.get_vrm_animation(animation.animation_id)
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"创建VRM动作失败: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("", summary="获取所有VRM动作")
@@ -155,7 +113,7 @@ async def update_vrm_animation(
 
 @router.post("/upload", summary="上传VRM动作文件")
 async def upload_vrm_animation(
-    file: UploadFile = File(..., description="动作文件(.fbx/.bvh)"),
+    file: UploadFile = File(..., description="动作文件(.vrma)"),
     name: str = Form(..., description="动作英文名"),
     name_cn: str = Form(..., description="动作中文名"),
     description: Optional[str] = Form(None, description="动作描述"),
@@ -165,13 +123,12 @@ async def upload_vrm_animation(
     """上传VRM动作文件"""
     try:
         # 验证文件类型
-        if not (file.filename.endswith('.fbx') or file.filename.endswith('.bvh')):
-            raise HTTPException(status_code=400, detail="只支持.fbx或.bvh文件")
+        if not file.filename.endswith('.vrma'):
+            raise HTTPException(status_code=400, detail="只支持.vrma文件")
         
-        # 生成唯一ID和文件名
-        animation_id = f"anim-{uuid.uuid4()}"
+        # 生成唯一ID和文件名（使用新的命名方案）
         file_ext = Path(file.filename).suffix
-        filename = f"{name}{file_ext}"
+        animation_id, filename = generate_animation_filename(name, file_ext)
         
         # 保存文件
         path_manager = get_path_manager()
