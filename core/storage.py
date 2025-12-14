@@ -65,25 +65,36 @@ class AppStorage:
                     vrm_model_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     model_path TEXT NOT NULL,
-                    thumbnail_path TEXT,
-                    description TEXT,
-                    created_at TEXT NOT NULL
+                    thumbnail_path TEXT DEFAULT '/static/default_vrm_thumbnail.png'
                 )
             """)
             
-            # VRM动作表
+            # VRM动作表（独立，不关联模型）
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS vrm_animations (
                     animation_id TEXT PRIMARY KEY,
-                    vrm_model_id TEXT NOT NULL,
-                    name TEXT NOT NULL,
+                    name TEXT NOT NULL UNIQUE,
                     name_cn TEXT NOT NULL,
-                    animation_path TEXT NOT NULL,
-                    duration REAL,
-                    type TEXT DEFAULT 'short',
-                    FOREIGN KEY (vrm_model_id) REFERENCES vrm_models(vrm_model_id)
+                    description TEXT,
+                    duration REAL
                 )
             """)
+            
+            # 模型-动作关联表（多对多）
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS vrm_model_animations (
+                    vrm_model_id TEXT NOT NULL,
+                    animation_id TEXT NOT NULL,
+                    PRIMARY KEY (vrm_model_id, animation_id),
+                    FOREIGN KEY (vrm_model_id) REFERENCES vrm_models(vrm_model_id) ON DELETE CASCADE,
+                    FOREIGN KEY (animation_id) REFERENCES vrm_animations(animation_id) ON DELETE CASCADE
+                )
+            """)
+            
+            # 创建索引
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_model_animations_model ON vrm_model_animations(vrm_model_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_model_animations_animation ON vrm_model_animations(animation_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_animations_name ON vrm_animations(name)")
             
             # 角色表
             conn.execute("""
@@ -677,17 +688,33 @@ class AppStorage:
     
     # ==================== VRM模型管理 ====================
     
-    def add_vrm_model(self, vrm_model_id: str, name: str, model_path: str,
-                     thumbnail_path: Optional[str] = None, description: Optional[str] = None) -> bool:
-        """添加VRM模型"""
+    def add_vrm_model(
+        self, 
+        vrm_model_id: str, 
+        name: str, 
+        model_path: str,
+        thumbnail_path: Optional[str] = None
+    ) -> bool:
+        """添加VRM模型
+        
+        Args:
+            vrm_model_id: 模型ID
+            name: 模型名称
+            model_path: 模型文件路径
+            thumbnail_path: 缩略图路径（可选，默认使用默认图）
+        """
         try:
-            from datetime import datetime
-            now = datetime.now().isoformat()
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute(
-                    "INSERT INTO vrm_models VALUES (?, ?, ?, ?, ?, ?)",
-                    (vrm_model_id, name, model_path, thumbnail_path, description, now)
-                )
+                if thumbnail_path:
+                    conn.execute(
+                        "INSERT INTO vrm_models (vrm_model_id, name, model_path, thumbnail_path) VALUES (?, ?, ?, ?)",
+                        (vrm_model_id, name, model_path, thumbnail_path)
+                    )
+                else:
+                    conn.execute(
+                        "INSERT INTO vrm_models (vrm_model_id, name, model_path) VALUES (?, ?, ?)",
+                        (vrm_model_id, name, model_path)
+                    )
                 conn.commit()
                 logger.info(f"添加VRM模型成功", extra={"vrm_model_id": vrm_model_id, "name": name})
             return True
@@ -699,7 +726,7 @@ class AppStorage:
         """获取VRM模型"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT vrm_model_id, name, model_path, thumbnail_path, description, created_at FROM vrm_models WHERE vrm_model_id = ?",
+                "SELECT vrm_model_id, name, model_path, thumbnail_path FROM vrm_models WHERE vrm_model_id = ?",
                 (vrm_model_id,)
             )
             row = cursor.fetchone()
@@ -708,9 +735,7 @@ class AppStorage:
                     "vrm_model_id": row[0],
                     "name": row[1],
                     "model_path": row[2],
-                    "thumbnail_path": row[3],
-                    "description": row[4],
-                    "created_at": row[5]
+                    "thumbnail_path": row[3]
                 }
         return None
     
@@ -718,23 +743,21 @@ class AppStorage:
         """列出所有VRM模型"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT vrm_model_id, name, model_path, thumbnail_path, description, created_at FROM vrm_models ORDER BY created_at DESC"
+                "SELECT vrm_model_id, name, model_path, thumbnail_path FROM vrm_models"
             )
             return [
                 {
                     "vrm_model_id": row[0],
                     "name": row[1],
                     "model_path": row[2],
-                    "thumbnail_path": row[3],
-                    "description": row[4],
-                    "created_at": row[5]
+                    "thumbnail_path": row[3]
                 }
                 for row in cursor.fetchall()
             ]
     
     def update_vrm_model(self, vrm_model_id: str, **updates) -> bool:
         """更新VRM模型"""
-        allowed_fields = {"name", "model_path", "thumbnail_path", "description"}
+        allowed_fields = {"name", "model_path", "thumbnail_path"}
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         
         if not filtered_updates:
@@ -747,32 +770,46 @@ class AppStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(query, params)
             conn.commit()
+            logger.info(f"更新VRM模型", extra={"vrm_model_id": vrm_model_id, "updated_fields": list(filtered_updates.keys())})
             return cursor.rowcount > 0
     
     def delete_vrm_model(self, vrm_model_id: str) -> bool:
-        """删除VRM模型（同时删除关联的动作）"""
+        """删除VRM模型（级联删除关联关系）"""
         with sqlite3.connect(self.db_path) as conn:
-            # 先删除动作
-            conn.execute("DELETE FROM vrm_animations WHERE vrm_model_id = ?", (vrm_model_id,))
-            # 再删除模型
             cursor = conn.execute("DELETE FROM vrm_models WHERE vrm_model_id = ?", (vrm_model_id,))
             conn.commit()
-            return cursor.rowcount > 0
+            deleted = cursor.rowcount > 0
+            if deleted:
+                logger.info(f"删除VRM模型成功", extra={"vrm_model_id": vrm_model_id})
+            return deleted
     
     # ==================== VRM动作管理 ====================
     
-    def add_vrm_animation(self, animation_id: str, vrm_model_id: str, name: str, name_cn: str,
-                         animation_path: str, duration: Optional[float] = None, 
-                         anim_type: str = "short") -> bool:
-        """添加VRM动作"""
+    def add_vrm_animation(
+        self,
+        animation_id: str,
+        name: str,
+        name_cn: str,
+        description: Optional[str] = None,
+        duration: Optional[float] = None
+    ) -> bool:
+        """添加VRM动作
+        
+        Args:
+            animation_id: 动作ID
+            name: 英文ID（唯一）
+            name_cn: 中文名
+            description: 动作描述（供AI理解）
+            duration: 动作时长（秒）
+        """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
-                    "INSERT INTO vrm_animations VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (animation_id, vrm_model_id, name, name_cn, animation_path, duration, anim_type)
+                    "INSERT INTO vrm_animations (animation_id, name, name_cn, description, duration) VALUES (?, ?, ?, ?, ?)",
+                    (animation_id, name, name_cn, description, duration)
                 )
                 conn.commit()
-                logger.info(f"添加VRM动作成功", extra={"animation_id": animation_id, "name": name})
+                logger.info(f"添加VRM动作成功", extra={"animation_id": animation_id, "name": name, "name_cn": name_cn})
             return True
         except sqlite3.IntegrityError as e:
             logger.error(f"添加VRM动作失败", extra={"animation_id": animation_id, "error": str(e)})
@@ -782,51 +819,40 @@ class AppStorage:
         """获取VRM动作"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT animation_id, vrm_model_id, name, name_cn, animation_path, duration, type FROM vrm_animations WHERE animation_id = ?",
+                "SELECT animation_id, name, name_cn, description, duration FROM vrm_animations WHERE animation_id = ?",
                 (animation_id,)
             )
             row = cursor.fetchone()
             if row:
                 return {
                     "animation_id": row[0],
-                    "vrm_model_id": row[1],
-                    "name": row[2],
-                    "name_cn": row[3],
-                    "animation_path": row[4],
-                    "duration": row[5],
-                    "type": row[6]
+                    "name": row[1],
+                    "name_cn": row[2],
+                    "description": row[3],
+                    "duration": row[4]
                 }
         return None
     
-    def list_vrm_animations(self, vrm_model_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """列出VRM动作"""
+    def list_vrm_animations(self) -> List[Dict[str, Any]]:
+        """列出所有VRM动作"""
         with sqlite3.connect(self.db_path) as conn:
-            if vrm_model_id:
-                cursor = conn.execute(
-                    "SELECT animation_id, vrm_model_id, name, name_cn, animation_path, duration, type FROM vrm_animations WHERE vrm_model_id = ?",
-                    (vrm_model_id,)
-                )
-            else:
-                cursor = conn.execute(
-                    "SELECT animation_id, vrm_model_id, name, name_cn, animation_path, duration, type FROM vrm_animations"
-                )
-            
+            cursor = conn.execute(
+                "SELECT animation_id, name, name_cn, description, duration FROM vrm_animations"
+            )
             return [
                 {
                     "animation_id": row[0],
-                    "vrm_model_id": row[1],
-                    "name": row[2],
-                    "name_cn": row[3],
-                    "animation_path": row[4],
-                    "duration": row[5],
-                    "type": row[6]
+                    "name": row[1],
+                    "name_cn": row[2],
+                    "description": row[3],
+                    "duration": row[4]
                 }
                 for row in cursor.fetchall()
             ]
     
     def update_vrm_animation(self, animation_id: str, **updates) -> bool:
         """更新VRM动作"""
-        allowed_fields = {"name", "name_cn", "animation_path", "duration", "type"}
+        allowed_fields = {"name", "name_cn", "description", "duration"}
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         
         if not filtered_updates:
@@ -839,12 +865,159 @@ class AppStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(query, params)
             conn.commit()
+            logger.info(f"更新VRM动作", extra={"animation_id": animation_id, "updated_fields": list(filtered_updates.keys())})
             return cursor.rowcount > 0
     
     def delete_vrm_animation(self, animation_id: str) -> bool:
-        """删除VRM动作"""
+        """删除VRM动作（级联删除关联关系）"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("DELETE FROM vrm_animations WHERE animation_id = ?", (animation_id,))
             conn.commit()
-            return cursor.rowcount > 0
+            deleted = cursor.rowcount > 0
+            if deleted:
+                logger.info(f"删除VRM动作成功", extra={"animation_id": animation_id})
+            return deleted
+    
+    # ==================== 模型-动作关联管理 ====================
+    
+    def add_model_animation(self, vrm_model_id: str, animation_id: str) -> bool:
+        """为模型添加动作
+        
+        Args:
+            vrm_model_id: 模型ID
+            animation_id: 动作ID
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO vrm_model_animations (vrm_model_id, animation_id) VALUES (?, ?)",
+                    (vrm_model_id, animation_id)
+                )
+                conn.commit()
+                logger.info(f"添加模型动作关联", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
+            return True
+        except sqlite3.IntegrityError as e:
+            logger.error(f"添加模型动作关联失败", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id, "error": str(e)})
+            return False
+    
+    def remove_model_animation(self, vrm_model_id: str, animation_id: str) -> bool:
+        """移除模型的动作
+        
+        Args:
+            vrm_model_id: 模型ID
+            animation_id: 动作ID
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM vrm_model_animations WHERE vrm_model_id = ? AND animation_id = ?",
+                (vrm_model_id, animation_id)
+            )
+            conn.commit()
+            deleted = cursor.rowcount > 0
+            if deleted:
+                logger.info(f"移除模型动作关联", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
+            return deleted
+    
+    def get_model_animations(self, vrm_model_id: str) -> List[Dict[str, Any]]:
+        """获取模型的所有动作（包含完整动作信息）
+        
+        Args:
+            vrm_model_id: 模型ID
+            
+        Returns:
+            动作列表
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT a.animation_id, a.name, a.name_cn, a.description, a.duration
+                FROM vrm_animations a
+                INNER JOIN vrm_model_animations ma ON a.animation_id = ma.animation_id
+                WHERE ma.vrm_model_id = ?
+            """, (vrm_model_id,))
+            
+            return [
+                {
+                    "animation_id": row[0],
+                    "name": row[1],
+                    "name_cn": row[2],
+                    "description": row[3],
+                    "duration": row[4]
+                }
+                for row in cursor.fetchall()
+            ]
+    
+    def get_animation_models(self, animation_id: str) -> List[Dict[str, Any]]:
+        """获取使用该动作的所有模型
+        
+        Args:
+            animation_id: 动作ID
+            
+        Returns:
+            模型列表
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT m.vrm_model_id, m.name, m.model_path, m.thumbnail_path
+                FROM vrm_models m
+                INNER JOIN vrm_model_animations ma ON m.vrm_model_id = ma.vrm_model_id
+                WHERE ma.animation_id = ?
+            """, (animation_id,))
+            
+            return [
+                {
+                    "vrm_model_id": row[0],
+                    "name": row[1],
+                    "model_path": row[2],
+                    "thumbnail_path": row[3]
+                }
+                for row in cursor.fetchall()
+            ]
+    
+    def batch_add_model_animations(self, vrm_model_id: str, animation_ids: List[str]) -> int:
+        """批量添加动作
+        
+        Args:
+            vrm_model_id: 模型ID
+            animation_ids: 动作ID列表
+            
+        Returns:
+            成功添加的数量
+        """
+        success_count = 0
+        with sqlite3.connect(self.db_path) as conn:
+            for animation_id in animation_ids:
+                try:
+                    conn.execute(
+                        "INSERT INTO vrm_model_animations (vrm_model_id, animation_id) VALUES (?, ?)",
+                        (vrm_model_id, animation_id)
+                    )
+                    success_count += 1
+                except sqlite3.IntegrityError:
+                    logger.warning(f"动作已存在，跳过", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
+            conn.commit()
+        
+        logger.info(f"批量添加模型动作", extra={"vrm_model_id": vrm_model_id, "total": len(animation_ids), "success": success_count})
+        return success_count
+    
+    def batch_remove_model_animations(self, vrm_model_id: str, animation_ids: List[str]) -> int:
+        """批量移除动作
+        
+        Args:
+            vrm_model_id: 模型ID
+            animation_ids: 动作ID列表
+            
+        Returns:
+            成功移除的数量
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            placeholders = ','.join('?' * len(animation_ids))
+            cursor = conn.execute(
+                f"DELETE FROM vrm_model_animations WHERE vrm_model_id = ? AND animation_id IN ({placeholders})",
+                [vrm_model_id] + animation_ids
+            )
+            conn.commit()
+            removed_count = cursor.rowcount
+        
+        logger.info(f"批量移除模型动作", extra={"vrm_model_id": vrm_model_id, "removed": removed_count})
+        return removed_count
 

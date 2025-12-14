@@ -129,7 +129,8 @@ class VRMService:
             return self._action_mapping_cache[vrm_model_id]
         
         try:
-            animations = self.app_storage.list_vrm_animations(vrm_model_id)
+            # 通过关联表获取模型的动作
+            animations = self.app_storage.get_model_animations(vrm_model_id)
             action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
             
             # 缓存结果
