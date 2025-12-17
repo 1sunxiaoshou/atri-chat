@@ -158,8 +158,10 @@ class PromptManager:
         # 获取动作详细信息（包含描述和时长）
         actions_info = self._get_character_actions_detailed(character)
         
+        # 获取模型支持的表情列表
+        expressions = self._get_model_expressions(vrm_model_id) if vrm_model_id else DEFAULT_EXPRESSIONS
         # 格式化表情列表
-        expressions_info = "\n  - " + "\n  - ".join(DEFAULT_EXPRESSIONS)
+        expressions_info = "\n  - " + "\n  - ".join(expressions)
         
         vrm_prompt = VRM_RENDER_PROMPT.template.format(
             expressions=expressions_info,
@@ -169,8 +171,9 @@ class PromptManager:
         logger.debug(
             "VRM提示词构建完成",
             extra={
-                "expressions_count": len(DEFAULT_EXPRESSIONS),
-                "prompt_length": len(vrm_prompt)
+                "expressions_count": len(expressions),
+                "prompt_length": len(vrm_prompt),
+                "vrm_model_id": vrm_model_id
             }
         )
         
@@ -231,3 +234,50 @@ class PromptManager:
         except Exception as e:
             logger.warning(f"获取动作详细信息失败: {e}")
             return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+    
+    def _get_model_expressions(self, vrm_model_id: str) -> List[str]:
+        """获取VRM模型支持的表情列表
+        
+        Args:
+            vrm_model_id: VRM模型ID
+            
+        Returns:
+            表情名称列表，如果获取失败返回默认表情列表
+        """
+        if not self.app_storage:
+            return DEFAULT_EXPRESSIONS
+        
+        try:
+            import json
+            
+            # 从数据库获取模型信息
+            model = self.app_storage.get_vrm_model(vrm_model_id)
+            if not model:
+                logger.warning(f"未找到VRM模型: {vrm_model_id}")
+                return DEFAULT_EXPRESSIONS
+            
+            # 解析表情列表
+            expressions_json = model.get("available_expressions")
+            if not expressions_json:
+                logger.warning(f"VRM模型未包含表情列表: {vrm_model_id}")
+                return DEFAULT_EXPRESSIONS
+            
+            expressions = json.loads(expressions_json)
+            if not expressions:
+                logger.warning(f"VRM模型表情列表为空: {vrm_model_id}")
+                return DEFAULT_EXPRESSIONS
+            
+            logger.info(
+                f"成功获取VRM模型表情列表",
+                extra={
+                    "vrm_model_id": vrm_model_id,
+                    "expression_count": len(expressions),
+                    "expressions": expressions
+                }
+            )
+            
+            return expressions
+            
+        except Exception as e:
+            logger.error(f"获取VRM模型表情列表失败: {e}", exc_info=True)
+            return DEFAULT_EXPRESSIONS

@@ -1,12 +1,10 @@
 import { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
 import { ExpressionController } from './expressionController';
-import { MotionController, MotionPresetName } from './motionController';
+import { MotionController } from './motionController';
 import { Logger } from '../../utils/logger';
 
 /**
  * 情感控制器 - 统一管理表情和动作
- * 参考 lobe-vidol 的 EmoteController 设计
- * 作为 Expression 和 Motion 的统一操作接口
  */
 export class EmoteController {
     private expressionController: ExpressionController;
@@ -19,24 +17,27 @@ export class EmoteController {
     }
 
     /**
-     * 预加载动作
+     * 设置闲置动画 URL
      */
-    public async preloadMotion(motion: MotionPresetName): Promise<void> {
-        await this.motionController.preloadMotion(motion);
+    public setIdleAnimationUrl(url: string): void {
+        this.motionController.setIdleAnimationUrl(url);
     }
 
     /**
-     * 预加载自定义动作URL
+     * 预加载单个动画
      */
-    public async preloadMotionUrl(url: string): Promise<void> {
-        await this.motionController.preloadMotionUrl(url);
+    public async preloadAnimation(name: string, url: string): Promise<void> {
+        await this.motionController.preloadAnimation(name, url);
     }
 
     /**
-     * 预加载所有动作
+     * 批量预加载动画
      */
-    public async preloadAllMotions(onProgress?: (loaded: number, total: number) => void): Promise<void> {
-        await this.motionController.preloadAllMotions(onProgress);
+    public async preloadAnimations(
+        animations: Record<string, string>,
+        onProgress?: (loaded: number, total: number) => void
+    ): Promise<void> {
+        await this.motionController.preloadAnimations(animations, onProgress);
     }
 
     /**
@@ -47,17 +48,17 @@ export class EmoteController {
     }
 
     /**
-     * 播放预设动作
+     * 播放动画（通过名称）
      */
-    public async playMotion(preset: MotionPresetName, loop?: boolean): Promise<void> {
-        await this.motionController.playMotion(preset, loop);
+    public async playAnimation(name: string, loop: boolean = true): Promise<void> {
+        await this.motionController.playAnimation(name, loop);
     }
 
     /**
-     * 播放自定义动作URL
+     * 播放动画（通过 URL）
      */
-    public async playMotionUrl(url: string, loop: boolean = true): Promise<void> {
-        await this.motionController.playMotionUrl(url, loop);
+    public async playAnimationUrl(url: string, loop: boolean = true): Promise<void> {
+        await this.motionController.playAnimationUrl(url, loop);
     }
 
     /**
@@ -122,6 +123,34 @@ export class EmoteController {
     }
 
     /**
+     * 获取已加载的动画列表
+     */
+    public getLoadedAnimations(): string[] {
+        return this.motionController.getLoadedAnimations();
+    }
+
+    /**
+     * 检查动画是否已加载
+     */
+    public isAnimationLoaded(name: string): boolean {
+        return this.motionController.isAnimationLoaded(name);
+    }
+
+    /**
+     * 启用/禁用自动眨眼
+     */
+    public setAutoBlinkEnabled(enabled: boolean): void {
+        this.expressionController.setAutoBlinkEnabled(enabled);
+    }
+
+    /**
+     * 检查是否正在眨眼
+     */
+    public isBlinking(): boolean {
+        return this.expressionController.isBlinking();
+    }
+
+    /**
      * 销毁资源
      */
     public dispose(): void {
@@ -132,5 +161,4 @@ export class EmoteController {
 }
 
 // 导出类型
-export { MotionPresetName } from './motionController';
 export { VRMExpressionPresetName } from '@pixiv/three-vrm';

@@ -1,5 +1,6 @@
 import { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
 import { Logger } from '../../utils/logger';
+import { AutoBlink } from './autoBlink';
 
 /**
  * 表情控制器 - 管理VRM模型的面部表情
@@ -11,10 +12,24 @@ export class ExpressionController {
     private targetExpression: VRMExpressionPresetName | string = VRMExpressionPresetName.Neutral;
     private transitionProgress = 1.0; // 1.0 表示过渡完成
     private transitionDuration = 0.3; // 过渡时间（秒）
+    private autoBlink: AutoBlink | null = null;
 
     constructor(vrm: VRM) {
         this.vrm = vrm;
-        Logger.info('ExpressionController 初始化完成');
+        
+        // 初始化自动眨眼
+        if (vrm.expressionManager) {
+            this.autoBlink = new AutoBlink(vrm.expressionManager);
+            
+            // 输出可用的表情列表
+            const expressionNames = Object.keys(vrm.expressionManager.expressionMap);
+            Logger.info('ExpressionController 初始化完成', {
+                availableExpressions: expressionNames,
+                expressionCount: expressionNames.length
+            });
+        } else {
+            Logger.warn('ExpressionController 初始化完成，但表情管理器未找到');
+        }
     }
 
     /**
@@ -26,8 +41,21 @@ export class ExpressionController {
             return;
         }
 
+        const expressionManager = this.vrm.expressionManager;
+        const expressionNames = Object.keys(expressionManager.expressionMap);
+
+        // 检查表情是否存在
+        if (!expressionNames.includes(preset)) {
+            Logger.warn(`⚠️ 表情 "${preset}" 不存在于当前VRM模型`, {
+                requestedExpression: preset,
+                availableExpressions: expressionNames
+            });
+            return;
+        }
+
         // 如果已经是目标表情，不需要切换
         if (this.targetExpression === preset && this.transitionProgress >= 1.0) {
+            Logger.debug(`表情已是 ${preset}，跳过切换`);
             return;
         }
 
@@ -35,7 +63,11 @@ export class ExpressionController {
         this.targetExpression = preset;
         this.transitionProgress = 0;
 
-        Logger.debug(`切换表情: ${this.currentExpression} -> ${this.targetExpression}`);
+        Logger.info(`🎭 表情切换: ${this.currentExpression} -> ${this.targetExpression}`, {
+            from: this.currentExpression,
+            to: this.targetExpression,
+            transitionDuration: this.transitionDuration
+        });
     }
 
     /**
@@ -75,6 +107,11 @@ export class ExpressionController {
     public update(delta: number): void {
         if (!this.vrm.expressionManager) {
             return;
+        }
+
+        // 更新自动眨眼
+        if (this.autoBlink) {
+            this.autoBlink.update(delta);
         }
 
         // 如果正在过渡中
@@ -119,11 +156,12 @@ export class ExpressionController {
     }
 
     /**
-     * 判断是否是口型表情
+     * 判断是否是口型表情或眨眼表情
      */
     private isLipSyncExpression(name: string): boolean {
         const lipSyncNames = ['aa', 'ih', 'ou', 'ee', 'oh', 'Aa', 'Ih', 'Ou', 'Ee', 'Oh'];
-        return lipSyncNames.includes(name);
+        const blinkNames = ['blink', 'Blink', 'blinkLeft', 'blinkRight'];
+        return lipSyncNames.includes(name) || blinkNames.includes(name);
     }
 
     /**
@@ -149,9 +187,32 @@ export class ExpressionController {
     }
 
     /**
+     * 启用/禁用自动眨眼
+     */
+    public setAutoBlinkEnabled(enabled: boolean): void {
+        if (this.autoBlink) {
+            this.autoBlink.setEnable(enabled);
+            Logger.info(`自动眨眼已${enabled ? '启用' : '禁用'}`);
+        }
+    }
+
+    /**
+     * 检查是否正在眨眼
+     */
+    public isBlinking(): boolean {
+        return this.autoBlink?.isBlinking() ?? false;
+    }
+
+    /**
      * 销毁资源
      */
     public dispose(): void {
+        // 清理自动眨眼
+        if (this.autoBlink) {
+            this.autoBlink.dispose();
+            this.autoBlink = null;
+        }
+
         if (this.vrm.expressionManager) {
             const expressionManager = this.vrm.expressionManager;
             const expressionNames = Object.keys(expressionManager.expressionMap);

@@ -111,18 +111,3 @@ SAFETY_GUIDELINES = PromptTemplate(
 """
 )
 
-
-# ==================== 默认配置 ====================
-
-# 默认表情列表（VRM标准表情，英文名）
-DEFAULT_EXPRESSIONS = [
-    "happy (开心)",
-    "sad (难过)", 
-    "angry (生气)",
-    "surprised (惊讶)",
-    "neutral (中性)",
-    "curious (好奇)"
-]
-
-# 默认动作列表（当数据库中没有动作时使用）
-DEFAULT_ACTIONS = ["hello", "wave", "nod", "think"]

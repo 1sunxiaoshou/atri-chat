@@ -49,8 +49,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             
         except Exception as exc:
             process_time = time.time() - start_time
+            error_msg = str(exc).replace("{", "{{").replace("}", "}}")  # 转义花括号
             logger.error(
-                f"✗ {request.method} {request.url.path} - {str(exc)}",
+                f"✗ {request.method} {request.url.path} - {error_msg}",
                 extra={
                     "category": "API",
                     "method": request.method,
