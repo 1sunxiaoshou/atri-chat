@@ -9,6 +9,7 @@ from core.storage import AppStorage
 from core.paths import get_path_manager
 from core.logger import get_logger
 from core.utils.file_naming import generate_animation_filename
+from api.schemas import ResponseModel
 
 logger = get_logger(__name__, category="API")
 
@@ -27,31 +28,32 @@ class VRMAnimationUpdate(BaseModel):
 # ==================== API端点 ====================
 
 
-@router.get("", summary="获取所有VRM动作")
+@router.get("", summary="获取所有VRM动作", response_model=ResponseModel)
 async def list_vrm_animations(
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """获取所有VRM动作"""
     try:
         animations = storage.list_vrm_animations()
         
         logger.debug(f"获取VRM动作列表", extra={"count": len(animations)})
         
-        return {
-            "success": True,
-            "data": animations
-        }
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=animations
+        )
         
     except Exception as e:
         logger.error(f"获取VRM动作列表失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{animation_id}", summary="获取VRM动作详情")
+@router.get("/{animation_id}", summary="获取VRM动作详情", response_model=ResponseModel)
 async def get_vrm_animation(
     animation_id: str,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """获取VRM动作详情"""
     try:
         animation = storage.get_vrm_animation(animation_id)
@@ -61,10 +63,11 @@ async def get_vrm_animation(
         
         logger.debug(f"获取VRM动作详情", extra={"animation_id": animation_id})
         
-        return {
-            "success": True,
-            "data": animation
-        }
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=animation
+        )
         
     except HTTPException:
         raise
@@ -98,11 +101,11 @@ async def update_vrm_animation(
         
         logger.info(f"更新VRM动作成功", extra={"animation_id": animation_id})
         
-        return {
-            "success": True,
-            "message": "VRM动作更新成功",
-            "data": storage.get_vrm_animation(animation_id)
-        }
+        return ResponseModel(
+            code=200,
+            message="VRM动作更新成功",
+            data=storage.get_vrm_animation(animation_id)
+        )
         
     except HTTPException:
         raise
@@ -164,14 +167,14 @@ async def upload_vrm_animation(
             }
         )
         
-        return {
-            "success": True,
-            "message": "上传成功",
-            "data": {
+        return ResponseModel(
+            code=200,
+            message="上传成功",
+            data={
                 "animation_id": animation_id,
                 "animation_path": f"/uploads/vrm_animations/{filename}"
             }
-        }
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -198,10 +201,10 @@ async def delete_vrm_animation(
         
         logger.info(f"删除VRM动作成功", extra={"animation_id": animation_id})
         
-        return {
-            "success": True,
-            "message": "VRM动作删除成功"
-        }
+        return ResponseModel(
+            code=200,
+            message="VRM动作删除成功"
+        )
         
     except HTTPException:
         raise
@@ -226,10 +229,11 @@ async def get_animation_models(
         
         logger.debug(f"获取动作关联的模型", extra={"animation_id": animation_id, "count": len(models)})
         
-        return {
-            "success": True,
-            "data": models
-        }
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=models
+        )
         
     except HTTPException:
         raise

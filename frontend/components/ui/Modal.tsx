@@ -20,7 +20,7 @@ const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   className = ''
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const sizeClasses = {
     sm: 'max-w-sm',

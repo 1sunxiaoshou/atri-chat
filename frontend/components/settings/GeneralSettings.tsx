@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Volume2, Database, Save, Globe, Moon, Sun, Monitor } from 'lucide-react';
+import { Volume2, Database, Save, Moon, Sun, Monitor } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../hooks/useSettings';

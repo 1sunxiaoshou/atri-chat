@@ -13,6 +13,7 @@ from core.utils.file_naming import (
     generate_vrm_thumbnail_filename,
     extract_short_id_from_model_id,
 )
+from api.schemas import ResponseModel
 
 logger = get_logger(__name__, category="API")
 
@@ -74,10 +75,10 @@ class VRMModelUpdate(BaseModel):
 # ==================== API端点 ====================
 
 
-@router.get("", summary="获取所有VRM模型")
+@router.get("", summary="获取所有VRM模型", response_model=ResponseModel)
 async def list_vrm_models(
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """获取所有VRM模型"""
     try:
         models = storage.list_vrm_models()
@@ -89,21 +90,22 @@ async def list_vrm_models(
         
         logger.debug(f"获取VRM模型列表", extra={"count": len(models)})
         
-        return {
-            "success": True,
-            "data": models
-        }
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=models
+        )
         
     except Exception as e:
         logger.error(f"获取VRM模型列表失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{vrm_model_id}", summary="获取VRM模型详情")
+@router.get("/{vrm_model_id}", summary="获取VRM模型详情", response_model=ResponseModel)
 async def get_vrm_model(
     vrm_model_id: str,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """获取VRM模型详情"""
     try:
         model = storage.get_vrm_model(vrm_model_id)
@@ -115,12 +117,23 @@ async def get_vrm_model(
         model["model_path"] = build_model_path(model["filename"])
         model["thumbnail_path"] = build_thumbnail_path(model.get("thumbnail_filename"))
         
-        logger.debug(f"获取VRM模型详情", extra={"vrm_model_id": vrm_model_id})
+        # 获取关联的动画数据（已包含完整路径）
+        animations = storage.get_model_animations(vrm_model_id)
+        model["animations"] = animations
         
-        return {
-            "success": True,
-            "data": model
-        }
+        logger.debug(
+            f"获取VRM模型详情", 
+            extra={
+                "vrm_model_id": vrm_model_id,
+                "animation_count": len(animations)
+            }
+        )
+        
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=model
+        )
         
     except HTTPException:
         raise
@@ -154,11 +167,11 @@ async def update_vrm_model(
         
         logger.info(f"更新VRM模型成功", extra={"vrm_model_id": vrm_model_id})
         
-        return {
-            "success": True,
-            "message": "VRM模型更新成功",
-            "data": storage.get_vrm_model(vrm_model_id)
-        }
+        return ResponseModel(
+            code=200,
+            message="VRM模型更新成功",
+            data=storage.get_vrm_model(vrm_model_id)
+        )
         
     except HTTPException:
         raise
@@ -243,15 +256,15 @@ async def upload_vrm_model(
             }
         )
         
-        return {
-            "success": True,
-            "message": "上传成功",
-            "data": {
+        return ResponseModel(
+            code=200,
+            message="上传成功",
+            data={
                 "vrm_model_id": vrm_model_id,
                 "model_path": build_model_path(filename),
                 "thumbnail_path": build_thumbnail_path(thumbnail_filename) if thumbnail_filename else None
             }
-        }
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -338,10 +351,10 @@ async def delete_vrm_model(
             }
         )
         
-        return {
-            "success": True,
-            "message": "VRM模型删除成功"
-        }
+        return ResponseModel(
+            code=200,
+            message="VRM模型删除成功"
+        )
         
     except HTTPException:
         raise

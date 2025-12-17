@@ -4,7 +4,6 @@ import { Save, Activity, Loader2 } from 'lucide-react';
 import Toast, { ToastMessage } from '../Toast';
 import { extractConfigValues } from '../../utils/helpers';
 import { Button, Select, Input } from '../ui';
-import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '../../utils/constants';
 
 interface ConfigField {
   type: 'string' | 'password' | 'number' | 'select' | 'file';
@@ -52,7 +51,6 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   emptyStateText = '请选择上方的服务商进行配置'
 }) => {
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(false);
@@ -71,7 +69,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     try {
       const data = await fetchProviders();
       setProviders(data.providers);
-      setActiveProviderId(data.active_provider);
+      setSelectedProviderId(data.active_provider || '');
       if (data.active_provider) {
         setSelectedProviderId(data.active_provider);
         const active = data.providers.find(p => p.id === data.active_provider);
@@ -114,7 +112,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
 
 
   const handleTestConnection = async () => {
-    if (!selectedProviderId) return;
+    if (!selectedProviderId) {return;}
     setTesting(true);
     setTestResult(null);
     setSaveResult(null);
@@ -145,7 +143,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
       );
 
       if (result.success) {
-        setActiveProviderId(selectedProviderId || null);
+        setSelectedProviderId(selectedProviderId || '');
         setSaveResult(result);
         
         if (onConfigSaved) {
@@ -194,7 +192,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
             return null;
           }
 
-          const { type, label, description, required, placeholder, options, min, max, step, value, accept } = fieldConfig;
+          const { type, label, description, required, placeholder, options, min, max, step, value } = fieldConfig;
           const currentValue = value !== undefined ? value : (fieldConfig.default || '');
           const isPassword = type === 'password' || fieldConfig.sensitive;
 
@@ -212,7 +210,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                 <Select
                   value={currentValue}
                   onChange={(val) => handleInputChange(key, val)}
-                  options={options?.map(opt => ({ label: opt, value: opt })) || []}
+                  options={options?.map((opt: string) => ({ label: opt, value: opt })) || []}
                   className="w-full"
                 />
               ) : type === 'number' ? (

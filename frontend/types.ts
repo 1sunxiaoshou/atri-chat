@@ -33,8 +33,7 @@ export interface Model {
 
 // 4. Characters
 export interface Character {
-  character_id?: number; // Backend uses character_id
-  id?: string | number; // For backward compatibility
+  character_id: number;
   name: string;
   description?: string;
   avatar?: string; // Avatar URL (supports both URL and local upload)
@@ -49,17 +48,16 @@ export interface Character {
 
 // 5. Conversations
 export interface Conversation {
-  id?: string | number; // Optional for backward compatibility
-  conversation_id?: string | number; // Backend field
-  character_id: string | number;
+  conversation_id: number;
+  character_id: number;
   title: string;
   updated_at?: string; // Optional in doc, but good for sorting
 }
 
 // 6. Messages
 export interface Message {
-  message_id: string | number;
-  conversation_id: string | number;
+  message_id: number;
+  conversation_id: number;
   message_type: 'user' | 'assistant';
   content: string;
   reasoning?: string; // 思维链内容
@@ -168,4 +166,20 @@ export interface VRMAnimation {
   animation_path: string;
   duration?: number;
   type: string;
+}
+
+// 9. 错误处理类型
+export enum ErrorType {
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  AUTH_ERROR = 'AUTH_ERROR',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  SERVER_ERROR = 'SERVER_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+}
+
+export interface AppError {
+  type: ErrorType;
+  message: string;
+  details?: any;
+  timestamp: number;
 }

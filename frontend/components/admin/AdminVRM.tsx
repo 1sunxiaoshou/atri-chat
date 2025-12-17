@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash, X, Box, Film, Link as LinkIcon, Upload, Edit2, AlertCircle } from 'lucide-react';
-import { api } from '../../services/api';
+import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Modal, Button, Input } from '../ui';
 import { getAnimationDuration } from '../../utils/vrmLoader';
@@ -184,7 +184,7 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
     };
 
     const handleModalSubmit = async () => {
-        if (!modal.type) return;
+        if (!modal.type) {return;}
         setIsSubmitting(true);
 
         try {
@@ -229,8 +229,8 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                 formData.append('file', formFile);
                 formData.append('name', formName);
                 formData.append('name_cn', formNameCn);
-                if (formDescription) formData.append('description', formDescription);
-                if (formDuration) formData.append('duration', String(formDuration));
+                if (formDescription) {formData.append('description', formDescription);}
+                if (formDuration) {formData.append('duration', String(formDuration));}
 
                 await api.uploadVRMAnimation(formData);
                 await fetchData();
@@ -243,11 +243,11 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                     name_cn: formNameCn,
                     description: formDescription
                 };
-                if (formDuration) updates.duration = formDuration;
+                if (formDuration) {updates.duration = formDuration;}
 
                 await api.updateVRMAnimation(anim.animation_id, updates);
                 await fetchData();
-                if (selectedModel) fetchModelAnimations(selectedModel.vrm_model_id); // Refresh if bound
+                if (selectedModel) {fetchModelAnimations(selectedModel.vrm_model_id);} // Refresh if bound
                 closeModal();
             }
             else if (modal.type === 'bind_anim_upload') {
@@ -260,8 +260,8 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                 formData.append('file', formFile);
                 formData.append('name', formName);
                 formData.append('name_cn', formNameCn);
-                if (formDescription) formData.append('description', formDescription);
-                if (formDuration) formData.append('duration', String(formDuration));
+                if (formDescription) {formData.append('description', formDescription);}
+                if (formDuration) {formData.append('duration', String(formDuration));}
 
                 await api.uploadAndBindModelAnimation(modelId, formData);
                 await fetchModelAnimations(modelId);
@@ -278,9 +278,9 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
     // --- Direct Handlers ---
 
     const handleDeleteModel = async (id: string, name: string) => {
-        if (!window.confirm(t('admin.confirmDeleteVRM', { name }))) return;
+        if (!window.confirm(t('admin.confirmDeleteVRM', { name }))) {return;}
         await api.deleteVRMModel(id);
-        if (selectedModel?.vrm_model_id === id) setSelectedModel(null);
+        if (selectedModel?.vrm_model_id === id) {setSelectedModel(null);}
         // 刷新当前组件的数据
         await fetchData();
         // 通知父组件更新
@@ -288,20 +288,20 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
     };
 
     const handleDeleteAnimation = async (id: string) => {
-        if (!window.confirm(t('admin.confirmDeleteAnimation'))) return;
+        if (!window.confirm(t('admin.confirmDeleteAnimation'))) {return;}
         await api.deleteVRMAnimation(id);
         await fetchData();
-        if (selectedModel) fetchModelAnimations(selectedModel.vrm_model_id);
+        if (selectedModel) {fetchModelAnimations(selectedModel.vrm_model_id);}
     };
 
     const handleBindAnimation = async (animationId: string) => {
-        if (!selectedModel) return;
+        if (!selectedModel) {return;}
         await api.addModelAnimation(selectedModel.vrm_model_id, animationId);
         await fetchModelAnimations(selectedModel.vrm_model_id);
     };
 
     const handleUnbindAnimation = async (animationId: string) => {
-        if (!selectedModel) return;
+        if (!selectedModel) {return;}
         await api.removeModelAnimation(selectedModel.vrm_model_id, animationId);
         await fetchModelAnimations(selectedModel.vrm_model_id);
     };
@@ -341,7 +341,11 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto min-h-0 pr-2">
-                    {activeTab === 'models' ? (
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        </div>
+                    ) : activeTab === 'models' ? (
                         /* Models Grid */
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {/* Upload Card */}

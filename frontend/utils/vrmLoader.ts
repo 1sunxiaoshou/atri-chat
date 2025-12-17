@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { VRMLoaderPlugin, VRMUtils, VRM } from '@pixiv/three-vrm';
 import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { AnimationTransitionManager } from './animationTransition';
+import { Logger } from './logger';
 
 /**
  * Helper function to extract animation duration from a file (e.g. .vrma)
@@ -26,12 +27,13 @@ export async function getAnimationDuration(file: File): Promise<number> {
 
         // Check for standard glTF animations
         if (gltf.animations && gltf.animations.length > 0) {
-            return gltf.animations[0].duration;
+            const firstAnimation = gltf.animations[0];
+            return firstAnimation ? firstAnimation.duration : 0;
         }
 
         return 0;
     } catch (error) {
-        console.error('Failed to parse animation duration:', error);
+        Logger.error('Failed to parse animation duration', error instanceof Error ? error : undefined);
         return 0;
     } finally {
         URL.revokeObjectURL(url);
@@ -63,7 +65,7 @@ export class VRMLoader {
     private resizeObserver: ResizeObserver | null = null;
 
     constructor(canvas: HTMLCanvasElement) {
-        console.log('初始化VRM加载器');
+        Logger.info('初始化VRM加载器');
 
         // 1. 场景设置
         this.scene = new THREE.Scene();
@@ -144,7 +146,7 @@ export class VRMLoader {
         });
 
         try {
-            console.log('开始加载VRM模型:', url);
+            Logger.info('开始加载VRM模型', { url });
 
             const gltf = await loader.loadAsync(url);
             const vrm = gltf.userData.vrm;
@@ -161,7 +163,7 @@ export class VRMLoader {
             // 移除旧模型
             if (this.currentVrm) {
                 this.scene.remove(this.currentVrm.scene);
-                if (this.mixer) this.mixer.stopAllAction();
+                if (this.mixer) {this.mixer.stopAllAction();}
                 VRMUtils.deepDispose(this.currentVrm.scene);
             }
 
@@ -172,10 +174,10 @@ export class VRMLoader {
             this.mixer = new THREE.AnimationMixer(vrm.scene);
             this.transitionManager = new AnimationTransitionManager(this.mixer);
 
-            console.log('VRM模型加载成功');
+            Logger.info('VRM模型加载成功');
             return vrm;
         } catch (error) {
-            console.error('VRM模型加载失败:', error);
+            Logger.error('VRM模型加载失败', error instanceof Error ? error : undefined);
 
             // 显示默认占位符
             this.showDefaultAvatar();
@@ -196,7 +198,7 @@ export class VRMLoader {
         defaultAvatar.position.set(0, 1.3, 0);
         this.scene.add(defaultAvatar);
 
-        console.log('显示默认头像占位符');
+        Logger.info('显示默认头像占位符');
     }
 
     /**
@@ -204,7 +206,7 @@ export class VRMLoader {
      */
     async loadAnimations(animationMap: Record<string, string>): Promise<void> {
         if (!this.currentVrm) {
-            console.warn('请先加载模型');
+            Logger.warn('请先加载模型');
             return;
         }
 
@@ -213,17 +215,17 @@ export class VRMLoader {
 
         for (const [name, url] of Object.entries(animationMap)) {
             try {
-                console.log(`加载动画: ${name}`);
+                Logger.info(`加载动画: ${name}`);
                 const gltf = await loader.loadAsync(url);
                 const vrmAnimations = gltf.userData.vrmAnimations;
 
                 if (vrmAnimations && vrmAnimations.length > 0) {
                     const clip = vrmAnimations[0];
                     this.animations.set(name, clip);
-                    console.log(`动画加载成功: ${name}`);
+                    Logger.info(`动画加载成功: ${name}`);
                 }
             } catch (error) {
-                console.warn(`动画加载失败: ${name}`, error);
+                Logger.warn(`动画加载失败: ${name}`, error instanceof Error ? error : undefined);
             }
         }
     }
@@ -233,7 +235,7 @@ export class VRMLoader {
      */
     playAction(name: string, loop: boolean = true): void {
         if (!this.transitionManager) {
-            console.warn('动画管理器未初始化');
+            Logger.warn('动画管理器未初始化');
             return;
         }
 
@@ -241,12 +243,12 @@ export class VRMLoader {
         if (clip) {
             try {
                 this.transitionManager.playWithTransition(clip, { loop });
-                console.log(`播放动作: ${name}`);
+                Logger.info(`播放动作: ${name}`);
             } catch (error) {
-                console.error(`播放动作失败: ${name}`, error);
+                Logger.error(`播放动作失败: ${name}`, error instanceof Error ? error : undefined);
             }
         } else {
-            console.warn(`未找到动作: ${name}，可用动作:`, Array.from(this.animations.keys()));
+            Logger.warn(`未找到动作: ${name}，可用动作:`, { availableActions: Array.from(this.animations.keys()) });
         }
     }
 
@@ -255,7 +257,7 @@ export class VRMLoader {
      */
     setExpression(presetName: string, outputValue: number = 1.0): void {
         if (!this.currentVrm || !this.currentVrm.expressionManager) {
-            console.warn('VRM模型或表情管理器未初始化');
+            Logger.warn('VRM模型或表情管理器未初始化');
             return;
         }
 
@@ -271,12 +273,12 @@ export class VRMLoader {
             // 设置目标表情
             if (presetName in expressionManager.expressionMap) {
                 expressionManager.setValue(presetName, outputValue);
-                console.log(`设置表情: ${presetName} = ${outputValue}`);
+                Logger.debug(`设置表情: ${presetName} = ${outputValue}`);
             } else {
-                console.warn(`未找到表情: ${presetName}，可用表情:`, expressionNames);
+                Logger.warn(`未找到表情: ${presetName}，可用表情:`, { availableExpressions: expressionNames });
             }
         } catch (error) {
-            console.error(`设置表情失败: ${presetName}`, error);
+            Logger.error(`设置表情失败: ${presetName}`, error instanceof Error ? error : undefined);
         }
     }
 
@@ -284,7 +286,7 @@ export class VRMLoader {
      * 更新口型同步
      */
     updateLipSync(volume: number): void {
-        if (!this.currentVrm || !this.currentVrm.expressionManager) return;
+        if (!this.currentVrm || !this.currentVrm.expressionManager) {return;}
 
         const vowel = 'aa';
         const value = Math.min(1.0, volume * 5.0);
@@ -303,7 +305,7 @@ export class VRMLoader {
 
     private onResize = () => {
         // 处理窗口大小变化
-        if (!this.renderer || !this.renderer.domElement) return;
+        if (!this.renderer || !this.renderer.domElement) {return;}
 
         const canvas = this.renderer.domElement;
         const parentElement = canvas.parentElement;
@@ -339,7 +341,7 @@ export class VRMLoader {
      * 销毁资源
      */
     dispose(): void {
-        console.log('销毁VRM加载器');
+        Logger.info('销毁VRM加载器');
 
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);

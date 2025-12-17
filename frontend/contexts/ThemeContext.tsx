@@ -44,7 +44,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Listen for system changes if mode is system
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
-      if (theme === 'system') applyTheme();
+      if (theme === 'system') {applyTheme();}
     };
 
     mediaQuery.addEventListener('change', handleChange);

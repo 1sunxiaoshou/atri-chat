@@ -4,6 +4,8 @@
  */
 import { VRMLoader } from './vrmLoader.js';
 import { StreamTTSPlayer } from './streamTTSPlayer';
+import { TIME_CONVERSION, AUDIO_PLAYBACK } from './constants';
+import { Logger } from './logger';
 
 export interface AudioSegment {
     sentence_index: number;
@@ -52,7 +54,7 @@ export class VRMTimedPlayer {
      * 开始播放
      */
     async play() {
-        if (this.segments.length === 0) return;
+        if (this.segments.length === 0) {return;}
 
         this.isPlaying = true;
         this.startTime = Date.now();
@@ -62,30 +64,30 @@ export class VRMTimedPlayer {
 
         // 逐个播放音频片段
         for (const segment of this.segments) {
-            if (!this.isPlaying) break;
+            if (!this.isPlaying) {break;}
 
             // 更新字幕
-            if (this.onTextUpdate) this.onTextUpdate(segment.text);
+            if (this.onTextUpdate) {this.onTextUpdate(segment.text);}
 
             // 播放音频
             if (segment.audio_url) {
                 try {
                     await this.playAudioSegment(segment);
                 } catch (error) {
-                    console.error('音频播放失败:', error);
+                    Logger.error('音频播放失败', error instanceof Error ? error : undefined, { segment });
                     // 降级：只显示文本，继续播放下一段
-                    await new Promise(resolve => setTimeout(resolve, segment.duration * 1000));
+                    await new Promise(resolve => setTimeout(resolve, segment.duration * TIME_CONVERSION.MS_PER_SECOND));
                 }
             } else {
                 // 没有音频URL，按时长等待
-                await new Promise(resolve => setTimeout(resolve, segment.duration * 1000));
+                await new Promise(resolve => setTimeout(resolve, segment.duration * TIME_CONVERSION.MS_PER_SECOND));
             }
         }
 
         this.isPlaying = false;
         // 恢复默认状态
         this.loader.setExpression('neutral');
-        if (this.onTextUpdate) this.onTextUpdate('');
+        if (this.onTextUpdate) {this.onTextUpdate('');}
     }
 
     /**
@@ -125,7 +127,7 @@ export class VRMTimedPlayer {
                 setTimeout(() => {
                     source.stop();
                     resolve();
-                }, (segment.duration + 1) * 1000);
+                }, (segment.duration * TIME_CONVERSION.MS_PER_SECOND) + AUDIO_PLAYBACK.TIMEOUT_BUFFER);
                 
             } catch (error) {
                 reject(error);
@@ -137,10 +139,10 @@ export class VRMTimedPlayer {
      * 监控循环：检查时间戳并触发动作
      */
     private monitoringLoop() {
-        if (!this.isPlaying) return;
+        if (!this.isPlaying) {return;}
 
         const now = Date.now();
-        const elapsed = (now - this.startTime) / 1000; // 秒
+        const elapsed = (now - this.startTime) / TIME_CONVERSION.MS_PER_SECOND; // 秒
 
         // 检查所有标记是否需要触发
         this.segments.forEach(segment => {
@@ -173,7 +175,7 @@ export class VRMTimedPlayer {
             this.loader.playAction(markup.value);
         }
         
-        console.log(`触发标记: [${markup.type}:${markup.value}] @ ${markup.timestamp.toFixed(2)}s`);
+        Logger.debug(`触发标记: [${markup.type}:${markup.value}] @ ${markup.timestamp.toFixed(2)}s`);
     }
 
     /**
@@ -188,7 +190,10 @@ export class VRMTimedPlayer {
             // 计算平均音量
             let sum = 0;
             for (let i = 0; i < dataArray.length; i++) {
-                sum += dataArray[i];
+                const value = dataArray[i];
+                if (value !== undefined) {
+                    sum += value;
+                }
             }
             const average = sum / dataArray.length;
             const volume = average / 255; // 0.0 - 1.0

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Cpu, Users, Box } from 'lucide-react';
 import { Provider, Model, Character, AdminTab, VRMModel } from '../../types';
-import { api } from '../../services/api';
+import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AdminProviders } from './AdminProviders';
 import { AdminModels } from './AdminModels';
@@ -12,7 +12,7 @@ interface AdminDashboardProps {
   onBack?: () => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack: _onBack }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<AdminTab>('providers');
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -27,22 +27,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   }, []);
 
   const fetchData = async () => {
-    const p = await api.getProviders();
-    const m = await api.getModels();
-    const c = await api.getCharacters();
-    const v = await api.getVRMModels();
-    setProviders(p.data);
-    setModels(m.data);
-    setCharacters(c.data);
-    if (v.code === 200) {
-      setVrmModels(v.data || []);
+    const providersResponse = await api.getProviders();
+    const modelsResponse = await api.getModels();
+    const charactersResponse = await api.getCharacters();
+    const vrmModelsResponse = await api.getVRMModels();
+    setProviders(providersResponse.data);
+    setModels(modelsResponse.data);
+    setCharacters(charactersResponse.data);
+    if (vrmModelsResponse.code === 200) {
+      setVrmModels(vrmModelsResponse.data || []);
     }
   };
 
   const fetchVRMModels = async () => {
-    const v = await api.getVRMModels();
-    if (v.code === 200) {
-      setVrmModels(v.data || []);
+    const vrmModelsResponse = await api.getVRMModels();
+    if (vrmModelsResponse.code === 200) {
+      setVrmModels(vrmModelsResponse.data || []);
     }
   };
 

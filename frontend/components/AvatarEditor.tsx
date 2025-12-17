@@ -36,7 +36,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({ currentAvatar, onSav
   };
 
   const handleSave = () => {
-    if (!avatarUrl) return;
+    if (!avatarUrl) {return;}
     onSave(avatarUrl);
   };
 

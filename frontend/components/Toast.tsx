@@ -12,7 +12,9 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ message, title }) => {
-  if (!message) return null;
+  if (!message) {
+    return null;
+  }
 
   const defaultTitle = title || { success: '成功', error: '失败' };
 

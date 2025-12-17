@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash, RotateCcw, X } from 'lucide-react';
 import { Provider, Model } from '../../types';
-import { api } from '../../services/api';
+import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Select } from '../ui';
 
@@ -35,7 +35,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   };
 
   const handleSaveModel = async () => {
-    if (!newModel.provider_id || !newModel.model_id) return;
+    if (!newModel.provider_id || !newModel.model_id) {return;}
     await api.createModel(newModel as Model);
     setIsModelModalOpen(false);
     await onRefresh();
@@ -49,10 +49,10 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   };
 
   const filteredModels = models.filter(m => {
-    if (modelFilterProvider && m.provider_id !== modelFilterProvider) return false;
-    if (modelFilterType && m.model_type !== modelFilterType) return false;
-    if (modelFilterEnabled === 'enabled' && !m.enabled) return false;
-    if (modelFilterEnabled === 'disabled' && m.enabled) return false;
+    if (modelFilterProvider && m.provider_id !== modelFilterProvider) {return false;}
+    if (modelFilterType && m.model_type !== modelFilterType) {return false;}
+    if (modelFilterEnabled === 'enabled' && !m.enabled) {return false;}
+    if (modelFilterEnabled === 'disabled' && m.enabled) {return false;}
     return true;
   });
 

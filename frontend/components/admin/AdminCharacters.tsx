@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Users, Plus, Trash, Save } from 'lucide-react';
 import { Character, Model, VRMModel } from '../../types';
-import { api } from '../../services/api';
+import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AvatarEditor } from '../AvatarEditor';
-import { getCharacterId } from '../../utils/helpers';
 import { Select } from '../ui';
 
 interface AdminCharactersProps {
@@ -47,7 +46,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   const handleCreateClick = () => {
     const defaultModel = models.filter(m => m.enabled)[0];
     setEditingCharacter({
-      id: 0,
+      character_id: 0,
       name: '',
       description: '',
       system_prompt: '',
@@ -60,16 +59,20 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   };
 
   const handleSaveCharacter = async () => {
-    if (!editingCharacter) return;
+    if (!editingCharacter) {
+      return;
+    }
 
-    const charId = getCharacterId(editingCharacter);
+    const charId = editingCharacter.character_id;
 
     if (charId === 0 || !charId) {
-      const { id, character_id, ...newCharData } = editingCharacter;
+      const { character_id: _character_id, ...newCharData } = editingCharacter;
       await api.createCharacter(newCharData);
     } else {
-      const originalChar = characters.find(c => getCharacterId(c) === charId);
-      if (!originalChar) return;
+      const originalChar = characters.find(c => c.character_id === charId);
+      if (!originalChar) {
+        return;
+      }
 
       const updateData: Partial<Character> = {};
 
@@ -113,7 +116,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   const handleDeleteCharacter = async (id: number | string) => {
     if (window.confirm(t('admin.confirmDelete'))) {
       await api.deleteCharacter(id);
-      const charId = editingCharacter ? getCharacterId(editingCharacter) : null;
+      const charId = editingCharacter ? editingCharacter.character_id : null;
       if (charId === id) {
         setEditingCharacter(null);
       }
@@ -137,8 +140,8 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
         </div>
         <div className="flex-1 overflow-y-auto">
           {characters.map(c => {
-            const charId = getCharacterId(c);
-            const editingCharId = editingCharacter ? getCharacterId(editingCharacter) : null;
+            const charId = c.character_id;
+            const editingCharId = editingCharacter ? editingCharacter.character_id : null;
             return (
               <div
                 key={charId}
@@ -162,11 +165,11 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
           <>
             <div className="flex justify-between items-start mb-6">
               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                {getCharacterId(editingCharacter) === 0 ? t('admin.createCharacter') : t('admin.editCharacter')}
+                {editingCharacter.character_id === 0 ? t('admin.createCharacter') : t('admin.editCharacter')}
               </h3>
-              {getCharacterId(editingCharacter) !== 0 && (
+              {editingCharacter.character_id !== 0 && (
                 <button
-                  onClick={() => handleDeleteCharacter(getCharacterId(editingCharacter))}
+                  onClick={() => handleDeleteCharacter(editingCharacter.character_id)}
                   className="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1"
                 >
                   <Trash size={14} /> {t('admin.delete')}
@@ -287,7 +290,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                 disabled={!editingCharacter.name || !editingCharacter.primary_model_id}
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-600/20 dark:shadow-blue-900/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save size={18} /> {getCharacterId(editingCharacter) === 0 ? t('admin.create') : t('admin.save')}
+                <Save size={18} /> {editingCharacter.character_id === 0 ? t('admin.create') : t('admin.save')}
               </button>
             </div>
           </>
@@ -321,7 +324,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                 }
               }
 
-              const charId = getCharacterId(editingCharacter);
+              const charId = editingCharacter.character_id;
               await api.updateCharacter(charId, { avatar: finalAvatarUrl });
 
               setEditingCharacter({ ...editingCharacter, avatar: finalAvatarUrl });

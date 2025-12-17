@@ -30,8 +30,12 @@
 - **语言**：TypeScript 5.8
 - **构建工具**：Vite 6.2
 - **UI 图标**：Lucide React
+- **3D 渲染**：Three.js + @pixiv/three-vrm
+- **Markdown 渲染**：react-markdown + rehype-highlight
 
 ## 项目结构
+
+### 后端结构
 
 ```
 .
@@ -43,6 +47,8 @@
 │   │   ├── models.py      # 模型管理
 │   │   ├── providers.py   # 供应商管理
 │   │   ├── tts.py         # TTS 接口
+│   │   ├── asr.py         # ASR 接口
+│   │   ├── vrm.py         # VRM 模型管理
 │   │   └── health.py      # 健康检查
 │   └── schemas.py         # API 数据模型
 ├── core/                  # 核心业务逻辑
@@ -55,25 +61,120 @@
 │   │   ├── provider.py    # 供应商实现
 │   │   └── config.py      # 配置模型
 │   ├── asr/               # 语音识别
-│   │   └── factory.py     # ASR 工厂
+│   │   ├── base.py        # ASR 基类
+│   │   ├── factory.py     # ASR 工厂
+│   │   ├── funasr.py      # FunASR 实现
+│   │   └── openai_whisper.py # Whisper 实现
 │   ├── tts/               # 语音合成
-│   │   └── factory.py     # TTS 工厂
+│   │   ├── base.py        # TTS 基类
+│   │   ├── factory.py     # TTS 工厂
+│   │   └── gpt_sovits.py  # GPT-SoVITS 实现
+│   ├── vrm/               # VRM 模型处理
+│   │   ├── audio_generator.py # 音频生成
+│   │   ├── audio_manager.py   # 音频管理
+│   │   ├── markup_parser.py   # 标记解析
+│   │   └── vrm_service.py     # VRM 服务
 │   ├── tools/             # 工具系统
-│   │   ├── manager.py     # 工具管理器
-│   │   └── registry.py    # 工具注册表
-│   └── middleware/        # 中间件系统
-│       └── manager.py     # 中间件管理器
+│   │   └── memory_tools.py # 记忆工具
+│   ├── middleware/        # 中间件系统
+│   │   └── logging_middleware.py # 日志中间件
+│   └── utils/             # 工具函数
+│       └── file_naming.py # 文件命名工具
 ├── config/                # 配置文件
 │   ├── asr.yaml          # ASR 配置
 │   └── tts.yaml          # TTS 配置
 ├── data/                  # 数据文件
 │   ├── app.db            # 应用数据库
 │   ├── checkpoints.db    # 检查点数据库
-│   └── store.db          # 长期记忆数据库
+│   ├── store.db          # 长期记忆数据库
+│   └── uploads/          # 上传文件目录
+│       ├── avatars/      # 角色头像
+│       ├── vrm_models/   # VRM 模型文件
+│       ├── vrm_animations/ # VRM 动画文件
+│       ├── vrm_audio/    # VRM 音频文件
+│       └── vrm_thumbnails/ # VRM 缩略图
 ├── asr_models/           # ASR 模型文件
 ├── tests/                # 测试文件
 ├── main.py               # 应用入口
-└── requirements-api.txt  # 依赖列表
+└── pyproject.toml        # 项目配置
+```
+
+### 前端结构（优化后）
+
+```
+frontend/
+├── components/           # UI 组件
+│   ├── admin/           # 管理后台组件
+│   │   ├── AdminCharacters.tsx  # 角色管理
+│   │   ├── AdminModels.tsx      # 模型管理
+│   │   ├── AdminProviders.tsx   # 供应商管理
+│   │   ├── AdminVRM.tsx         # VRM 管理
+│   │   └── AdminDashboard.tsx   # 仪表盘
+│   ├── chat/            # 聊天相关组件
+│   │   ├── ChatInterface.tsx    # 主聊天界面
+│   │   ├── ChatHeader.tsx       # 聊天头部
+│   │   ├── MessageList.tsx      # 消息列表
+│   │   ├── MessageItem.tsx      # 单条消息
+│   │   ├── ChatInput.tsx        # 输入框
+│   │   ├── VRMViewer.tsx        # VRM 查看器
+│   │   └── ModelConfigPopover.tsx # 模型配置弹窗
+│   ├── settings/        # 设置相关组件
+│   │   ├── SettingsModal.tsx    # 设置模态框
+│   │   ├── GeneralSettings.tsx  # 通用设置
+│   │   ├── ASRSettings.tsx      # ASR 设置
+│   │   ├── TTSSettings.tsx      # TTS 设置
+│   │   └── ProviderSettingsTemplate.tsx # 供应商设置模板
+│   ├── ui/              # 通用 UI 组件
+│   │   ├── Button.tsx   # 按钮组件
+│   │   ├── Input.tsx    # 输入框组件
+│   │   ├── Select.tsx   # 选择器组件
+│   │   └── Modal.tsx    # 模态框组件
+│   ├── Sidebar.tsx      # 侧边栏
+│   ├── Toast.tsx        # 提示组件
+│   └── AvatarEditor.tsx # 头像编辑器
+├── contexts/            # React Context
+│   ├── ThemeContext.tsx    # 主题上下文
+│   ├── LanguageContext.tsx # 语言上下文
+│   └── ASRContext.tsx      # ASR 上下文
+├── hooks/               # 自定义 Hooks
+│   ├── useChat.ts          # 聊天逻辑
+│   ├── useVRM.ts           # VRM 逻辑
+│   ├── useTTS.ts           # TTS 逻辑
+│   ├── useAudioRecorder.ts # 录音逻辑
+│   ├── useSettings.ts      # 设置逻辑
+│   └── index.ts            # 统一导出
+├── services/            # 服务层
+│   ├── api/            # API 服务（按业务领域拆分）
+│   │   ├── base.ts         # 基础 HTTP 客户端
+│   │   ├── providers.ts    # Provider API
+│   │   ├── models.ts       # Model API
+│   │   ├── characters.ts   # Character API
+│   │   ├── conversations.ts # Conversation API
+│   │   ├── messages.ts     # Message API
+│   │   ├── vrm.ts          # VRM API
+│   │   ├── asr.ts          # ASR API
+│   │   ├── tts.ts          # TTS API
+│   │   └── index.ts        # 统一导出
+│   └── storage.ts      # 本地存储服务
+├── utils/               # 工具函数
+│   ├── constants.ts        # 常量定义
+│   ├── helpers.ts          # 辅助函数
+│   ├── logger.ts           # 日志工具
+│   ├── vrmLoader.ts        # VRM 加载器
+│   ├── vrmTimedPlayer.ts   # VRM 定时播放器
+│   ├── vrmMarkupParser.ts  # VRM 标记解析器
+│   ├── streamTTSPlayer.ts  # 流式 TTS 播放器
+│   ├── pcmStreamPlayer.ts  # PCM 流播放器
+│   ├── audioCache.ts       # 音频缓存
+│   ├── animationTransition.ts # 动画过渡
+│   └── markdownConfig.tsx  # Markdown 配置
+├── types.ts             # TypeScript 类型定义
+├── App.tsx              # 应用主组件
+├── index.tsx            # 应用入口
+├── vite.config.ts       # Vite 配置
+├── tsconfig.json        # TypeScript 配置
+├── eslint.config.js     # ESLint 配置
+└── package.json         # 依赖配置
 ```
 
 ## 环境要求

@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # Web 框架
-    "fastapi>=0.124.1",
+    "fastapi[standard]>=0.124.1",
     "uvicorn[standard]>=0.38.0",
     # AI 框架核心
     "langchain>=1.1.3",

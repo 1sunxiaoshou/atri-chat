@@ -17,7 +17,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 
-    if (!isOpen) return null;
+    if (!isOpen) {return null;}
 
     const tabs = [
         { id: 'general', label: 'General', icon: Settings },

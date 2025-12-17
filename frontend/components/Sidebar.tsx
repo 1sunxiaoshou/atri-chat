@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users, FileVideo } from 'lucide-react';
+import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users } from 'lucide-react';
 import { Conversation, ViewMode, Character } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getCharacterId, getConversationId } from '../utils/helpers';
 
 interface SidebarProps {
   viewMode: ViewMode;
@@ -44,20 +43,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Sync props to local state while preserving custom order
   useEffect(() => {
     setLocalCharacters(prev => {
-      const prevMap = new Map(prev.map(c => [getCharacterId(c), c]));
-      const newIds = new Set(characters.map(c => getCharacterId(c)));
+      const prevMap = new Map(prev.map(c => [c.character_id, c]));
+      const newIds = new Set(characters.map(c => c.character_id));
 
       // 1. Keep existing items in their current order (preserve user sort)
       const existing = prev
-        .filter(c => newIds.has(getCharacterId(c)))
+        .filter(c => newIds.has(c.character_id))
         .map(c => {
           // Update data if changed (e.g. name/avatar edit)
-          const updatedData = characters.find(nc => getCharacterId(nc) === getCharacterId(c));
+          const updatedData = characters.find(nc => nc.character_id === c.character_id);
           return updatedData || c;
         });
 
       // 2. Append new items
-      const brandNew = characters.filter(c => !prevMap.has(getCharacterId(c)));
+      const brandNew = characters.filter(c => !prevMap.has(c.character_id));
 
       return [...existing, ...brandNew];
     });
@@ -66,9 +65,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Auto-scroll to selected character
   useEffect(() => {
     if (selectedCharacterId !== null) {
-      const el = itemsRef.current.get(Number(selectedCharacterId));
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const characterElement = itemsRef.current.get(Number(selectedCharacterId));
+      if (characterElement) {
+        characterElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       }
     } else {
       // Scroll to "All" button
@@ -87,12 +86,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   const onDragOver = (e: React.DragEvent, targetItem: Character) => {
     e.preventDefault(); 
 
-    if (!draggedItem || getCharacterId(draggedItem) === getCharacterId(targetItem)) return;
+    if (!draggedItem || draggedItem.character_id === targetItem.character_id) {
+      return;
+    }
 
-    const fromIndex = localCharacters.findIndex(c => getCharacterId(c) === getCharacterId(draggedItem));
-    const toIndex = localCharacters.findIndex(c => getCharacterId(c) === getCharacterId(targetItem));
+    const fromIndex = localCharacters.findIndex(c => c.character_id === draggedItem.character_id);
+    const toIndex = localCharacters.findIndex(c => c.character_id === targetItem.character_id);
 
-    if (fromIndex === -1 || toIndex === -1) return;
+    if (fromIndex === -1 || toIndex === -1) {
+      return;
+    }
 
     const newList = [...localCharacters];
     newList.splice(fromIndex, 1);
@@ -134,13 +137,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             {localCharacters.map((char) => {
-              const charId = getCharacterId(char);
+              const charId = char.character_id;
               return (
                 <button
                   key={charId}
                   ref={(el) => {
-                    if (el) itemsRef.current.set(charId, el);
-                    else itemsRef.current.delete(charId);
+                    if (el) {itemsRef.current.set(charId, el);}
+                    else {itemsRef.current.delete(charId);}
                   }}
                   draggable
                   onDragStart={(e) => onDragStart(e, char)}
@@ -150,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`flex-shrink-0 w-11 h-11 rounded-full border-2 transition-all relative group overflow-hidden cursor-pointer ${selectedCharacterId === charId
                     ? 'border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] scale-105'
                     : 'border-transparent hover:border-gray-600 opacity-80 hover:opacity-100'
-                    } ${draggedItem && getCharacterId(draggedItem) === charId ? 'opacity-50 scale-90' : ''}`}
+                    } ${draggedItem && draggedItem.character_id === charId ? 'opacity-50 scale-90' : ''}`}
                   title={char.name}
                 >
                   <img
@@ -192,8 +195,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ) : (
           conversations.map((conv) => {
-            const char = characters.find(c => getCharacterId(c) === Number(conv.character_id));
-            const convId = getConversationId(conv);
+            const char = characters.find(c => c.character_id === conv.character_id);
+            const convId = conv.conversation_id;
 
             return (
               <div
