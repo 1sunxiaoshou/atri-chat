@@ -65,7 +65,8 @@ class AppStorage:
                     vrm_model_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     filename TEXT NOT NULL,
-                    thumbnail_filename TEXT
+                    thumbnail_filename TEXT,
+                    available_expressions TEXT
                 )
             """)
             
@@ -693,7 +694,8 @@ class AppStorage:
         vrm_model_id: str, 
         name: str, 
         filename: str,
-        thumbnail_filename: Optional[str] = None
+        thumbnail_filename: Optional[str] = None,
+        available_expressions: Optional[str] = None
     ) -> bool:
         """添加VRM模型
         
@@ -702,12 +704,13 @@ class AppStorage:
             name: 模型名称
             filename: 模型文件名（不含路径）
             thumbnail_filename: 缩略图文件名（可选）
+            available_expressions: 可用表情列表（JSON字符串，可选）
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
-                    "INSERT INTO vrm_models (vrm_model_id, name, filename, thumbnail_filename) VALUES (?, ?, ?, ?)",
-                    (vrm_model_id, name, filename, thumbnail_filename)
+                    "INSERT INTO vrm_models (vrm_model_id, name, filename, thumbnail_filename, available_expressions) VALUES (?, ?, ?, ?, ?)",
+                    (vrm_model_id, name, filename, thumbnail_filename, available_expressions)
                 )
                 conn.commit()
                 logger.info(f"添加VRM模型成功", extra={"vrm_model_id": vrm_model_id, "name": name, "filename": filename})
@@ -720,11 +723,11 @@ class AppStorage:
         """获取VRM模型
         
         Returns:
-            包含 vrm_model_id, name, filename, thumbnail_filename 的字典
+            包含 vrm_model_id, name, filename, thumbnail_filename, available_expressions 的字典
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT vrm_model_id, name, filename, thumbnail_filename FROM vrm_models WHERE vrm_model_id = ?",
+                "SELECT vrm_model_id, name, filename, thumbnail_filename, available_expressions FROM vrm_models WHERE vrm_model_id = ?",
                 (vrm_model_id,)
             )
             row = cursor.fetchone()
@@ -733,7 +736,8 @@ class AppStorage:
                     "vrm_model_id": row[0],
                     "name": row[1],
                     "filename": row[2],
-                    "thumbnail_filename": row[3]
+                    "thumbnail_filename": row[3],
+                    "available_expressions": row[4]
                 }
         return None
     
@@ -741,25 +745,26 @@ class AppStorage:
         """列出所有VRM模型
         
         Returns:
-            包含 vrm_model_id, name, filename, thumbnail_filename 的字典列表
+            包含 vrm_model_id, name, filename, thumbnail_filename, available_expressions 的字典列表
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT vrm_model_id, name, filename, thumbnail_filename FROM vrm_models"
+                "SELECT vrm_model_id, name, filename, thumbnail_filename, available_expressions FROM vrm_models"
             )
             return [
                 {
                     "vrm_model_id": row[0],
                     "name": row[1],
                     "filename": row[2],
-                    "thumbnail_filename": row[3]
+                    "thumbnail_filename": row[3],
+                    "available_expressions": row[4]
                 }
                 for row in cursor.fetchall()
             ]
     
     def update_vrm_model(self, vrm_model_id: str, **updates) -> bool:
         """更新VRM模型"""
-        allowed_fields = {"name"}  # 只允许更新名称，文件名不应该被修改
+        allowed_fields = {"name", "available_expressions"}  # 允许更新名称和表情列表
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         
         if not filtered_updates:
@@ -944,8 +949,11 @@ class AppStorage:
                 # 从animation_id中提取短ID（去掉"anim-"前缀）
                 short_id = animation_id.replace("anim-", "")
                 
-                # 构建实际的文件名（格式：name_shortid.vrma）
-                filename = f"{name}_{short_id}.vrma"
+                # 构建实际的文件名（格式：name_slug_shortid.vrma）
+                # 注意：需要使用 slugify 处理 name，与上传时保持一致
+                from core.utils.file_naming import slugify
+                name_slug = slugify(name)
+                filename = f"{name_slug}_{short_id}.vrma"
                 animation_path = f"/uploads/vrm_animations/{filename}"
                 
                 animations.append({

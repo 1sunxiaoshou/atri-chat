@@ -184,6 +184,7 @@ async def update_vrm_model(
 async def upload_vrm_model(
     file: UploadFile = File(..., description="VRM文件"),
     name: str = Form(..., description="模型名称"),
+    available_expressions: Optional[str] = Form(None, description="可用表情列表（JSON字符串）"),
     thumbnail: Optional[UploadFile] = File(None, description="缩略图文件（可选）"),
     storage: AppStorage = Depends(get_app_storage)
 ) -> Dict[str, Any]:
@@ -206,6 +207,24 @@ async def upload_vrm_model(
         with open(file_path, 'wb') as f:
             content = await file.read()
             f.write(content)
+        
+        # 记录表情列表信息
+        if available_expressions:
+            import json
+            try:
+                expressions = json.loads(available_expressions)
+                logger.info(
+                    f"接收到VRM表情列表",
+                    extra={
+                        "vrm_model_id": vrm_model_id,
+                        "expression_count": len(expressions),
+                        "expressions": expressions
+                    }
+                )
+            except json.JSONDecodeError:
+                logger.warning(f"表情列表JSON解析失败", extra={"vrm_model_id": vrm_model_id})
+        else:
+            logger.warning(f"未提供表情列表", extra={"vrm_model_id": vrm_model_id})
         
         # 处理缩略图（如果提供）
         thumbnail_filename = None
@@ -230,12 +249,13 @@ async def upload_vrm_model(
             
             logger.info(f"保存缩略图成功", extra={"thumbnail_filename": thumbnail_filename})
         
-        # 保存到数据库（只存储文件名）
+        # 保存到数据库（只存储文件名和表情列表）
         success = storage.add_vrm_model(
             vrm_model_id=vrm_model_id,
             name=name,
             filename=filename,
-            thumbnail_filename=thumbnail_filename if thumbnail else None
+            thumbnail_filename=thumbnail_filename if thumbnail else None,
+            available_expressions=available_expressions
         )
         
         if not success:

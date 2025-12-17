@@ -9,12 +9,7 @@ import { Logger } from '../utils/logger';
 
 /**
  * VRM Hook - 封装 VRM 模型加载、动画播放逻辑
- * 
- * 需求: 7.1, 7.2, 7.3, 9.4
- * - 7.1: 使用 useEffect 正确管理副作用
- * - 7.2: 使用 useCallback 包装返回的函数
- * - 7.3: 在依赖数组中正确声明所有依赖
- * - 9.4: 将 VRM 功能提取为独立的功能模块
+
  */
 export const useVRM = (character: Character | null, isVRMMode: boolean) => {
   // VRM 相关的 refs
@@ -34,36 +29,48 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     try {
       setIsLoading(true);
       setError(null);
-      setSubtitle('正在加载VRM模型...');
-      Logger.info('开始加载VRM模型', { vrmModelId });
 
       const response = await api.getVRMModel(vrmModelId);
       if (response.code === HTTP_STATUS.OK && response.data) {
         const modelData = response.data;
-        Logger.debug('获取到VRM模型数据', { modelData });
 
         // 构造完整的 URL
         const baseUrl = import.meta.env.PROD ? '' : DEV_SERVER.BACKEND_URL;
         const modelUrl = `${baseUrl}${modelData.model_path}`;
-        Logger.debug('VRM模型URL', { modelUrl });
         
         await loader.loadModel(modelUrl);
+        
+        // 模型加载后，设置闲置动画 URL 并加载
+        const idleAnimationUrl = '/static/animations/idle.vrma';
+        loader.setIdleAnimationUrl(idleAnimationUrl);
+        Logger.info('设置本地闲置动画', { idleAnimationUrl });
+        
+        // 手动加载闲置动画
+        await loader.loadIdleAnimation();
+        
 
-        // 加载动画
+        // 如果后端有配置其他动画，也加载（可选）
         if (modelData.animations && modelData.animations.length > 0) {
           const animationMap: Record<string, string> = {};
+
           modelData.animations.forEach((anim: any) => {
             const animationUrl = `${baseUrl}${anim.animation_path}`;
             animationMap[anim.name] = animationUrl;
           });
-          Logger.debug('动画映射表', { animationMap });
 
-          await loader.loadAnimations(animationMap);
-          setSubtitle('VRM模型加载完成');
-        } else {
-          Logger.info('该VRM模型没有动画');
-          setSubtitle('VRM模型加载完成（无动作）');
+          Logger.info(`预加载 ${Object.keys(animationMap).length} 个额外动画`, { animationMap });
+
+          // 预加载其他动画（失败不影响闲置动画）
+          try {
+            await loader.preloadAnimations(animationMap, (loaded, total) => {
+              setSubtitle(`正在加载动画 ${loaded}/${total}...`);
+            });
+          } catch (error) {
+            Logger.warn('部分动画加载失败，但不影响使用', error instanceof Error ? error : undefined);
+          }
         }
+
+        setSubtitle('VRM模型加载完成');
 
         // 清除提示文字
         setTimeout(() => setSubtitle(''), UI_TIMING.SUBTITLE_CLEAR_DELAY);
@@ -137,6 +144,9 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       if (loaderRef.current) {
         loaderRef.current.dispose();
         loaderRef.current = null;
+        
+        // 清理全局引用
+        delete (window as any).vrmLoader;
       }
       if (playerRef.current) {
         playerRef.current.dispose();

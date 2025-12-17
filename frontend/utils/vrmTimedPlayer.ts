@@ -272,13 +272,22 @@ export class VRMTimedPlayer {
     private triggerMarkup(markup: TimedMarkup) {
         if (markup.type === 'state') {
             // 触发表情变化
+            Logger.info(`⏰ 触发表情标记: ${markup.value} @ ${markup.timestamp.toFixed(2)}s`, {
+                type: 'state',
+                expression: markup.value,
+                timestamp: markup.timestamp
+            });
             this.loader.setExpression(markup.value);
         } else if (markup.type === 'action') {
-            // 触发动作
-            this.loader.playAction(markup.value);
+            // 触发动作（非循环）
+            Logger.info(`⏰ 触发动作标记: ${markup.value} @ ${markup.timestamp.toFixed(2)}s`, {
+                type: 'action',
+                animation: markup.value,
+                timestamp: markup.timestamp,
+                loop: false
+            });
+            this.loader.playAnimation(markup.value, false);
         }
-        
-        Logger.debug(`触发标记: [${markup.type}:${markup.value}] @ ${markup.timestamp.toFixed(2)}s`);
     }
 
     /**

@@ -5,30 +5,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Logger } from '../../utils/logger';
 
-export enum MotionPresetName {
-    Idle = 'idle',
-    Wave = 'wave',
-    Dance = 'dance',
-    Bow = 'bow',
-    Clap = 'clap',
-    // 可以添加更多预设动作
-    Happy = 'happy',
-    Sad = 'sad',
-    Thinking = 'thinking'
-}
-
-/**
- * 动作预设配置
- */
-interface MotionPresetConfig {
-    url: string;
-    name: string;
-    loop?: boolean; // 默认是否循环
-}
-
 /**
  * 动作控制器 - 管理VRM模型的动作播放和过渡
  * 参考 lobe-vidol 的设计，优化了动画管理和状态控制
+ * 
+ * 注意：动作由后端数据库管理，前端不再硬编码预设
  */
 export class MotionController {
     private vrm: VRM;
@@ -38,50 +19,7 @@ export class MotionController {
     private animationClips: Map<string, THREE.AnimationClip> = new Map();
     private isTransitioning = false;
     private isPlaying = false;
-
-    // 动作预设映射 - 可以根据实际情况配置
-    private motionPresets: Map<MotionPresetName, MotionPresetConfig> = new Map([
-        [MotionPresetName.Idle, { 
-            url: '/animations/idle.vrma', 
-            name: 'Idle/Stand',
-            loop: true 
-        }],
-        [MotionPresetName.Wave, { 
-            url: '/animations/wave.vrma', 
-            name: 'Gesture/Wave',
-            loop: false 
-        }],
-        [MotionPresetName.Dance, { 
-            url: '/animations/dance.vrma', 
-            name: 'Dance/Basic',
-            loop: true 
-        }],
-        [MotionPresetName.Bow, { 
-            url: '/animations/bow.vrma', 
-            name: 'Gesture/Bow',
-            loop: false 
-        }],
-        [MotionPresetName.Clap, { 
-            url: '/animations/clap.vrma', 
-            name: 'Gesture/Clap',
-            loop: false 
-        }],
-        [MotionPresetName.Happy, { 
-            url: '/animations/happy.vrma', 
-            name: 'Emotion/Happy',
-            loop: true 
-        }],
-        [MotionPresetName.Sad, { 
-            url: '/animations/sad.vrma', 
-            name: 'Emotion/Sad',
-            loop: true 
-        }],
-        [MotionPresetName.Thinking, { 
-            url: '/animations/thinking.vrma', 
-            name: 'Emotion/Thinking',
-            loop: true 
-        }]
-    ]);
+    private idleAnimationUrl: string | null = null;
 
     constructor(vrm: VRM) {
         this.vrm = vrm;
@@ -90,48 +28,73 @@ export class MotionController {
     }
 
     /**
-     * 预加载动作
+     * 设置闲置动画 URL
+     * 由外部（如从后端获取）设置闲置动画的 URL
      */
-    public async preloadMotion(motion: MotionPresetName): Promise<void> {
-        const config = this.motionPresets.get(motion);
-        if (!config) {
-            Logger.warn(`未找到动作预设: ${motion}`);
-            return;
-        }
+    public setIdleAnimationUrl(url: string): void {
+        this.idleAnimationUrl = url;
+        Logger.info(`设置闲置动画 URL: ${url}`);
+    }
 
+    /**
+     * 预加载动画（通过 URL）
+     */
+    public async preloadAnimation(name: string, url: string): Promise<void> {
         try {
-            await this.loadAnimationClip(motion, config.url);
-            Logger.info(`预加载动作成功: ${motion}`);
+            await this.loadAnimationClip(name, url);
+            Logger.info(`预加载动画成功: ${name}`);
         } catch (error) {
-            Logger.error(`预加载动作失败: ${motion}`, error instanceof Error ? error : undefined);
+            Logger.error(`预加载动画失败: ${name}`, error instanceof Error ? error : undefined);
         }
     }
 
     /**
-     * 预加载自定义动作URL
+     * 批量预加载动画
+     * @param animations 动画映射 { name: url }
      */
-    public async preloadMotionUrl(url: string): Promise<void> {
-        try {
+    public async preloadAnimations(
+        animations: Record<string, string>,
+        onProgress?: (loaded: number, total: number) => void
+    ): Promise<void> {
+        const entries = Object.entries(animations);
+        let loaded = 0;
+        const total = entries.length;
+
+        Logger.info(`开始预加载 ${total} 个动画`);
+
+        for (const [name, url] of entries) {
+            try {
+                await this.preloadAnimation(name, url);
+                loaded++;
+                onProgress?.(loaded, total);
+            } catch (error) {
+                Logger.error(`预加载动画失败: ${name}`, error instanceof Error ? error : undefined);
+            }
+        }
+
+        Logger.info(`预加载完成: ${loaded}/${total}`);
+    }
+
+    /**
+     * 播放动画（通过名称）
+     * @param name 动画名称（之前预加载时使用的名称）
+     * @param loop 是否循环播放
+     */
+    public async playAnimation(name: string, loop: boolean = true): Promise<void> {
+        await this.playAnimationClip(name, loop);
+    }
+
+    /**
+     * 播放动画（通过 URL）
+     * 如果动画未加载，会自动加载
+     */
+    public async playAnimationUrl(url: string, loop: boolean = true): Promise<void> {
+        // 如果动画未加载，先加载
+        if (!this.animationClips.has(url)) {
             await this.loadAnimationClip(url, url);
-            Logger.info(`预加载自定义动作成功: ${url}`);
-        } catch (error) {
-            Logger.error(`预加载自定义动作失败: ${url}`, error instanceof Error ? error : undefined);
-        }
-    }
-
-    /**
-     * 播放预设动作
-     */
-    public async playMotion(preset: MotionPresetName, loop?: boolean): Promise<void> {
-        const config = this.motionPresets.get(preset);
-        if (!config) {
-            Logger.warn(`未找到动作预设: ${preset}`);
-            return;
         }
 
-        // 如果没有指定 loop，使用预设的默认值
-        const shouldLoop = loop !== undefined ? loop : (config.loop ?? true);
-        await this.playAnimationClip(preset, shouldLoop);
+        await this.playAnimationClip(url, loop);
     }
 
     /**
@@ -139,9 +102,14 @@ export class MotionController {
      * 参考 lobe-vidol 的 loadIdleAnimation 方法
      */
     public async loadIdleAnimation(): Promise<void> {
+        if (!this.idleAnimationUrl) {
+            Logger.warn('未设置闲置动画 URL，跳过加载');
+            return;
+        }
+
         Logger.info('加载闲置动画');
         try {
-            await this.playMotion(MotionPresetName.Idle, true);
+            await this.playAnimationUrl(this.idleAnimationUrl, true);
             this.isPlaying = true;
         } catch (error) {
             Logger.error('加载闲置动画失败', error instanceof Error ? error : undefined);
@@ -155,18 +123,6 @@ export class MotionController {
         Logger.info('重置到闲置状态');
         this.stopCurrentMotion();
         await this.loadIdleAnimation();
-    }
-
-    /**
-     * 播放自定义动作URL
-     */
-    public async playMotionUrl(url: string, loop: boolean = true): Promise<void> {
-        // 如果动画未加载，先加载
-        if (!this.animationClips.has(url)) {
-            await this.loadAnimationClip(url, url);
-        }
-
-        await this.playAnimationClip(url, loop);
     }
 
     /**
@@ -186,6 +142,8 @@ export class MotionController {
 
             if (vrmAnimations && vrmAnimations.length > 0) {
                 const clip = createVRMAnimationClip(vrmAnimations[0], this.vrm);
+                // 设置动画名称为key，而不是使用原始的clip.name
+                clip.name = key;
                 this.animationClips.set(key, clip);
                 Logger.info(`动画加载成功: ${key}, 时长: ${clip.duration.toFixed(2)}s`);
             } else {
@@ -199,7 +157,6 @@ export class MotionController {
 
     /**
      * 播放动画剪辑
-     * 参考 lobe-vidol 的实现，优化了动画切换逻辑
      */
     private async playAnimationClip(key: string, loop: boolean): Promise<void> {
         const clip = this.animationClips.get(key);
@@ -210,6 +167,7 @@ export class MotionController {
 
         // 如果正在过渡中，等待过渡完成
         if (this.isTransitioning) {
+            Logger.debug(`等待动作过渡完成...`);
             await new Promise<void>(resolve => {
                 const checkTransition = () => {
                     if (!this.isTransitioning) {
@@ -222,21 +180,38 @@ export class MotionController {
             });
         }
 
-        // 停止当前动作（参考 lobe-vidol 的 stopMotion）
-        if (this.currentAction) {
-            this.currentAction.stop();
-        }
-
         // 创建新动作
         const newAction = this.mixer.clipAction(clip);
-        newAction.loop = loop ? THREE.LoopRepeat : THREE.LoopOnce;
-        newAction.clampWhenFinished = !loop;
+        
+        // 设置循环模式
+        if (loop) {
+            newAction.loop = THREE.LoopRepeat;
+            newAction.repetitions = Infinity; // 无限循环
+        } else {
+            newAction.loop = THREE.LoopOnce;
+            newAction.repetitions = 1;
+            newAction.clampWhenFinished = true; // 保持最后一帧
+        }
+
+        Logger.debug(`动作配置: loop=${loop}, loopMode=${newAction.loop}, repetitions=${newAction.repetitions}, clampWhenFinished=${newAction.clampWhenFinished}`);
 
         // 如果有当前动作且不是同一个，进行平滑过渡
         if (this.currentAction && this.currentAction !== newAction) {
-            await this.transitionToAction(newAction);
+            const currentClipName = this.currentClip?.name || '未知';
+            Logger.info(`🎬 动作切换: ${currentClipName} -> ${key}`, {
+                from: currentClipName,
+                to: key,
+                loop: loop,
+                duration: clip.duration.toFixed(2) + 's'
+            });
+            await this.transitionToAction(newAction, loop);
         } else {
             // 直接播放新动作
+            Logger.info(`🎬 开始播放动作: ${key}`, {
+                loop: loop,
+                duration: clip.duration.toFixed(2) + 's',
+                isFirstAction: !this.currentAction
+            });
             newAction.reset().play();
             this.currentAction = newAction;
         }
@@ -244,13 +219,18 @@ export class MotionController {
         this.currentClip = clip;
         this.isPlaying = true;
 
-        Logger.info(`播放动作: ${key}, 循环: ${loop}, 时长: ${clip.duration.toFixed(2)}s`);
+        // 如果是非循环动画，监听结束事件自动回到闲置状态
+        if (!loop) {
+            this.setupAnimationEndHandler(newAction, key);
+        }
+
+        Logger.debug(`动作播放详情: ${key}, 循环: ${loop}, 时长: ${clip.duration.toFixed(2)}s, 循环模式: ${newAction.loop}`);
     }
 
     /**
      * 平滑过渡到新动作
      */
-    private async transitionToAction(newAction: THREE.AnimationAction, duration: number = 0.5): Promise<void> {
+    private async transitionToAction(newAction: THREE.AnimationAction, _isLoop: boolean, duration: number = 0.3): Promise<void> {
         if (!this.currentAction) {
             newAction.reset().play();
             this.currentAction = newAction;
@@ -258,34 +238,86 @@ export class MotionController {
         }
 
         this.isTransitioning = true;
+        Logger.debug(`开始动作过渡，过渡时长: ${duration}s`);
 
         return new Promise((resolve) => {
             const oldAction = this.currentAction!;
 
-            // 设置新动作
-            newAction.reset();
+            // 重要：不要reset新动作，这会导致闪回初始姿态
+            // 而是从当前姿态开始播放
+            newAction.time = 0;
             newAction.setEffectiveWeight(0);
+            newAction.enabled = true;
             newAction.play();
 
-            // 开始过渡
-            oldAction.crossFadeTo(newAction, duration, true);
+            // 开始交叉淡入淡出
+            // warp=false 避免时间轴同步导致的跳跃
+            oldAction.crossFadeTo(newAction, duration, false);
 
             // 过渡完成后的清理
             setTimeout(() => {
+                // 停止旧动作
+                oldAction.enabled = false;
                 oldAction.stop();
+                
+                // 确保新动作权重为1
                 newAction.setEffectiveWeight(1);
                 this.currentAction = newAction;
                 this.isTransitioning = false;
+                
+                Logger.info(`✅ 动作过渡完成，当前动作权重: ${newAction.getEffectiveWeight()}`);
                 resolve();
             }, duration * 1000);
         });
     }
 
     /**
+     * 设置动画结束处理器
+     * 非循环动画播放完毕后自动回到闲置状态
+     */
+    private setupAnimationEndHandler(action: THREE.AnimationAction, animationName: string): void {
+        // 移除之前的监听器（如果有）
+        if (this.animationEndListener) {
+            this.mixer.removeEventListener('finished', this.animationEndListener);
+        }
+
+        // 创建新的监听器
+        this.animationEndListener = (event: any) => {
+            if (event.action === action) {
+                Logger.info(`🏁 动画播放完毕: ${animationName}，准备回到闲置状态`, {
+                    animationName: animationName,
+                    duration: action.getClip().duration.toFixed(2) + 's'
+                });
+                
+                // 延迟一小段时间再回到闲置状态，让动画自然结束
+                setTimeout(() => {
+                    this.resetToIdle();
+                }, 200);
+                
+                // 移除监听器
+                this.mixer.removeEventListener('finished', this.animationEndListener!);
+                this.animationEndListener = null;
+            }
+        };
+
+        // 添加监听器
+        this.mixer.addEventListener('finished', this.animationEndListener);
+        Logger.debug(`已设置动画结束监听器: ${animationName}`);
+    }
+
+    private animationEndListener: ((event: any) => void) | null = null;
+
+    /**
      * 停止当前动作
      * 参考 lobe-vidol 的 stopMotion 方法
      */
     public stopCurrentMotion(): void {
+        // 移除动画结束监听器
+        if (this.animationEndListener) {
+            this.mixer.removeEventListener('finished', this.animationEndListener);
+            this.animationEndListener = null;
+        }
+
         if (this.mixer) {
             this.mixer.stopAllAction();
         }
@@ -331,33 +363,29 @@ export class MotionController {
     }
 
     /**
-     * 预加载所有动作
-     * 参考 lobe-vidol 的 preloadAllMotions
+     * 获取已加载的动画列表
      */
-    public async preloadAllMotions(onProgress?: (loaded: number, total: number) => void): Promise<void> {
-        const motions = Array.from(this.motionPresets.keys());
-        let loaded = 0;
-        const total = motions.length;
+    public getLoadedAnimations(): string[] {
+        return Array.from(this.animationClips.keys());
+    }
 
-        Logger.info(`开始预加载 ${total} 个动作`);
-
-        for (const motion of motions) {
-            try {
-                await this.preloadMotion(motion);
-                loaded++;
-                onProgress?.(loaded, total);
-            } catch (error) {
-                Logger.error(`预加载动作失败: ${motion}`, error instanceof Error ? error : undefined);
-            }
-        }
-
-        Logger.info(`预加载完成: ${loaded}/${total}`);
+    /**
+     * 检查动画是否已加载
+     */
+    public isAnimationLoaded(name: string): boolean {
+        return this.animationClips.has(name);
     }
 
     /**
      * 销毁资源
      */
     public dispose(): void {
+        // 移除动画结束监听器
+        if (this.animationEndListener) {
+            this.mixer.removeEventListener('finished', this.animationEndListener);
+            this.animationEndListener = null;
+        }
+
         this.mixer.stopAllAction();
         this.animationClips.clear();
         this.currentAction = null;
