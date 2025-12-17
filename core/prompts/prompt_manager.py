@@ -155,20 +155,21 @@ class PromptManager:
             # 即使没有VRM模型，也可以使用默认的表情和动作
             logger.debug("未找到VRM模型，使用默认表情和动作")
         
-        # 获取动作列表
-        actions = self._get_character_actions(character)
+        # 获取动作详细信息（包含描述和时长）
+        actions_info = self._get_character_actions_detailed(character)
         
-        # 使用新的VRM_RENDER_PROMPT模板
+        # 格式化表情列表
+        expressions_info = "\n  - " + "\n  - ".join(DEFAULT_EXPRESSIONS)
+        
         vrm_prompt = VRM_RENDER_PROMPT.template.format(
-            expressions="、".join(DEFAULT_EXPRESSIONS),
-            actions="、".join(actions)
+            expressions=expressions_info,
+            actions=actions_info
         )
         
         logger.debug(
             "VRM提示词构建完成",
             extra={
                 "expressions_count": len(DEFAULT_EXPRESSIONS),
-                "actions_count": len(actions),
                 "prompt_length": len(vrm_prompt)
             }
         )
@@ -176,7 +177,7 @@ class PromptManager:
         return vrm_prompt
     
     def _get_character_actions(self, character: Dict[str, Any]) -> List[str]:
-        """获取角色可用动作列表"""
+        """获取角色可用动作列表（仅中文名）"""
         from ..vrm import VRMService
         
         vrm_model_id = character.get("vrm_model_id")
@@ -184,5 +185,49 @@ class PromptManager:
             return DEFAULT_ACTIONS
         
         # 使用VRM服务获取动作列表
-        vrm_service = VRMService(self.app_storage, None)  # 这里不需要TTS工厂
+        vrm_service = VRMService(self.app_storage, None)  
         return vrm_service.get_available_actions(vrm_model_id)
+    
+    def _get_character_actions_detailed(self, character: Dict[str, Any]) -> str:
+        """获取角色可用动作的详细信息（英文名、描述、时长）
+        
+        Returns:
+            格式化的动作列表字符串，例如：
+            - hello (打招呼, 7.3秒): 向对方问好
+            - drink_water (喝水, 23.7秒)
+        """
+        vrm_model_id = character.get("vrm_model_id")
+        if not vrm_model_id or not self.app_storage:
+            # 返回默认动作（简化格式）
+            return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+        
+        try:
+            # 从数据库获取完整的动画信息
+            animations = self.app_storage.get_model_animations(vrm_model_id)
+            
+            if not animations:
+                return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+            
+            # 格式化动作信息
+            action_lines = []
+            for anim in animations:
+                name = anim.get("name", "unknown")
+                name_cn = anim.get("name_cn", "未知")
+                description = anim.get("description")
+                duration = anim.get("duration", 0.0)
+                
+                # 格式：hello (打招呼, 7.3秒): 向对方问好
+                # 如果没有描述，则省略描述部分
+                if description:
+                    action_line = f"{name} ({name_cn}, {duration:.1f}秒): {description}"
+                else:
+                    action_line = f"{name} ({name_cn}, {duration:.1f}秒)"
+                
+                action_lines.append(action_line)
+            
+            # 用换行符连接，使其在提示词中更清晰
+            return "\n  - " + "\n  - ".join(action_lines)
+            
+        except Exception as e:
+            logger.warning(f"获取动作详细信息失败: {e}")
+            return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)

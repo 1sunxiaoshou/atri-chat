@@ -61,8 +61,9 @@ export interface Message {
   message_type: 'user' | 'assistant';
   content: string;
   reasoning?: string; // 思维链内容
+  status?: string; // 工具调用状态
   created_at: string;
-  isStreaming?: boolean; // UI only
+  generating?: boolean; // 是否正在生成（流式响应时）
 }
 
 export interface SendMessageData {

@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { VRMLoaderPlugin, VRMUtils, VRM } from '@pixiv/three-vrm';
-import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 import { AnimationTransitionManager } from './animationTransition';
+import { EmoteController } from '../libs/emoteController/emoteController';
 import { Logger } from './logger';
 
 /**
@@ -54,6 +55,7 @@ export class VRMLoader {
     private currentVrm: VRM | null = null;
     private mixer: THREE.AnimationMixer | null = null;
     public transitionManager: AnimationTransitionManager | null = null;
+    public emoteController: EmoteController | null = null;
 
     // 存储加载的动画
     private animations: Map<string, THREE.AnimationClip> = new Map();
@@ -170,11 +172,45 @@ export class VRMLoader {
             this.currentVrm = vrm;
             this.scene.add(vrm.scene);
 
+            // 禁用视锥剔除和描边
+			vrm.scene.traverse((obj: any) => {
+				obj.frustumCulled = false;
+				// 移除 MToon 材质的描边
+				if (obj.material) {
+					const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+					materials.forEach((mat: { isMToonMaterial: any; outlineWidthMode: string; outlineWidthFactor: number; outlineLightingMixFactor: number; needsUpdate: boolean; outlineWidth: number | undefined; }) => {
+						// MToon 材质的描边属性
+						if (mat.isMToonMaterial) {
+							mat.outlineWidthMode = 'none';
+							mat.outlineWidthFactor = 0;
+							mat.outlineLightingMixFactor = 0;
+							mat.needsUpdate = true;
+						}
+						// 通用属性
+						if (mat.outlineWidth !== undefined) {
+							mat.outlineWidth = 0;
+						}
+					});
+				}
+			});
+
             // 初始化动画混合器
             this.mixer = new THREE.AnimationMixer(vrm.scene);
             this.transitionManager = new AnimationTransitionManager(this.mixer);
+            
+            // 初始化情感控制器（统一管理表情和动作）
+            this.emoteController = new EmoteController(vrm);
+
 
             Logger.info('VRM模型加载成功');
+
+            // 自动加载闲置动画（参考 lobe-vidol）
+            try {
+                await this.loadIdleAnimation();
+            } catch (error) {
+                Logger.warn('自动加载闲置动画失败', error instanceof Error ? error : undefined);
+            }
+
             return vrm;
         } catch (error) {
             Logger.error('VRM模型加载失败', error instanceof Error ? error : undefined);
@@ -213,70 +249,155 @@ export class VRMLoader {
         const loader = new GLTFLoader();
         loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
 
+        Logger.info(`开始加载 ${Object.keys(animationMap).length} 个动画`);
+
         for (const [name, url] of Object.entries(animationMap)) {
             try {
-                Logger.info(`加载动画: ${name}`);
+                Logger.debug(`加载动画: ${name} from ${url}`);
                 const gltf = await loader.loadAsync(url);
+                
+                // 检查VRM动画
                 const vrmAnimations = gltf.userData.vrmAnimations;
-
                 if (vrmAnimations && vrmAnimations.length > 0) {
-                    const clip = vrmAnimations[0];
+                    const vrmAnimation = vrmAnimations[0];
+                    
+                    // 验证动画的有效性
+                    if (!vrmAnimation) {
+                        Logger.warn(`动画 ${name} 的数据为空`);
+                        continue;
+                    }
+
+                    // 使用正确的API创建AnimationClip
+                    const clip = createVRMAnimationClip(vrmAnimation, this.currentVrm);
+
+                    // 验证生成的clip
+                    if (!clip || !clip.tracks || clip.tracks.length === 0) {
+                        Logger.warn(`动画 ${name} 生成的clip没有轨道数据`, { 
+                            clipName: clip?.name,
+                            duration: clip?.duration,
+                            tracksLength: clip?.tracks?.length
+                        });
+                        continue;
+                    }
+
                     this.animations.set(name, clip);
-                    Logger.info(`动画加载成功: ${name}`);
+                    Logger.info(`动画加载成功: ${name}`, {
+                        duration: clip.duration,
+                        tracks: clip.tracks.length
+                    });
+                } else {
+                    Logger.warn(`动画文件 ${name} 不包含VRM动画数据`);
                 }
             } catch (error) {
-                Logger.warn(`动画加载失败: ${name}`, error instanceof Error ? error : undefined);
+                Logger.error(`动画加载失败: ${name}`, error instanceof Error ? error : undefined, { url });
             }
         }
+
+        Logger.info(`动画加载完成，共加载 ${this.animations.size} 个动画`);
     }
 
     /**
      * 播放动作
      */
-    playAction(name: string, loop: boolean = true): void {
+    playAction(name: string, loop: boolean = false): void {
+        if (!this.currentVrm) {
+            Logger.warn('VRM模型未加载，无法播放动作');
+            return;
+        }
+
+        if (!this.mixer) {
+            Logger.warn('动画混合器未初始化');
+            return;
+        }
+
         if (!this.transitionManager) {
             Logger.warn('动画管理器未初始化');
             return;
         }
 
-        const clip = this.animations.get(name);
+        // 查找动画（支持大小写不敏感）
+        let clip: THREE.AnimationClip | undefined;
+        const lowerName = name.toLowerCase();
+        
+        // 1. 精确匹配
+        clip = this.animations.get(name);
+        
+        // 2. 大小写不敏感匹配
+        if (!clip) {
+            for (const [key, value] of this.animations.entries()) {
+                if (key.toLowerCase() === lowerName) {
+                    clip = value;
+                    break;
+                }
+            }
+        }
+
         if (clip) {
             try {
-                this.transitionManager.playWithTransition(clip, { loop });
-                Logger.info(`播放动作: ${name}`);
+                // 验证clip的有效性
+                if (!clip.tracks || clip.tracks.length === 0) {
+                    Logger.warn(`动画 ${name} 没有有效的轨道数据`, { clip });
+                    return;
+                }
+
+                Logger.debug(`准备播放动作: ${name}`, {
+                    duration: clip.duration,
+                    tracks: clip.tracks.length,
+                    loop
+                });
+
+                this.transitionManager.playWithTransition(clip, { 
+                    loop,
+                    transitionDuration: 0.3  // 300ms过渡时间
+                });
+                
+                Logger.info(`播放动作: ${name}`, { 
+                    duration: clip.duration,
+                    loop 
+                });
             } catch (error) {
-                Logger.error(`播放动作失败: ${name}`, error instanceof Error ? error : undefined);
+                Logger.error(`播放动作失败: ${name}`, error instanceof Error ? error : undefined, {
+                    clipName: clip.name,
+                    clipDuration: clip.duration,
+                    hasTransitionManager: !!this.transitionManager,
+                    hasMixer: !!this.mixer
+                });
             }
         } else {
-            Logger.warn(`未找到动作: ${name}，可用动作:`, { availableActions: Array.from(this.animations.keys()) });
+            const availableActions = Array.from(this.animations.keys());
+            
+            // 只在首次警告时输出详细信息
+            if (!this.actionWarnings.has(name)) {
+                Logger.warn(`未找到动作: ${name}`, { 
+                    availableActions,
+                    totalAnimations: availableActions.length 
+                });
+                this.actionWarnings.add(name);
+                
+                // 如果没有可用动作，提示用户配置
+                if (availableActions.length === 0) {
+                    Logger.warn('该VRM模型没有配置任何动画，请在管理后台为模型添加动画文件');
+                }
+            }
         }
     }
 
+    private actionWarnings = new Set<string>();
+
     /**
      * 设置表情
+     * 使用情感控制器统一管理
      */
-    setExpression(presetName: string, outputValue: number = 1.0): void {
-        if (!this.currentVrm || !this.currentVrm.expressionManager) {
-            Logger.warn('VRM模型或表情管理器未初始化');
+    setExpression(presetName: string): void {
+        if (!this.emoteController) {
+            Logger.warn('情感控制器未初始化');
             return;
         }
 
         try {
-            const expressionManager = this.currentVrm.expressionManager;
-
-            // 重置所有表情到0
-            const expressionNames = Object.keys(expressionManager.expressionMap);
-            for (const name of expressionNames) {
-                expressionManager.setValue(name, 0);
-            }
-
-            // 设置目标表情
-            if (presetName in expressionManager.expressionMap) {
-                expressionManager.setValue(presetName, outputValue);
-                Logger.debug(`设置表情: ${presetName} = ${outputValue}`);
-            } else {
-                Logger.warn(`未找到表情: ${presetName}，可用表情:`, { availableExpressions: expressionNames });
-            }
+            // 使用情感控制器播放表情
+            this.emoteController.playEmotion(presetName);
+            Logger.debug(`设置表情: ${presetName}`);
         } catch (error) {
             Logger.error(`设置表情失败: ${presetName}`, error instanceof Error ? error : undefined);
         }
@@ -284,14 +405,24 @@ export class VRMLoader {
 
     /**
      * 更新口型同步
+     * 使用情感控制器统一管理
      */
     updateLipSync(volume: number): void {
-        if (!this.currentVrm || !this.currentVrm.expressionManager) {return;}
+        if (!this.emoteController) {
+            return;
+        }
 
-        const vowel = 'aa';
-        const value = Math.min(1.0, volume * 5.0);
+        // 调整口型大小：降低系数让嘴巴张得小一点
+        // 原来是 * 2.0，现在改为 * 0.8 让嘴巴张得更小
+        const adjustedVolume = Math.sqrt(volume) * 0.8;
+        const value = Math.min(1.0, adjustedVolume);
 
-        this.currentVrm.expressionManager.setValue(vowel, value);
+        // 使用情感控制器的口型同步方法
+        this.emoteController.lipSync('aa', value);
+
+        if (value > 0.1) {
+            Logger.debug(`口型同步: aa = ${value.toFixed(3)}`);
+        }
     }
 
     /**
@@ -333,9 +464,83 @@ export class VRMLoader {
             this.mixer.update(deltaTime);
         }
 
+        // 更新情感控制器（包含表情和动作）
+        if (this.emoteController) {
+            this.emoteController.update(deltaTime);
+        }
+
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     };
+
+    /**
+     * 加载闲置动画
+     * 参考 lobe-vidol 的 loadIdleAnimation
+     */
+    public async loadIdleAnimation(): Promise<void> {
+        if (!this.emoteController) {
+            Logger.warn('情感控制器未初始化，无法加载闲置动画');
+            return;
+        }
+
+        try {
+            await this.emoteController.loadIdleAnimation();
+            Logger.info('闲置动画加载成功');
+        } catch (error) {
+            Logger.error('闲置动画加载失败', error instanceof Error ? error : undefined);
+        }
+    }
+
+    /**
+     * 重置到闲置状态
+     * 参考 lobe-vidol 的 resetToIdle
+     */
+    public async resetToIdle(): Promise<void> {
+        if (!this.emoteController) {
+            Logger.warn('情感控制器未初始化');
+            return;
+        }
+
+        try {
+            await this.emoteController.resetToIdle();
+            Logger.info('已重置到闲置状态');
+        } catch (error) {
+            Logger.error('重置到闲置状态失败', error instanceof Error ? error : undefined);
+        }
+    }
+
+    /**
+     * 预加载所有动作
+     */
+    public async preloadAllMotions(onProgress?: (loaded: number, total: number) => void): Promise<void> {
+        if (!this.emoteController) {
+            Logger.warn('情感控制器未初始化');
+            return;
+        }
+
+        await this.emoteController.preloadAllMotions(onProgress);
+    }
+
+    /**
+     * 获取当前动作信息
+     */
+    public getCurrentMotionInfo() {
+        return this.emoteController?.getCurrentMotionInfo() ?? null;
+    }
+
+    /**
+     * 获取当前表情
+     */
+    public getCurrentExpression(): string | null {
+        return this.emoteController?.getCurrentExpression() ?? null;
+    }
+
+    /**
+     * 检查是否正在播放动作
+     */
+    public isMotionPlaying(): boolean {
+        return this.emoteController?.isMotionPlaying() ?? false;
+    }
 
     /**
      * 销毁资源
@@ -348,6 +553,18 @@ export class VRMLoader {
         }
 
         window.removeEventListener('resize', this.onResize);
+
+        // 清理 ResizeObserver
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+
+        // 清理情感控制器
+        if (this.emoteController) {
+            this.emoteController.dispose();
+            this.emoteController = null;
+        }
 
         this.scene.clear();
         this.renderer.dispose();

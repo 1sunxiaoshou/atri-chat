@@ -19,6 +19,7 @@ export const useChat = () => {
   const [currentReasoning, setCurrentReasoning] = useState('');
   const [currentStatus, setCurrentStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [renderTrigger, setRenderTrigger] = useState(0);
 
   /**
    * 加载对话消息
@@ -79,7 +80,6 @@ export const useChat = () => {
 
     // 用于存储流式响应中的推理内容
     let streamReasoning = '';
-    let hasReceivedFirstToken = false;
 
     try {
       const response = await api.sendMessage(
@@ -93,26 +93,17 @@ export const useChat = () => {
         },
         {
           onChunk: (chunk: string) => {
-            if (!hasReceivedFirstToken) {
-              hasReceivedFirstToken = true;
-              setIsTyping(false);
-            }
             setCurrentResponse(chunk);
+            setRenderTrigger(prev => prev + 1);
           },
           onStatus: (status: string) => {
-            if (!hasReceivedFirstToken) {
-              hasReceivedFirstToken = true;
-              setIsTyping(false);
-            }
             setCurrentStatus(status);
+            setRenderTrigger(prev => prev + 1);
           },
           onReasoning: (reasoning: string) => {
-            if (!hasReceivedFirstToken) {
-              hasReceivedFirstToken = true;
-              setIsTyping(false);
-            }
             streamReasoning = reasoning;
             setCurrentReasoning(reasoning);
+            setRenderTrigger(prev => prev + 1);
           },
           onVrmData: (data: any) => {
             if (onVrmData) {
@@ -212,6 +203,7 @@ export const useChat = () => {
     currentReasoning,
     currentStatus,
     error,
+    renderTrigger,
     loadMessages,
     sendMessage,
     copyMessage,

@@ -45,7 +45,7 @@ class AgentManager:
         self.prompt_manager = PromptManager(app_storage)
         
         # VRM服务（默认启用并行TTS）
-        self.vrm_service = VRMService(app_storage, self.tts_factory, parallel_tts=True)
+        self.vrm_service = VRMService(app_storage, self.tts_factory, parallel_tts=False)
         
         logger.debug("AgentManager 初始化完成")
     
@@ -137,13 +137,13 @@ class AgentManager:
         provider_id: str,
         **model_kwargs
     ) -> AsyncGenerator[str, None]:
-        """异步流式发送消息并获取响应"""
+        """异步流式发送消息并获取响应（普通文本模式）"""
         
         # 1. 基础验证与上下文准备
         conversation = self._validate_conversation(conversation_id)
         
         logger.info(
-            f"开始处理消息",
+            f"开始处理消息（文本模式）",
             extra={
                 "conversation_id": conversation_id,
                 "character_id": character_id,
@@ -152,7 +152,7 @@ class AgentManager:
         )
 
         try:
-            # 2. 创建 Agent
+            # 2. 创建 Agent（文本模式，不包含VRM提示词）
             agent = self.create_agent(
                 character_id, 
                 model_id, 
@@ -162,14 +162,17 @@ class AgentManager:
                 **model_kwargs
             )
             
-            # 3. 执行流式生成
+            # 3. 使用普通模式的thread_id（不带后缀）
+            thread_id = str(conversation_id)
+            
+            # 4. 执行流式生成
             full_response = ""
             stats = {}
             
             async for chunk, final_stats in self._run_streaming_loop(
                 agent=agent,
                 user_message=user_message,
-                conversation_id=conversation_id,
+                thread_id=thread_id,
                 character_id=character_id
             ):
                 if final_stats:
@@ -180,7 +183,7 @@ class AgentManager:
                     # 正常的流式输出
                     yield chunk
             
-            # 4. 保存对话并生成标题
+            # 5. 保存对话并生成标题
             if full_response:
                 self._save_and_title_conversation(
                     conversation_id, 
@@ -241,11 +244,14 @@ class AgentManager:
                 **model_kwargs
             )
             
-            # 3. 非流式生成完整消息
+            # 3. 使用VRM模式专用的thread_id（带_vrm后缀，与普通模式隔离）
+            thread_id = f"{conversation_id}_vrm"
+            
+            # 4. 非流式生成完整消息
             logger.debug("开始非流式生成完整消息")
             response = await agent.ainvoke(
                 {"messages": [{"role": "user", "content": user_message}]},
-                config={"configurable": {"thread_id": str(conversation_id)}},
+                config={"configurable": {"thread_id": thread_id}},
                 context=AgentContext(character_id=character_id)
             )
             
@@ -270,7 +276,7 @@ class AgentManager:
                 }
             )
             
-            # 4. 过滤标记，保存纯文本到数据库
+            # 5. 过滤标记，保存纯文本到数据库
             from core.vrm.markup_filter import MarkupFilter
             clean_response = MarkupFilter.remove_markup(full_response)
             
@@ -281,7 +287,7 @@ class AgentManager:
                 clean_response
             )
             
-            # 5. 创建VRM上下文并生成音频
+            # 6. 创建VRM上下文并生成音频
             vrm_context = self.vrm_service.create_vrm_context(character_id)
             
             logger.debug("开始按句生成VRM音频")
@@ -319,7 +325,7 @@ class AgentManager:
         self, 
         agent, 
         user_message: str, 
-        conversation_id: int,
+        thread_id: str,
         character_id: int
     ) -> AsyncGenerator[Tuple[str, Optional[Dict[str, Any]]], None]:
         """执行通用的 Agent 流式循环，使用 LangChain 推荐的 astream_events 方法"""
@@ -330,7 +336,7 @@ class AgentManager:
         logger.debug(
             "开始流式处理",
             extra={
-                "conversation_id": conversation_id,
+                "thread_id": thread_id,
                 "character_id": character_id,
                 "operation": "stream_start"
             }
@@ -340,7 +346,7 @@ class AgentManager:
             # 使用 astream_events 获取更详细的事件信息
             async for event in agent.astream_events(
                 {"messages": [{"role": "user", "content": user_message}]},
-                config={"configurable": {"thread_id": str(conversation_id)}},
+                config={"configurable": {"thread_id": thread_id}},
                 context=AgentContext(character_id=character_id),
                 version="v2"
             ):
@@ -389,7 +395,7 @@ class AgentManager:
             # 构建最终统计信息
             full_response = full_message.content if full_message else ""
             stats = {
-                "conversation_id": conversation_id,
+                "thread_id": thread_id,
                 "response_length": len(full_response),
                 "chunk_count": chunk_count,
                 "tool_call_count": tool_call_count,
@@ -399,7 +405,7 @@ class AgentManager:
             logger.info(
                 "流式处理完成",
                 extra={
-                    "conversation_id": conversation_id,
+                    "thread_id": thread_id,
                     "response_length": len(full_response),
                     "chunk_count": chunk_count,
                     "tool_call_count": tool_call_count,
@@ -413,7 +419,7 @@ class AgentManager:
             logger.error(
                 "流式处理异常",
                 extra={
-                    "conversation_id": conversation_id,
+                    "thread_id": thread_id,
                     "error": str(e),
                     "operation": "stream_error"
                 },

@@ -69,6 +69,14 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
     useEffect(() => {
         if (selectedModel) {
             fetchModelAnimations(selectedModel.vrm_model_id);
+            // 如果动画列表为空，加载全部动画以显示未绑定列表
+            if (animations.length === 0) {
+                api.getVRMAnimations().then(res => {
+                    if (res.code === 200 || (res as any).success) {
+                        setAnimations(res.data || []);
+                    }
+                });
+            }
         }
     }, [selectedModel]);
 

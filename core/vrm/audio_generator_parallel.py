@@ -52,6 +52,13 @@ class ParallelAudioGenerator(AudioGenerator):
             logger.warning("没有句子可处理")
             return []
         
+        # 1.5 过滤和合并句子
+        sentences = self._filter_and_merge_sentences(sentences)
+        
+        if not sentences:
+            logger.warning("过滤后没有有效句子")
+            return []
+        
         # 2. 解析所有句子的标记
         parsed_sentences = []
         for sentence_index, sentence in enumerate(sentences):

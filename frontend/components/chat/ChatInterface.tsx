@@ -41,6 +41,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
+  const [streamingMessageId] = useState(() => Date.now() + 999999); // 固定的流式消息ID
+  const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
 
   // 使用自定义 Hooks
   const {
@@ -48,7 +50,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     isTyping,
     currentResponse,
     currentReasoning,
+    currentStatus,
     error: chatError,
+    renderTrigger,
     loadMessages,
     sendMessage,
     clearError: clearChatError
@@ -139,6 +143,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         vrmDisplayMode
       });
 
+      // 记录发送前的消息数量，用于判断是否是首次消息
+      const messageCountBeforeSend = messages.length;
+
       await sendMessage(
         activeConversationId,
         content,
@@ -149,18 +156,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         (vrmData: any) => {
           if (vrmDisplayMode === 'vrm' && playerRef.current) {
             if (Array.isArray(vrmData)) {
+              // 批量段（旧格式）
               playSegments(vrmData);
             } else if (vrmData.segments) {
+              // 批量段（包装格式）
               playSegments(vrmData.segments);
             } else {
-              // 单个 segment
+              // 单个段 - 直接播放
               playSegments([vrmData]);
             }
           }
         }
       );
 
-      onConversationUpdated?.();
+      // 只在首次消息后刷新对话列表（用于更新自动生成的标题）
+      // messageCountBeforeSend === 0 表示这是对话的第一条消息
+      if (messageCountBeforeSend === 0) {
+        onConversationUpdated?.();
+      }
     } catch (err) {
       console.error('发送消息失败:', err);
     }
@@ -174,7 +187,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     sendMessage,
     playerRef,
     playSegments,
-    onConversationUpdated
+    onConversationUpdated,
+    messages.length
   ]);
 
   // 处理复制消息
@@ -205,19 +219,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // 确保 messages 是数组
     const safeMessages = Array.isArray(messages) ? messages : [];
     
-    if (isTyping && currentResponse) {
+    // 在流式响应期间显示临时消息
+    if (isTyping && (currentResponse || currentReasoning || currentStatus)) {
       const streamingMessage: Message = {
-        message_id: Date.now() + 1,
+        message_id: streamingMessageId, // 使用固定ID，避免组件重新创建
         conversation_id: activeConversationId,
         message_type: 'assistant',
-        content: currentResponse,
+        content: currentResponse || '',
         reasoning: currentReasoning || undefined,
+        status: currentStatus || undefined,
+        generating: true,
         created_at: new Date().toISOString()
       };
       return [...safeMessages, streamingMessage];
     }
     return safeMessages;
-  }, [messages, isTyping, currentResponse, currentReasoning, activeConversationId]);
+  }, [messages, isTyping, currentResponse, currentReasoning, activeConversationId, renderTrigger]);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900 transition-colors relative">
@@ -258,6 +275,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 copiedMessageId={copiedMessageId}
                 onCopyMessage={handleCopyMessage}
                 onPlayTTS={handlePlayTTS}
+                expandedReasoning={expandedReasoning}
+                onToggleReasoning={(messageId) => {
+                  const newExpanded = new Set(expandedReasoning);
+                  if (newExpanded.has(messageId)) {
+                    newExpanded.delete(messageId);
+                  } else {
+                    newExpanded.add(messageId);
+                  }
+                  setExpandedReasoning(newExpanded);
+                }}
               />
             ))}
           </MessageList>

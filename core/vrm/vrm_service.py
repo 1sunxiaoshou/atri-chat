@@ -2,14 +2,12 @@
 
 统一管理VRM相关的业务逻辑，减少代码冗余
 """
-from typing import Dict, List, Optional, Any, AsyncGenerator
+from typing import Dict, Optional, Any, AsyncGenerator
 from dataclasses import dataclass
 
 from .audio_generator import AudioGenerator
 from .audio_generator_parallel import ParallelAudioGenerator
 from .audio_manager import AudioFileManager
-from .markup_parser import VRMMarkupParser
-from .markup_filter import MarkupFilter
 from ..storage import AppStorage
 from ..tts.factory import TTSFactory
 from ..logger import get_logger
@@ -23,7 +21,6 @@ class VRMContext:
     character_id: int
     character: Dict[str, Any]
     vrm_model_id: Optional[str]
-    action_mapping: Dict[str, str]
     tts_id: str
 
 
@@ -54,7 +51,6 @@ class VRMService:
         self.app_storage = app_storage
         self.tts_factory = tts_factory
         self.parallel_tts = parallel_tts
-        self._action_mapping_cache = {}
         
         # 音频文件管理器
         from ..paths import get_path_manager
@@ -90,14 +86,12 @@ class VRMService:
             raise ValueError(f"角色 {character_id} 不存在")
         
         vrm_model_id = character.get("vrm_model_id")
-        action_mapping = self.get_action_mapping(vrm_model_id)
         tts_id = character.get("tts_id", "default")
         
         context = VRMContext(
             character_id=character_id,
             character=character,
             vrm_model_id=vrm_model_id,
-            action_mapping=action_mapping,
             tts_id=tts_id
         )
         
@@ -105,59 +99,13 @@ class VRMService:
             "VRM上下文创建完成",
             extra={
                 "character_id": character_id,
-                "vrm_model_id": vrm_model_id,
-                "action_count": len(action_mapping)
+                "vrm_model_id": vrm_model_id
             }
         )
         
         return context
     
-    def get_action_mapping(self, vrm_model_id: Optional[str]) -> Dict[str, str]:
-        """获取动作映射（带缓存）
-        
-        Args:
-            vrm_model_id: VRM模型ID
-            
-        Returns:
-            动作映射字典 {中文名: 英文ID}
-        """
-        if not vrm_model_id:
-            return {}
-        
-        # 检查缓存
-        if vrm_model_id in self._action_mapping_cache:
-            return self._action_mapping_cache[vrm_model_id]
-        
-        try:
-            # 通过关联表获取模型的动作
-            animations = self.app_storage.get_model_animations(vrm_model_id)
-            action_mapping = {anim["name_cn"]: anim["name"] for anim in animations}
-            
-            # 缓存结果
-            self._action_mapping_cache[vrm_model_id] = action_mapping
-            
-            logger.debug(
-                "动作映射获取完成",
-                extra={"vrm_model_id": vrm_model_id, "action_count": len(action_mapping)}
-            )
-            
-            return action_mapping
-            
-        except Exception as e:
-            logger.warning(f"获取VRM动作映射失败: {e}")
-            return {}
-    
-    def get_available_actions(self, vrm_model_id: Optional[str]) -> List[str]:
-        """获取可用动作列表（中文名）
-        
-        Args:
-            vrm_model_id: VRM模型ID
-            
-        Returns:
-            动作中文名列表
-        """
-        action_mapping = self.get_action_mapping(vrm_model_id)
-        return list(action_mapping.keys())
+
     
     async def generate_vrm_audio_segments(
         self,
@@ -178,7 +126,6 @@ class VRMService:
             if self.parallel_tts:
                 audio_gen = ParallelAudioGenerator(
                     self.tts_factory,
-                    action_mapping=vrm_context.action_mapping,
                     audio_manager=self.audio_manager,
                     conversation_id=vrm_context.character_id  # 使用character_id作为会话标识
                 )
@@ -186,7 +133,6 @@ class VRMService:
             else:
                 audio_gen = AudioGenerator(
                     self.tts_factory,
-                    action_mapping=vrm_context.action_mapping,
                     audio_manager=self.audio_manager,
                     conversation_id=vrm_context.character_id
                 )
@@ -207,10 +153,10 @@ class VRMService:
                 tts_provider=vrm_context.tts_id
             )
             
+            total_segments = len(segments)
+            
             # 逐个发送音频段
             for i, segment in enumerate(segments):
-                # 生成口型数据（可选）
-                viseme_data = await self._generate_viseme_data(segment)
                 
                 # 构建音频段数据
                 segment_data = {
@@ -225,16 +171,14 @@ class VRMService:
                         {
                             "type": markup.type,
                             "value": markup.value,
-                            "timestamp": markup.timestamp,
-                            "sentence_index": markup.sentence_index
+                            "timestamp": markup.timestamp
                         }
                         for markup in segment.markups
-                    ],
-                    "viseme_data": viseme_data
+                    ]
                 }
                 
                 logger.debug(
-                    f"发送音频段 {i + 1}/{len(segments)}",
+                    f"发送音频段 {i + 1}/{total_segments}",
                     extra={
                         "sentence_index": segment.sentence_index,
                         "duration": segment.duration,
@@ -247,15 +191,17 @@ class VRMService:
                 yield json.dumps({
                     "type": "vrm_audio_segment",
                     "segment": segment_data,
-                    "total_segments": len(segments),
-                    "current_index": i
+                    "progress": {
+                        "current": i + 1,
+                        "total": total_segments
+                    }
                 }, ensure_ascii=False)
             
             # 发送完成信号
             total_duration = segments[-1].end_time if segments else 0.0
             yield json.dumps({
                 "type": "vrm_audio_complete",
-                "total_segments": len(segments),
+                "total_segments": total_segments,
                 "total_duration": total_duration
             }, ensure_ascii=False)
             
@@ -263,7 +209,7 @@ class VRMService:
                 "VRM音频段生成完成",
                 extra={
                     "character_id": vrm_context.character_id,
-                    "segment_count": len(segments),
+                    "segment_count": total_segments,
                     "total_duration": total_duration
                 }
             )
@@ -284,23 +230,7 @@ class VRMService:
                 "details": str(e)
             }, ensure_ascii=False)
     
-    async def _generate_viseme_data(self, segment) -> Optional[Dict]:
-        """生成口型数据（可选功能）"""
-        try:
-            # TODO: 实现口型生成逻辑
-            return {
-                "enabled": False,
-                "keyframes": [],
-                "duration": segment.duration
-            }
-        except Exception as e:
-            logger.warning(f"口型数据生成失败: {e}")
-            return None
-    
-    def clear_cache(self):
-        """清空缓存"""
-        self._action_mapping_cache.clear()
-        logger.debug("VRM服务缓存已清空")
+
     
     def cleanup_conversation_audio(self, conversation_id: int) -> int:
         """清理指定会话的音频文件
