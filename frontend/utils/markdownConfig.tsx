@@ -1,4 +1,3 @@
-import React from 'react';
 import { Copy } from 'lucide-react';
 
 /**
@@ -6,7 +5,7 @@ import { Copy } from 'lucide-react';
  * 用于 ReactMarkdown 的 components prop
  */
 export const createMarkdownComponents = (messageType: 'user' | 'assistant', t: (key: string) => string) => ({
-  code({ node, className, children, ...props }: any) {
+  code({ node: _node, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '');
     const codeContent = String(children).replace(/\n$/, '');
     const inline = !className;

@@ -927,7 +927,7 @@ class AppStorage:
             vrm_model_id: 模型ID
             
         Returns:
-            动作列表
+            动作列表，包含文件路径信息
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
@@ -937,16 +937,28 @@ class AppStorage:
                 WHERE ma.vrm_model_id = ?
             """, (vrm_model_id,))
             
-            return [
-                {
-                    "animation_id": row[0],
-                    "name": row[1],
-                    "name_cn": row[2],
-                    "description": row[3],
-                    "duration": row[4]
-                }
-                for row in cursor.fetchall()
-            ]
+            animations = []
+            for row in cursor.fetchall():
+                animation_id, name, name_cn, description, duration = row
+                
+                # 从animation_id中提取短ID（去掉"anim-"前缀）
+                short_id = animation_id.replace("anim-", "")
+                
+                # 构建实际的文件名（格式：name_shortid.vrma）
+                filename = f"{name}_{short_id}.vrma"
+                animation_path = f"/uploads/vrm_animations/{filename}"
+                
+                animations.append({
+                    "animation_id": animation_id,
+                    "name": name,
+                    "name_cn": name_cn,
+                    "description": description,
+                    "duration": duration,
+                    "filename": filename,
+                    "animation_path": animation_path
+                })
+            
+            return animations
     
     def get_animation_models(self, animation_id: str) -> List[Dict[str, Any]]:
         """获取使用该动作的所有模型

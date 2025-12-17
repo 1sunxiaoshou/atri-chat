@@ -4,11 +4,11 @@
  */
 
 import * as THREE from 'three';
+import { TIME_CONVERSION } from './constants';
 
 export class AnimationTransitionManager {
     private mixer: THREE.AnimationMixer;
     private currentAction: THREE.AnimationAction | null = null;
-    private previousAction: THREE.AnimationAction | null = null;
     private defaultTransitionDuration: number = 0.5; // 默认过渡时间（秒）
 
     constructor(mixer: THREE.AnimationMixer) {
@@ -43,8 +43,6 @@ export class AnimationTransitionManager {
 
         // 如果有当前动作，进行淡出
         if (this.currentAction && this.currentAction !== newAction) {
-            this.previousAction = this.currentAction;
-            
             // 当前动作淡出
             this.currentAction.fadeOut(transitionDuration);
             
@@ -101,7 +99,7 @@ export class AnimationTransitionManager {
                 if (this.currentAction) {
                     this.currentAction.stop();
                 }
-            }, duration * 1000);
+            }, duration * TIME_CONVERSION.MS_PER_SECOND);
         }
     }
 
@@ -129,11 +127,11 @@ export class AnimationTransitionManager {
      * @param duration - 过渡时间（秒）
      */
     setSpeed(speed: number, duration: number = 0.3): void {
-        if (!this.currentAction) return;
+        if (!this.currentAction) {return;}
 
         const startSpeed = this.currentAction.timeScale;
         const startTime = Date.now();
-        const endTime = startTime + duration * 1000;
+        const endTime = startTime + duration * TIME_CONVERSION.MS_PER_SECOND;
 
         const updateSpeed = () => {
             const now = Date.now();
@@ -142,7 +140,7 @@ export class AnimationTransitionManager {
                 return;
             }
 
-            const progress = (now - startTime) / (duration * 1000);
+            const progress = (now - startTime) / (duration * TIME_CONVERSION.MS_PER_SECOND);
             const easedProgress = this.easeInOutCubic(progress);
             this.currentAction!.timeScale = startSpeed + (speed - startSpeed) * easedProgress;
 
@@ -168,7 +166,6 @@ export class AnimationTransitionManager {
     stopAll(): void {
         this.mixer.stopAllAction();
         this.currentAction = null;
-        this.previousAction = null;
     }
 
     /**

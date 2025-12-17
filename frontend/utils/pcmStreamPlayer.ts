@@ -64,7 +64,10 @@ export class PCMStreamPlayer {
         // 转换为 Float32Array（AudioContext 需要）
         const float32Array = new Float32Array(int16Array.length);
         for (let i = 0; i < int16Array.length; i++) {
-          float32Array[i] = int16Array[i] / 32768.0; // 归一化到 [-1, 1]
+          const value = int16Array[i];
+          if (value !== undefined) {
+            float32Array[i] = value / 32768.0; // 归一化到 [-1, 1]
+          }
         }
 
         // 创建 AudioBuffer
@@ -78,7 +81,8 @@ export class PCMStreamPlayer {
         for (let channel = 0; channel < this.channels; channel++) {
           const channelData = audioBuffer.getChannelData(channel);
           for (let i = 0; i < channelData.length; i++) {
-            channelData[i] = float32Array[i * this.channels + channel];
+            const value = float32Array[i * this.channels + channel];
+            channelData[i] = value !== undefined ? value : 0;
           }
         }
 
@@ -134,7 +138,7 @@ export class PCMStreamPlayer {
     this.activeSourceNodes.forEach(source => {
       try {
         source.stop();
-      } catch (e) {
+      } catch {
         // 忽略已经停止的节点
       }
     });

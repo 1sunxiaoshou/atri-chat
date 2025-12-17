@@ -32,11 +32,15 @@ export class VRMMarkupParser {
             pureText += markedText.substring(lastIndex, match.index);
 
             // 记录标记 (位置是当前 pureText 的长度)
-            markups.push({
-                type: match[1].toLowerCase() as 'state' | 'action',
-                value: match[2],
-                position: pureText.length
-            });
+            const typeStr = match[1];
+            const valueStr = match[2];
+            if (typeStr && valueStr) {
+                markups.push({
+                    type: typeStr.toLowerCase() as 'state' | 'action',
+                    value: valueStr,
+                    position: pureText.length
+                });
+            }
 
             lastIndex = regex.lastIndex;
         }

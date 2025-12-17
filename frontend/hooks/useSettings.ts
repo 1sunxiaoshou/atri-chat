@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AUDIO_CONFIG, STORAGE_KEYS } from '../utils/constants';
 
 export interface GeneralSettings {
   audioVolume: number;
@@ -7,18 +8,18 @@ export interface GeneralSettings {
 
 export const useSettings = () => {
   const [settings, setSettings] = useState<GeneralSettings>({
-    audioVolume: 100,
-    audioCacheLimit: 50
+    audioVolume: AUDIO_CONFIG.DEFAULT_VOLUME,
+    audioCacheLimit: AUDIO_CONFIG.DEFAULT_CACHE_LIMIT
   });
 
   // 从本地存储加载设置
   useEffect(() => {
-    const savedVolume = localStorage.getItem('audioVolume');
-    const savedCacheLimit = localStorage.getItem('audioCacheLimit');
+    const savedVolume = localStorage.getItem(STORAGE_KEYS.AUDIO_VOLUME);
+    const savedCacheLimit = localStorage.getItem(STORAGE_KEYS.AUDIO_CACHE_LIMIT);
     
     setSettings({
-      audioVolume: savedVolume ? Number(savedVolume) : 100,
-      audioCacheLimit: savedCacheLimit ? Number(savedCacheLimit) : 50
+      audioVolume: savedVolume ? Number(savedVolume) : AUDIO_CONFIG.DEFAULT_VOLUME,
+      audioCacheLimit: savedCacheLimit ? Number(savedCacheLimit) : AUDIO_CONFIG.DEFAULT_CACHE_LIMIT
     });
   }, []);
 
@@ -37,8 +38,8 @@ export const useSettings = () => {
   // 重置设置为默认值
   const resetSettings = () => {
     const defaultSettings = {
-      audioVolume: 100,
-      audioCacheLimit: 50
+      audioVolume: AUDIO_CONFIG.DEFAULT_VOLUME,
+      audioCacheLimit: AUDIO_CONFIG.DEFAULT_CACHE_LIMIT
     };
     
     Object.entries(defaultSettings).forEach(([key, value]) => {

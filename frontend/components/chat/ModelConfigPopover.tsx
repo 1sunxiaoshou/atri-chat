@@ -12,7 +12,7 @@ interface ModelConfigPopoverProps {
 const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
   parameters,
   onParametersChange,
-  model
+  model: _model
 }) => {
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);

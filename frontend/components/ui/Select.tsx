@@ -50,7 +50,7 @@ const Select: React.FC<SelectProps> = ({
   // Group options
   const groupedOptions = options.reduce((acc, option) => {
     const group = option.group || 'Other';
-    if (!acc[group]) acc[group] = [];
+    if (!acc[group]) {acc[group] = [];}
     acc[group].push(option);
     return acc;
   }, {} as Record<string, SelectOption[]>);

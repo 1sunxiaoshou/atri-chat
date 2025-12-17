@@ -5,13 +5,14 @@ from typing import Dict
 from core.dependencies import get_agent_manager
 from core.agent_manager import AgentManager
 from core.logger import get_logger
+from api.schemas import ResponseModel
 
 logger = get_logger(__name__, category="API")
 
 router = APIRouter(prefix="/vrm/audio", tags=["VRM Audio"])
 
 
-@router.get("/stats", summary="获取音频文件统计信息")
+@router.get("/stats", summary="获取音频文件统计信息", response_model=ResponseModel)
 async def get_audio_stats(
     agent_manager: AgentManager = Depends(get_agent_manager)
 ) -> Dict:
@@ -31,17 +32,19 @@ async def get_audio_stats(
             }
         )
         
-        return {
-            "success": True,
-            "data": stats
-        }
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=stats
+        
+        )
         
     except Exception as e:
         logger.error(f"获取音频统计信息失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/cleanup/conversation/{conversation_id}", summary="清理指定会话的音频文件")
+@router.post("/cleanup/conversation/{conversation_id}", summary="清理指定会话的音频文件", response_model=ResponseModel)
 async def cleanup_conversation_audio(
     conversation_id: int,
     agent_manager: AgentManager = Depends(get_agent_manager)
@@ -65,11 +68,11 @@ async def cleanup_conversation_audio(
             }
         )
         
-        return {
-            "success": True,
-            "message": f"已清理 {cleaned_count} 个音频文件",
-            "cleaned_count": cleaned_count
-        }
+        return ResponseModel(
+            code= 200,
+            message= f"已清理 {cleaned_count} 个音频文件",
+            data={"cleaned_count": cleaned_count}
+        )
         
     except Exception as e:
         logger.error(
@@ -80,7 +83,7 @@ async def cleanup_conversation_audio(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/cleanup/expired", summary="清理过期音频文件")
+@router.post("/cleanup/expired", summary="清理过期音频文件", response_model=ResponseModel)
 async def cleanup_expired_audio(
     agent_manager: AgentManager = Depends(get_agent_manager)
 ) -> Dict:
@@ -97,18 +100,18 @@ async def cleanup_expired_audio(
             extra={"cleaned_count": cleaned_count}
         )
         
-        return {
-            "success": True,
-            "message": f"已清理 {cleaned_count} 个过期音频文件",
-            "cleaned_count": cleaned_count
-        }
+        return ResponseModel(
+            code=200,
+            message=f"已清理 {cleaned_count} 个过期音频文件",
+            data={"cleaned_count": cleaned_count}
+        )
         
     except Exception as e:
         logger.error(f"清理过期音频文件失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/cleanup/all", summary="清理所有音频文件")
+@router.post("/cleanup/all", summary="清理所有音频文件", response_model=ResponseModel)
 async def cleanup_all_audio(
     agent_manager: AgentManager = Depends(get_agent_manager)
 ) -> Dict:
@@ -125,11 +128,11 @@ async def cleanup_all_audio(
             extra={"cleaned_count": cleaned_count}
         )
         
-        return {
-            "success": True,
-            "message": f"已清理 {cleaned_count} 个音频文件",
-            "cleaned_count": cleaned_count
-        }
+        return ResponseModel(
+            code=200,
+            message=f"已清理 {cleaned_count} 个音频文件",
+            data={"cleaned_count": cleaned_count}
+        )
         
     except Exception as e:
         logger.error(f"清理所有音频文件失败: {e}", exc_info=True)

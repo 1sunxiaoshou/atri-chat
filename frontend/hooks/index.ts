@@ -1,3 +1,5 @@
 export { useSettings } from './useSettings';
-export { useAudio } from './useAudio';
 export { useChat } from './useChat';
+export { useVRM } from './useVRM';
+export { useTTS } from './useTTS';
+export { useAudioRecorder } from './useAudioRecorder';

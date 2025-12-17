@@ -11,6 +11,7 @@
 
 import { PCMStreamPlayer } from './pcmStreamPlayer';
 import { audioCache } from './audioCache';
+import { Logger } from './logger';
 
 interface AudioChunk {
   data: Uint8Array;
@@ -60,7 +61,7 @@ export class StreamTTSPlayer {
       this.audioQueue.length > 0 &&
       this.currentIndex < this.audioQueue.length &&
       this.networkState === 'finished') {
-      console.log('[StreamTTS] 从本地队列恢复播放...');
+      Logger.debug('[StreamTTS] 从本地队列恢复播放');
       this.resume();
       return;
     }
@@ -69,7 +70,7 @@ export class StreamTTSPlayer {
     if (this.currentText === text &&
       this.networkState === 'fetching' &&
       this.audioQueue.length > 0) {
-      console.log('[StreamTTS] 缓存未完成，从头播放...');
+      Logger.debug('[StreamTTS] 缓存未完成，从头播放');
       // 重置播放索引，从头开始
       this.currentIndex = 0;
       this.currentPlayingIndex = -1;
@@ -87,14 +88,14 @@ export class StreamTTSPlayer {
 
     // 场景3：已经在播放中，防止重复点击
     if (this.playerState === 'playing') {
-      console.log('[StreamTTS] 正在播放中，忽略重复点击');
+      Logger.debug('[StreamTTS] 正在播放中，忽略重复点击');
       return;
     }
 
     // 场景4：检查全局缓存
     const cached = audioCache.get(text);
     if (cached) {
-      console.log('[StreamTTS] 从全局缓存播放...');
+      Logger.debug('[StreamTTS] 从全局缓存播放');
       this.reset();
       this.currentText = text;
 
@@ -115,7 +116,7 @@ export class StreamTTSPlayer {
     }
 
     // 场景5：全新的播放请求
-    console.log('[StreamTTS] 发起新请求...');
+    Logger.info('[StreamTTS] 发起新请求');
     this.reset();
     this.currentText = text;
     this.playerState = 'playing';
@@ -135,10 +136,10 @@ export class StreamTTSPlayer {
       if (this.audioQueue.length > 0) {
         const cacheData = this.audioQueue.map(chunk => chunk.data);
         audioCache.set(text, cacheData, sampleRate, channels);
-        console.log('[StreamTTS] 已保存到全局缓存');
+        Logger.debug('[StreamTTS] 已保存到全局缓存');
       }
     } catch (error) {
-      console.error('[StreamTTS] 播放失败:', error);
+      Logger.error('[StreamTTS] 播放失败', error instanceof Error ? error : undefined);
       this.networkState = 'idle';
       this.playerState = 'paused';
       throw error;
@@ -149,7 +150,7 @@ export class StreamTTSPlayer {
    * 用户点击停止（暂停）按钮
    */
   onStop(): void {
-    console.log('[StreamTTS] 用户点击停止');
+    Logger.debug('[StreamTTS] 用户点击停止');
     this.playerState = 'paused';
 
     // 立即停止当前正在播放的音频
@@ -183,7 +184,7 @@ export class StreamTTSPlayer {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log('[StreamTTS] 流式接收完毕');
+          Logger.debug('[StreamTTS] 流式接收完毕');
           this.networkState = 'finished';
 
           // 流结束时，如果还没开始播放，立即开始
@@ -200,19 +201,19 @@ export class StreamTTSPlayer {
             index: chunkIndex++
           });
 
-          console.log(`[StreamTTS] 收到第 ${this.audioQueue.length} 个分片`);
+          Logger.debug(`[StreamTTS] 收到第 ${this.audioQueue.length} 个分片`);
 
           // 达到最小缓存数量且还没开始播放时，开始播放
           if (this.playerState === 'playing' &&
             this.currentPlayingIndex === -1 &&
             this.audioQueue.length >= this.MIN_BUFFER_CHUNKS) {
-            console.log(`[StreamTTS] 已缓存 ${this.MIN_BUFFER_CHUNKS} 个分片，开始播放`);
+            Logger.debug(`[StreamTTS] 已缓存 ${this.MIN_BUFFER_CHUNKS} 个分片，开始播放`);
             this.playNextChunk();
           }
         }
       }
     } catch (error) {
-      console.error('[StreamTTS] 流接收失败:', error);
+      Logger.error('[StreamTTS] 流接收失败', error instanceof Error ? error : undefined);
       this.networkState = 'idle';
       throw error;
     } finally {
@@ -226,7 +227,7 @@ export class StreamTTSPlayer {
   private playNextChunk(): void {
     // 1. 边界检查：如果没有处于播放状态（用户点了停止），坚决不播
     if (this.playerState !== 'playing') {
-      console.log('[StreamTTS] 检测到处于暂停状态，停止自动播放下一句');
+      Logger.debug('[StreamTTS] 检测到处于暂停状态，停止自动播放下一句');
       return;
     }
 
@@ -235,32 +236,34 @@ export class StreamTTSPlayer {
       const chunk = this.audioQueue[this.currentIndex];
       const chunkIndex = this.currentIndex;
 
-      console.log(`[StreamTTS] 提交第 ${chunkIndex + 1} 个分片到播放队列`);
+      Logger.debug(`[StreamTTS] 提交第 ${chunkIndex + 1} 个分片到播放队列`);
 
       if (this.pcmPlayer) {
         // 不等待，立即提交下一个
-        this.pcmPlayer.playChunk(chunk.data).then(() => {
-          // 检查是否是最后一个 chunk
-          if (chunkIndex === this.audioQueue.length - 1 && this.networkState === 'finished') {
-            console.log('[StreamTTS] 全部播放完毕');
-            this.playerState = 'paused';
+        if (chunk) {
+          this.pcmPlayer.playChunk(chunk.data).then(() => {
+            // 检查是否是最后一个 chunk
+            if (chunkIndex === this.audioQueue.length - 1 && this.networkState === 'finished') {
+              Logger.info('[StreamTTS] 全部播放完毕');
+              this.playerState = 'paused';
 
-            // 触发播放完成回调
-            if (this.onPlaybackComplete) {
-              this.onPlaybackComplete();
+              // 触发播放完成回调
+              if (this.onPlaybackComplete) {
+                this.onPlaybackComplete();
+              }
             }
-          }
-        }).catch((error) => {
-          // 用户停止播放会触发这里，这是正常的
-          if (error instanceof Error && error.message === 'Playback stopped by user') {
-            console.log('[StreamTTS] 用户停止播放');
-          } else {
-            console.error('[StreamTTS] 播放分片失败:', error);
-          }
-        });
-      }
+          }).catch((error) => {
+            // 用户停止播放会触发这里，这是正常的
+            if (error instanceof Error && error.message === 'Playback stopped by user') {
+              Logger.debug('[StreamTTS] 用户停止播放');
+            } else {
+              Logger.error('[StreamTTS] 播放分片失败', error instanceof Error ? error : undefined);
+            }
+          });
+        }
 
-      this.currentIndex++;
+        this.currentIndex++;
+      }
     }
   }
 

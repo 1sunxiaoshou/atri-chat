@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Server, Plus, Trash, CheckCircle, X } from 'lucide-react';
 import { Provider } from '../../types';
-import { api } from '../../services/api';
+import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Select } from '../ui';
 
@@ -45,7 +45,7 @@ export const AdminProviders: React.FC<AdminProvidersProps> = ({
   };
 
   const handleSaveProvider = async () => {
-    if (!editingProvider || !editingProvider.provider_id || !editingProvider.name) return;
+    if (!editingProvider || !editingProvider.provider_id || !editingProvider.name) {return;}
 
     const existing = providers.find(p => p.provider_id === editingProvider.provider_id);
 

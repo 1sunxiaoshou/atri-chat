@@ -2,24 +2,21 @@
  * 共享工具函数
  */
 
-import { Character, Conversation } from '../types';
-
-/**
- * 获取角色 ID（兼容 character_id 和 id 字段）
- */
-export const getCharacterId = (char: Character): number => {
-  return (char.character_id || char.id || 0) as number;
-};
-
-/**
- * 获取对话 ID（兼容 conversation_id 和 id 字段）
- */
-export const getConversationId = (conv: Conversation): number => {
-  return Number(conv.conversation_id || conv.id || 0);
-};
-
 /**
  * 从配置对象中提取值（处理元数据格式）
+ * 
+ * @param config - 配置对象，可能包含元数据格式（带 value/default 字段）或直接值
+ * @returns 提取后的配置值对象
+ * 
+ * @example
+ * ```ts
+ * const config = {
+ *   apiKey: { value: 'abc123', default: '' },
+ *   timeout: 5000
+ * };
+ * const values = extractConfigValues(config);
+ * // 返回: { apiKey: 'abc123', timeout: 5000 }
+ * ```
  */
 export const extractConfigValues = (config: any): any => {
   const values: any = {};

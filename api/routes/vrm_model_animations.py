@@ -9,6 +9,7 @@ from core.storage import AppStorage
 from core.paths import get_path_manager
 from core.logger import get_logger
 from core.utils.file_naming import generate_animation_filename
+from api.schemas import ResponseModel
 
 logger = get_logger(__name__, category="API")
 
@@ -29,12 +30,12 @@ class BatchAnimationsRequest(BaseModel):
 
 # ==================== API端点 ====================
 
-@router.post("/{vrm_model_id}/animations", summary="为模型添加动作")
+@router.post("/{vrm_model_id}/animations", summary="为模型添加动作", response_model=ResponseModel)
 async def add_model_animation(
     vrm_model_id: str,
     request: AddAnimationRequest,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """为模型添加动作"""
     try:
         # 检查模型是否存在
@@ -58,10 +59,10 @@ async def add_model_animation(
             extra={"vrm_model_id": vrm_model_id, "animation_id": request.animation_id}
         )
         
-        return {
-            "success": True,
-            "message": "动作添加成功"
-        }
+        return ResponseModel(
+            code=200,
+            message="动作添加成功"
+        )
         
     except HTTPException:
         raise
@@ -70,12 +71,12 @@ async def add_model_animation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{vrm_model_id}/animations/batch", summary="批量添加动作")
+@router.post("/{vrm_model_id}/animations/batch", summary="批量添加动作", response_model=ResponseModel)
 async def batch_add_model_animations(
     vrm_model_id: str,
     request: BatchAnimationsRequest,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """批量为模型添加动作"""
     try:
         # 检查模型是否存在
@@ -95,12 +96,14 @@ async def batch_add_model_animations(
             }
         )
         
-        return {
-            "success": True,
-            "message": f"成功添加 {success_count}/{len(request.animation_ids)} 个动作",
-            "added_count": success_count,
-            "total_count": len(request.animation_ids)
-        }
+        return ResponseModel(
+            code=200,
+            message=f"成功添加 {success_count}/{len(request.animation_ids)} 个动作",
+            data={
+                "added_count": success_count,
+                "total_count": len(request.animation_ids)
+            }
+        )
         
     except HTTPException:
         raise
@@ -109,7 +112,7 @@ async def batch_add_model_animations(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{vrm_model_id}/animations/upload", summary="上传动作并关联到模型")
+@router.post("/{vrm_model_id}/animations/upload", summary="上传动作并关联到模型", response_model=ResponseModel)
 async def upload_and_link_animation(
     vrm_model_id: str,
     file: UploadFile = File(..., description="动作文件(.vrma)"),
@@ -118,7 +121,7 @@ async def upload_and_link_animation(
     description: Optional[str] = Form(None, description="动作描述"),
     duration: Optional[float] = Form(None, description="动作时长（秒）"),
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """上传VRM动作文件并自动关联到模型"""
     try:
         # 验证模型存在
@@ -174,14 +177,14 @@ async def upload_and_link_animation(
             }
         )
         
-        return {
-            "success": True,
-            "message": "上传并关联成功",
-            "data": {
+        return ResponseModel(
+            code=200,
+            message="上传并关联成功",
+            data={
                 "animation_id": animation_id,
                 "animation_path": f"/uploads/vrm_animations/{filename}"
             }
-        }
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -189,11 +192,11 @@ async def upload_and_link_animation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{vrm_model_id}/animations", summary="获取模型的所有动作")
+@router.get("/{vrm_model_id}/animations", summary="获取模型的所有动作", response_model=ResponseModel)
 async def get_model_animations(
     vrm_model_id: str,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """获取模型的所有动作"""
     try:
         # 检查模型是否存在
@@ -208,10 +211,12 @@ async def get_model_animations(
             extra={"vrm_model_id": vrm_model_id, "count": len(animations)}
         )
         
-        return {
-            "success": True,
-            "data": animations
-        }
+        return ResponseModel(
+            code=200,
+            message="获取成功",
+            data=animations
+        
+        )
         
     except HTTPException:
         raise
@@ -220,12 +225,12 @@ async def get_model_animations(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{vrm_model_id}/animations/{animation_id}", summary="移除模型的动作")
+@router.delete("/{vrm_model_id}/animations/{animation_id}", summary="移除模型的动作", response_model=ResponseModel)
 async def remove_model_animation(
     vrm_model_id: str,
     animation_id: str,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """移除模型的动作"""
     try:
         # 检查模型是否存在
@@ -244,10 +249,10 @@ async def remove_model_animation(
             extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id}
         )
         
-        return {
-            "success": True,
-            "message": "动作移除成功"
-        }
+        return ResponseModel(
+            code=200,
+            message="动作移除成功"
+        )
         
     except HTTPException:
         raise
@@ -256,12 +261,12 @@ async def remove_model_animation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{vrm_model_id}/animations/batch", summary="批量移除动作")
+@router.delete("/{vrm_model_id}/animations/batch", summary="批量移除动作", response_model=ResponseModel)
 async def batch_remove_model_animations(
     vrm_model_id: str,
     request: BatchAnimationsRequest,
     storage: AppStorage = Depends(get_app_storage)
-) -> Dict[str, Any]:
+) -> ResponseModel:
     """批量移除模型的动作"""
     try:
         # 检查模型是否存在
@@ -281,12 +286,14 @@ async def batch_remove_model_animations(
             }
         )
         
-        return {
-            "success": True,
-            "message": f"成功移除 {removed_count}/{len(request.animation_ids)} 个动作",
-            "removed_count": removed_count,
-            "total_count": len(request.animation_ids)
-        }
+        return ResponseModel(
+            code=200,
+            message=f"成功移除 {removed_count}/{len(request.animation_ids)} 个动作",
+            data={
+                "removed_count": removed_count,
+                "total_count": len(request.animation_ids)
+            }
+        )
         
     except HTTPException:
         raise

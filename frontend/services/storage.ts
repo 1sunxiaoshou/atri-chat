@@ -2,6 +2,7 @@
  * 本地存储服务
  * 统一管理 localStorage 的读写操作
  */
+import { Logger } from '../utils/logger';
 
 export class StorageService {
   private static prefix = 'atri_';
@@ -20,9 +21,9 @@ export class StorageService {
     try {
       const serializedValue = JSON.stringify(value);
       localStorage.setItem(this.getKey(key), serializedValue);
-      console.log(`存储数据: ${key}`, value);
+      Logger.debug(`存储数据: ${key}`, { value });
     } catch (error) {
-      console.error(`存储数据失败: ${key}`, error);
+      Logger.error(`存储数据失败: ${key}`, error instanceof Error ? error : undefined);
     }
   }
 
@@ -37,7 +38,7 @@ export class StorageService {
       }
       return JSON.parse(item) as T;
     } catch (error) {
-      console.error(`获取数据失败: ${key}`, error);
+      Logger.error(`获取数据失败: ${key}`, error instanceof Error ? error : undefined);
       return defaultValue ?? null;
     }
   }
@@ -48,9 +49,9 @@ export class StorageService {
   static remove(key: string): void {
     try {
       localStorage.removeItem(this.getKey(key));
-      console.log(`删除数据: ${key}`);
+      Logger.debug(`删除数据: ${key}`);
     } catch (error) {
-      console.error(`删除数据失败: ${key}`, error);
+      Logger.error(`删除数据失败: ${key}`, error instanceof Error ? error : undefined);
     }
   }
 
@@ -65,9 +66,9 @@ export class StorageService {
           localStorage.removeItem(key);
         }
       });
-      console.log('清空所有应用数据');
+      Logger.info('清空所有应用数据');
     } catch (error) {
-      console.error('清空数据失败', error);
+      Logger.error('清空数据失败', error instanceof Error ? error : undefined);
     }
   }
 

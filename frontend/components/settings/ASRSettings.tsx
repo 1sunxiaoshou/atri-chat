@@ -1,5 +1,5 @@
 import React from 'react';
-import { api } from '../../services/api';
+import { api } from '../../services/api/index';
 import { useASR } from '../../contexts/ASRContext';
 import ProviderSettingsTemplate from './ProviderSettingsTemplate';
 

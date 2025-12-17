@@ -1,3 +1,5 @@
+import { AUDIO_CONFIG } from './constants';
+
 /**
  * 音频缓存管理器
  * 缓存TTS生成的音频数据，避免重复请求
@@ -12,8 +14,8 @@ interface CacheEntry {
 
 class AudioCacheManager {
   private cache: Map<string, CacheEntry> = new Map();
-  private maxCacheSize: number = 50; // 最多缓存50条
-  private maxAge: number = 30 * 60 * 1000; // 30分钟过期
+  private maxCacheSize: number = AUDIO_CONFIG.DEFAULT_CACHE_LIMIT;
+  private maxAge: number = AUDIO_CONFIG.CACHE_MAX_AGE;
 
   /**
    * 生成缓存键
@@ -48,8 +50,10 @@ class AudioCacheManager {
   set(text: string, data: Uint8Array[], sampleRate: number, channels: number): void {
     // 如果缓存已满，删除最旧的条目
     if (this.cache.size >= this.maxCacheSize) {
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      const oldestKey = this.cache.keys().next().value as string | undefined;
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
     }
 
     const key = this.getCacheKey(text);

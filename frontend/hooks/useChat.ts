@@ -1,47 +1,74 @@
 import { useState, useCallback } from 'react';
 import { Message, Character, Model, ModelParameters } from '../types';
-import { api } from '../services/api';
+import { api } from '../services/api/index';
+import { MESSAGE_ID_CONFIG, HTTP_STATUS } from '../utils/constants';
+import { Logger } from '../utils/logger';
 
+/**
+ * Chat Hook - 封装聊天消息加载和发送逻辑
+ * 
+ * 需求: 6.4, 7.3, 9.2
+ * - 6.4: 删除未使用的参数
+ * - 7.3: 在依赖数组中正确声明所有依赖
+ * - 9.2: 优化消息加载和发送逻辑
+ */
 export const useChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [currentResponse, setCurrentResponse] = useState('');
   const [currentReasoning, setCurrentReasoning] = useState('');
   const [currentStatus, setCurrentStatus] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  // 加载对话消息
+  /**
+   * 加载对话消息
+   */
   const loadMessages = useCallback(async (conversationId: number) => {
     try {
+      setError(null);
       const response = await api.getMessages(conversationId);
-      if (response.code === 200) {
-        setMessages(response.data);
-        console.log(`加载了 ${response.data.length} 条消息`);
+      if (response.code === HTTP_STATUS.OK) {
+        // 确保 response.data 是数组
+        const messagesData = Array.isArray(response.data) ? response.data : [];
+        setMessages(messagesData);
+        Logger.info(`加载了 ${messagesData.length} 条消息`);
       } else {
-        console.error('加载消息失败:', response.message);
+        const errorMsg = response.message || '加载消息失败';
+        Logger.error('加载消息失败', undefined, { errorMsg });
+        setError(errorMsg);
+        setMessages([]); // 确保设置为空数组
       }
-    } catch (error) {
-      console.error('加载消息失败:', error);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '加载消息失败';
+      Logger.error('加载消息失败', err instanceof Error ? err : undefined);
+      setError(errorMsg);
+      setMessages([]); // 确保设置为空数组
     }
   }, []);
 
-  // 发送消息
+  /**
+   * 发送消息
+   */
   const sendMessage = useCallback(async (
     conversationId: number,
     content: string,
     character: Character,
     model: Model,
-    modelParameters?: ModelParameters
+    modelParameters?: ModelParameters,
+    onVrmData?: (data: any) => void
   ) => {
-    if (!content.trim()) return;
+    if (!content.trim()) {return;}
+
+    // 重置错误状态
+    setError(null);
 
     // 添加用户消息
     const userMessage: Message = {
-      id: Date.now(),
+      message_id: Date.now(),
       conversation_id: conversationId,
-      role: 'user',
+      message_type: 'user',
       content: content.trim(),
-      timestamp: new Date().toISOString(),
-      character_id: character.id
+      created_at: new Date().toISOString()
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -50,75 +77,132 @@ export const useChat = () => {
     setCurrentReasoning('');
     setCurrentStatus('');
 
+    // 用于存储流式响应中的推理内容
+    let streamReasoning = '';
+    let hasReceivedFirstToken = false;
+
     try {
       const response = await api.sendMessage(
-        conversationId,
-        content.trim(),
-        character.id,
-        model.id,
-        model.provider_id,
-        modelParameters,
-        // onChunk callback
-        (chunk: string) => {
-          setCurrentResponse(chunk);
+        {
+          conversationId,
+          content: content.trim(),
+          characterId: character.character_id,
+          modelId: model.model_id,
+          providerId: model.provider_id,
+          modelParameters
         },
-        // onStatus callback
-        (status: string) => {
-          setCurrentStatus(status);
-        },
-        // onReasoning callback
-        (reasoning: string) => {
-          setCurrentReasoning(reasoning);
+        {
+          onChunk: (chunk: string) => {
+            if (!hasReceivedFirstToken) {
+              hasReceivedFirstToken = true;
+              setIsTyping(false);
+            }
+            setCurrentResponse(chunk);
+          },
+          onStatus: (status: string) => {
+            if (!hasReceivedFirstToken) {
+              hasReceivedFirstToken = true;
+              setIsTyping(false);
+            }
+            setCurrentStatus(status);
+          },
+          onReasoning: (reasoning: string) => {
+            if (!hasReceivedFirstToken) {
+              hasReceivedFirstToken = true;
+              setIsTyping(false);
+            }
+            streamReasoning = reasoning;
+            setCurrentReasoning(reasoning);
+          },
+          onVrmData: (data: any) => {
+            if (onVrmData) {
+              onVrmData(data);
+            }
+          }
         }
       );
 
-      if (response.code === 200) {
+      if (response.code === HTTP_STATUS.OK) {
         // 添加助手消息
         const assistantMessage: Message = {
-          id: Date.now() + 1,
+          message_id: Date.now() + MESSAGE_ID_CONFIG.TEMP_ID_OFFSET,
           conversation_id: conversationId,
-          role: 'assistant',
-          content: response.data.message,
-          timestamp: new Date().toISOString(),
-          character_id: character.id,
-          reasoning: currentReasoning || undefined
+          message_type: 'assistant',
+          content: response.data.message || currentResponse,
+          created_at: new Date().toISOString(),
+          reasoning: streamReasoning || undefined
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-        console.log('消息发送成功');
+        Logger.info('消息发送成功');
       } else {
-        console.error('发送消息失败:', response.message);
-        throw new Error(response.message || '发送消息失败');
+        const errorMsg = response.message || '发送消息失败';
+        Logger.error('发送消息失败', undefined, { errorMsg });
+        setError(errorMsg);
+        
+        // 添加错误消息
+        const errorMessage: Message = {
+          message_id: Date.now() + MESSAGE_ID_CONFIG.TEMP_ID_OFFSET,
+          conversation_id: conversationId,
+          message_type: 'assistant',
+          content: `❌ **错误**: ${errorMsg}`,
+          created_at: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMessage]);
       }
-    } catch (error) {
-      console.error('发送消息失败:', error);
-      throw error;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '发送消息失败';
+      Logger.error('发送消息失败', err instanceof Error ? err : undefined);
+      setError(errorMsg);
+      
+      // 添加错误消息
+      const errorMessage: Message = {
+        message_id: Date.now() + MESSAGE_ID_CONFIG.TEMP_ID_OFFSET,
+        conversation_id: conversationId,
+        message_type: 'assistant',
+        content: `❌ **错误**: ${errorMsg}`,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
       setCurrentResponse('');
       setCurrentReasoning('');
       setCurrentStatus('');
     }
-  }, [currentReasoning]);
+  }, [currentResponse]);
 
-  // 复制消息内容
-  const copyMessage = useCallback(async (content: string, messageId: string | number) => {
+  /**
+   * 复制消息内容
+   * 需求 6.4: 移除未使用的 messageId 参数
+   */
+  const copyMessage = useCallback(async (content: string) => {
     try {
       await navigator.clipboard.writeText(content);
-      console.log('消息已复制到剪贴板');
+      Logger.debug('消息已复制到剪贴板');
       return true;
-    } catch (error) {
-      console.error('复制失败:', error);
+    } catch (err) {
+      Logger.error('复制失败', err instanceof Error ? err : undefined);
       return false;
     }
   }, []);
 
-  // 清空消息
+  /**
+   * 清空消息
+   */
   const clearMessages = useCallback(() => {
     setMessages([]);
     setCurrentResponse('');
     setCurrentReasoning('');
     setCurrentStatus('');
+    setError(null);
+  }, []);
+
+  /**
+   * 清除错误
+   */
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
   return {
@@ -127,9 +211,11 @@ export const useChat = () => {
     currentResponse,
     currentReasoning,
     currentStatus,
+    error,
     loadMessages,
     sendMessage,
     copyMessage,
-    clearMessages
+    clearMessages,
+    clearError
   };
 };
