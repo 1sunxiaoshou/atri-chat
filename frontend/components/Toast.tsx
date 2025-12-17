@@ -19,7 +19,7 @@ const Toast: React.FC<ToastProps> = ({ message, title }) => {
   const defaultTitle = title || { success: '成功', error: '失败' };
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="fixed top-4 right-4 z-[9999] animate-in fade-in slide-in-from-top-2 duration-300">
       <div className={`min-w-[300px] max-w-[400px] p-4 rounded-lg border shadow-lg backdrop-blur-sm flex items-start gap-3 ${
         message.success
           ? 'bg-green-500/90 border-green-400/50 text-white'

@@ -14,6 +14,8 @@ interface MessageItemProps {
   copiedMessageId: string | number | null;
   onCopyMessage: (messageId: string | number, content: string) => void;
   onPlayTTS: (messageId: string | number, text: string) => void;
+  expandedReasoning?: Set<string | number>;
+  onToggleReasoning?: (messageId: string | number) => void;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -22,10 +24,21 @@ const MessageItem: React.FC<MessageItemProps> = ({
   playingMessageId,
   copiedMessageId,
   onCopyMessage,
-  onPlayTTS
+  onPlayTTS,
+  expandedReasoning,
+  onToggleReasoning
 }) => {
   const { t } = useLanguage();
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+  
+  const isExpanded = expandedReasoning?.has(message.message_id) ?? isReasoningExpanded;
+  const handleToggleReasoning = () => {
+    if (onToggleReasoning) {
+      onToggleReasoning(message.message_id);
+    } else {
+      setIsReasoningExpanded(!isReasoningExpanded);
+    }
+  };
 
   return (
     <div className={`flex gap-4 ${message.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -46,24 +59,34 @@ const MessageItem: React.FC<MessageItemProps> = ({
       </div>
 
       <div className="max-w-[75%] space-y-2">
-        {/* Reasoning Panel */}
+        {/* 工具调用状态 */}
+        {message.message_type === 'assistant' && message.status && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+              <div className={message.generating ? 'animate-spin' : ''}>⚙️</div>
+              <span className="text-sm">{message.status}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 思维链 */}
         {message.message_type === 'assistant' && message.reasoning && (
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
             <button
-              onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+              onClick={handleToggleReasoning}
               className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors"
             >
               <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
                 <Brain size={16} />
                 <span className="text-sm font-medium">思维链</span>
               </div>
-              {isReasoningExpanded ? (
+              {isExpanded ? (
                 <ChevronUp size={16} className="text-purple-600 dark:text-purple-400" />
               ) : (
                 <ChevronDown size={16} className="text-purple-600 dark:text-purple-400" />
               )}
             </button>
-            {isReasoningExpanded && (
+            {isExpanded && (
               <div className="px-4 py-3 border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
                 <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {message.reasoning}
@@ -73,22 +96,24 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {/* Message Content */}
-        <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${
-          message.message_type === 'user'
-            ? 'bg-blue-600 text-white rounded-tr-none'
-            : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
-        }`}>
-          <div className={`markdown-content ${message.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
-              components={createMarkdownComponents(message.message_type, t)}
-            >
-              {message.content}
-            </ReactMarkdown>
+        {/* 消息内容 */}
+        {message.content && (
+          <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${
+            message.message_type === 'user'
+              ? 'bg-blue-600 text-white rounded-tr-none'
+              : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
+          }`}>
+            <div className={`markdown-content ${message.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight]}
+                components={createMarkdownComponents(message.message_type, t)}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Action Buttons */}
         {message.message_type === 'assistant' && (

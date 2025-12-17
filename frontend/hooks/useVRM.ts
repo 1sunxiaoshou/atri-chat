@@ -90,8 +90,14 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
    */
   const playSegments = useCallback((segments: any[]) => {
     if (playerRef.current && Array.isArray(segments)) {
-      playerRef.current.setSegments(segments);
-      playerRef.current.play();
+      // 如果是单个段，使用追加模式（流式接收）
+      if (segments.length === 1) {
+        playerRef.current.appendSegment(segments[0]);
+      } else {
+        // 批量段，使用设置模式
+        playerRef.current.setSegments(segments);
+        playerRef.current.play();
+      }
     }
   }, []);
 
@@ -133,7 +139,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         loaderRef.current = null;
       }
       if (playerRef.current) {
-        playerRef.current.stop();
+        playerRef.current.dispose();
         playerRef.current = null;
       }
       setSubtitle('');
@@ -150,7 +156,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         loaderRef.current = null;
       }
       if (playerRef.current) {
-        playerRef.current.stop();
+        playerRef.current.dispose();
         playerRef.current = null;
       }
     };

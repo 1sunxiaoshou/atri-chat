@@ -12,7 +12,7 @@ const VRMViewer: React.FC<VRMViewerProps> = ({ canvasRef, subtitle }) => {
       
       {/* Subtitle Overlay */}
       {subtitle && (
-        <div className="absolute bottom-20 left-0 right-0 p-4 text-center z-10 pointer-events-none">
+        <div className="absolute bottom-28 left-0 right-0 p-4 text-center z-10 pointer-events-none">
           <div className="inline-block bg-black/60 text-white px-6 py-3 rounded-xl text-lg backdrop-blur-sm max-w-[80%]">
             {subtitle}
           </div>

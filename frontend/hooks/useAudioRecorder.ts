@@ -5,12 +5,6 @@ import { Logger } from '../utils/logger';
 
 /**
  * 音频录制 Hook - 封装录音开始、停止、转录逻辑
- * 
- * 需求: 7.1, 7.2, 7.3, 9.4
- * - 7.1: 使用 useEffect 正确管理副作用
- * - 7.2: 使用 useCallback 包装返回的函数
- * - 7.3: 在依赖数组中正确声明所有依赖
- * - 9.4: 将录音功能提取为独立的功能模块
  */
 export const useAudioRecorder = () => {
   // 录音状态
@@ -48,12 +42,34 @@ export const useAudioRecorder = () => {
         }
       };
 
+      // 监听错误事件
+      recorder.onerror = (e) => {
+        Logger.error('MediaRecorder 错误', new Error(e.toString()));
+        setError('录音过程中发生错误');
+        setIsRecording(false);
+        
+        // 清理资源
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+      };
+
       // 监听停止事件
       recorder.onstop = async () => {
         // 停止所有音频轨道
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
+        }
+
+        // 检查是否有音频数据
+        if (audioChunksRef.current.length === 0) {
+          setError('没有录制到音频数据');
+          setIsRecording(false);
+          setIsProcessing(false);
+          mediaRecorderRef.current = null;
+          return;
         }
 
         // 创建音频 Blob
@@ -97,6 +113,8 @@ export const useAudioRecorder = () => {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
+      
+      setIsRecording(false);
     }
   }, []);
 
@@ -104,8 +122,29 @@ export const useAudioRecorder = () => {
    * 停止录音
    */
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (mediaRecorderRef.current) {
+      // 检查 MediaRecorder 的实际状态，而不仅仅依赖 React 状态
+      if (mediaRecorderRef.current.state === 'recording') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (err) {
+          Logger.error('停止录音失败', err instanceof Error ? err : undefined);
+          // 强制清理状态
+          setIsRecording(false);
+          setError('停止录音失败');
+          
+          // 清理资源
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+          }
+        }
+      } else {
+        // 如果状态不对，强制重置
+        setIsRecording(false);
+      }
+    } else {
+      setIsRecording(false);
     }
   }, [isRecording]);
 
@@ -114,10 +153,18 @@ export const useAudioRecorder = () => {
    */
   const cancelRecording = useCallback(() => {
     if (mediaRecorderRef.current) {
-      // 移除 onstop 事件处理器，避免触发转录
-      mediaRecorderRef.current.onstop = null;
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
+      try {
+        // 移除 onstop 事件处理器，避免触发转录
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.onerror = null;
+        
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+        mediaRecorderRef.current = null;
+      } catch (err) {
+        Logger.error('取消录音时出错', err instanceof Error ? err : undefined);
+      }
     }
 
     if (streamRef.current) {
@@ -151,21 +198,32 @@ export const useAudioRecorder = () => {
   useEffect(() => {
     return () => {
       if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.onstop = null;
-        if (isRecording) {
-          mediaRecorderRef.current.stop();
+        try {
+          mediaRecorderRef.current.onstop = null;
+          mediaRecorderRef.current.onerror = null;
+          mediaRecorderRef.current.ondataavailable = null;
+          
+          if (mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+          }
+          mediaRecorderRef.current = null;
+        } catch (err) {
+          Logger.error('清理 MediaRecorder 时出错', err instanceof Error ? err : undefined);
         }
-        mediaRecorderRef.current = null;
       }
 
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
+        try {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        } catch (err) {
+          Logger.error('清理音频流时出错', err instanceof Error ? err : undefined);
+        }
       }
 
       audioChunksRef.current = [];
     };
-  }, [isRecording]);
+  }, []);
 
   return {
     isRecording,

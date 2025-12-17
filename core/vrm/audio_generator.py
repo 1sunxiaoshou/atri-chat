@@ -43,13 +43,9 @@ class AudioGenerator:
     按句分割文本，为每个句子生成TTS音频，计算精确时间戳
     """
     
-    # 句子分割正则（保留分隔符）
-    SENTENCE_PATTERN = re.compile(r'([^。！？\.\!\?]+[。！？\.\!\?]+)')
-    
     def __init__(
         self,
         tts_factory: TTSFactory,
-        action_mapping: Optional[dict] = None,
         audio_manager: Optional[AudioFileManager] = None,
         conversation_id: Optional[int] = None
     ):
@@ -57,12 +53,11 @@ class AudioGenerator:
         
         Args:
             tts_factory: TTS工厂实例
-            action_mapping: 动作映射字典（中文名 -> 英文ID），从数据库获取
             audio_manager: 音频文件管理器（可选）
             conversation_id: 会话ID（用于文件生命周期管理）
         """
         self.tts_factory = tts_factory
-        self.parser = VRMMarkupParser(action_mapping=action_mapping)
+        self.parser = VRMMarkupParser()
         self.path_manager = get_path_manager()
         self.conversation_id = conversation_id
         
@@ -81,71 +76,29 @@ class AudioGenerator:
             "音频生成器初始化完成",
             extra={
                 "audio_dir": str(self.vrm_audio_dir),
-                "action_count": len(action_mapping) if action_mapping else 0,
                 "conversation_id": conversation_id
             }
         )
     
     def split_sentences(self, text: str) -> List[str]:
-        """按句分割文本（保留标记）
+        """按换行符分割文本（保留标记）
         
-        使用正向扫描，直接在带标记的文本上分割，避免回溯匹配
+        使用换行符 \n 作为句子分隔符
         
         Args:
             text: 带标记的完整文本
             
         Returns:
             句子列表
-            
-        Example:
-            >>> gen = AudioGenerator(tts_factory)
-            >>> gen.split_sentences("[State:开心]你好！[State:好奇]今天怎么样？")
-            ['[State:开心]你好！', '[State:好奇]今天怎么样？']
         """
         if not text:
             return []
         
-        # 句子结束符
-        end_chars = {'。', '！', '？', '.', '!', '?'}
+        # 按换行符分割
+        sentences = text.split('\n')
         
-        sentences = []
-        current_sentence = []
-        i = 0
-        
-        while i < len(text):
-            char = text[i]
-            
-            # 处理标记（跳过整个标记块）
-            if char == '[':
-                # 找到标记的结束位置
-                end_pos = text.find(']', i)
-                if end_pos != -1:
-                    # 将整个标记添加到当前句子
-                    current_sentence.append(text[i:end_pos + 1])
-                    i = end_pos + 1
-                else:
-                    # 没有找到结束符，当作普通字符
-                    current_sentence.append(char)
-                    i += 1
-            # 处理句子结束符
-            elif char in end_chars:
-                current_sentence.append(char)
-                # 完成一个句子
-                sentence = ''.join(current_sentence)
-                if sentence.strip():  # 忽略空句子
-                    sentences.append(sentence)
-                current_sentence = []
-                i += 1
-            # 普通字符
-            else:
-                current_sentence.append(char)
-                i += 1
-        
-        # 处理剩余内容（没有结束符的句子）
-        if current_sentence:
-            sentence = ''.join(current_sentence)
-            if sentence.strip():
-                sentences.append(sentence)
+        # 过滤空句子
+        sentences = [s.strip() for s in sentences if s.strip()]
         
         # 如果没有分割出任何句子，返回原文
         if not sentences:
@@ -160,6 +113,71 @@ class AudioGenerator:
         )
         
         return sentences
+    
+    def _filter_and_merge_sentences(self, sentences: List[str], min_text_length: int = 2) -> List[str]:
+        """过滤空文本句子并合并短文本句子
+        
+        Args:
+            sentences: 原始句子列表
+            min_text_length: 最小文本长度（不含标记），默认2个字符
+            
+        Returns:
+            过滤和合并后的句子列表
+        """
+        if not sentences:
+            return []
+        
+        filtered = []
+        pending_sentence = ""
+        
+        for sentence in sentences:
+            # 解析出纯文本（去除标记）
+            clean_text, _ = self.parser.parse(sentence)
+            clean_text = clean_text.strip()
+            
+            # 跳过完全没有文本的句子
+            if not clean_text:
+                logger.debug(f"跳过空文本句子: {sentence}")
+                continue
+            
+            # 如果有待合并的句子，先合并
+            if pending_sentence:
+                pending_sentence += sentence
+                pending_clean, _ = self.parser.parse(pending_sentence)
+                pending_clean = pending_clean.strip()
+                
+                # 检查合并后的长度
+                if len(pending_clean) >= min_text_length:
+                    filtered.append(pending_sentence)
+                    logger.debug(f"合并短句子: {pending_sentence} (长度: {len(pending_clean)})")
+                    pending_sentence = ""
+                # 继续累积
+                continue
+            
+            # 文本太短，标记为待合并
+            if len(clean_text) < min_text_length:
+                pending_sentence = sentence
+                logger.debug(f"标记短句子待合并: {sentence} (长度: {len(clean_text)})")
+                continue
+            
+            # 文本长度足够，直接添加
+            filtered.append(sentence)
+        
+        # 处理最后的待合并句子
+        if pending_sentence:
+            filtered.append(pending_sentence)
+            logger.debug(f"添加最后的待合并句子: {pending_sentence}")
+        
+        logger.info(
+            f"句子过滤和合并完成",
+            extra={
+                "original_count": len(sentences),
+                "filtered_count": len(filtered),
+                "removed_count": len(sentences) - len(filtered)
+            }
+        )
+        
+        return filtered
     
     async def generate_by_sentence(
         self,
@@ -187,6 +205,13 @@ class AudioGenerator:
         
         if not sentences:
             logger.warning("没有句子可处理")
+            return []
+        
+        # 1.5 过滤和合并句子
+        sentences = self._filter_and_merge_sentences(sentences)
+        
+        if not sentences:
+            logger.warning("过滤后没有有效句子")
             return []
         
         # 2. 逐句处理
@@ -347,10 +372,7 @@ class AudioGenerator:
     ) -> List[TimedMarkup]:
         """计算标记的精确时间戳
         
-        改进算法：考虑标记位置的实际语义，而不是简单的线性插值
-        - 位置为0的标记：触发时间为句子开始
-        - 位置在句子中间的标记：使用线性插值（简化处理）
-        - 位置在句子末尾的标记：触发时间为句子结束前
+        使用线性插值算法：根据标记在文本中的位置比例计算时间戳
         
         Args:
             markups: 标记列表
@@ -366,29 +388,22 @@ class AudioGenerator:
         text_length = len(clean_text)
         
         for markup in markups:
-            # 特殊处理：位置为0的标记（句首标记）
-            if markup.position == 0:
-                timestamp = sentence_start_time
-            # 特殊处理：位置在句尾的标记
-            elif text_length > 0 and markup.position >= text_length:
-                # 句尾标记提前0.1秒触发，避免在句子结束后才触发
-                timestamp = sentence_start_time + max(0, audio_duration - 0.1)
-            # 中间位置：线性插值
-            elif text_length > 0:
-                # 使用字符位置的比例来估算时间
-                # 注意：这是简化处理，实际TTS的时间分布不是完全线性的
+            # 使用线性插值计算时间戳
+            if text_length > 0:
                 relative_position = markup.position / text_length
                 timestamp = sentence_start_time + (relative_position * audio_duration)
             else:
                 # 空文本，默认为句子开始
                 timestamp = sentence_start_time
             
-            timed_markups.append(TimedMarkup(
-                type=markup.type,
-                value=markup.value,
-                timestamp=timestamp,
-                sentence_index=sentence_index
-            ))
+            timed_markups.append(
+                TimedMarkup(
+                    type=markup.type,
+                    value=markup.value,
+                    timestamp=timestamp,
+                    sentence_index=sentence_index,
+                )
+            )
             
             logger.debug(
                 f"标记时间戳计算",
@@ -399,8 +414,8 @@ class AudioGenerator:
                     "text_length": text_length,
                     "timestamp": timestamp,
                     "sentence_start": sentence_start_time,
-                    "audio_duration": audio_duration
-                }
+                    "audio_duration": audio_duration,
+                },
             )
         
         return timed_markups

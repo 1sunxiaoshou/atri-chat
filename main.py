@@ -39,7 +39,10 @@ async def lifespan(app: FastAPI):
     
     # 关闭
     logger.info("关闭系统...")
+    
+    # 关闭 checkpointer
     await close_checkpointer()
+    
     logger.info("✓ 系统已关闭")
 
 
@@ -97,4 +100,15 @@ app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import sys
+    
+    try:
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=8000,
+            log_level="info"
+        )
+    except KeyboardInterrupt:
+        logger.info("收到停止信号，正在关闭...")
+        sys.exit(0)

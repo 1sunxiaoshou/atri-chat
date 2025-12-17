@@ -27,6 +27,15 @@ export class AnimationTransitionManager {
         timeScale?: number;
         startTime?: number;
     } = {}): THREE.AnimationAction {
+        // 验证输入
+        if (!clip) {
+            throw new Error('AnimationClip不能为空');
+        }
+
+        if (!clip.tracks || clip.tracks.length === 0) {
+            throw new Error(`AnimationClip "${clip.name}" 没有有效的轨道数据`);
+        }
+
         const {
             transitionDuration = this.defaultTransitionDuration,
             loop = true,
@@ -36,10 +45,26 @@ export class AnimationTransitionManager {
 
         // 创建新动作
         const newAction = this.mixer.clipAction(clip);
-        newAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+        
+        if (!newAction) {
+            throw new Error(`无法创建AnimationAction for clip "${clip.name}"`);
+        }
+        
+        // 设置循环模式
+        try {
+            if (loop) {
+                newAction.setLoop(THREE.LoopRepeat, Infinity);
+            } else {
+                newAction.setLoop(THREE.LoopOnce, 1);
+                newAction.clampWhenFinished = true;
+            }
+        } catch (error) {
+            console.error('设置循环模式失败:', error);
+            // 降级处理：使用默认设置
+        }
+        
         newAction.timeScale = timeScale;
         newAction.time = startTime;
-        newAction.clampWhenFinished = !loop;
 
         // 如果有当前动作，进行淡出
         if (this.currentAction && this.currentAction !== newAction) {
