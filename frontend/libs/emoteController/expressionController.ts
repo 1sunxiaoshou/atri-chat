@@ -4,7 +4,6 @@ import { AutoBlink } from './autoBlink';
 
 /**
  * 表情控制器 - 管理VRM模型的面部表情
- * 参考 lobe-vidol 的 ExpressionController 设计
  */
 export class ExpressionController {
     private vrm: VRM;

@@ -242,7 +242,7 @@ export class VRMLoader {
      */
     setExpression(presetName: string): void {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化');
+            // 模型未加载时静默返回（这是正常情况）
             return;
         }
 
@@ -331,7 +331,7 @@ export class VRMLoader {
      */
     public async loadIdleAnimation(): Promise<void> {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化，无法加载闲置动画');
+            // 模型未加载时静默返回
             return;
         }
 
@@ -349,7 +349,7 @@ export class VRMLoader {
      */
     public async resetToIdle(): Promise<void> {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化');
+            // 模型未加载时静默返回
             return;
         }
 
@@ -375,7 +375,7 @@ export class VRMLoader {
      */
     public async preloadAnimation(name: string, url: string): Promise<void> {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化');
+            // 模型未加载时静默返回
             return;
         }
 
@@ -390,7 +390,7 @@ export class VRMLoader {
         onProgress?: (loaded: number, total: number) => void
     ): Promise<void> {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化');
+            // 模型未加载时静默返回
             return;
         }
 
@@ -402,7 +402,7 @@ export class VRMLoader {
      */
     public async playAnimation(name: string, loop: boolean = true): Promise<void> {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化');
+            // 模型未加载时静默返回
             return;
         }
 
@@ -414,7 +414,7 @@ export class VRMLoader {
      */
     public async playAnimationUrl(url: string, loop: boolean = true): Promise<void> {
         if (!this.emoteController) {
-            Logger.warn('情感控制器未初始化');
+            // 模型未加载时静默返回
             return;
         }
 
