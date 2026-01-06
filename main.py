@@ -15,7 +15,7 @@ from core.dependencies import get_app_storage, init_checkpointer, close_checkpoi
 from core.paths import get_path_manager
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health, upload, asr,
-    vrm_models, vrm_animations, vrm_model_animations, vrm_audio
+    vrm_models, vrm_animations, vrm_model_animations
 )
 
 logger = get_logger(__name__, category="GENERAL")
@@ -89,7 +89,6 @@ app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
 app.include_router(vrm_models.router, prefix="/api/v1", tags=["vrm"])
 app.include_router(vrm_animations.router, prefix="/api/v1", tags=["vrm"])
 app.include_router(vrm_model_animations.router, prefix="/api/v1", tags=["vrm"])
-app.include_router(vrm_audio.router, prefix="/api/v1", tags=["vrm"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # 挂载前端静态文件（必须在最后，避免覆盖 API 路由）

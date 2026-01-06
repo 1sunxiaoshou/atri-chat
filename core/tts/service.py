@@ -1,9 +1,8 @@
 """TTS配置管理服务"""
 import json
 import sqlite3
-from typing import List, Dict, Optional, Any, Callable
+from typing import Dict, Optional, Any
 from datetime import datetime
-from pathlib import Path
 from contextlib import contextmanager
 
 from core.logger import get_logger
@@ -13,17 +12,15 @@ logger = get_logger(__name__)
 
 
 class TTSConfigService:
-    """TTS配置管理服务"""
+    """TTS 配置管理服务（负责数据库 CRUD）"""
     
-    def __init__(self, db_path: Optional[str] = None, template_loader: Optional[Callable[[str], Dict[str, Any]]] = None):
+    def __init__(self, db_path: Optional[str] = None):
         """初始化
         
         Args:
             db_path: 数据库路径
-            template_loader: 模板加载器函数，用于获取provider的配置模板（避免循环导入）
         """
         self.db_path = db_path or get_app_db_path()
-        self.template_loader = template_loader
         self._init_table()
     
     @contextmanager
@@ -52,21 +49,30 @@ class TTSConfigService:
             conn.commit()
     
     def init_provider(self, provider_id: str, name: str, config_template: Dict[str, Any]):
-        """初始化服务商（创建未配置的初始记录）
+        """初始化服务商（仅在不存在时创建记录）
         
         Args:
             provider_id: 服务商ID
             name: 服务商显示名称
             config_template: 配置模板（带UI元数据）
         """
-        config_json = json.dumps(config_template, ensure_ascii=False)
-        
         with self._get_connection() as conn:
+            # 检查是否已存在
+            cursor = conn.execute(
+                "SELECT 1 FROM tts_settings WHERE provider_id = ?",
+                (provider_id,)
+            )
+            if cursor.fetchone():
+                return  # 已存在，跳过
+            
+            # 插入新记录
+            config_json = json.dumps(config_template, ensure_ascii=False)
             conn.execute("""
-                INSERT OR IGNORE INTO tts_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
+                INSERT INTO tts_settings (provider_id, name, is_active, is_configured, config_data, updated_at)
                 VALUES (?, ?, 0, 0, ?, ?)
             """, (provider_id, name, config_json, datetime.now().isoformat()))
             conn.commit()
+            logger.debug(f"TTS 服务商已初始化", extra={"provider": provider_id})
     
     def get_all_providers(self) -> Dict[str, Any]:
         """获取所有服务商配置列表
@@ -165,12 +171,16 @@ class TTSConfigService:
         Returns:
             是否成功
         """
+        from .registry import TTSRegistry
+        
+        # 获取模板并验证
         template = self._get_template(provider_id)
         if not template:
             raise ValueError(f"无法获取服务商 {provider_id} 的配置模板")
         
         self._validate_config(template, config)
         
+        # 合并配置
         full_config = self._merge_values(template, config)
         config_json = json.dumps(full_config, ensure_ascii=False)
         
@@ -190,6 +200,7 @@ class TTSConfigService:
             """, (provider_id, name, int(set_active), config_json, datetime.now().isoformat()))
             conn.commit()
         
+        logger.info(f"TTS 配置已保存", extra={"provider": provider_id, "active": set_active})
         return True
     
     def _validate_config(self, template: Dict[str, Any], config: Dict[str, Any]):
@@ -221,7 +232,8 @@ class TTSConfigService:
                     raise ValueError(f"字段 '{field_meta.get('label', key)}' 的值必须是以下之一: {', '.join(options)}")
     
     def _get_template(self, provider_id: str) -> Optional[Dict[str, Any]]:
-        """获取服务商的配置模板"""
+        """获取服务商的配置模板（从数据库或 Registry）"""
+        # 优先从数据库读取
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
@@ -234,15 +246,16 @@ class TTSConfigService:
             try:
                 return json.loads(row["config_data"])
             except json.JSONDecodeError as e:
-                logger.error(f"解析 {provider_id} 配置模板失败: {e}")
+                logger.error(f"解析配置模板失败", extra={"provider": provider_id, "error": str(e)})
         
-        if self.template_loader:
-            try:
-                return self.template_loader(provider_id)
-            except Exception as e:
-                logger.error(f"加载 {provider_id} 配置模板失败: {e}")
-        
-        return None
+        # 回退：从 Registry 动态获取
+        from .registry import TTSRegistry
+        try:
+            provider_class = TTSRegistry.get_provider_class(provider_id)
+            return provider_class.get_config_template()
+        except Exception as e:
+            logger.error(f"加载配置模板失败", extra={"provider": provider_id, "error": str(e)})
+            return None
     
     def _merge_values(self, template: Dict[str, Any], values: Dict[str, Any]) -> Dict[str, Any]:
         """将用户值合并到模板中"""

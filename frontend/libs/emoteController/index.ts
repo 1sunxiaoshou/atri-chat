@@ -11,3 +11,13 @@ export { MotionController } from './motionController';
 export { AutoBlink } from './autoBlink';
 export { AutoLookAt } from './autoLookAt';
 export { VRMExpressionPresetName } from '@pixiv/three-vrm';
+
+// 导出类型定义
+export type {
+    AnimationInfo,
+    MotionState,
+    AnimationProgressCallback,
+    ExpressionName,
+    AnimationCacheConfig,
+    EmoteControllerConfig
+} from './types';

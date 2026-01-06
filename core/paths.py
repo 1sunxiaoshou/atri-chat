@@ -120,6 +120,28 @@ class PathManager:
         """前端构建目录"""
         return self.base_dir / "frontend" / "dist"
     
+    # ==================== VRM 相关目录 ====================
+    
+    @property
+    def vrm_models_dir(self) -> Path:
+        """VRM 模型目录"""
+        return self._ensure_dir(self.uploads_dir / "vrm_models", "VRM模型目录")
+    
+    @property
+    def vrm_animations_dir(self) -> Path:
+        """VRM 动作目录"""
+        return self._ensure_dir(self.uploads_dir / "vrm_animations", "VRM动作目录")
+    
+    @property
+    def vrm_thumbnails_dir(self) -> Path:
+        """VRM 缩略图目录"""
+        return self._ensure_dir(self.uploads_dir / "vrm_thumbnails", "VRM缩略图目录")
+    
+    @property
+    def vrm_audio_dir(self) -> Path:
+        """VRM 音频目录"""
+        return self._ensure_dir(self.uploads_dir / "vrm_audio", "VRM音频目录")
+    
     # ==================== 数据库文件 ====================
     
     @property
@@ -206,6 +228,98 @@ class PathManager:
         except ValueError:
             # 如果不在项目目录下，返回绝对路径
             return str(path)
+    
+    # ==================== VRM URL 构建 ====================
+    
+    def build_vrm_model_url(self, filename: str) -> str:
+        """构建 VRM 模型的 URL 路径
+        
+        Args:
+            filename: 文件名（如 "model_abc123.vrm"）
+            
+        Returns:
+            URL 路径（如 "/uploads/vrm_models/model_abc123.vrm"）
+        """
+        return f"/uploads/vrm_models/{filename}"
+    
+    def build_vrm_animation_url(self, filename: str) -> str:
+        """构建 VRM 动作的 URL 路径
+        
+        Args:
+            filename: 文件名（如 "wave_abc123.vrma"）
+            
+        Returns:
+            URL 路径（如 "/uploads/vrm_animations/wave_abc123.vrma"）
+        """
+        return f"/uploads/vrm_animations/{filename}"
+    
+    def build_vrm_thumbnail_url(self, filename: Optional[str]) -> Optional[str]:
+        """构建 VRM 缩略图的 URL 路径
+        
+        Args:
+            filename: 文件名（如 "model_abc123.jpg"），可为 None
+            
+        Returns:
+            URL 路径（如 "/uploads/vrm_thumbnails/model_abc123.jpg"），或 None
+        """
+        if not filename:
+            return None
+        return f"/uploads/vrm_thumbnails/{filename}"
+    
+    def build_vrm_audio_url(self, filename: str) -> str:
+        """构建 VRM 音频的 URL 路径
+        
+        Args:
+            filename: 文件名（如 "audio_abc123.wav"）
+            
+        Returns:
+            URL 路径（如 "/uploads/vrm_audio/audio_abc123.wav"）
+        """
+        return f"/uploads/vrm_audio/{filename}"
+    
+    def get_vrm_model_path(self, filename: str) -> Path:
+        """获取 VRM 模型的文件系统路径
+        
+        Args:
+            filename: 文件名
+            
+        Returns:
+            文件系统路径
+        """
+        return self.vrm_models_dir / filename
+    
+    def get_vrm_animation_path(self, filename: str) -> Path:
+        """获取 VRM 动作的文件系统路径
+        
+        Args:
+            filename: 文件名
+            
+        Returns:
+            文件系统路径
+        """
+        return self.vrm_animations_dir / filename
+    
+    def get_vrm_thumbnail_path(self, filename: str) -> Path:
+        """获取 VRM 缩略图的文件系统路径
+        
+        Args:
+            filename: 文件名
+            
+        Returns:
+            文件系统路径
+        """
+        return self.vrm_thumbnails_dir / filename
+    
+    def get_vrm_audio_path(self, filename: str) -> Path:
+        """获取 VRM 音频的文件系统路径
+        
+        Args:
+            filename: 文件名
+            
+        Returns:
+            文件系统路径
+        """
+        return self.vrm_audio_dir / filename
 
 
 # ==================== 全局单例 ====================

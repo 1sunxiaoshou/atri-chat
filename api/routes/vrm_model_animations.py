@@ -55,7 +55,7 @@ async def add_model_animation(
             raise HTTPException(status_code=400, detail="动作已关联到该模型")
         
         logger.info(
-            f"添加模型动作关联成功",
+            "添加模型动作关联成功",
             extra={"vrm_model_id": vrm_model_id, "animation_id": request.animation_id}
         )
         
@@ -88,7 +88,7 @@ async def batch_add_model_animations(
         success_count = storage.batch_add_model_animations(vrm_model_id, request.animation_ids)
         
         logger.info(
-            f"批量添加模型动作",
+            "批量添加模型动作",
             extra={
                 "vrm_model_id": vrm_model_id,
                 "total": len(request.animation_ids),
@@ -137,12 +137,9 @@ async def upload_and_link_animation(
         file_ext = Path(file.filename).suffix
         animation_id, filename = generate_animation_filename(name, file_ext)
         
-        # 保存文件
+        # 保存文件（使用统一路径管理）
         path_manager = get_path_manager()
-        animations_dir = path_manager.uploads_dir / "vrm_animations"
-        animations_dir.mkdir(parents=True, exist_ok=True)
-        
-        file_path = animations_dir / filename
+        file_path = path_manager.get_vrm_animation_path(filename)
         
         with open(file_path, 'wb') as f:
             content = await file.read()
@@ -165,10 +162,10 @@ async def upload_and_link_animation(
         # 关联到模型
         link_success = storage.add_model_animation(vrm_model_id, animation_id)
         if not link_success:
-            logger.warning(f"动作已关联到模型", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
+            logger.warning("动作已关联到模型", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
         
         logger.info(
-            f"上传并关联VRM动作成功",
+            "上传并关联VRM动作成功",
             extra={
                 "animation_id": animation_id,
                 "vrm_model_id": vrm_model_id,
@@ -182,7 +179,7 @@ async def upload_and_link_animation(
             message="上传并关联成功",
             data={
                 "animation_id": animation_id,
-                "animation_path": f"/uploads/vrm_animations/{filename}"
+                "animation_path": path_manager.build_vrm_animation_url(filename)
             }
         )
     except HTTPException:
@@ -207,7 +204,7 @@ async def get_model_animations(
         animations = storage.get_model_animations(vrm_model_id)
         
         logger.debug(
-            f"获取模型动作列表",
+            "获取模型动作列表",
             extra={"vrm_model_id": vrm_model_id, "count": len(animations)}
         )
         
@@ -245,7 +242,7 @@ async def remove_model_animation(
             raise HTTPException(status_code=404, detail="该动作未关联到模型")
         
         logger.info(
-            f"移除模型动作关联成功",
+            "移除模型动作关联成功",
             extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id}
         )
         
@@ -278,7 +275,7 @@ async def batch_remove_model_animations(
         removed_count = storage.batch_remove_model_animations(vrm_model_id, request.animation_ids)
         
         logger.info(
-            f"批量移除模型动作",
+            "批量移除模型动作",
             extra={
                 "vrm_model_id": vrm_model_id,
                 "total": len(request.animation_ids),

@@ -6,11 +6,6 @@ import { Logger } from '../utils/logger';
 
 /**
  * Chat Hook - 封装聊天消息加载和发送逻辑
- * 
- * 需求: 6.4, 7.3, 9.2
- * - 6.4: 删除未使用的参数
- * - 7.3: 在依赖数组中正确声明所有依赖
- * - 9.2: 优化消息加载和发送逻辑
  */
 export const useChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);

@@ -2,6 +2,12 @@ import { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
 import { ExpressionController } from './expressionController';
 import { MotionController } from './motionController';
 import { Logger } from '../../utils/logger';
+import { 
+    EmoteControllerConfig, 
+    AnimationProgressCallback, 
+    MotionState,
+    ExpressionName 
+} from './types';
 
 /**
  * 情感控制器 - 统一管理表情和动作
@@ -10,10 +16,16 @@ export class EmoteController {
     private expressionController: ExpressionController;
     private motionController: MotionController;
 
-    constructor(vrm: VRM) {
-        this.expressionController = new ExpressionController(vrm);
-        this.motionController = new MotionController(vrm);
-        Logger.info('EmoteController 初始化完成');
+    constructor(vrm: VRM, config?: EmoteControllerConfig) {
+        this.expressionController = new ExpressionController(
+            vrm, 
+            config?.transitionDuration
+        );
+        this.motionController = new MotionController(
+            vrm,
+            config?.cache
+        );
+        Logger.debug('EmoteController 初始化完成');
     }
 
     /**
@@ -35,7 +47,7 @@ export class EmoteController {
      */
     public async preloadAnimations(
         animations: Record<string, string>,
-        onProgress?: (loaded: number, total: number) => void
+        onProgress?: AnimationProgressCallback
     ): Promise<void> {
         await this.motionController.preloadAnimations(animations, onProgress);
     }
@@ -43,7 +55,7 @@ export class EmoteController {
     /**
      * 播放表情
      */
-    public playEmotion(preset: VRMExpressionPresetName | string): void {
+    public playEmotion(preset: ExpressionName): void {
         this.expressionController.playEmotion(preset);
     }
 
@@ -64,7 +76,7 @@ export class EmoteController {
     /**
      * 口型同步
      */
-    public lipSync(preset: VRMExpressionPresetName | string, value: number): void {
+    public lipSync(preset: ExpressionName, value: number): void {
         this.expressionController.lipSync(preset, value);
     }
 
@@ -74,7 +86,7 @@ export class EmoteController {
     public async loadIdleAnimation(): Promise<void> {
         this.expressionController.playEmotion(VRMExpressionPresetName.Neutral);
         await this.motionController.loadIdleAnimation();
-        Logger.info('闲置动画已加载');
+        Logger.debug('闲置动画已加载');
     }
 
     /**
@@ -83,7 +95,7 @@ export class EmoteController {
     public async resetToIdle(): Promise<void> {
         this.expressionController.resetToNeutral();
         await this.motionController.resetToIdle();
-        Logger.info('已重置到闲置状态');
+        Logger.debug('已重置到闲置状态');
     }
 
     /**
@@ -104,14 +116,14 @@ export class EmoteController {
     /**
      * 获取当前动作信息
      */
-    public getCurrentMotionInfo() {
+    public getCurrentMotionInfo(): MotionState | null {
         return this.motionController.getCurrentMotionInfo();
     }
 
     /**
      * 获取当前表情
      */
-    public getCurrentExpression(): string {
+    public getCurrentExpression(): ExpressionName {
         return this.expressionController.getCurrentExpression();
     }
 
@@ -151,14 +163,35 @@ export class EmoteController {
     }
 
     /**
+     * 获取动画缓存统计信息
+     */
+    public getCacheStats() {
+        return this.motionController.getCacheStats();
+    }
+
+    /**
+     * 清空动画缓存
+     */
+    public clearAnimationCache(): void {
+        this.motionController.clearCache();
+    }
+
+    /**
      * 销毁资源
      */
     public dispose(): void {
         this.expressionController.dispose();
         this.motionController.dispose();
-        Logger.info('EmoteController 资源已清理');
+        Logger.debug('EmoteController 资源已清理');
     }
 }
 
 // 导出类型
 export { VRMExpressionPresetName } from '@pixiv/three-vrm';
+export type { 
+    EmoteControllerConfig,
+    AnimationProgressCallback,
+    MotionState,
+    ExpressionName,
+    AnimationCacheConfig
+} from './types';

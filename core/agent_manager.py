@@ -1,5 +1,6 @@
 """Agent 业务逻辑管理器"""
 import json
+import asyncio
 from typing import Dict, Optional, Any, List, AsyncGenerator, Tuple
 from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
@@ -44,20 +45,22 @@ class AgentManager:
         # 提示词管理器
         self.prompt_manager = PromptManager(app_storage)
         
-        # VRM服务（默认启用并行TTS）
-        self.vrm_service = VRMService(app_storage, self.tts_factory, parallel_tts=False)
+        # VRM 服务（简化版）
+        self.vrm_service = VRMService(app_storage, self.tts_factory)
         
         logger.debug("AgentManager 初始化完成")
     
     async def start_services(self):
         """启动后台服务"""
-        logger.info("启动AgentManager后台服务")
-        await self.vrm_service.start_audio_cleanup()
+        logger.info("启动 AgentManager 后台服务")
+        
+        # 启动 VRM 音频清理任务
+        from core.vrm.cleanup_task import start_cleanup_task
+        asyncio.create_task(start_cleanup_task(interval_seconds=300, max_age_seconds=3600))
     
     async def stop_services(self):
         """停止后台服务"""
-        logger.info("停止AgentManager后台服务")
-        await self.vrm_service.stop_audio_cleanup()
+        logger.info("停止 AgentManager 后台服务")
     
     def create_agent(
         self,
@@ -142,15 +145,6 @@ class AgentManager:
         # 1. 基础验证与上下文准备
         conversation = self._validate_conversation(conversation_id)
         
-        logger.info(
-            f"开始处理消息（文本模式）",
-            extra={
-                "conversation_id": conversation_id,
-                "character_id": character_id,
-                "model": f"{provider_id}/{model_id}"
-            }
-        )
-
         try:
             # 2. 创建 Agent（文本模式，不包含VRM提示词）
             agent = self.create_agent(
@@ -191,8 +185,7 @@ class AgentManager:
                     user_message, 
                     full_response
                 )
-                
-            logger.info(f"消息处理完成", extra=stats)
+                logger.info(f"[普通]AI 回复: {full_response}")
 
         except Exception as e:
             self._handle_model_error(e, conversation_id)
@@ -206,17 +199,13 @@ class AgentManager:
         provider_id: str,
         **model_kwargs
     ) -> AsyncGenerator[str, None]:
-        """VRM模式的流式消息处理
+        """VRM 模式的流式消息处理
         
-        VRM模式业务逻辑：
-        1. 非流式生成完整消息（包含VRM标记）
-        2. 过滤标记得到纯文本，保存到数据库
-        3. 按句拆分，逐句进行TTS合成
-        4. 计算每个标记的精确时间戳
-        5. 生成口型数据（可选）
-        6. 按顺序发送音频段给前端
+        流程：
+        1. AI 生成带标记的完整文本
+        2. 保存纯文本到数据库
+        3. 流式生成音频段并返回
         """
-        
         # 1. 基础验证
         conversation = self._validate_conversation(conversation_id)
         character = self.app_storage.get_character(character_id)
@@ -224,38 +213,34 @@ class AgentManager:
             raise ValueError(f"角色 {character_id} 不存在")
 
         logger.info(
-            "开始VRM模式消息处理",
+            "开始 VRM 模式消息处理",
             extra={
                 "conversation_id": conversation_id,
                 "character_id": character_id,
-                "model": f"{provider_id}/{model_id}",
-                "operation": "vrm_start"
+                "model": f"{provider_id}/{model_id}"
             }
         )
         
         try:
-            # 2. 创建Agent（启用VRM模式，非流式）
+            # 2. 创建 Agent（启用 VRM 模式，非流式）
             agent = self.create_agent(
                 character_id,
                 model_id,
                 provider_id,
                 enable_vrm=True,
-                streaming=False,  # VRM模式使用非流式生成
+                streaming=False,
                 **model_kwargs
             )
             
-            # 3. 使用VRM模式专用的thread_id（带_vrm后缀，与普通模式隔离）
+            # 3. 生成完整消息
             thread_id = f"{conversation_id}_vrm"
-            
-            # 4. 非流式生成完整消息
-            logger.debug("开始非流式生成完整消息")
             response = await agent.ainvoke(
                 {"messages": [{"role": "user", "content": user_message}]},
                 config={"configurable": {"thread_id": thread_id}},
                 context=AgentContext(character_id=character_id)
             )
             
-            # 提取AI回复内容
+            # 提取 AI 回复
             full_response = ""
             if hasattr(response, 'content'):
                 full_response = response.content
@@ -265,20 +250,16 @@ class AgentManager:
                     full_response = messages[-1].content
             
             if not full_response:
-                logger.warning("AI生成的回复为空")
+                logger.warning("AI 生成的回复为空")
+                import json
+                yield json.dumps({"type": "error", "message": "AI 回复为空"}, ensure_ascii=False)
                 return
             
-            logger.info(
-                "AI消息生成完成",
-                extra={
-                    "response_length": len(full_response),
-                    "operation": "ai_complete"
-                }
-            )
+            logger.info(f"[VRM]AI 回复: {full_response}")
             
-            # 5. 过滤标记，保存纯文本到数据库
-            from core.vrm.markup_filter import MarkupFilter
-            clean_response = MarkupFilter.remove_markup(full_response)
+            # 4. 保存纯文本到数据库（去除标记）
+            import re
+            clean_response = re.sub(r'\[[^\]]+:[^\]]+\]', '', full_response).strip()
             
             self._save_and_title_conversation(
                 conversation_id, 
@@ -287,37 +268,42 @@ class AgentManager:
                 clean_response
             )
             
-            # 6. 创建VRM上下文并生成音频
-            vrm_context = self.vrm_service.create_vrm_context(character_id)
+            # 5. 流式生成音频段
+            import json
+            segment_count = 0
             
-            logger.debug("开始按句生成VRM音频")
-            async for vrm_chunk in self.vrm_service.generate_vrm_audio_segments(
+            async for segment in self.vrm_service.generate_stream(
                 full_response, 
-                vrm_context
+                character_id
             ):
-                yield vrm_chunk
-
-            logger.info(
-                "VRM消息处理完成",
-                extra={
-                    "conversation_id": conversation_id,
-                    "response_length": len(full_response),
-                    "clean_length": len(clean_response),
-                    "operation": "vrm_complete"
-                }
-            )
+                segment_count += 1
+                
+                # 流式返回
+                yield json.dumps({
+                    "type": "vrm_segment",
+                    "data": segment
+                }, ensure_ascii=False)
+            
+            # 6. 发送完成信号
+            yield json.dumps({
+                "type": "vrm_complete",
+                "total_segments": segment_count
+            }, ensure_ascii=False)
 
         except Exception as e:
             logger.error(
-                "VRM消息处理失败",
+                "VRM 消息处理失败",
                 extra={
                     "conversation_id": conversation_id,
-                    "error": str(e),
-                    "operation": "vrm_error"
+                    "error": str(e)
                 },
                 exc_info=True
             )
-            self._handle_model_error(e, conversation_id)
+            import json
+            yield json.dumps({
+                "type": "error",
+                "message": str(e)
+            }, ensure_ascii=False)
 
     # ================= 核心流式逻辑 =================
 
@@ -401,17 +387,6 @@ class AgentManager:
                 "tool_call_count": tool_call_count,
                 "full_response": full_response
             }
-            
-            logger.info(
-                "流式处理完成",
-                extra={
-                    "thread_id": thread_id,
-                    "response_length": len(full_response),
-                    "chunk_count": chunk_count,
-                    "tool_call_count": tool_call_count,
-                    "operation": "stream_complete"
-                }
-            )
             
             yield "", stats
             

@@ -3,7 +3,8 @@ import { Plus, Trash, X, Box, Film, Link as LinkIcon, Upload, Edit2, AlertCircle
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Modal, Button, Input } from '../ui';
-import { getAnimationDuration, VRMLoader } from '../../utils/vrmLoader';
+import { getAnimationDuration } from '../../utils/vrmUtils';
+import { VRMPreviewLoader } from '../../utils/vrmPreviewLoader';
 
 // Define types based on API
 interface VRMModel {
@@ -209,7 +210,7 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                     const tempCanvas = document.createElement('canvas');
                     tempCanvas.width = 512;
                     tempCanvas.height = 512;
-                    const tempLoader = new VRMLoader(tempCanvas);
+                    const tempLoader = new VRMPreviewLoader(tempCanvas);
                     
                     // 创建临时URL加载VRM
                     const vrmUrl = URL.createObjectURL(formFile);

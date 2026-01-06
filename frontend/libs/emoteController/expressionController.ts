@@ -1,20 +1,25 @@
 import { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
 import { Logger } from '../../utils/logger';
 import { AutoBlink } from './autoBlink';
+import { ExpressionName } from './types';
 
 /**
  * 表情控制器 - 管理VRM模型的面部表情
  */
 export class ExpressionController {
     private vrm: VRM;
-    private currentExpression: VRMExpressionPresetName | string = VRMExpressionPresetName.Neutral;
-    private targetExpression: VRMExpressionPresetName | string = VRMExpressionPresetName.Neutral;
+    private currentExpression: ExpressionName = VRMExpressionPresetName.Neutral;
+    private targetExpression: ExpressionName = VRMExpressionPresetName.Neutral;
     private transitionProgress = 1.0; // 1.0 表示过渡完成
     private transitionDuration = 0.3; // 过渡时间（秒）
     private autoBlink: AutoBlink | null = null;
 
-    constructor(vrm: VRM) {
+    constructor(vrm: VRM, transitionDuration?: number) {
         this.vrm = vrm;
+        
+        if (transitionDuration !== undefined) {
+            this.transitionDuration = transitionDuration;
+        }
         
         // 初始化自动眨眼
         if (vrm.expressionManager) {
@@ -22,9 +27,10 @@ export class ExpressionController {
             
             // 输出可用的表情列表
             const expressionNames = Object.keys(vrm.expressionManager.expressionMap);
-            Logger.info('ExpressionController 初始化完成', {
+            Logger.debug('ExpressionController 初始化完成', {
                 availableExpressions: expressionNames,
-                expressionCount: expressionNames.length
+                expressionCount: expressionNames.length,
+                transitionDuration: this.transitionDuration
             });
         } else {
             Logger.warn('ExpressionController 初始化完成，但表情管理器未找到');
@@ -34,7 +40,7 @@ export class ExpressionController {
     /**
      * 播放表情
      */
-    public playEmotion(preset: VRMExpressionPresetName | string): void {
+    public playEmotion(preset: ExpressionName): void {
         if (!this.vrm.expressionManager) {
             Logger.warn('表情管理器未初始化');
             return;
@@ -62,7 +68,7 @@ export class ExpressionController {
         this.targetExpression = preset;
         this.transitionProgress = 0;
 
-        Logger.info(`🎭 表情切换: ${this.currentExpression} -> ${this.targetExpression}`, {
+        Logger.debug(`🎭 表情切换: ${this.currentExpression} -> ${this.targetExpression}`, {
             from: this.currentExpression,
             to: this.targetExpression,
             transitionDuration: this.transitionDuration
@@ -74,7 +80,7 @@ export class ExpressionController {
      * @param preset 口型表情名称（通常是 'aa', 'ih', 'ou', 'ee', 'oh'）
      * @param value 音量值 (0-1)
      */
-    public lipSync(preset: VRMExpressionPresetName | string, value: number): void {
+    public lipSync(preset: ExpressionName, value: number): void {
         if (!this.vrm.expressionManager) {
             return;
         }
@@ -175,13 +181,13 @@ export class ExpressionController {
      */
     public resetToNeutral(): void {
         this.playEmotion(VRMExpressionPresetName.Neutral);
-        Logger.info('重置表情到中性');
+        Logger.debug('重置表情到中性');
     }
 
     /**
      * 获取当前表情
      */
-    public getCurrentExpression(): string {
+    public getCurrentExpression(): ExpressionName {
         return this.targetExpression;
     }
 
@@ -191,7 +197,7 @@ export class ExpressionController {
     public setAutoBlinkEnabled(enabled: boolean): void {
         if (this.autoBlink) {
             this.autoBlink.setEnable(enabled);
-            Logger.info(`自动眨眼已${enabled ? '启用' : '禁用'}`);
+            Logger.debug(`自动眨眼已${enabled ? '启用' : '禁用'}`);
         }
     }
 
@@ -222,6 +228,6 @@ export class ExpressionController {
             }
         }
         
-        Logger.info('ExpressionController 资源已清理');
+        Logger.debug('ExpressionController 资源已清理');
     }
 }

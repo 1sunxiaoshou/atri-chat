@@ -21,7 +21,7 @@ export class AutoBlink {
         this.remainingTime = 0;
         this.isAutoBlink = true;
         this.isOpen = true;
-        Logger.info('AutoBlink 初始化完成');
+        Logger.debug('AutoBlink 初始化完成');
     }
 
     /**
@@ -72,7 +72,6 @@ export class AutoBlink {
         this.isOpen = false;
         this.remainingTime = BLINK_CLOSE_MAX;
         this.expressionManager.setValue('blink', 1);
-        Logger.debug('眨眼: 闭眼');
     }
 
     /**
@@ -82,7 +81,6 @@ export class AutoBlink {
         this.isOpen = true;
         this.remainingTime = BLINK_OPEN_MAX;
         this.expressionManager.setValue('blink', 0);
-        Logger.debug('眨眼: 睁眼');
     }
 
     /**
@@ -100,6 +98,6 @@ export class AutoBlink {
         if (this.expressionManager) {
             this.expressionManager.setValue('blink', 0);
         }
-        Logger.info('AutoBlink 资源已清理');
+        Logger.debug('AutoBlink 资源已清理');
     }
 }
