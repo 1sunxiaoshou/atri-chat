@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Bot, RotateCcw } from 'lucide-react';
+import { Bot, RotateCcw, Menu } from 'lucide-react';
 import { Character, Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import Select from '../ui/Select';
 import ModelConfigPopover from './ModelConfigPopover';
+import { buildAvatarUrl } from '../../utils/url';
 
 interface ChatHeaderProps {
   activeCharacter: Character | null;
@@ -14,6 +15,7 @@ interface ChatHeaderProps {
   onUpdateModel: (modelId: string) => void;
   onVrmDisplayModeChange: (mode: 'normal' | 'vrm' | 'live2d') => void;
   onModelParametersChange: (params: ModelParameters) => void;
+  onOpenMobileSidebar?: () => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -24,7 +26,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   modelParameters,
   onUpdateModel,
   onVrmDisplayModeChange,
-  onModelParametersChange
+  onModelParametersChange,
+  onOpenMobileSidebar
 }) => {
   const { t } = useLanguage();
   const [showVrmError, setShowVrmError] = useState(false);
@@ -45,18 +48,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 sticky top-0 transition-colors">
+    <div className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-4 lg:px-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 sticky top-0 transition-colors">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={onOpenMobileSidebar}
+        className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-400 transition-colors mr-2"
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
+
       {/* Character Info */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 overflow-hidden">
+      <div className="flex items-center gap-3 min-w-0 flex-1 lg:flex-initial">
+        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 overflow-hidden flex-shrink-0">
           {activeCharacter?.avatar ? (
-            <img src={activeCharacter.avatar} alt={activeCharacter.name} className="w-full h-full object-cover" />
+            <img src={buildAvatarUrl(activeCharacter.avatar)} alt={activeCharacter.name} className="w-full h-full object-cover" />
           ) : (
             <Bot size={24} />
           )}
         </div>
-        <div>
-          <h2 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+        <div className="min-w-0">
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 truncate">
             {activeCharacter?.name || t('chat.selectCharacter')}
           </h2>
           <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -68,8 +80,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       {/* Controls */}
       <div className="flex items-center gap-2">
-        {/* Model Selector */}
-        <div className="w-56">
+        {/* Model Selector - Hidden on mobile */}
+        <div className="hidden md:block w-56">
           <Select
             value={activeModel?.model_id || ''}
             onChange={onUpdateModel}
@@ -78,8 +90,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           />
         </div>
 
-        {/* Display Mode Toggle */}
-        <div className="relative bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex items-center h-9 w-[180px] border border-gray-200 dark:border-gray-700">
+        {/* Display Mode Toggle - Hidden on small mobile */}
+        <div className="hidden sm:block relative bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex items-center h-9 w-[180px] border border-gray-200 dark:border-gray-700">
           {/* Slider Background Animation */}
           <div
             className="absolute top-1 bottom-1 left-1 bg-white dark:bg-gray-700 rounded-md shadow-sm ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300 ease-out"
@@ -120,16 +132,18 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
         </div>
 
-        {/* Model Config */}
-        <ModelConfigPopover
-          parameters={modelParameters}
-          onParametersChange={onModelParametersChange}
-          model={activeModel || undefined}
-        />
+        {/* Model Config - Hidden on mobile */}
+        <div className="hidden md:block">
+          <ModelConfigPopover
+            parameters={modelParameters}
+            onParametersChange={onModelParametersChange}
+            model={activeModel || undefined}
+          />
+        </div>
 
-        {/* Clear Context Button */}
+        {/* Clear Context Button - Hidden on mobile */}
         <button
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors"
+          className="hidden md:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors"
           title={t('chat.clearContext')}
         >
           <RotateCcw size={18} />

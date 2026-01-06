@@ -80,7 +80,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <>
       <Toast message={toastMessage} />
-      <div className={`p-4 transition-colors ${
+      <div className={`p-3 md:p-4 transition-colors ${
         vrmDisplayMode === 'vrm' 
           ? 'absolute bottom-0 left-0 right-0 bg-transparent z-10' 
           : 'bg-white dark:bg-gray-900'
@@ -112,15 +112,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   : t('chat.placeholder')
             }
             disabled={isRecording}
-            className="w-full max-h-40 p-4 pr-32 bg-transparent border-none focus:ring-0 resize-none text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none custom-scrollbar disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
+            className="w-full max-h-40 p-3 md:p-4 pr-28 md:pr-32 bg-transparent border-none focus:ring-0 resize-none text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none custom-scrollbar disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 text-sm md:text-base"
             rows={1}
-            style={{ minHeight: '60px' }}
+            style={{ minHeight: '56px' }}
           />
 
           {/* Action Buttons */}
           <div className="absolute bottom-2 right-2 flex items-center gap-1">
-            <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-              <ImageIcon size={20} />
+            <button className="hidden sm:block p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+              <ImageIcon size={18} />
             </button>
             <button
               onClick={toggleRecording}
@@ -144,7 +144,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       : "点击开始录音"
               }
             >
-              {!asrEnabled ? <MicOff size={20} /> : <Mic size={20} />}
+              {!asrEnabled ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
             <button
               onClick={onSend}
@@ -155,7 +155,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
-              <Send size={20} />
+              <Send size={18} />
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { createMarkdownComponents } from '../../utils/markdownConfig';
+import { buildAvatarUrl } from '../../utils/url';
 
 interface MessageItemProps {
   message: Message;
@@ -51,7 +52,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <User size={16} />
         ) : (
           activeCharacter?.avatar ? (
-            <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" />
+            <img src={buildAvatarUrl(activeCharacter.avatar)} alt="AI" className="w-full h-full object-cover" />
           ) : (
             <Bot size={16} />
           )

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Server, Plus, Trash, CheckCircle, X } from 'lucide-react';
 import { Provider } from '../../types';
-import { api } from '../../services/api/index';
+import { api, getBaseURL } from '../../services/api/index';
+import { buildLogoUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Select } from '../ui';
 
@@ -89,7 +90,7 @@ export const AdminProviders: React.FC<AdminProvidersProps> = ({
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center border border-gray-100 dark:border-gray-600">
                 {p.logo ? (
-                  <img src={p.logo.startsWith('http') ? p.logo : 'http://localhost:8000' + p.logo} alt={p.name} className="w-full h-full object-contain rounded-lg" />
+                  <img src={buildLogoUrl(p.logo)} alt={p.name} className="w-full h-full object-contain rounded-lg" />
                 ) : (
                   <Server size={20} className="text-gray-600 dark:text-gray-400" />
                 )}

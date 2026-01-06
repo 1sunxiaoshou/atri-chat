@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Users, Plus, Trash, Save } from 'lucide-react';
 import { Character, Model, VRMModel } from '../../types';
-import { api } from '../../services/api/index';
+import { api, getBaseURL } from '../../services/api/index';
+import { buildAvatarUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AvatarEditor } from '../AvatarEditor';
 import { Select } from '../ui';
@@ -148,7 +149,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                 onClick={() => setEditingCharacter(c)}
                 className={`p-4 flex items-center gap-3 cursor-pointer border-l-4 transition-all ${editingCharId === charId ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
               >
-                <img src={c.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + c.name} alt={c.name} className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700" />
+                <img src={buildAvatarUrl(c.avatar) || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + c.name} alt={c.name} className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700" />
                 <div className="overflow-hidden flex-1">
                   <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{c.name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || c.primary_model_id}</p>
@@ -317,7 +318,8 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                 const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
                 const result = await api.uploadAvatar(file);
                 if (result.code === 200) {
-                  finalAvatarUrl = 'http://localhost:8000' + result.data.url;
+                  // 直接使用返回的相对路径，显示时再转换
+                  finalAvatarUrl = result.data.url;
                 } else {
                   alert('头像上传失败');
                   return;

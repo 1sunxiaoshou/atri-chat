@@ -25,6 +25,7 @@ interface ChatInterfaceProps {
   onUpdateModel: (modelId: string) => void;
   availableModels: Model[];
   onConversationUpdated?: () => void;
+  onOpenMobileSidebar?: () => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -33,7 +34,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   activeModel,
   onUpdateModel,
   availableModels,
-  onConversationUpdated
+  onConversationUpdated,
+  onOpenMobileSidebar
 }) => {
   // 状态管理
   const [inputValue, setInputValue] = useState('');
@@ -249,6 +251,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         onUpdateModel={onUpdateModel}
         onVrmDisplayModeChange={handleVrmDisplayModeChange}
         onModelParametersChange={setModelParameters}
+        onOpenMobileSidebar={onOpenMobileSidebar}
       />
 
       {/* Messages / VRM View */}
