@@ -30,8 +30,6 @@ class VRMService:
         self.app_storage = app_storage
         self.tts_factory = tts_factory
         self.path_manager = get_path_manager()
-        
-        logger.debug("VRM 服务初始化完成")
     
     async def generate_stream(
         self,
