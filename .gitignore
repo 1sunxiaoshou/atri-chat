@@ -24,6 +24,11 @@ docs/
 .vscode/
 .idea/
 
+# 前端环境配置
+frontend/.env.development
+frontend/.env.production
+frontend/.env.local
+
 # 脚本
 启动音频服务.bat
 *.bat
