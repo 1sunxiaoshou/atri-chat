@@ -66,31 +66,6 @@ npm run dev
 ```
 前端服务默认运行在 `http://localhost:5173`。
 
-## ⚙️ 配置说明
-
-### 环境变量
-
-创建 `.env` 文件并配置 API 密钥：
-
-```env
-# OpenAI API（可选）
-OPENAI_API_KEY=your_api_key
-
-# Anthropic API（可选）
-ANTHROPIC_API_KEY=your_api_key
-
-# Google API（可选）
-GOOGLE_API_KEY=your_api_key
-
-# 通义千问 API（可选）
-DASHSCOPE_API_KEY=your_api_key
-```
-
-### ASR 和 TTS 配置
-
-- **ASR 配置**：编辑 `config/asr.yaml`
-- **TTS 配置**：编辑 `config/tts.yaml`
-
 ## 📸 截图预览
 
 > 添加项目截图可以让 README 更有吸引力

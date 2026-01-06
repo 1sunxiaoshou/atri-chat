@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from langchain.agents import create_agent
 from langchain_community.chat_models.tongyi import ChatTongyi
 
-lln = ChatTongyi(api_key = "sk-90219149368d460284c9aa4ebf559044",streaming = True)
+lln = ChatTongyi(api_key=os.getenv("DASHSCOPE_API_KEY"), streaming=True)
 agent = create_agent(lln)
 
 for token, metadata in agent.stream(  
