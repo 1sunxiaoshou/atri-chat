@@ -32,7 +32,6 @@ class AgentManager:
         store: SqliteStore,
         checkpointer: SqliteSaver
     ):
-        logger.info("初始化 AgentManager", extra={"operation": "init"})
         self.app_storage = app_storage
         self.store = store
         self.checkpointer = checkpointer
@@ -48,7 +47,7 @@ class AgentManager:
         # VRM 服务（简化版）
         self.vrm_service = VRMService(app_storage, self.tts_factory)
         
-        logger.debug("AgentManager 初始化完成")
+        logger.info("AgentManager 初始化完成")
     
     async def start_services(self):
         """启动后台服务"""
@@ -82,16 +81,6 @@ class AgentManager:
         Returns:
             AgentExecutor 实例
         """
-        logger.debug(
-            f"开始创建Agent,VRM模式:{enable_vrm}",
-            extra={
-                "character_id": character_id,
-                "provider_id": provider_id,
-                "model_id": model_id,
-                "enable_vrm": enable_vrm
-            }
-        )
-        
         # 1. 构建系统提示词
         system_prompt = self.prompt_manager.build_character_prompt(
             character_id=character_id,
@@ -121,12 +110,11 @@ class AgentManager:
         )
         
         logger.info(
-            "Agent 创建成功",
+            f"Agent 创建: {provider_id}/{model_id} (VRM: {enable_vrm})",
             extra={
                 "character_id": character_id,
                 "model": f"{provider_id}/{model_id}",
-                "enable_vrm": enable_vrm,
-                "system_prompt_length": len(system_prompt)
+                "enable_vrm": enable_vrm
             }
         )
         return agent
@@ -185,7 +173,7 @@ class AgentManager:
                     user_message, 
                     full_response
                 )
-                logger.info(f"[普通]AI 回复: {full_response}")
+                logger.info(f"[常规]回复: {full_response}")
 
         except Exception as e:
             self._handle_model_error(e, conversation_id)
@@ -211,15 +199,6 @@ class AgentManager:
         character = self.app_storage.get_character(character_id)
         if not character:
             raise ValueError(f"角色 {character_id} 不存在")
-
-        logger.info(
-            "开始 VRM 模式消息处理",
-            extra={
-                "conversation_id": conversation_id,
-                "character_id": character_id,
-                "model": f"{provider_id}/{model_id}"
-            }
-        )
         
         try:
             # 2. 创建 Agent（启用 VRM 模式，非流式）
@@ -232,8 +211,8 @@ class AgentManager:
                 **model_kwargs
             )
             
-            # 3. 生成完整消息
-            thread_id = f"{conversation_id}_vrm"
+            # 3. 生成完整消息（使用相同的 thread_id 保持上下文连续性）
+            thread_id = str(conversation_id)
             response = await agent.ainvoke(
                 {"messages": [{"role": "user", "content": user_message}]},
                 config={"configurable": {"thread_id": thread_id}},
@@ -255,7 +234,7 @@ class AgentManager:
                 yield json.dumps({"type": "error", "message": "AI 回复为空"}, ensure_ascii=False)
                 return
             
-            logger.info(f"[VRM]AI 回复: {full_response}")
+            logger.info(f"[VRM]回复: {full_response}")
             
             # 4. 保存纯文本到数据库（去除标记）
             import re
@@ -319,15 +298,6 @@ class AgentManager:
         chunk_count = 0
         tool_call_count = 0
         
-        logger.debug(
-            "开始流式处理",
-            extra={
-                "thread_id": thread_id,
-                "character_id": character_id,
-                "operation": "stream_start"
-            }
-        )
-        
         try:
             # 使用 astream_events 获取更详细的事件信息
             async for event in agent.astream_events(
@@ -342,7 +312,7 @@ class AgentManager:
                 if event_type == "on_tool_start":
                     tool_name = event.get("name", "未知工具")
                     tool_call_count += 1
-                    logger.debug(f"工具调用开始: {tool_name}", extra={"tool_name": tool_name})
+                    logger.info(f"工具调用: {tool_name}", extra={"tool_name": tool_name})
                     yield json.dumps({
                         "type": "status",
                         "content": f"正在使用工具: {tool_name}..."
@@ -373,10 +343,9 @@ class AgentManager:
                             "content": text_chunk
                         }, ensure_ascii=False), None
                 
-                # 处理工具调用结束事件
+                # 处理工具调用结束事件（不记录日志，减少噪音）
                 elif event_type == "on_tool_end":
-                    tool_name = event.get("name", "未知工具")
-                    logger.debug(f"工具调用完成: {tool_name}", extra={"tool_name": tool_name})
+                    pass
             
             # 构建最终统计信息
             full_response = full_message.content if full_message else ""
@@ -395,8 +364,12 @@ class AgentManager:
                 "流式处理异常",
                 extra={
                     "thread_id": thread_id,
+                    "character_id": character_id,
                     "error": str(e),
-                    "operation": "stream_error"
+                    "error_type": type(e).__name__,
+                    "operation": "stream_error",
+                    "tool_call_count": tool_call_count,
+                    "chunk_count": chunk_count
                 },
                 exc_info=True
             )

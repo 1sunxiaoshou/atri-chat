@@ -24,7 +24,6 @@ class ModelFactory:
         self.storage = storage
         self._provider_templates: Dict[str, BaseProvider] = {}
         self._register_provider_templates()
-        logger.debug(f"ModelFactory 初始化完成", extra={"template_count": len(self._provider_templates)})
     
     def _register_provider_templates(self):
         """注册供应商模板（Provider 实现类）"""
@@ -82,27 +81,25 @@ class ModelFactory:
             ValueError: 当模型或供应商配置不存在、未启用或创建失败时
         """
         # 1. 获取模型配置
-        logger.debug(f"获取模型配置", extra={"provider_id": provider_id, "model_id": model_id})
         model_config = self.storage.get_model(provider_id, model_id)
         if not model_config:
-            logger.error(f"模型不存在", extra={"provider_id": provider_id, "model_id": model_id})
+            logger.error(f"模型不存在: {provider_id}/{model_id}")
             raise ValueError(f"模型 {provider_id}/{model_id} 不存在")
         if not model_config.enabled:
-            logger.error(f"模型未启用", extra={"provider_id": provider_id, "model_id": model_id})
+            logger.error(f"模型未启用: {provider_id}/{model_id}")
             raise ValueError(f"模型 {provider_id}/{model_id} 未启用")
         
         # 2. 获取供应商配置
         provider_config_dict = self.storage.get_provider(provider_id)
         if not provider_config_dict:
-            logger.error(f"供应商不存在", extra={"provider_id": provider_id})
+            logger.error(f"供应商不存在: {provider_id}")
             raise ValueError(f"供应商 {provider_id} 不存在")
         
         # 3. 根据 template_type 获取 Provider 实现类
         template_type = provider_config_dict.get("template_type", "openai")
-        logger.debug(f"使用模板类型", extra={"template_type": template_type, "provider_id": provider_id})
         provider_template = self.get_provider_template(template_type)
         if not provider_template:
-            logger.error(f"不支持的模板类型", extra={"template_type": template_type})
+            logger.error(f"不支持的模板类型: {template_type}")
             raise ValueError(f"不支持的供应商模板类型: {template_type}")
         
         # 4. 构造 ProviderConfig 并实例化模型
@@ -114,18 +111,10 @@ class ModelFactory:
             
             model = provider_template.create_model(model_config, provider_config, **kwargs)
             if model is None:
-                logger.error(f"模型创建失败", extra={"provider_id": provider_id, "model_id": model_id})
+                logger.error(f"模型创建失败: {provider_id}/{model_id}")
                 raise ValueError(f"模型 {provider_id}/{model_id} 创建失败，请检查配置")
             
-            logger.info(
-                f"模型创建成功",
-                extra={
-                    "provider_id": provider_id,
-                    "model_id": model_id,
-                    "template_type": template_type,
-                    "has_kwargs": bool(kwargs)
-                }
-            )
+            logger.info(f"模型创建: {provider_id}/{model_id}")
             return model
         except Exception as e:
             logger.error(

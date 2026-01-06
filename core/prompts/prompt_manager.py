@@ -27,7 +27,6 @@ class PromptManager:
     def __init__(self, app_storage=None):
         self.app_storage = app_storage
         self._cache = {}
-        logger.info("提示词管理器初始化完成")
     
     def build_character_prompt(
         self, 
