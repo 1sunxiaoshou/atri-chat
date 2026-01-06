@@ -1,12 +1,29 @@
 # 数据文件
 data/
-asr_models
+*.db
+*.db-shm
+*.db-wal
+asr_models/
 .env
 
 # Python
 __pycache__/
 *.pyc
 runtime/
-.venv
+.venv/
 logs/
-logs/app.log
+*.log
+
+# 测试和文档
+tests/
+docs/
+.pytest_cache/
+
+# IDE 和工具
+.kiro/
+.vscode/
+.idea/
+
+# 脚本
+启动音频服务.bat
+*.bat
