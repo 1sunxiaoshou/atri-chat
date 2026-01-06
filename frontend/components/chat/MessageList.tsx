@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Bot, Sparkles } from 'lucide-react';
 import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { buildAvatarUrl } from '../../utils/url';
 
 interface MessageListProps {
   messages: Message[];
@@ -36,7 +37,7 @@ const MessageList: React.FC<MessageListProps> = ({
       <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
         <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 overflow-hidden">
           {activeCharacter?.avatar ? (
-            <img src={activeCharacter.avatar} alt="Character" className="w-full h-full object-cover" />
+            <img src={buildAvatarUrl(activeCharacter.avatar)} alt="Character" className="w-full h-full object-cover" />
           ) : (
             <Sparkles size={40} className="text-gray-400 dark:text-gray-500" />
           )}
@@ -67,7 +68,7 @@ const MessageList: React.FC<MessageListProps> = ({
         <div className="flex gap-4">
           <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
             {activeCharacter?.avatar ? (
-              <img src={activeCharacter.avatar} alt="AI" className="w-full h-full object-cover" />
+              <img src={buildAvatarUrl(activeCharacter.avatar)} alt="AI" className="w-full h-full object-cover" />
             ) : (
               <Bot size={16} />
             )}

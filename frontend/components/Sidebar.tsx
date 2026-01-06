@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users } from 'lucide-react';
+import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, MoreHorizontal, Users, X } from 'lucide-react';
 import { Conversation, ViewMode, Character } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { buildAvatarUrl } from '../utils/url';
 
 interface SidebarProps {
   viewMode: ViewMode;
@@ -16,6 +17,7 @@ interface SidebarProps {
   selectedCharacterId: number | null;
   onSelectCharacter: (id: number | null) => void;
   onOpenSettings: () => void;
+  onCloseMobile?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -29,7 +31,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   characters,
   selectedCharacterId,
   onSelectCharacter,
-  onOpenSettings
+  onOpenSettings,
+  onCloseMobile
 }) => {
   const { t } = useLanguage();
 
@@ -110,6 +113,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div className="flex flex-col h-full w-72 bg-gray-950 text-gray-300 border-r border-gray-800 flex-shrink-0 transition-all duration-300">
 
+      {/* Mobile Close Button */}
+      <button
+        onClick={onCloseMobile}
+        className="lg:hidden absolute top-4 right-4 z-10 p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+        aria-label="Close sidebar"
+      >
+        <X size={20} />
+      </button>
+
       {/* Header Section */}
       <div className="flex flex-col border-b border-gray-800 bg-gray-900/50">
 
@@ -157,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   title={char.name}
                 >
                   <img
-                    src={char.avatar || "https://picsum.photos/200"}
+                    src={buildAvatarUrl(char.avatar) || "https://picsum.photos/200"}
                     alt={char.name}
                     className="w-full h-full object-cover pointer-events-none"
                   />
@@ -211,7 +223,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 }}
               >
                 {selectedCharacterId === null && char ? (
-                  <img src={char.avatar} className="w-5 h-5 rounded-full object-cover border border-gray-600 flex-shrink-0 opacity-80" alt="" />
+                  <img src={buildAvatarUrl(char.avatar)} className="w-5 h-5 rounded-full object-cover border border-gray-600 flex-shrink-0 opacity-80" alt="" />
                 ) : (
                   <MessageSquare size={18} className="text-gray-600 group-hover:text-gray-400 shrink-0" />
                 )}

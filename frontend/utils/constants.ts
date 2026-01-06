@@ -6,13 +6,56 @@
 // ==================== API 相关 ====================
 
 /**
+ * 获取运行时的 API 基础 URL
+ * 优先级：环境变量 > 自动检测 > 默认值
+ */
+const getApiBaseUrl = (): string => {
+  // 1. 优先使用环境变量（开发时可配置）
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // 2. 生产环境使用相对路径（前后端同域）
+  if (import.meta.env.PROD) {
+    return window.location.origin;
+  }
+  
+  // 3. 开发环境默认值
+  return 'http://localhost:8000';
+};
+
+/**
  * API 配置
  */
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1',
-  UPLOAD_URL: import.meta.env.PROD ? '/api/upload' : 'http://localhost:8000/api/upload',
+  BASE_URL: `${getApiBaseUrl()}/api/v1`,
+  UPLOAD_URL: `${getApiBaseUrl()}/api/upload`,
+  STATIC_URL: getApiBaseUrl(),
   TIMEOUT: 30000, // 30秒超时
 } as const;
+
+/**
+ * 获取完整的资源 URL
+ * @param path - 资源路径，如 /uploads/avatar.jpg
+ */
+export const buildResourceUrl = (path: string | undefined): string => {
+  if (!path) return '';
+  
+  // 已经是完整 URL
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    // 如果是 localhost URL，替换为当前配置的 base URL
+    if (path.includes('localhost:8000') || path.includes('localhost:3000')) {
+      // 提取路径部分（/uploads/xxx 或 /static/xxx）
+      const urlObj = new URL(path);
+      return `${API_CONFIG.STATIC_URL}${urlObj.pathname}`;
+    }
+    return path;
+  }
+  
+  // 拼接基础 URL
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_CONFIG.STATIC_URL}${cleanPath}`;
+};
 
 /**
  * HTTP 状态码
