@@ -27,7 +27,7 @@ export class AutoLookAt {
         // 设置 VRM 的视线目标
         if (vrm.lookAt) {
             vrm.lookAt.target = this.lookAtTarget;
-            Logger.info('AutoLookAt 初始化完成，视线目标已设置');
+            Logger.debug('AutoLookAt 初始化完成，视线目标已设置');
         } else {
             Logger.warn('VRM 模型不支持 LookAt 功能');
         }
@@ -43,12 +43,11 @@ export class AutoLookAt {
             if (enabled) {
                 // 启用时，设置目标为相机
                 this.vrm.lookAt.target = this.lookAtTarget;
-                Logger.debug('自动视线跟踪已启用');
             } else {
                 // 禁用时，移除目标
                 this.vrm.lookAt.target = null;
-                Logger.debug('自动视线跟踪已禁用');
             }
+            Logger.debug(`自动视线跟踪已${enabled ? '启用' : '禁用'}`);
         }
     }
 
@@ -63,12 +62,11 @@ export class AutoLookAt {
 
         if (target) {
             this.vrm.lookAt.target = target;
-            Logger.debug('视线目标已更新为自定义对象');
         } else {
             // 恢复跟随相机
             this.vrm.lookAt.target = this.lookAtTarget;
-            Logger.debug('视线目标已恢复为相机');
         }
+        Logger.debug(`视线目标已更新`);
     }
 
     /**
@@ -90,6 +88,6 @@ export class AutoLookAt {
             this.camera.remove(this.lookAtTarget);
         }
 
-        Logger.info('AutoLookAt 资源已清理');
+        Logger.debug('AutoLookAt 资源已清理');
     }
 }

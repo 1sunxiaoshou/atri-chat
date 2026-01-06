@@ -126,10 +126,9 @@ async def save_config(
             else:
                 raise HTTPException(status_code=500, detail="禁用TTS失败")
         
-        # 获取服务商名称
-        provider_name = factory._PROVIDERS.get(req.provider_id, (None, None))[1]
-        if not provider_name:
-            raise ValueError(f"未知的TTS提供商: {req.provider_id}")
+        # 从 Registry 获取服务商名称
+        from core.tts import TTSRegistry
+        provider_name = TTSRegistry.get_provider_name(req.provider_id)
         
         logger.info(f"保存TTS配置: provider={req.provider_id}")
         

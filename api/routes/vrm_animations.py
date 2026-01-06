@@ -36,7 +36,7 @@ async def list_vrm_animations(
     try:
         animations = storage.list_vrm_animations()
         
-        logger.debug(f"获取VRM动作列表", extra={"count": len(animations)})
+        logger.debug("获取VRM动作列表", extra={"count": len(animations)})
         
         return ResponseModel(
             code=200,
@@ -61,7 +61,7 @@ async def get_vrm_animation(
         if not animation:
             raise HTTPException(status_code=404, detail="VRM动作不存在")
         
-        logger.debug(f"获取VRM动作详情", extra={"animation_id": animation_id})
+        logger.debug("获取VRM动作详情", extra={"animation_id": animation_id})
         
         return ResponseModel(
             code=200,
@@ -99,7 +99,7 @@ async def update_vrm_animation(
         if not success:
             raise HTTPException(status_code=400, detail="更新失败")
         
-        logger.info(f"更新VRM动作成功", extra={"animation_id": animation_id})
+        logger.info("更新VRM动作成功", extra={"animation_id": animation_id})
         
         return ResponseModel(
             code=200,
@@ -133,12 +133,9 @@ async def upload_vrm_animation(
         file_ext = Path(file.filename).suffix
         animation_id, filename = generate_animation_filename(name, file_ext)
         
-        # 保存文件
+        # 保存文件（使用统一路径管理）
         path_manager = get_path_manager()
-        animations_dir = path_manager.uploads_dir / "vrm_animations"
-        animations_dir.mkdir(parents=True, exist_ok=True)
-        
-        file_path = animations_dir / filename
+        file_path = path_manager.get_vrm_animation_path(filename)
         
         with open(file_path, 'wb') as f:
             content = await file.read()
@@ -159,7 +156,7 @@ async def upload_vrm_animation(
             raise HTTPException(status_code=500, detail="保存动作到数据库失败")
         
         logger.info(
-            f"上传VRM动作成功",
+            "上传VRM动作成功",
             extra={
                 "animation_id": animation_id,
                 "name": name,
@@ -172,7 +169,7 @@ async def upload_vrm_animation(
             message="上传成功",
             data={
                 "animation_id": animation_id,
-                "animation_path": f"/uploads/vrm_animations/{filename}"
+                "animation_path": path_manager.build_vrm_animation_url(filename)
             }
         )
     except HTTPException:
@@ -199,7 +196,7 @@ async def delete_vrm_animation(
         if not success:
             raise HTTPException(status_code=400, detail="删除失败")
         
-        logger.info(f"删除VRM动作成功", extra={"animation_id": animation_id})
+        logger.info("删除VRM动作成功", extra={"animation_id": animation_id})
         
         return ResponseModel(
             code=200,
@@ -227,7 +224,7 @@ async def get_animation_models(
         
         models = storage.get_animation_models(animation_id)
         
-        logger.debug(f"获取动作关联的模型", extra={"animation_id": animation_id, "count": len(models)})
+        logger.debug("获取动作关联的模型", extra={"animation_id": animation_id, "count": len(models)})
         
         return ResponseModel(
             code=200,

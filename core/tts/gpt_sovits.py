@@ -1,11 +1,12 @@
 """GPT-SoVITS TTS 实现"""
 import httpx
 from typing import Optional, Dict, Any, AsyncGenerator
-from pathlib import Path
 
 from .base import TTSBase
+from .registry import TTSRegistry
 
 
+@TTSRegistry.register("gpt_sovits", "GPT-SoVITS")
 class GPTSoVITSTTS(TTSBase):
     """GPT-SoVITS TTS 实现（适配 api_v2.py 的 POST /tts 接口）"""
     

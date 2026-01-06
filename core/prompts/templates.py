@@ -75,9 +75,9 @@ VRM_RENDER_PROTOCOL = PromptTemplate(
   可用列表: {actions}
 
 ### 演出示例
-[State:happy][Action:wave] 主人欢迎回来！
-[State:neutral] 今天过得怎么样？
-[State:angry] 如果有人欺负你，[Action:punch] 我帮你教训他！
+[State:happy][Action:wave]主人欢迎回来！
+[State:neutral]今天过得怎么样？
+[State:angry][Action:punch]如果有人欺负你，我帮你教训他！
 """
 )
 

@@ -74,9 +74,17 @@ export class VRMTimedPlayer {
 
     /**
      * 设置音频片段列表（通常由后端返回）
+     * 会清空之前的片段并重新设置
      */
     setSegments(segments: AudioSegment[]) {
+        // 停止当前播放
+        if (this.isPlaying) {
+            this.stop();
+        }
+        
+        // 清空旧片段，设置新片段
         this.segments = segments;
+        Logger.debug(`设置新的音频片段列表，共 ${segments.length} 个片段`);
     }
 
     /**
@@ -96,7 +104,10 @@ export class VRMTimedPlayer {
      * 开始播放
      */
     async play() {
-        if (this.segments.length === 0) {return;}
+        if (this.segments.length === 0) {
+            Logger.warn('没有音频片段可播放');
+            return;
+        }
 
         // 如果已经在播放，不重复启动
         if (this.isPlaying) {
@@ -140,12 +151,15 @@ export class VRMTimedPlayer {
             }
         }
 
+        // 播放完成，清理状态
         this.isPlaying = false;
+        this.segments = []; // 清空片段列表，为下次播放做准备
+        
         // 恢复默认状态
         this.loader.setExpression('neutral');
         if (this.onTextUpdate) {this.onTextUpdate('');}
         
-        Logger.info('VRM音频播放完成');
+        Logger.info('VRM音频播放完成，已清空片段列表');
     }
 
     /**

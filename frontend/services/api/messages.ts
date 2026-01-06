@@ -132,88 +132,85 @@ export const messagesApi = {
     }
 
     // 处理流式响应（Server-Sent Events）
-    // 使用 ReadableStream 读取器逐块读取响应数据
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
     let fullContent = '';
     let fullReasoning = '';
-    let buffer = ''; // 用于累积不完整的行（SSE 可能会分块传输）
+    let buffer = '';
+    
+    // VRM 模式下收集所有段的文本
+    let vrmSegments: string[] = [];
+    const isVrmMode = body.display_mode === 'vrm';
+
+    // SSE 消息处理器（策略模式）
+    const handleMessage = (data: any) => {
+      const handlers: Record<string, () => void> = {
+        status: () => callbacks?.onStatus?.(data.content),
+        reasoning: () => {
+          fullReasoning += data.content;
+          callbacks?.onReasoning?.(fullReasoning);
+        },
+        text: () => {
+          fullContent += data.content;
+          callbacks?.onChunk?.(fullContent);
+        },
+        vrm_segment: () => {
+          if (data.data && callbacks?.onVrmData) {
+            callbacks.onVrmData({
+              sentence_index: data.data.index,
+              marked_text: data.data.marked_text,
+              audio_url: data.data.audio_url
+            });
+            
+            // 收集 VRM 段的纯文本用于消息历史
+            if (isVrmMode) {
+              // 去除标记，提取纯文本
+              const cleanText = data.data.marked_text.replace(/\[[^\]]+:[^\]]+\]/g, '').trim();
+              if (cleanText) {
+                vrmSegments.push(cleanText);
+                // 实时更新完整内容，让 useChat 能收到文本
+                fullContent = vrmSegments.join('');
+                callbacks?.onChunk?.(fullContent);
+              }
+            }
+          }
+        },
+        vrm_complete: () => Logger.debug('VRM音频生成完成', { total_segments: data.total_segments })
+      };
+
+      handlers[data.type]?.();
+    };
 
     if (reader) {
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) {break;}
+          if (done) break;
 
-          // 解码并累积到 buffer
           buffer += decoder.decode(value, { stream: true });
-
-          // 按行分割
           const lines = buffer.split('\n');
-
-          // 保留最后一个不完整的行
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
+            if (!line.startsWith('data: ')) continue;
 
-                // 检查是否有错误
-                if (data.error) {
-                  return {
-                    code: HTTP_STATUS.INTERNAL_SERVER_ERROR,
-                    message: data.message || '发送消息失败',
-                    data: {
-                      message: '',
-                      error: data.error,
-                      error_type: data.error_type
-                    }
-                  };
-                }
+            try {
+              const data = JSON.parse(line.slice(6));
 
-                if (data.done) {
-                  break;
-                }
-
-                // 处理新的 JSON 格式
-                if (data.type === 'status' && data.content) {
-                  // 工具调用状态
-                  if (callbacks?.onStatus) {
-                    callbacks.onStatus(data.content);
-                  }
-                } else if (data.type === 'reasoning' && data.content) {
-                  // 思维链内容（累积）
-                  fullReasoning += data.content;
-                  if (callbacks?.onReasoning) {
-                    callbacks.onReasoning(fullReasoning);
-                  }
-                } else if (data.type === 'text' && data.content) {
-                  // 文本内容（累积）
-                  fullContent += data.content;
-                  if (callbacks?.onChunk) {
-                    callbacks.onChunk(fullContent);
-                  }
-                } else if (data.type === 'vrm_data' && data.content) {
-                  // 兼容旧格式的VRM数据
-                  if (callbacks?.onVrmData) {
-                    callbacks.onVrmData(data.content);
-                  }
-                } else if (data.type === 'vrm_audio_segment' && data.segment) {
-                  // 新格式：单个VRM音频段
-                  if (callbacks?.onVrmData) {
-                    callbacks.onVrmData(data.segment);
-                  }
-                } else if (data.type === 'vrm_audio_complete') {
-                  // VRM音频生成完成信号
-                  Logger.debug('VRM audio generation completed', { data });
-                } else if (data.type === 'vrm_error') {
-                  // VRM错误处理
-                  Logger.error('VRM error', undefined, { error: data.error, details: data.details });
-                }
-              } catch (e) {
-                Logger.error('Failed to parse SSE data', e instanceof Error ? e : undefined, { line });
+              if (data.error) {
+                return {
+                  code: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+                  message: data.message || '发送消息失败',
+                  data: { message: '', error: data.error, error_type: data.error_type }
+                };
               }
+
+              if (data.done) break;
+
+              handleMessage(data);
+
+            } catch (e) {
+              Logger.error('解析SSE数据失败', e instanceof Error ? e : undefined, { line });
             }
           }
         }

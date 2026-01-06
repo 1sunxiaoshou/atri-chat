@@ -60,7 +60,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const {
     canvasRef,
-    playerRef,
     subtitle,
     error: vrmError,
     playSegments,
@@ -154,7 +153,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         finalModelParams,
         // VRM 数据回调
         (vrmData: any) => {
-          if (vrmDisplayMode === 'vrm' && playerRef.current) {
+          if (vrmDisplayMode === 'vrm') {
             if (Array.isArray(vrmData)) {
               // 批量段（旧格式）
               playSegments(vrmData);
@@ -185,7 +184,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     modelParameters,
     vrmDisplayMode,
     sendMessage,
-    playerRef,
     playSegments,
     onConversationUpdated,
     messages.length
