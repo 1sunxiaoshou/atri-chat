@@ -17,6 +17,12 @@ export interface SendMessageParams {
     max_tokens?: number;
     top_p?: number;
     display_mode?: string;
+    enable_thinking?: boolean;
+    thinking_config?: {
+      budget?: number;
+      effort?: 'low' | 'medium' | 'high';
+      [key: string]: any;
+    };
   };
 }
 
@@ -103,6 +109,12 @@ export const messagesApi = {
       }
       if (modelParameters.display_mode !== undefined) {
         body.display_mode = modelParameters.display_mode;
+      }
+      if (modelParameters.enable_thinking !== undefined) {
+        body.enable_thinking = modelParameters.enable_thinking;
+      }
+      if (modelParameters.thinking_config !== undefined) {
+        body.thinking_config = modelParameters.thinking_config;
       }
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, X } from 'lucide-react';
+import { Settings, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { ModelParameters, Model } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -16,6 +16,7 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
 }) => {
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [showAdvancedThinking, setShowAdvancedThinking] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // 点击外部关闭
@@ -42,12 +43,25 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
     });
   };
 
+  const handleThinkingConfigChange = (key: string, value: any) => {
+    onParametersChange({
+      ...parameters,
+      thinking_config: {
+        ...parameters.thinking_config,
+        [key]: value
+      }
+    });
+  };
+
   const resetToDefaults = () => {
     onParametersChange({
       temperature: undefined,
       max_tokens: undefined,
-      top_p: undefined
+      top_p: undefined,
+      enable_thinking: undefined,
+      thinking_config: undefined
     });
+    setShowAdvancedThinking(false);
   };
 
   const texts = {
@@ -61,6 +75,15 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
       maxTokensDesc: '限制回复的最大长度',
       topP: 'Top P',
       topPDesc: '控制采样的多样性',
+      enableThinking: '启用深度思考',
+      enableThinkingDesc: '让模型进行更深入的推理（支持的模型）',
+      advancedConfig: '高级配置',
+      thinkingBudget: '思考预算 (Tokens)',
+      thinkingBudgetDesc: 'OpenAI/Anthropic: 思考token预算 (1024-128000)',
+      thinkingLevel: '思考级别',
+      thinkingLevelDesc: 'Google Gemini 3: 思考深度级别',
+      levelLow: '低',
+      levelHigh: '高',
       reset: '重置为默认值',
       tooltip: '模型参数配置'
     },
@@ -74,6 +97,15 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
       maxTokensDesc: 'Limit maximum response length',
       topP: 'Top P',
       topPDesc: 'Control sampling diversity',
+      enableThinking: 'Enable Deep Thinking',
+      enableThinkingDesc: 'Enable deeper reasoning (supported models)',
+      advancedConfig: 'Advanced Config',
+      thinkingBudget: 'Thinking Budget (Tokens)',
+      thinkingBudgetDesc: 'OpenAI/Anthropic: Thinking token budget (1024-128000)',
+      thinkingLevel: 'Thinking Level',
+      thinkingLevelDesc: 'Google Gemini 3: Thinking depth level',
+      levelLow: 'Low',
+      levelHigh: 'High',
       reset: 'Reset to Defaults',
       tooltip: 'Model Parameter Configuration'
     }
@@ -172,6 +204,89 @@ const ModelConfigPopover: React.FC<ModelConfigPopoverProps> = ({
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {t.topPDesc}
               </p>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+            {/* Enable Thinking */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t.enableThinking}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.enableThinkingDesc}
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-3">
+                  <input
+                    type="checkbox"
+                    checked={parameters.enable_thinking ?? false}
+                    onChange={(e) => handleChange('enable_thinking', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {/* Advanced Thinking Config */}
+              {parameters.enable_thinking && (
+                <div className="mt-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
+                  <button
+                    onClick={() => setShowAdvancedThinking(!showAdvancedThinking)}
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mb-2"
+                  >
+                    {showAdvancedThinking ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {t.advancedConfig}
+                  </button>
+
+                  {showAdvancedThinking && (
+                    <div className="space-y-3">
+                      {/* Thinking Budget (OpenAI/Anthropic) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.thinkingBudget}
+                          </label>
+                          <input
+                            type="number"
+                            min="1024"
+                            max="128000"
+                            value={parameters.thinking_config?.budget ?? ''}
+                            onChange={(e) => handleThinkingConfigChange('budget', e.target.value ? parseInt(e.target.value) : undefined)}
+                            placeholder="Auto"
+                            className="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {t.thinkingBudgetDesc}
+                        </p>
+                      </div>
+
+                      {/* Thinking Level (Google Gemini) */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
+                          {t.thinkingLevel}
+                        </label>
+                        <select
+                          value={parameters.thinking_config?.level ?? ''}
+                          onChange={(e) => handleThinkingConfigChange('level', e.target.value || undefined)}
+                          className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Auto</option>
+                          <option value="low">{t.levelLow}</option>
+                          <option value="high">{t.levelHigh}</option>
+                        </select>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {t.thinkingLevelDesc}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
