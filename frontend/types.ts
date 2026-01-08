@@ -78,6 +78,15 @@ export interface ModelParameters {
   max_tokens?: number;
   top_p?: number;
   display_mode?: string;
+  enable_thinking?: boolean;
+  thinking_config?: ThinkingConfig;
+}
+
+// 思考配置（模型特定参数）
+export interface ThinkingConfig {
+  budget?: number;  // OpenAI: thinking tokens 预算
+  effort?: 'low' | 'medium' | 'high';  // Anthropic: thinking effort level
+  [key: string]: any;  // 其他供应商的特定参数
 }
 
 export interface AudioMessageData {

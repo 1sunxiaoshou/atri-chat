@@ -29,6 +29,10 @@ async def send_message(
                 model_kwargs["max_tokens"] = req.max_tokens
             if req.top_p is not None:
                 model_kwargs["top_p"] = req.top_p
+            if req.enable_thinking is not None:
+                model_kwargs["enable_thinking"] = req.enable_thinking
+            if req.thinking_config is not None:
+                model_kwargs["thinking_config"] = req.thinking_config
             
             # 记录模型参数和显示模式
             from core.logger import get_logger

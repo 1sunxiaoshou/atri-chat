@@ -173,6 +173,8 @@ class MessageRequest(BaseModel):
     temperature: Optional[float] = Field(None, description="温度参数")
     max_tokens: Optional[int] = Field(None, description="最大token数")
     top_p: Optional[float] = Field(None, description="Top-p采样参数")
+    enable_thinking: Optional[bool] = Field(None, description="是否启用深度思考")
+    thinking_config: Optional[Dict[str, Any]] = Field(None, description="思考配置(模型特定参数)")
 
 
 class MessageResponse(BaseModel):

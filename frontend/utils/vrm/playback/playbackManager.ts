@@ -166,6 +166,10 @@ export class PlaybackManager {
       throw new Error('音频上下文未初始化');
     }
 
+    if (!segment.audio_url) {
+      throw new Error('音频 URL 为空');
+    }
+
     return new Promise(async (resolve, reject) => {
       try {
         // 停止之前的音频
@@ -179,7 +183,7 @@ export class PlaybackManager {
         }
 
         // 获取音频数据
-        const response = await fetch(segment.audio_url);
+        const response = await fetch(segment.audio_url!);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
