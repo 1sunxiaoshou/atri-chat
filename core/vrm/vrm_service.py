@@ -66,47 +66,50 @@ class VRMService:
             # 2.1 去除标记，得到纯文本
             clean_text = self.MARKUP_PATTERN.sub('', sentence).strip()
             
-            if not clean_text:
-                logger.debug(f"句子 {index} 无文本内容，跳过")
-                continue
-            
-            # 2.2 调用 TTS 生成音频
-            try:
-                audio_bytes = await tts.synthesize_async(clean_text)
-            except Exception as e:
-                logger.error(
-                    f"TTS 生成失败",
-                    extra={"index": index, "text": clean_text, "error": str(e)},
-                    exc_info=True
+            # 2.2 生成音频（如果有文本）
+            audio_url = None
+            if clean_text:
+                try:
+                    audio_bytes = await tts.synthesize_async(clean_text)
+                    
+                    # 2.3 保存为临时文件
+                    temp_file = tempfile.NamedTemporaryFile(
+                        suffix='.wav',
+                        delete=False,
+                        dir=self.path_manager.vrm_audio_dir
+                    )
+                    temp_file.write(audio_bytes)
+                    temp_file.close()
+                    
+                    # 2.4 构建 URL
+                    audio_filename = Path(temp_file.name).name
+                    audio_url = self.path_manager.build_vrm_audio_url(audio_filename)
+                    
+                    logger.debug(
+                        f"句子 {index} 音频生成完成",
+                        extra={
+                            "text": clean_text,
+                            "audio_file": audio_filename,
+                            "size": len(audio_bytes)
+                        }
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"TTS 生成失败",
+                        extra={"index": index, "text": clean_text, "error": str(e)},
+                        exc_info=True
+                    )
+                    # 继续处理，但没有音频
+            else:
+                logger.debug(
+                    f"句子 {index} 仅包含标记，无文本内容",
+                    extra={"marked_text": sentence}
                 )
-                continue
             
-            # 2.3 保存为临时文件（自动删除）
-            temp_file = tempfile.NamedTemporaryFile(
-                suffix='.wav',
-                delete=False,
-                dir=self.path_manager.vrm_audio_dir
-            )
-            temp_file.write(audio_bytes)
-            temp_file.close()
-            
-            # 2.4 构建 URL
-            audio_filename = Path(temp_file.name).name
-            audio_url = self.path_manager.build_vrm_audio_url(audio_filename)
-            
-            logger.debug(
-                f"句子 {index} 处理完成",
-                extra={
-                    "text": clean_text,
-                    "audio_file": audio_filename,
-                    "size": len(audio_bytes)
-                }
-            )
-            
-            # 2.5 流式返回
+            # 2.5 流式返回（即使没有音频也要返回，以便触发动作）
             yield {
                 "marked_text": sentence,  # 带标记的原文
-                "audio_url": audio_url,   # 音频 URL
+                "audio_url": audio_url,   # 音频 URL（可能为 None）
                 "index": index            # 句子索引
             }
         
