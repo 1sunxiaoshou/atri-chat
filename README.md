@@ -49,12 +49,6 @@ uv sync
 # 激活虚拟环境 (Linux/macOS)
 source .venv/bin/activate
 
-# 复制环境变量配置文件
-copy .env.example .env  # Windows
-# cp .env.example .env  # Linux/macOS
-
-# 编辑 .env 文件，配置你的 API 密钥和服务地址
-
 # 启动后端服务
 python main.py
 ```
@@ -68,18 +62,13 @@ cd frontend
 # 安装依赖
 npm install
 
-# 复制环境变量配置文件（可选）
-copy .env.example .env.local  # Windows
-# cp .env.example .env.local  # Linux/macOS
-
 # 启动开发服务器
 npm run dev
 ```
-前端服务默认运行在 `http://localhost:5173`。
 
 ### 4. 访问应用
 
-打开浏览器访问 `http://localhost:5173`，开始使用 ATRI！
+打开前端启动后控制台的网址，开始使用 ATRI！
 
 ## 📸 截图预览
 
