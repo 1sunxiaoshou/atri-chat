@@ -8,7 +8,7 @@
 export interface AudioSegment {
   sentence_index: number;
   marked_text: string;
-  audio_url: string;
+  audio_url: string | null;  // 可能为 null（仅包含标记时）
 }
 
 /**
@@ -18,7 +18,7 @@ export interface ParsedAudioSegment {
   sentence_index: number;
   text: string;           // 纯文本（去除标记后）
   marked_text: string;    // 原始带标记文本
-  audio_url: string;
+  audio_url: string | null; // 音频 URL（可能为 null）
   markups: TimedMarkup[]; // 解析出的标记
 }
 

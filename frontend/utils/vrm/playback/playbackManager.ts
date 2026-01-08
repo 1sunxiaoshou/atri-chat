@@ -122,12 +122,12 @@ export class PlaybackManager {
       // 触发标记（表情、动作）
       this.triggerMarkups(segment.markups);
 
-      // 更新字幕
-      if (this.onTextUpdate) {
+      // 更新字幕（如果有文本）
+      if (this.onTextUpdate && segment.text) {
         this.onTextUpdate(segment.text);
       }
 
-      // 播放音频
+      // 播放音频（如果有音频 URL）
       if (segment.audio_url) {
         try {
           await this.playAudioSegment(segment);
@@ -138,6 +138,10 @@ export class PlaybackManager {
           // 降级：等待一小段时间后继续
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
+      } else {
+        // 没有音频，只有动作标记，等待一小段时间让动作播放
+        Logger.debug(`段 ${segment.sentence_index} 仅包含标记，无音频`);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
@@ -249,12 +253,14 @@ export class PlaybackManager {
    * 触发标记（表情、动作）
    */
   private triggerMarkups(markups: TimedMarkup[]): void {
+    Logger.info(`触发标记数量: ${markups.length}`, { markups });
+    
     for (const markup of markups) {
       if (markup.type === 'state') {
-        Logger.debug(`触发表情: ${markup.value}`);
+        Logger.info(`触发表情: ${markup.value}`);
         this.modelManager.setExpression(markup.value);
       } else if (markup.type === 'action') {
-        Logger.debug(`触发动作: ${markup.value}`);
+        Logger.info(`触发动作: ${markup.value}`);
         this.modelManager.playAnimation(markup.value, false);
       }
     }
