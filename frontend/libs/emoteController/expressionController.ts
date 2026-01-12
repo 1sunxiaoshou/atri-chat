@@ -68,6 +68,9 @@ export class ExpressionController {
         this.targetExpression = preset;
         this.transitionProgress = 0;
 
+        // 根据表情类型自动控制眨眼
+        this.autoControlBlink(preset);
+
         Logger.debug(`🎭 表情切换: ${this.currentExpression} -> ${this.targetExpression}`, {
             from: this.currentExpression,
             to: this.targetExpression,
@@ -76,9 +79,46 @@ export class ExpressionController {
     }
 
     /**
+     * 根据表情自动控制眨眼
+     * 某些表情（如闭眼、睡觉等）需要禁用自动眨眼
+     */
+    private autoControlBlink(preset: ExpressionName): void {
+        if (!this.autoBlink) {
+            return;
+        }
+
+        const presetLower = preset.toLowerCase();
+        
+        // 需要禁用眨眼的表情列表
+        const noBlinkExpressions = [
+            'blink', 'blinkleft', 'blinkright',  // 眨眼表情本身
+            'sleepy', 'sleep', 'sleeping',        // 睡觉
+            'relaxed',                             // 放松（可能闭眼）
+            'sad', 'sorrow',                       // 悲伤（可能闭眼）
+            'angry',                               // 生气（可能眯眼）
+        ];
+
+        // 检查是否需要禁用眨眼
+        const shouldDisableBlink = noBlinkExpressions.some(expr => 
+            presetLower.includes(expr)
+        );
+
+        if (shouldDisableBlink) {
+            this.autoBlink.setEnable(false);
+            Logger.debug(`🚫 表情 ${preset} 禁用自动眨眼`);
+        } else {
+            this.autoBlink.setEnable(true);
+            Logger.debug(`✅ 表情 ${preset} 启用自动眨眼`);
+        }
+    }
+
+    /**
      * 口型同步
      * @param preset 口型表情名称（通常是 'aa', 'ih', 'ou', 'ee', 'oh'）
      * @param value 音量值 (0-1)
+     * 
+     * 注意：口型同步使用叠加模式，会与当前表情的嘴部形变混合
+     * 为了避免冲突，降低口型的权重
      */
     public lipSync(preset: ExpressionName, value: number): void {
         if (!this.vrm.expressionManager) {
@@ -102,7 +142,12 @@ export class ExpressionController {
         if (lipSyncExpression) {
             // 限制值在 0-1 范围内
             const clampedValue = Math.max(0, Math.min(1, value));
-            expressionManager.setValue(lipSyncExpression, clampedValue);
+            
+            // 降低口型权重，避免与表情的嘴部形变过度叠加
+            // 保持表情完整（100%），口型使用较低权重（50%）
+            const reducedLipValue = clampedValue * 0.5;
+            
+            expressionManager.setValue(lipSyncExpression, reducedLipValue);
         }
     }
 
@@ -134,6 +179,7 @@ export class ExpressionController {
 
     /**
      * 更新表情权重
+     * @param t 过渡进度 (0-1)
      */
     private updateExpressionWeights(t: number): void {
         if (!this.vrm.expressionManager) {
@@ -143,7 +189,7 @@ export class ExpressionController {
         const expressionManager = this.vrm.expressionManager;
         const expressionNames = Object.keys(expressionManager.expressionMap);
 
-        // 重置所有表情（除了口型相关的）
+        // 重置所有表情（除了口型和眨眼相关的）
         for (const name of expressionNames) {
             if (!this.isLipSyncExpression(name)) {
                 expressionManager.setValue(name, 0);
@@ -151,22 +197,54 @@ export class ExpressionController {
         }
 
         // 设置当前表情和目标表情的权重
+        // 注意：需要排除嘴部相关的表情组件，让口型同步独立控制
         if (this.currentExpression && expressionNames.includes(this.currentExpression)) {
-            expressionManager.setValue(this.currentExpression, 1 - t);
+            this.setExpressionWithoutMouth(this.currentExpression, 1 - t);
         }
 
         if (this.targetExpression && expressionNames.includes(this.targetExpression)) {
-            expressionManager.setValue(this.targetExpression, t);
+            this.setExpressionWithoutMouth(this.targetExpression, t);
         }
     }
 
     /**
+     * 设置表情（完整权重，不再降低）
+     */
+    private setExpressionWithoutMouth(expressionName: string, weight: number): void {
+        if (!this.vrm.expressionManager) {
+            return;
+        }
+
+        const expressionManager = this.vrm.expressionManager;
+        
+        // 直接设置完整权重
+        // 口型同步会通过叠加模式工作，VRM会自动混合
+        expressionManager.setValue(expressionName, weight);
+    }
+
+    /**
      * 判断是否是口型表情或眨眼表情
+     * 增强版：支持更多口型表情命名变体
      */
     private isLipSyncExpression(name: string): boolean {
-        const lipSyncNames = ['aa', 'ih', 'ou', 'ee', 'oh', 'Aa', 'Ih', 'Ou', 'Ee', 'Oh'];
-        const blinkNames = ['blink', 'Blink', 'blinkLeft', 'blinkRight'];
-        return lipSyncNames.includes(name) || blinkNames.includes(name);
+        const lowerName = name.toLowerCase();
+        
+        // 标准口型表情
+        const lipSyncNames = ['aa', 'ih', 'ou', 'ee', 'oh', 'a', 'i', 'u', 'e', 'o'];
+        
+        // 眨眼表情
+        const blinkNames = ['blink', 'blinkleft', 'blinkright'];
+        
+        // 检查是否包含口型或嘴部相关关键词
+        const mouthKeywords = ['mouth', 'lip', 'viseme', 'vrc.v_'];
+        
+        // 精确匹配
+        if (lipSyncNames.includes(lowerName) || blinkNames.includes(lowerName)) {
+            return true;
+        }
+        
+        // 关键词匹配（避免误判其他表情）
+        return mouthKeywords.some(keyword => lowerName.includes(keyword));
     }
 
     /**

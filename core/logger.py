@@ -73,7 +73,7 @@ def _add_category_handlers():
     # 文件输出 - 业务逻辑日志
     logger.add(
         LOG_DIR / "business.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}\n{exception}",
         level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "BUSINESS",
         rotation="100 MB",
@@ -84,7 +84,7 @@ def _add_category_handlers():
     # 文件输出 - 数据库操作日志
     logger.add(
         LOG_DIR / "database.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}\n{exception}",
         level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "DATABASE",
         rotation="100 MB",
@@ -95,7 +95,7 @@ def _add_category_handlers():
     # 文件输出 - 模型调用日志
     logger.add(
         LOG_DIR / "model.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}\n{exception}",
         level=LOG_LEVEL,
         filter=lambda record: record["extra"].get("category") == "MODEL",
         rotation="100 MB",
@@ -165,7 +165,7 @@ def set_log_level(level: str):
     # 文件输出 - 所有日志
     logger.add(
         LOG_DIR / "app.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]} | {name}:{function}:{line} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]} | {name}:{function}:{line} - {message}\n{exception}",
         level=LOG_LEVEL,
         rotation="500 MB",
         retention="7 days",

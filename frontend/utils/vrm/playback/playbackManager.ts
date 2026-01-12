@@ -149,8 +149,9 @@ export class PlaybackManager {
     this.isPlaying = false;
     this.segments = [];
 
-    // 恢复默认状态
-    this.modelManager.setExpression('neutral');
+    // 不再自动重置表情，由AI通过标记控制
+    // this.modelManager.setExpression('neutral');
+    
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
@@ -322,8 +323,9 @@ export class PlaybackManager {
     // 清空段队列
     this.segments = [];
 
-    // 恢复默认状态
-    this.modelManager.setExpression('neutral');
+    // 不再自动重置表情，由AI通过标记控制
+    // this.modelManager.setExpression('neutral');
+    
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
