@@ -32,7 +32,7 @@ class VRMModelUpdate(BaseModel):
 @router.get("", summary="获取所有VRM模型", response_model=ResponseModel)
 async def list_vrm_models(
     storage: AppStorage = Depends(get_app_storage)
-) -> ResponseModel:
+) -> Dict[str, Any]:
     """获取所有VRM模型"""
     try:
         models = storage.list_vrm_models()
@@ -45,11 +45,11 @@ async def list_vrm_models(
         
         logger.debug("获取VRM模型列表", extra={"count": len(models)})
         
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data=models
-        )
+        return {
+            "code": 200,
+            "message": "获取成功",
+            "data": models
+        }
         
     except Exception as e:
         logger.error(f"获取VRM模型列表失败: {e}", exc_info=True)
@@ -60,7 +60,7 @@ async def list_vrm_models(
 async def get_vrm_model(
     vrm_model_id: str,
     storage: AppStorage = Depends(get_app_storage)
-) -> ResponseModel:
+) -> Dict[str, Any]:
     """获取VRM模型详情"""
     try:
         model = storage.get_vrm_model(vrm_model_id)
@@ -86,11 +86,11 @@ async def get_vrm_model(
             }
         )
         
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data=model
-        )
+        return {
+            "code": 200,
+            "message": "获取成功",
+            "data": model
+        }
         
     except HTTPException:
         raise
@@ -130,11 +130,11 @@ async def update_vrm_model(
         updated_model["model_path"] = path_manager.build_vrm_model_url(updated_model["filename"])
         updated_model["thumbnail_path"] = path_manager.build_vrm_thumbnail_url(updated_model.get("thumbnail_filename"))
         
-        return ResponseModel(
-            code=200,
-            message="VRM模型更新成功",
-            data=updated_model
-        )
+        return {
+            "code": 200,
+            "message": "VRM模型更新成功",
+            "data": updated_model
+        }
         
     except HTTPException:
         raise
@@ -233,15 +233,15 @@ async def upload_vrm_model(
             }
         )
         
-        return ResponseModel(
-            code=200,
-            message="上传成功",
-            data={
+        return {
+            "code": 200,
+            "message": "上传成功",
+            "data": {
                 "vrm_model_id": vrm_model_id,
                 "model_path": path_manager.build_vrm_model_url(filename),
                 "thumbnail_path": path_manager.build_vrm_thumbnail_url(thumbnail_filename)
             }
-        )
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -330,10 +330,11 @@ async def delete_vrm_model(
             }
         )
         
-        return ResponseModel(
-            code=200,
-            message="VRM模型删除成功"
-        )
+        return {
+            "code": 200,
+            "message": "VRM模型删除成功",
+            "data": None
+        }
         
     except HTTPException:
         raise

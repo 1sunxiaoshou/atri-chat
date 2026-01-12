@@ -52,10 +52,6 @@ class AgentManager:
     async def start_services(self):
         """启动后台服务"""
         logger.info("启动 AgentManager 后台服务")
-        
-        # 启动 VRM 音频清理任务
-        from core.vrm.cleanup_task import start_cleanup_task
-        asyncio.create_task(start_cleanup_task(interval_seconds=300, max_age_seconds=3600))
     
     async def stop_services(self):
         """停止后台服务"""

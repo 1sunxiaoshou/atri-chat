@@ -171,7 +171,7 @@ export const messagesApi = {
             callbacks.onVrmData({
               sentence_index: data.data.index,
               marked_text: data.data.marked_text,
-              audio_url: data.data.audio_url
+              audio_url: data.data.audio_data ? `data:audio/wav;base64,${data.data.audio_data}` : null
             });
             
             // 收集 VRM 段的纯文本用于消息历史

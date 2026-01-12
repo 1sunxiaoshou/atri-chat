@@ -3,18 +3,15 @@
 职责：
 1. 按换行分句
 2. 去除标记
-3. 调用 TTS 生成音频（临时文件）
-4. 流式返回（带标记文本 + 音频 URL）
+3. 调用 TTS 生成音频
+4. 流式返回（带标记文本 + base64 音频数据）
 """
 import re
-import uuid
-import tempfile
-from pathlib import Path
+import base64
 from typing import AsyncGenerator, Dict, Any
 
 from ..storage import AppStorage
 from ..tts.factory import TTSFactory
-from ..paths import get_path_manager
 from ..logger import get_logger
 
 logger = get_logger(__name__, category="VRM")
@@ -29,7 +26,6 @@ class VRMService:
     def __init__(self, app_storage: AppStorage, tts_factory: TTSFactory):
         self.app_storage = app_storage
         self.tts_factory = tts_factory
-        self.path_manager = get_path_manager()
     
     async def generate_stream(
         self,
@@ -43,7 +39,7 @@ class VRMService:
             character_id: 角色 ID
             
         Yields:
-            {"marked_text": "...", "audio_url": "...", "index": 0}
+            {"marked_text": "...", "audio_data": "base64...", "index": 0}
         """
         # 获取角色的 TTS 配置
         character = self.app_storage.get_character(character_id)
@@ -67,29 +63,18 @@ class VRMService:
             clean_text = self.MARKUP_PATTERN.sub('', sentence).strip()
             
             # 2.2 生成音频（如果有文本）
-            audio_url = None
+            audio_data = None
             if clean_text:
                 try:
                     audio_bytes = await tts.synthesize_async(clean_text)
                     
-                    # 2.3 保存为临时文件
-                    temp_file = tempfile.NamedTemporaryFile(
-                        suffix='.wav',
-                        delete=False,
-                        dir=self.path_manager.vrm_audio_dir
-                    )
-                    temp_file.write(audio_bytes)
-                    temp_file.close()
-                    
-                    # 2.4 构建 URL
-                    audio_filename = Path(temp_file.name).name
-                    audio_url = self.path_manager.build_vrm_audio_url(audio_filename)
+                    # 2.3 转换为 base64
+                    audio_data = base64.b64encode(audio_bytes).decode('utf-8')
                     
                     logger.debug(
                         f"句子 {index} 音频生成完成",
                         extra={
                             "text": clean_text,
-                            "audio_file": audio_filename,
                             "size": len(audio_bytes)
                         }
                     )
@@ -106,11 +91,11 @@ class VRMService:
                     extra={"marked_text": sentence}
                 )
             
-            # 2.5 流式返回（即使没有音频也要返回，以便触发动作）
+            # 2.4 流式返回（即使没有音频也要返回，以便触发动作）
             yield {
                 "marked_text": sentence,  # 带标记的原文
-                "audio_url": audio_url,   # 音频 URL（可能为 None）
-                "index": index            # 句子索引
+                "audio_data": audio_data,  # base64 编码的音频数据（可能为 None）
+                "index": index             # 句子索引
             }
         
         logger.info(
