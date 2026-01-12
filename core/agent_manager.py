@@ -211,8 +211,9 @@ class AgentManager:
                 **model_kwargs
             )
             
-            # 3. 生成完整消息（使用相同的 thread_id 保持上下文连续性）
+            # 3. 使用VRM专用的thread_id后缀（避免标记污染普通模式）
             thread_id = str(conversation_id)
+            
             response = await agent.ainvoke(
                 {"messages": [{"role": "user", "content": user_message}]},
                 config={"configurable": {"thread_id": thread_id}},
@@ -236,10 +237,12 @@ class AgentManager:
             
             logger.info(f"[VRM]回复: {full_response}")
             
-            # 4. 保存纯文本到数据库（去除标记）
+            # 4. 去除标记，得到纯文本
             import re
             clean_response = re.sub(r'\[[^\]]+:[^\]]+\]', '', full_response).strip()
             
+            
+            # 5. 保存纯文本到数据库
             self._save_and_title_conversation(
                 conversation_id, 
                 conversation, 
@@ -247,7 +250,7 @@ class AgentManager:
                 clean_response
             )
             
-            # 5. 流式生成音频段
+            # 6. 流式生成音频段
             import json
             segment_count = 0
             
@@ -263,21 +266,14 @@ class AgentManager:
                     "data": segment
                 }, ensure_ascii=False)
             
-            # 6. 发送完成信号
+            # 7. 发送完成信号
             yield json.dumps({
                 "type": "vrm_complete",
                 "total_segments": segment_count
             }, ensure_ascii=False)
 
         except Exception as e:
-            logger.error(
-                "VRM 消息处理失败",
-                extra={
-                    "conversation_id": conversation_id,
-                    "error": str(e)
-                },
-                exc_info=True
-            )
+            logger.error(f"VRM 消息处理失败: {e}")
             import json
             yield json.dumps({
                 "type": "error",
@@ -360,19 +356,7 @@ class AgentManager:
             yield "", stats
             
         except Exception as e:
-            logger.error(
-                "流式处理异常",
-                extra={
-                    "thread_id": thread_id,
-                    "character_id": character_id,
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    "operation": "stream_error",
-                    "tool_call_count": tool_call_count,
-                    "chunk_count": chunk_count
-                },
-                exc_info=True
-            )
+            logger.error(f"流式处理异常: {e}")
             raise
 
     def _parse_message_content(self, message: AIMessageChunk) -> Tuple[str, str]:
@@ -449,15 +433,7 @@ class AgentManager:
     def _handle_model_error(self, e: Exception, conversation_id: int):
         """统一错误处理"""
         error_msg = str(e)
-        logger.error(
-            f"消息处理失败",
-            extra={
-                "conversation_id": conversation_id,
-                "error": error_msg,
-                "error_type": type(e).__name__
-            },
-            exc_info=True
-        )
+        logger.error(f"消息处理失败: {e}")
         
         error_lower = error_msg.lower()
         if "api key" in error_msg or "authentication" in error_lower:
