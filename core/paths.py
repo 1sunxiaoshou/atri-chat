@@ -137,11 +137,6 @@ class PathManager:
         """VRM 缩略图目录"""
         return self._ensure_dir(self.uploads_dir / "vrm_thumbnails", "VRM缩略图目录")
     
-    @property
-    def vrm_audio_dir(self) -> Path:
-        """VRM 音频目录"""
-        return self._ensure_dir(self.uploads_dir / "vrm_audio", "VRM音频目录")
-    
     # ==================== 数据库文件 ====================
     
     @property
@@ -266,17 +261,6 @@ class PathManager:
             return None
         return f"/uploads/vrm_thumbnails/{filename}"
     
-    def build_vrm_audio_url(self, filename: str) -> str:
-        """构建 VRM 音频的 URL 路径
-        
-        Args:
-            filename: 文件名（如 "audio_abc123.wav"）
-            
-        Returns:
-            URL 路径（如 "/uploads/vrm_audio/audio_abc123.wav"）
-        """
-        return f"/uploads/vrm_audio/{filename}"
-    
     def get_vrm_model_path(self, filename: str) -> Path:
         """获取 VRM 模型的文件系统路径
         
@@ -309,17 +293,6 @@ class PathManager:
             文件系统路径
         """
         return self.vrm_thumbnails_dir / filename
-    
-    def get_vrm_audio_path(self, filename: str) -> Path:
-        """获取 VRM 音频的文件系统路径
-        
-        Args:
-            filename: 文件名
-            
-        Returns:
-            文件系统路径
-        """
-        return self.vrm_audio_dir / filename
 
 
 # ==================== 全局单例 ====================
