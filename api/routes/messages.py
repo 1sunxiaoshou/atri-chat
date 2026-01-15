@@ -1,13 +1,9 @@
 """消息管理路由"""
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Form
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from api.schemas import (
-    ResponseModel, MessageRequest, MessageResponse, ConversationHistoryResponse,
-    TextToSpeechRequest
-)
-from core import AppStorage, AgentManager
-from core.dependencies import get_storage, get_agent
-import io
+from api.schemas import ResponseModel, MessageRequest
+from core import AgentCoordinator
+from core.dependencies import get_agent
 
 router = APIRouter()
 
@@ -15,7 +11,7 @@ router = APIRouter()
 @router.post("/messages")
 async def send_message(
     req: MessageRequest,
-    agent_manager: AgentManager = Depends(get_agent)
+    agent_manager: AgentCoordinator = Depends(get_agent)
 ):
     """发送文本消息（流式响应）"""
     async def generate():
@@ -34,7 +30,6 @@ async def send_message(
             if req.thinking_config is not None:
                 model_kwargs["thinking_config"] = req.thinking_config
             
-            # 记录模型参数和显示模式
             from core.logger import get_logger
             logger = get_logger(__name__, category="API")
             logger.info(
@@ -48,45 +43,29 @@ async def send_message(
                 }
             )
             
-            # 根据display_mode选择不同的处理方法
-            if req.display_mode == "vrm":
-                # VRM模式：使用专用方法
-                stream_method = agent_manager.send_message_stream_vrm(
-                    user_message=req.content,
-                    conversation_id=req.conversation_id,
-                    character_id=req.character_id,
-                    model_id=req.model_id,
-                    provider_id=req.provider_id,
-                    **model_kwargs
-                )
-            else:
-                # 普通模式：使用原有方法
-                stream_method = agent_manager.send_message_stream(
-                    user_message=req.content,
-                    conversation_id=req.conversation_id,
-                    character_id=req.character_id,
-                    model_id=req.model_id,
-                    provider_id=req.provider_id,
-                    **model_kwargs
-                )
+            # 统一调用 send_message，通过 output_mode 区分模式
+            output_mode = "vrm" if req.display_mode == "vrm" else "text"
             
-            # 流式生成内容
-            async for json_str in stream_method:
-                if json_str: 
-                    # 直接转发 JSON 字符串，不需要再次包装
+            async for json_str in agent_manager.send_message(
+                user_message=req.content,
+                conversation_id=req.conversation_id,
+                character_id=req.character_id,
+                model_id=req.model_id,
+                provider_id=req.provider_id,
+                output_mode=output_mode,
+                **model_kwargs
+            ):
+                if json_str:
                     yield f"data: {json_str}\n\n"
             
         except (ValueError, RuntimeError, Exception) as e:
-            # 统一错误处理
             error_type = {
                 ValueError: "config_error",
                 RuntimeError: "model_error"
             }.get(type(e), "unknown_error")
-            
             yield f"data: {json.dumps({'error': str(e), 'error_type': error_type}, ensure_ascii=False)}\n\n"
         
         finally:
-            # 始终发送结束标记
             yield f"data: {json.dumps({'done': True})}\n\n"
 
     return StreamingResponse(
@@ -98,5 +77,3 @@ async def send_message(
             "X-Accel-Buffering": "no"
         }
     )
-
-

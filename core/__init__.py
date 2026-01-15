@@ -4,7 +4,7 @@ from .models.factory import ModelFactory
 
 from .storage import AppStorage
 from .store import SqliteStore
-from .agent_manager import AgentManager
+from .agent_coordinator import AgentCoordinator
 
 __all__ = [
     "ModelConfig",
@@ -14,5 +14,5 @@ __all__ = [
     "ModelFactory",
     "AppStorage",
     "SqliteStore",
-    "AgentManager",
+    "AgentCoordinator",
 ]

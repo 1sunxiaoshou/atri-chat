@@ -6,8 +6,7 @@ from typing import Optional, Dict, Any
 from api.schemas import ResponseModel
 from core.tts.service import TTSConfigService
 from core.tts.factory import TTSFactory
-from core.dependencies import get_agent
-from core import AgentManager
+from core.dependencies import get_tts_factory
 from core.logger import get_logger
 
 router = APIRouter()
@@ -33,13 +32,13 @@ class TTSSynthesizeRequest(BaseModel):
 
 
 @router.get("/providers", response_model=ResponseModel)
-async def get_providers(agent_manager: AgentManager = Depends(get_agent)):
+async def get_providers(tts_factory: TTSFactory = Depends(get_tts_factory)):
     """获取配置列表与状态
     
     返回所有服务商的配置状态，包括当前active的服务商
     """
     try:
-        service = agent_manager.tts_factory.config_service
+        service = tts_factory.config_service
         data = service.get_all_providers()
         return ResponseModel(
             code=200,
@@ -52,7 +51,7 @@ async def get_providers(agent_manager: AgentManager = Depends(get_agent)):
 
 
 @router.post("/test", response_model=ResponseModel)
-async def test_connection(req: TTSTestRequest, agent_manager: AgentManager = Depends(get_agent)):
+async def test_connection(req: TTSTestRequest, tts_factory: TTSFactory = Depends(get_tts_factory)):
     """测试连接
     
     不保存配置，仅验证参数有效性
@@ -61,7 +60,7 @@ async def test_connection(req: TTSTestRequest, agent_manager: AgentManager = Dep
         logger.info(f"测试TTS连接: provider={req.provider_id}")
         
         # 使用提供的配置创建临时TTS实例
-        tts = agent_manager.tts_factory.create_tts(provider=req.provider_id, config=req.config)
+        tts = tts_factory.create_tts(provider=req.provider_id, config=req.config)
         
         # 执行连接测试
         result = await tts.test_connection()
@@ -100,7 +99,7 @@ async def test_connection(req: TTSTestRequest, agent_manager: AgentManager = Dep
 @router.post("/config", response_model=ResponseModel)
 async def save_config(
     req: TTSConfigRequest,
-    agent_manager: AgentManager = Depends(get_agent)
+    tts_factory: TTSFactory = Depends(get_tts_factory)
 ):
     """保存并应用配置
     
@@ -108,8 +107,8 @@ async def save_config(
     如果provider_id为空，则禁用TTS功能
     """
     try:
-        service = agent_manager.tts_factory.config_service
-        factory = agent_manager.tts_factory
+        service = tts_factory.config_service
+        factory = tts_factory
         
         # 如果provider_id为空或"none"，禁用TTS
         if not req.provider_id or req.provider_id.lower() == "none":
@@ -165,7 +164,7 @@ async def save_config(
 async def synthesize_speech(
     req: TTSSynthesizeRequest,
     stream: bool = False,
-    agent_manager: AgentManager = Depends(get_agent)
+    tts_factory: TTSFactory = Depends(get_tts_factory)
 ):
     """文本转语音
     
@@ -178,7 +177,7 @@ async def synthesize_speech(
         logger.info(f"开始语音合成: text_length={len(req.text)}, language={req.language}, stream={stream}")
         
         # 获取TTS实例
-        tts = agent_manager.tts_factory.get_default_tts()
+        tts = tts_factory.get_default_tts()
         logger.info(f"获取到TTS实例: {type(tts).__name__}, 支持流式={tts.supports_streaming()}")
         
         # 流式模式（PCM raw 格式，使用 AudioContext 播放）
