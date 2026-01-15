@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from api.schemas import (
     ResponseModel, CharacterRequest, CharacterResponse, CharacterUpdateRequest
 )
-from core import AppStorage, AgentManager
+from core import AppStorage, AgentCoordinator
 from core.dependencies import get_storage, get_agent
 
 router = APIRouter()
@@ -82,7 +82,7 @@ async def update_character(
     character_id: int,
     req: CharacterUpdateRequest,
     app_storage: AppStorage = Depends(get_storage),
-    agent_manager: AgentManager = Depends(get_agent)
+    agent_manager: AgentCoordinator = Depends(get_agent)
 ):
     """部分更新角色信息"""
     try:
@@ -106,7 +106,7 @@ async def update_character(
 async def delete_character(
     character_id: int,
     app_storage: AppStorage = Depends(get_storage),
-    agent_manager: AgentManager = Depends(get_agent)
+    agent_manager: AgentCoordinator = Depends(get_agent)
 ):
     """删除角色"""
     try:

@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from api.schemas import (
     ResponseModel, ConversationRequest, ConversationResponse, ConversationUpdateRequest
 )
-from core import AppStorage, AgentManager
+from core import AppStorage, AgentCoordinator
 from core.dependencies import get_storage, get_agent
 
 router = APIRouter()
@@ -123,7 +123,7 @@ async def delete_conversation(
 async def get_conversation_history(
     conversation_id: int,
     from_checkpoint: bool = False,
-    agent_manager: AgentManager = Depends(get_agent),
+    agent_manager: AgentCoordinator = Depends(get_agent),
     app_storage: AppStorage = Depends(get_storage)
 ):
     """获取会话历史"""
@@ -184,7 +184,7 @@ async def clear_conversation_history(
     conversation_id: int,
     clear_checkpoint: bool = True,
     clear_messages: bool = True,
-    agent_manager: AgentManager = Depends(get_agent),
+    agent_manager: AgentCoordinator = Depends(get_agent),
     app_storage: AppStorage = Depends(get_storage)
 ):
     """清空会话历史"""

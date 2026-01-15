@@ -6,7 +6,7 @@ from api.schemas import (
     ProviderConfigUpdateRequest
 )
 from core import AppStorage, ProviderConfig
-from core.dependencies import get_storage, get_agent_manager
+from core.dependencies import get_storage, get_agent_coordinator
 
 router = APIRouter()
 
@@ -33,7 +33,7 @@ async def create_provider(
     }
     """
     try:
-        agent_manager = get_agent_manager()
+        agent_manager = get_agent_coordinator()
         
         # 确定模板类型
         template_type = req.template_type or "openai"
@@ -92,7 +92,7 @@ async def get_provider(
             raise HTTPException(status_code=404, detail="供应商不存在")
         
         # 获取模板元数据
-        agent_manager = get_agent_manager()
+        agent_manager = get_agent_coordinator()
         template_type = provider.get("template_type", "openai")
         template = agent_manager.model_factory.get_provider_template(template_type)
         
@@ -121,7 +121,7 @@ async def get_provider(
 async def list_providers(app_storage: AppStorage = Depends(get_storage)):
     """列出所有供应商"""
     try:
-        agent_manager = get_agent_manager()
+        agent_manager = get_agent_coordinator()
         providers = app_storage.list_providers()
         
         data = []
@@ -172,7 +172,7 @@ async def update_provider(
         # 如果更新了 template_type，验证并自动更新 logo
         logo = None
         if req.template_type:
-            agent_manager = get_agent_manager()
+            agent_manager = get_agent_coordinator()
             template = agent_manager.model_factory.get_provider_template(req.template_type)
             if not template:
                 available = agent_manager.model_factory.get_available_templates()
@@ -213,7 +213,7 @@ async def delete_provider(
     注意：不会删除使用该供应商的角色，但这些角色的模型引用会失效
     """
     try:
-        agent_manager = get_agent_manager()
+        agent_manager = get_agent_coordinator()
         
         # 检查依赖
         dependencies = agent_manager.model_factory.check_provider_dependencies(provider_id)
@@ -249,7 +249,7 @@ async def list_provider_templates():
     返回可用的供应商模板列表，用于创建供应商时指定 template_type
     """
     try:
-        agent_manager = get_agent_manager()
+        agent_manager = get_agent_coordinator()
         templates = agent_manager.model_factory.get_all_template_metadata()
         
         data = [

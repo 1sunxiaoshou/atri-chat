@@ -5,8 +5,7 @@ from typing import Optional, Dict, Any
 from api.schemas import ResponseModel
 from core.asr.service import ASRConfigService
 from core.asr.factory import ASRFactory
-from core.dependencies import get_agent
-from core import AgentManager
+from core.dependencies import get_asr_factory
 from core.logger import get_logger
 
 router = APIRouter()
@@ -21,18 +20,18 @@ class ASRTestRequest(BaseModel):
 
 class ASRConfigRequest(BaseModel):
     """保存配置请求"""
-    provider_id: Optional[str] = None  # 允许为空，表示禁用ASR
+    provider_id: Optional[str] = None
     config: Dict[str, Any] = {}
 
 
 @router.get("/providers", response_model=ResponseModel)
-async def get_providers(agent_manager: AgentManager = Depends(get_agent)):
+async def get_providers(asr_factory: ASRFactory = Depends(get_asr_factory)):
     """获取配置列表与状态
     
     返回所有服务商的配置状态，包括当前active的服务商
     """
     try:
-        service = agent_manager.asr_factory.config_service
+        service = asr_factory.config_service
         data = service.get_all_providers()
         return ResponseModel(
             code=200,
@@ -45,7 +44,7 @@ async def get_providers(agent_manager: AgentManager = Depends(get_agent)):
 
 
 @router.post("/test", response_model=ResponseModel)
-async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Depends(get_agent)):
+async def test_connection(req: ASRTestRequest, asr_factory: ASRFactory = Depends(get_asr_factory)):
     """测试连接
     
     不保存配置，仅验证参数有效性
@@ -54,7 +53,7 @@ async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Dep
         logger.info(f"测试ASR连接: provider={req.provider_id}")
         
         # 使用提供的配置创建临时ASR实例
-        asr = agent_manager.asr_factory.create_asr(provider=req.provider_id, config=req.config)
+        asr = asr_factory.create_asr(provider=req.provider_id, config=req.config)
         
         # 执行连接测试
         result = await asr.test_connection()
@@ -93,7 +92,7 @@ async def test_connection(req: ASRTestRequest, agent_manager: AgentManager = Dep
 @router.post("/config", response_model=ResponseModel)
 async def save_config(
     req: ASRConfigRequest,
-    agent_manager: AgentManager = Depends(get_agent)
+    asr_factory: ASRFactory = Depends(get_asr_factory)
 ):
     """保存并应用配置
     
@@ -101,8 +100,8 @@ async def save_config(
     如果provider_id为空，则禁用ASR功能
     """
     try:
-        service = agent_manager.asr_factory.config_service
-        factory = agent_manager.asr_factory
+        service = asr_factory.config_service
+        factory = asr_factory
         
         # 如果provider_id为空或"none"，禁用ASR
         if not req.provider_id or req.provider_id.lower() == "none":
@@ -159,7 +158,7 @@ async def save_config(
 async def transcribe_audio(
     file: UploadFile = File(...),
     language: Optional[str] = None,
-    agent_manager: AgentManager = Depends(get_agent)
+    asr_factory: ASRFactory = Depends(get_asr_factory)
 ):
     """语音转文本
     
@@ -173,7 +172,7 @@ async def transcribe_audio(
         logger.debug(f"音频文件大小: {len(audio_bytes)} bytes")
         
         # 获取ASR实例
-        asr = agent_manager.asr_factory.get_default_asr()
+        asr = asr_factory.get_default_asr()
         
         # 执行转录
         text = await asr.transcribe_async(audio_bytes, language)

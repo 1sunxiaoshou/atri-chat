@@ -8,17 +8,8 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from dataclasses import dataclass
 from langchain.tools import tool, ToolRuntime
-
-
-@dataclass
-class AgentContext:
-    """Agent 运行时上下文
-    
-    包含静态信息，在 agent 调用时注入
-    """
-    character_id: int
+from ..middleware import AgentContext
 
 
 @tool

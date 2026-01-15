@@ -6,7 +6,7 @@ import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .store import SqliteStore
 from .storage import AppStorage
-from .agent_manager import AgentManager
+from .agent_coordinator import AgentCoordinator
 from .paths import get_app_db_path, get_store_db_path, get_checkpoints_db_path
 
 
@@ -63,9 +63,23 @@ async def close_checkpointer():
 
 
 @lru_cache()
-def get_agent_manager() -> AgentManager:
-    """获取 AgentManager 单例"""
-    return AgentManager(
+def get_asr_factory():
+    """获取 ASRFactory 单例"""
+    from .asr.factory import ASRFactory
+    return ASRFactory(db_path=get_app_db_path())
+
+
+@lru_cache()
+def get_tts_factory():
+    """获取 TTSFactory 单例"""
+    from .tts.factory import TTSFactory
+    return TTSFactory(db_path=get_app_db_path())
+
+
+@lru_cache()
+def get_agent_coordinator() -> AgentCoordinator:
+    """获取 AgentCoordinator 单例"""
+    return AgentCoordinator(
         app_storage=get_app_storage(),
         store=get_store(),
         checkpointer=get_checkpointer()
@@ -79,6 +93,6 @@ def get_storage() -> Generator[AppStorage, None, None]:
     yield get_app_storage()
 
 
-def get_agent() -> Generator[AgentManager, None, None]:
-    """FastAPI 依赖：获取 AgentManager"""
-    yield get_agent_manager()
+def get_agent() -> Generator[AgentCoordinator, None, None]:
+    """FastAPI 依赖：获取 AgentCoordinator"""
+    yield get_agent_coordinator()
