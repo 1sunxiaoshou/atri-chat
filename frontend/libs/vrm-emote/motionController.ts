@@ -4,7 +4,7 @@ import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Logger } from '../../utils/logger';
-import { AnimationProgressCallback, MotionState, AnimationCacheConfig } from './types';
+import { AnimationProgressCallback, MotionState, AnimationCacheConfig } from '../../types/vrm';
 
 /**
  * 动作控制器 - 管理VRM模型的动作播放和过渡

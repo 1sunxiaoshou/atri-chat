@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Character } from '../types';
-import { VRMManager, AudioSegment } from '../utils/vrm';
+import { VRMManager } from '../services/vrm';
+import { AudioSegment } from '../types/vrm';
 import { Logger } from '../utils/logger';
 
 /**
@@ -68,6 +69,12 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
           onLoadingChange: (loading) => setIsLoading(loading)
         });
 
+        // 调试：暴露到全局
+        if (typeof window !== 'undefined') {
+          (window as any).__vrmManager = managerRef.current;
+          Logger.debug('VRMManager 已暴露到 window.__vrmManager');
+        }
+
         // 加载模型
         if (character?.vrm_model_id) {
           loadModel(character.vrm_model_id);
@@ -81,6 +88,11 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       if (managerRef.current) {
         managerRef.current.dispose();
         managerRef.current = null;
+        
+        // 清理全局变量
+        if (typeof window !== 'undefined') {
+          delete (window as any).__vrmManager;
+        }
       }
       setSubtitle('');
     }

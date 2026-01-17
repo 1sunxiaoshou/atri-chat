@@ -1,6 +1,60 @@
 /**
- * VRM 模块类型定义
+ * VRM 模块共享类型定义
+ * 包含情感控制和业务层的所有类型
  */
+
+// ============================================
+// 情感控制相关类型 (EmoteController)
+// ============================================
+
+/**
+ * 动画信息
+ */
+export interface AnimationInfo {
+  name: string;
+  url: string;
+  duration: number;
+}
+
+/**
+ * 动作状态
+ */
+export interface MotionState {
+  name: string;
+  time: number;
+  duration: number;
+  isPlaying: boolean;
+}
+
+/**
+ * 动画预加载进度回调
+ */
+export type AnimationProgressCallback = (loaded: number, total: number) => void;
+
+/**
+ * 表情名称类型（支持预设和自定义）
+ */
+export type ExpressionName = string;
+
+/**
+ * 动画缓存配置
+ */
+export interface AnimationCacheConfig {
+  maxSize: number; // 最大缓存数量
+  enableAutoEvict: boolean; // 是否自动清理
+}
+
+/**
+ * EmoteController 配置
+ */
+export interface EmoteControllerConfig {
+  cache?: AnimationCacheConfig;
+  transitionDuration?: number; // 表情过渡时间（秒）
+}
+
+// ============================================
+// 业务层相关类型 (VRM Service)
+// ============================================
 
 /**
  * 音频片段（后端返回的原始格式）
@@ -38,6 +92,10 @@ export interface VRMCallbacks {
   onError?: (error: string) => void;
   onLoadingChange?: (isLoading: boolean) => void;
 }
+
+// ============================================
+// 工具函数
+// ============================================
 
 /**
  * 解析带标记的文本

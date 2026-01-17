@@ -116,7 +116,7 @@ class VRMOutputStrategy(OutputStrategy):
             yield json.dumps({"type": "error", "message": "AI 回复为空"}, ensure_ascii=False)
             return
         
-        logger.info(f"[VRM] 回复:\n {full_response}")
+        logger.info(f"[VRM] 回复:\n{full_response}")
         
         # 返回完整文本（供保存用）
         yield json.dumps({

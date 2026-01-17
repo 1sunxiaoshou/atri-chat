@@ -1,6 +1,5 @@
 /**
  * VRM 情感控制系统
- * 参考 lobe-vidol 的设计实现
  * 
  * 动画由后端数据库管理，前端动态加载
  */
@@ -20,4 +19,4 @@ export type {
     ExpressionName,
     AnimationCacheConfig,
     EmoteControllerConfig
-} from './types';
+} from '../../types/vrm';

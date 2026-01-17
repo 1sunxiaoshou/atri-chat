@@ -9,7 +9,7 @@
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Logger } from '../../logger';
+import { Logger } from '../../../utils/logger';
 
 export class SceneManager {
   private scene: THREE.Scene;
@@ -114,6 +114,9 @@ export class SceneManager {
    */
   registerUpdateCallback(callback: (delta: number) => void): void {
     this.updateCallbacks.add(callback);
+    Logger.info('✅ 更新回调已注册到 SceneManager', {
+      totalCallbacks: this.updateCallbacks.size
+    });
   }
 
   /**
@@ -134,10 +137,21 @@ export class SceneManager {
    * 渲染循环
    */
   private startRenderLoop(): void {
+    let frameCount = 0;
+    
     const animate = () => {
       this.animationFrameId = requestAnimationFrame(animate);
 
       const delta = this.clock.getDelta();
+
+      // 第一帧输出日志
+      if (frameCount === 0) {
+        Logger.info('🎬 渲染循环已启动', {
+          delta,
+          callbackCount: this.updateCallbacks.size
+        });
+      }
+      frameCount++;
 
       // 调用所有注册的更新回调
       this.updateCallbacks.forEach(callback => {
