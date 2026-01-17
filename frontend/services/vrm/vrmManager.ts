@@ -10,10 +10,10 @@
 import { SceneManager } from './scene/sceneManager';
 import { ModelManager } from './model/modelManager';
 import { PlaybackManager } from './playback/playbackManager';
-import { AudioSegment, VRMCallbacks } from './types';
-import { api } from '../../services/api/index';
-import { HTTP_STATUS, UI_TIMING, DEV_SERVER } from '../constants';
-import { Logger } from '../logger';
+import { AudioSegment, VRMCallbacks } from '../../types/vrm';
+import { api } from '../api/index';
+import { HTTP_STATUS, UI_TIMING, DEV_SERVER } from '../../utils/constants';
+import { Logger } from '../../utils/logger';
 
 export class VRMManager {
   private sceneManager: SceneManager;
@@ -161,6 +161,30 @@ export class VRMManager {
    */
   getAvailableExpressions(): string[] {
     return this.modelManager.getAvailableExpressions();
+  }
+
+  /**
+   * 获取 ModelManager 实例
+   * 用于访问模型控制功能（表情、眨眼、口型等）
+   */
+  getModelManager(): ModelManager {
+    return this.modelManager;
+  }
+
+  /**
+   * 获取 SceneManager 实例
+   * 用于访问场景控制功能
+   */
+  getSceneManager(): SceneManager {
+    return this.sceneManager;
+  }
+
+  /**
+   * 获取 PlaybackManager 实例
+   * 用于访问播放控制功能
+   */
+  getPlaybackManager(): PlaybackManager {
+    return this.playbackManager;
   }
 
   /**

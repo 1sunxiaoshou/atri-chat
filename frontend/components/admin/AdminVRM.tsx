@@ -4,7 +4,7 @@ import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Modal, Button, Input } from '../ui';
 import { getAnimationDuration } from '../../utils/vrmUtils';
-import { VRMPreviewLoader } from '../../utils/vrmPreviewLoader';
+import { extractExpressions } from '../../utils/vrmMetadataExtractor';
 
 // Define types based on API
 interface VRMModel {
@@ -203,24 +203,10 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                     return;
                 }
                 
-                // 先解析VRM文件获取表情列表
+                // 先解析VRM文件获取表情列表（轻量级提取）
                 let availableExpressions: string[] = [];
                 try {
-                    // 创建临时canvas用于加载VRM
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = 512;
-                    tempCanvas.height = 512;
-                    const tempLoader = new VRMPreviewLoader(tempCanvas);
-                    
-                    // 创建临时URL加载VRM
-                    const vrmUrl = URL.createObjectURL(formFile);
-                    await tempLoader.loadModel(vrmUrl);
-                    availableExpressions = tempLoader.getAvailableExpressions();
-                    
-                    // 清理资源
-                    URL.revokeObjectURL(vrmUrl);
-                    tempLoader.dispose();
-                    
+                    availableExpressions = await extractExpressions(formFile);
                     console.log('✅ 解析到表情列表:', availableExpressions);
                 } catch (error) {
                     console.warn('⚠️ 解析VRM表情列表失败:', error);

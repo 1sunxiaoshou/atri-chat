@@ -7,7 +7,7 @@ import {
     AnimationProgressCallback, 
     MotionState,
     ExpressionName 
-} from './types';
+} from '../../types/vrm';
 
 /**
  * 情感控制器 - 统一管理表情和动作
@@ -149,20 +149,6 @@ export class EmoteController {
     }
 
     /**
-     * 启用/禁用自动眨眼
-     */
-    public setAutoBlinkEnabled(enabled: boolean): void {
-        this.expressionController.setAutoBlinkEnabled(enabled);
-    }
-
-    /**
-     * 检查是否正在眨眼
-     */
-    public isBlinking(): boolean {
-        return this.expressionController.isBlinking();
-    }
-
-    /**
      * 获取动画缓存统计信息
      */
     public getCacheStats() {
@@ -194,4 +180,4 @@ export type {
     MotionState,
     ExpressionName,
     AnimationCacheConfig
-} from './types';
+} from '../../types/vrm';

@@ -8,12 +8,13 @@
  * 4. 字幕更新
  */
 import { ModelManager } from '../model/modelManager';
-import { AudioSegment, ParsedAudioSegment, TimedMarkup, parseMarkedText } from '../types';
-import { Logger } from '../../logger';
+import { AudioSegment, ParsedAudioSegment, TimedMarkup, parseMarkedText } from '../../../types/vrm';
+import { Logger } from '../../../utils/logger';
 
 export class PlaybackManager {
   private segments: ParsedAudioSegment[] = [];
   private isPlaying = false;
+  private savedExpression: string | null = null; // 保存说话前的表情
 
   // 音频管理
   private audioContext: AudioContext | null = null;
@@ -106,6 +107,13 @@ export class PlaybackManager {
 
     this.isPlaying = true;
 
+    // 保存当前表情并切换到默认表情
+    this.savedExpression = this.modelManager.getCurrentExpression();
+    if (this.savedExpression && this.savedExpression !== 'neutral') {
+      Logger.debug(`保存当前表情: ${this.savedExpression}，切换到 neutral`);
+      this.modelManager.setExpression('neutral');
+    }
+
     Logger.debug(`PlaybackManager: 开始播放 ${this.segments.length} 个音频片段`);
 
     // 逐个播放音频片段
@@ -145,12 +153,16 @@ export class PlaybackManager {
       }
     }
 
-    // 播放完成，清理状态
+    // 播放完成，恢复之前的表情
+    if (this.savedExpression && this.savedExpression !== 'neutral') {
+      Logger.debug(`恢复之前的表情: ${this.savedExpression}`);
+      this.modelManager.setExpression(this.savedExpression);
+    }
+    this.savedExpression = null;
+
+    // 清理状态
     this.isPlaying = false;
     this.segments = [];
-
-    // 不再自动重置表情，由AI通过标记控制
-    // this.modelManager.setExpression('neutral');
     
     if (this.onTextUpdate) {
       this.onTextUpdate('');
@@ -260,14 +272,23 @@ export class PlaybackManager {
   private triggerMarkups(markups: TimedMarkup[]): void {
     Logger.info(`触发标记数量: ${markups.length}`, { markups });
     
+    let hasExpressionMarkup = false;
+    
     for (const markup of markups) {
       if (markup.type === 'state') {
         Logger.info(`触发表情: ${markup.value}`);
         this.modelManager.setExpression(markup.value);
+        hasExpressionMarkup = true;
       } else if (markup.type === 'action') {
         Logger.info(`触发动作: ${markup.value}`);
         this.modelManager.playAnimation(markup.value, false);
       }
+    }
+    
+    // 如果这个片段包含表情标记，清除保存的表情
+    // 这样播放结束后就不会恢复到旧表情
+    if (hasExpressionMarkup) {
+      this.savedExpression = null;
     }
   }
 
@@ -275,31 +296,38 @@ export class PlaybackManager {
    * 口型同步循环
    */
   private syncLipLoop(): void {
-    const analyser = this.analyser;
-
-    if (analyser && this.isPlaying) {
-      // 使用时域数据计算RMS音量
-      const bufferLength = analyser.fftSize;
-      const dataArray = new Uint8Array(bufferLength);
-      analyser.getByteTimeDomainData(dataArray);
-
-      let sum = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        const normalized = (dataArray[i]! - 128) / 128;
-        sum += normalized * normalized;
+    const update = () => {
+      if (!this.analyser) {
+        requestAnimationFrame(update);
+        return;
       }
-      const rms = Math.sqrt(sum / bufferLength);
 
-      // 增加敏感度
-      const volume = Math.min(rms * 3.0, 1.0);
+      if (this.isPlaying && this.currentAudioSource) {
+        // 使用时域数据计算RMS音量
+        const bufferLength = this.analyser.fftSize;
+        const dataArray = new Uint8Array(bufferLength);
+        this.analyser.getByteTimeDomainData(dataArray);
 
-      this.modelManager.updateLipSync(volume);
-    } else if (!this.isPlaying) {
-      // 不在播放时，逐渐减少口型值
-      this.modelManager.updateLipSync(0);
-    }
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const normalized = (dataArray[i]! - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / bufferLength);
 
-    requestAnimationFrame(() => this.syncLipLoop());
+        // 增加敏感度
+        const volume = Math.min(rms * 3.0, 1.0);
+
+        this.modelManager.updateLipSync(volume);
+      } else {
+        // 不在播放时，重置口型
+        this.modelManager.updateLipSync(0);
+      }
+
+      requestAnimationFrame(update);
+    };
+
+    update();
   }
 
   /**
@@ -323,8 +351,12 @@ export class PlaybackManager {
     // 清空段队列
     this.segments = [];
 
-    // 不再自动重置表情，由AI通过标记控制
-    // this.modelManager.setExpression('neutral');
+    // 恢复之前的表情（如果有）
+    if (this.savedExpression && this.savedExpression !== 'neutral') {
+      Logger.debug(`停止播放，恢复之前的表情: ${this.savedExpression}`);
+      this.modelManager.setExpression(this.savedExpression);
+    }
+    this.savedExpression = null;
     
     if (this.onTextUpdate) {
       this.onTextUpdate('');

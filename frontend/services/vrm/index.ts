@@ -6,4 +6,4 @@ export { SceneManager } from './scene/sceneManager';
 export { ModelManager } from './model/modelManager';
 export { PlaybackManager } from './playback/playbackManager';
 
-export type { VRMCallbacks, AudioSegment, TimedMarkup } from './types';
+export type { VRMCallbacks, AudioSegment, TimedMarkup } from '../../types/vrm';

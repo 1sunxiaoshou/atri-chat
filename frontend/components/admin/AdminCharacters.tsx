@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Plus, Trash, Save } from 'lucide-react';
 import { Character, Model, VRMModel } from '../../types';
-import { api, getBaseURL } from '../../services/api/index';
+import { api } from '../../services/api/index';
 import { buildAvatarUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AvatarEditor } from '../AvatarEditor';

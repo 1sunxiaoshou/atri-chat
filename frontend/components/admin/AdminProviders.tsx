@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Server, Plus, Trash, CheckCircle, X } from 'lucide-react';
 import { Provider } from '../../types';
-import { api, getBaseURL } from '../../services/api/index';
+import { api } from '../../services/api/index';
 import { buildLogoUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Select } from '../ui';

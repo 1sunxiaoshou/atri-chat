@@ -3,7 +3,6 @@
  * 
  * 提供一些独立的 VRM 相关工具函数，用于非核心播放场景
  */
-import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { Logger } from './logger';
