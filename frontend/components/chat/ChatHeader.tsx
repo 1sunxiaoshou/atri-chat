@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Bot, RotateCcw, Menu } from 'lucide-react';
+import { Bot, Menu, Settings } from 'lucide-react';
 import { Character, Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import Select from '../ui/Select';
-import ModelConfigPopover from './ModelConfigPopover';
 import { buildAvatarUrl } from '../../utils/url';
 
 interface ChatHeaderProps {
@@ -16,6 +15,7 @@ interface ChatHeaderProps {
   onVrmDisplayModeChange: (mode: 'normal' | 'vrm' | 'live2d') => void;
   onModelParametersChange: (params: ModelParameters) => void;
   onOpenMobileSidebar?: () => void;
+  onOpenRightSidebar?: () => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -23,11 +23,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   activeModel,
   availableModels,
   vrmDisplayMode,
-  modelParameters,
   onUpdateModel,
   onVrmDisplayModeChange,
-  onModelParametersChange,
-  onOpenMobileSidebar
+  onOpenMobileSidebar,
+  onOpenRightSidebar
 }) => {
   const { t } = useLanguage();
   const [showVrmError, setShowVrmError] = useState(false);
@@ -132,21 +131,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
         </div>
 
-        {/* Model Config - Hidden on mobile */}
-        <div className="hidden md:block">
-          <ModelConfigPopover
-            parameters={modelParameters}
-            onParametersChange={onModelParametersChange}
-            model={activeModel || undefined}
-          />
-        </div>
-
-        {/* Clear Context Button - Hidden on mobile */}
+        {/* Settings Button */}
         <button
-          className="hidden md:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors"
-          title={t('chat.clearContext')}
+          onClick={onOpenRightSidebar}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors"
+          title="模型参数设置"
         >
-          <RotateCcw size={18} />
+          <Settings size={20} />
         </button>
       </div>
     </div>

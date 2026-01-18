@@ -8,6 +8,7 @@ import MessageList from './MessageList';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
 import VRMViewer from './VRMViewer';
+import RightSidebar from './RightSidebar';
 import Toast, { ToastMessage } from '../Toast';
 
 /**
@@ -45,6 +46,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
   const [streamingMessageId] = useState(() => Date.now() + 999999); // 固定的流式消息ID
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
   // 使用自定义 Hooks
   const {
@@ -252,6 +254,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         onVrmDisplayModeChange={handleVrmDisplayModeChange}
         onModelParametersChange={setModelParameters}
         onOpenMobileSidebar={onOpenMobileSidebar}
+        onOpenRightSidebar={() => setIsRightSidebarOpen(true)}
+      />
+
+      {/* Right Sidebar */}
+      <RightSidebar
+        isOpen={isRightSidebarOpen}
+        onClose={() => setIsRightSidebarOpen(false)}
+        activeModel={activeModel}
+        availableModels={availableModels}
+        modelParameters={modelParameters}
+        onUpdateModel={onUpdateModel}
+        onModelParametersChange={setModelParameters}
       />
 
       {/* Messages / VRM View */}
