@@ -26,6 +26,9 @@ const App: React.FC = () => {
   // Mobile Sidebar State
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Desktop Sidebar Collapse State
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+
   // Computed state
   const activeConversation = conversations.find(c => c.conversation_id === activeConversationId);
   const activeCharacter = characters.find(c => c.character_id === activeConversation?.character_id) || null;
@@ -153,6 +156,8 @@ const App: React.FC = () => {
             setIsMobileSidebarOpen(false);
           }}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          isCollapsed={isLeftSidebarCollapsed}
+          onToggleCollapse={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
         />
       </div>
 

@@ -77,25 +77,6 @@ export class ModelManager {
 
       this.currentVrm = vrm;
 
-      // 禁用视锥剔除和描边
-      vrm.scene.traverse((obj: any) => {
-        obj.frustumCulled = false;
-        if (obj.material) {
-          const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
-          materials.forEach((mat: any) => {
-            if (mat.isMToonMaterial) {
-              mat.outlineWidthMode = 'none';
-              mat.outlineWidthFactor = 0;
-              mat.outlineLightingMixFactor = 0;
-              mat.needsUpdate = true;
-            }
-            if (mat.outlineWidth !== undefined) {
-              mat.outlineWidth = 0;
-            }
-          });
-        }
-      });
-
       // 初始化动画混合器
       this.mixer = new THREE.AnimationMixer(vrm.scene);
       Logger.info('✅ 动画混合器已初始化');
