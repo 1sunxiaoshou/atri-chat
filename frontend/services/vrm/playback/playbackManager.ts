@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PlaybackManager - 播放控制管理器
  * 
  * 职责：
@@ -12,6 +12,10 @@ import { AudioSegment, ParsedAudioSegment, TimedMarkup, parseMarkedText } from '
 import { Logger } from '../../../utils/logger';
 
 export class PlaybackManager {
+  // 常量配置
+  private static readonly FALLBACK_DELAY_MS = 1000;
+  private static readonly MARKUP_ONLY_DELAY_MS = 500;
+
   private segments: ParsedAudioSegment[] = [];
   private isPlaying = false;
   private savedExpression: string | null = null; // 保存说话前的表情
@@ -20,6 +24,9 @@ export class PlaybackManager {
   private audioContext: AudioContext | null = null;
   private currentAudioSource: AudioBufferSourceNode | null = null;
   private analyser: AnalyserNode | null = null;
+
+  // 音频缓存（预加载优化）
+  private audioCache: Map<string, AudioBuffer> = new Map();
 
   constructor(
     private modelManager: ModelManager,
@@ -84,6 +91,13 @@ export class PlaybackManager {
     const parsed = this.parseSegment(segment);
     this.segments.push(parsed);
 
+    // 预加载音频（异步，不阻塞）
+    if (parsed.audio_url) {
+      this.prepareAudio(parsed.audio_url).catch(error => {
+        Logger.warn('音频预加载失败', error instanceof Error ? error : undefined);
+      });
+    }
+
     // 如果当前没有播放，自动开始播放
     if (!this.isPlaying && this.segments.length === 1) {
       Logger.debug('收到第一个音频段，开始播放');
@@ -127,15 +141,8 @@ export class PlaybackManager {
         continue;
       }
 
-      // 触发标记（表情、动作）
-      this.triggerMarkups(segment.markups);
-
-      // 更新字幕（如果有文本）
-      if (this.onTextUpdate && segment.text) {
-        this.onTextUpdate(segment.text);
-      }
-
       // 播放音频（如果有音频 URL）
+      // 注意：标记和字幕的触发已移到 playAudioSegment 内部，确保与音频同步
       if (segment.audio_url) {
         try {
           await this.playAudioSegment(segment);
@@ -143,32 +150,81 @@ export class PlaybackManager {
           Logger.error('音频播放失败', error instanceof Error ? error : undefined, { 
             index: segment.sentence_index 
           });
-          // 降级：等待一小段时间后继续
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // 降级：手动触发标记和字幕
+          this.triggerMarkups(segment.markups);
+          if (this.onTextUpdate && segment.text) {
+            this.onTextUpdate(segment.text);
+          }
+          // 等待一小段时间后继续
+          await new Promise(resolve => setTimeout(resolve, PlaybackManager.FALLBACK_DELAY_MS));
         }
       } else {
-        // 没有音频，只有动作标记，等待一小段时间让动作播放
+        // 没有音频，只有动作标记，立即触发
         Logger.debug(`段 ${segment.sentence_index} 仅包含标记，无音频`);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        this.triggerMarkups(segment.markups);
+        if (this.onTextUpdate && segment.text) {
+          this.onTextUpdate(segment.text);
+        }
+        await new Promise(resolve => setTimeout(resolve, PlaybackManager.MARKUP_ONLY_DELAY_MS));
       }
     }
 
     // 播放完成，恢复之前的表情
-    if (this.savedExpression && this.savedExpression !== 'neutral') {
-      Logger.debug(`恢复之前的表情: ${this.savedExpression}`);
-      this.modelManager.setExpression(this.savedExpression);
-    }
-    this.savedExpression = null;
+    this.restoreSavedExpression();
 
     // 清理状态
     this.isPlaying = false;
     this.segments = [];
+    this.clearAudioCache();
     
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
 
     Logger.debug('PlaybackManager: VRM音频播放完成');
+  }
+
+  /**
+   * 清空音频缓存
+   */
+  private clearAudioCache(): void {
+    if (this.audioCache.size > 0) {
+      Logger.debug(`清空音频缓存，共 ${this.audioCache.size} 个`);
+      this.audioCache.clear();
+    }
+  }
+
+  /**
+   * 预加载音频（不播放）
+   */
+  private async prepareAudio(audioUrl: string): Promise<AudioBuffer> {
+    if (!this.audioContext) {
+      throw new Error('音频上下文未初始化');
+    }
+
+    // 检查缓存（仅在当前播放会话内有效）
+    if (this.audioCache.has(audioUrl)) {
+      Logger.debug('使用缓存的音频', { url: audioUrl });
+      return this.audioCache.get(audioUrl)!;
+    }
+
+    // 获取音频数据
+    const response = await fetch(audioUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+
+    // 解码音频
+    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+
+    // 缓存音频（仅用于当前播放会话）
+    this.audioCache.set(audioUrl, audioBuffer);
+
+    Logger.debug('音频预加载完成', { url: audioUrl, duration: audioBuffer.duration });
+
+    return audioBuffer;
   }
 
   /**
@@ -183,86 +239,98 @@ export class PlaybackManager {
       throw new Error('音频 URL 为空');
     }
 
-    return new Promise(async (resolve, reject) => {
+    // 停止之前的音频
+    this.stopCurrentAudio();
+
+    try {
+      // 预加载并解码音频（在触发标记前完成）
+      const audioBuffer = await this.prepareAudio(segment.audio_url);
+
+      // 检查是否还在播放状态
+      if (!this.isPlaying) {
+        throw new Error('播放已停止');
+      }
+
+      // 音频准备完成，触发标记和字幕（确保同步）
+      this.triggerMarkups(segment.markups);
+      if (this.onTextUpdate && segment.text) {
+        this.onTextUpdate(segment.text);
+      }
+
+      // 播放音频
+      await this.playAudioBuffer(audioBuffer, segment);
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 停止当前音频
+   */
+  private stopCurrentAudio(): void {
+    if (this.currentAudioSource) {
       try {
-        // 停止之前的音频
-        if (this.currentAudioSource) {
-          try {
-            this.currentAudioSource.stop();
-          } catch (e) {
-            // 忽略已经停止的错误
-          }
+        this.currentAudioSource.stop();
+      } catch (e) {
+        // 忽略已经停止的错误
+      }
+      this.currentAudioSource = null;
+    }
+  }
+
+  /**
+   * 播放音频缓冲区
+   */
+  private playAudioBuffer(audioBuffer: AudioBuffer, segment: ParsedAudioSegment): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.audioContext) {
+        reject(new Error('音频上下文未初始化'));
+        return;
+      }
+
+      // 创建音频源
+      const source = this.audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      this.currentAudioSource = source;
+
+      // 连接到分析器和输出（用于口型同步）
+      if (this.analyser) {
+        source.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+      } else {
+        source.connect(this.audioContext.destination);
+      }
+
+      // 播放完成回调
+      source.onended = () => {
+        if (this.currentAudioSource === source) {
           this.currentAudioSource = null;
         }
+        resolve();
+      };
 
-        // 获取音频数据
-        const response = await fetch(segment.audio_url!);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // 立即开始播放（与标记、字幕同步）
+      source.start();
+
+      Logger.debug(`同步播放音频段: ${segment.sentence_index}`, {
+        text: segment.text,
+        duration: audioBuffer.duration
+      });
+
+      // 设置超时保护（音频时长 + 5秒缓冲）
+      const TIMEOUT_BUFFER = 5000;
+      const timeoutId = setTimeout(() => {
+        if (this.currentAudioSource === source) {
+          this.stopCurrentAudio();
         }
+        resolve();
+      }, (audioBuffer.duration * 1000) + TIMEOUT_BUFFER);
 
-        const arrayBuffer = await response.arrayBuffer();
-
-        // 解码音频
-        const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
-
-        // 创建音频源
-        const source = this.audioContext!.createBufferSource();
-        source.buffer = audioBuffer;
-        this.currentAudioSource = source;
-
-        // 连接到分析器和输出（用于口型同步）
-        if (this.analyser) {
-          source.connect(this.analyser);
-          this.analyser.connect(this.audioContext!.destination);
-        } else {
-          source.connect(this.audioContext!.destination);
-        }
-
-        // 播放完成回调
-        source.onended = () => {
-          if (this.currentAudioSource === source) {
-            this.currentAudioSource = null;
-          }
-          resolve();
-        };
-
-        // 检查是否还在播放状态
-        if (!this.isPlaying) {
-          reject(new Error('播放已停止'));
-          return;
-        }
-
-        // 开始播放
-        source.start();
-
-        Logger.debug(`开始播放音频段: ${segment.sentence_index}`, {
-          text: segment.text,
-          url: segment.audio_url
-        });
-
-        // 设置超时保护（音频时长 + 5秒缓冲）
-        const duration = audioBuffer.duration;
-        const timeoutId = setTimeout(() => {
-          if (this.currentAudioSource === source) {
-            try {
-              source.stop();
-            } catch (e) {
-              // 忽略已经停止的错误
-            }
-            this.currentAudioSource = null;
-          }
-          resolve();
-        }, (duration * 1000) + 5000);
-
-        // 清理超时
-        source.addEventListener('ended', () => {
-          clearTimeout(timeoutId);
-        });
-
-      } catch (error) {
-        reject(error);
-      }
+      // 清理超时
+      source.addEventListener('ended', () => {
+        clearTimeout(timeoutId);
+      });
     });
   }
 
@@ -339,28 +407,31 @@ export class PlaybackManager {
     this.isPlaying = false;
 
     // 停止当前音频
-    if (this.currentAudioSource) {
-      try {
-        this.currentAudioSource.stop();
-      } catch (e) {
-        // 忽略已经停止的错误
-      }
-      this.currentAudioSource = null;
-    }
+    this.stopCurrentAudio();
 
     // 清空段队列
     this.segments = [];
 
+    // 清空音频缓存
+    this.clearAudioCache();
+
     // 恢复之前的表情（如果有）
-    if (this.savedExpression && this.savedExpression !== 'neutral') {
-      Logger.debug(`停止播放，恢复之前的表情: ${this.savedExpression}`);
-      this.modelManager.setExpression(this.savedExpression);
-    }
-    this.savedExpression = null;
+    this.restoreSavedExpression();
     
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
+  }
+
+  /**
+   * 恢复保存的表情
+   */
+  private restoreSavedExpression(): void {
+    if (this.savedExpression && this.savedExpression !== 'neutral') {
+      Logger.debug(`恢复之前的表情: ${this.savedExpression}`);
+      this.modelManager.setExpression(this.savedExpression);
+    }
+    this.savedExpression = null;
   }
 
   /**
@@ -370,6 +441,9 @@ export class PlaybackManager {
     Logger.debug('PlaybackManager: 销毁播放管理器');
 
     this.stop();
+
+    // 清空音频缓存
+    this.audioCache.clear();
 
     if (this.audioContext) {
       this.audioContext.close();

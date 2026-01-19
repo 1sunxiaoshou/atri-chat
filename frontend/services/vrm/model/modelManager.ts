@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ModelManager - 模型动画管理器
  * 
  * 职责：
@@ -39,7 +39,7 @@ export class ModelManager {
   private frameHook: ((vrm: VRM, delta: number) => void) | null = null;
 
   constructor(private sceneManager: SceneManager) {
-    Logger.debug('ModelManager: 初始化模型管理器');
+    // 初始化日志已删除，太冗余
   }
 
   /**
@@ -50,7 +50,7 @@ export class ModelManager {
     loader.register((parser) => new VRMLoaderPlugin(parser));
 
     try {
-      Logger.info('🚀 ModelManager.loadModel 开始执行', { url });
+      Logger.debug('ModelManager.loadModel 开始执行', { url });
 
       const gltf = await loader.loadAsync(url);
       const vrm = gltf.userData.vrm;
@@ -88,14 +88,14 @@ export class ModelManager {
       // 初始化自动眨眼（独立于表情控制器）
       if (vrm.expressionManager) {
         this.autoBlink = new AutoBlink(vrm.expressionManager);
-        Logger.info('✅ 自动眨眼已初始化');
+        Logger.debug('自动眨眼已初始化');
       } else {
         Logger.warn('⚠️ VRM 没有 expressionManager，无法初始化眨眼');
       }
 
       // 初始化自动视线跟踪
       this.autoLookAt = new AutoLookAt(vrm, this.sceneManager.getCamera());
-      Logger.info('✅ 自动视线跟踪已初始化');
+      Logger.debug('自动视线跟踪已初始化');
 
       // 注册更新回调 - 完全按照 Airi 的顺序
       this.updateCallback = (delta: number) => {
@@ -154,7 +154,7 @@ export class ModelManager {
       };
       this.sceneManager.registerUpdateCallback(this.updateCallback);
 
-      Logger.info('✅ 更新回调已注册', {
+      Logger.debug('更新回调已注册', {
         hasMixer: !!this.mixer,
         hasEmoteController: !!this.emoteController,
         hasAutoBlink: !!this.autoBlink,

@@ -1,4 +1,4 @@
-"""统一存储层"""
+﻿"""统一存储层"""
 import json
 import sqlite3
 from datetime import datetime
@@ -17,7 +17,6 @@ class AppStorage:
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or get_app_db_path()
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"初始化 AppStorage", extra={"db_path": self.db_path})
         self._init_db()
     
     def _init_db(self):
@@ -427,10 +426,9 @@ class AppStorage:
                 )
                 conn.commit()
                 character_id = cursor.lastrowid
-                logger.info(f"添加角色成功", extra={"character_id": character_id, "name": name})
                 return character_id
         except sqlite3.IntegrityError as e:
-            logger.error(f"添加角色失败", extra={"name": name, "error": str(e)})
+            logger.error(f"添加角色失败: {e}")
             return None
     
     def get_character(self, character_id: int) -> Optional[Dict[str, Any]]:
@@ -526,10 +524,9 @@ class AppStorage:
                 )
                 conn.commit()
                 conversation_id = cursor.lastrowid
-                logger.info(f"创建会话成功", extra={"conversation_id": conversation_id, "character_id": character_id, "title": title})
                 return conversation_id
         except sqlite3.IntegrityError as e:
-            logger.error(f"创建会话失败", extra={"character_id": character_id, "error": str(e)})
+            logger.error(f"创建会话失败: {e}")
             return None
     
     def get_conversation(self, conversation_id: int) -> Optional[Dict[str, Any]]:
@@ -619,18 +616,9 @@ class AppStorage:
                 )
                 conn.commit()
                 message_id = cursor.lastrowid
-                logger.debug(
-                    f"添加{message_type}消息成功",
-                    extra={
-                        "message_id": message_id,
-                        "conversation_id": conversation_id,
-                        "message_type": message_type,
-                        "content_length": len(content)
-                    }
-                )
                 return message_id
         except sqlite3.IntegrityError as e:
-            logger.error(f"添加消息失败", extra={"conversation_id": conversation_id, "error": str(e)})
+            logger.error(f"添加消息失败: {e}")
             return None
     
     def get_message(self, message_id: int) -> Optional[Dict[str, Any]]:
@@ -713,8 +701,7 @@ class AppStorage:
                     (vrm_model_id, name, filename, thumbnail_filename, available_expressions)
                 )
                 conn.commit()
-                logger.info(f"添加VRM模型成功", extra={"vrm_model_id": vrm_model_id, "name": name, "filename": filename})
-            return True
+                return True
         except sqlite3.IntegrityError as e:
             logger.error(f"添加VRM模型失败", extra={"vrm_model_id": vrm_model_id, "error": str(e)})
             return False
@@ -777,7 +764,6 @@ class AppStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(query, params)
             conn.commit()
-            logger.info(f"更新VRM模型", extra={"vrm_model_id": vrm_model_id, "updated_fields": list(filtered_updates.keys())})
             return cursor.rowcount > 0
     
     def delete_vrm_model(self, vrm_model_id: str) -> bool:
@@ -787,8 +773,7 @@ class AppStorage:
             conn.commit()
             deleted = cursor.rowcount > 0
             if deleted:
-                logger.info(f"删除VRM模型成功", extra={"vrm_model_id": vrm_model_id})
-            return deleted
+                return deleted
     
     # ==================== VRM动作管理 ====================
     
@@ -816,8 +801,7 @@ class AppStorage:
                     (animation_id, name, name_cn, description, duration)
                 )
                 conn.commit()
-                logger.info(f"添加VRM动作成功", extra={"animation_id": animation_id, "name": name, "name_cn": name_cn})
-            return True
+                return True
         except sqlite3.IntegrityError as e:
             logger.error(f"添加VRM动作失败", extra={"animation_id": animation_id, "error": str(e)})
             return False
@@ -872,7 +856,6 @@ class AppStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(query, params)
             conn.commit()
-            logger.info(f"更新VRM动作", extra={"animation_id": animation_id, "updated_fields": list(filtered_updates.keys())})
             return cursor.rowcount > 0
     
     def delete_vrm_animation(self, animation_id: str) -> bool:
@@ -882,8 +865,7 @@ class AppStorage:
             conn.commit()
             deleted = cursor.rowcount > 0
             if deleted:
-                logger.info(f"删除VRM动作成功", extra={"animation_id": animation_id})
-            return deleted
+                return deleted
     
     # ==================== 模型-动作关联管理 ====================
     
@@ -901,8 +883,7 @@ class AppStorage:
                     (vrm_model_id, animation_id)
                 )
                 conn.commit()
-                logger.info(f"添加模型动作关联", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
-            return True
+                return True
         except sqlite3.IntegrityError as e:
             logger.error(f"添加模型动作关联失败", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id, "error": str(e)})
             return False
@@ -922,8 +903,7 @@ class AppStorage:
             conn.commit()
             deleted = cursor.rowcount > 0
             if deleted:
-                logger.info(f"移除模型动作关联", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
-            return deleted
+                return deleted
     
     def get_model_animations(self, vrm_model_id: str) -> List[Dict[str, Any]]:
         """获取模型的所有动作（包含完整动作信息）
@@ -1018,7 +998,6 @@ class AppStorage:
                     logger.warning(f"动作已存在，跳过", extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id})
             conn.commit()
         
-        logger.info(f"批量添加模型动作", extra={"vrm_model_id": vrm_model_id, "total": len(animation_ids), "success": success_count})
         return success_count
     
     def batch_remove_model_animations(self, vrm_model_id: str, animation_ids: List[str]) -> int:
@@ -1040,6 +1019,5 @@ class AppStorage:
             conn.commit()
             removed_count = cursor.rowcount
         
-        logger.info(f"批量移除模型动作", extra={"vrm_model_id": vrm_model_id, "removed": removed_count})
         return removed_count
 

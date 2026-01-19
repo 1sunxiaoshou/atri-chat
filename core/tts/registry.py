@@ -26,7 +26,6 @@ class TTSRegistry:
         """
         def decorator(provider_class):
             cls._providers[provider_id] = (provider_class, name)
-            logger.debug(f"TTS 服务商已注册", extra={"provider": provider_id, "name": name})
             return provider_class
         return decorator
     

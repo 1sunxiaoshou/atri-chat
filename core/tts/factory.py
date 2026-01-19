@@ -46,7 +46,6 @@ class TTSFactory:
         if config is not None:
             if not provider:
                 raise ValueError("使用自定义配置时必须指定 provider")
-            logger.debug(f"创建临时 TTS 实例", extra={"provider": provider})
             return TTSRegistry.get_provider_class(provider)(config)
         
         # 场景2：从数据库加载配置
@@ -55,7 +54,6 @@ class TTSFactory:
             if not active:
                 raise ValueError("未设置活动的 TTS 服务商，请先配置")
             provider, config = active
-            logger.debug(f"使用活动的 TTS 服务商", extra={"provider": provider})
         else:
             config = self.config_service.get_provider_config(provider)
             if not config:
@@ -64,14 +62,13 @@ class TTSFactory:
         # 检查缓存
         config_version = json.dumps(config, sort_keys=True)
         if provider in self._instances and self._config_versions.get(provider) == config_version:
-            logger.debug(f"使用缓存的 TTS 实例", extra={"provider": provider})
             return self._instances[provider]
         
         # 创建新实例
         if provider in self._instances:
-            logger.info(f"配置已变化，重新创建实例", extra={"provider": provider})
+            logger.info(f"TTS 配置变更，重新创建实例: {provider}")
         else:
-            logger.info(f"创建新 TTS 实例", extra={"provider": provider})
+            logger.info(f"首次创建 TTS 实例: {provider}")
         
         instance = TTSRegistry.get_provider_class(provider)(config)
         self._instances[provider] = instance
@@ -91,10 +88,6 @@ class TTSFactory:
         if provider:
             self._instances.pop(provider, None)
             self._config_versions.pop(provider, None)
-            logger.info(f"已清除缓存", extra={"provider": provider})
         else:
-            count = len(self._instances)
             self._instances.clear()
             self._config_versions.clear()
-            if count > 0:
-                logger.info(f"已清除所有 TTS 实例缓存", extra={"count": count})

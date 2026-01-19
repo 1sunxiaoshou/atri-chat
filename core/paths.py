@@ -33,8 +33,6 @@ class PathManager:
         
         # 从环境变量读取配置（如果存在）
         self._load_from_env()
-        
-        logger.info(f"路径管理器初始化", extra={"base_dir": str(self.base_dir)})
     
     def _load_from_env(self):
         """从环境变量加载路径配置"""
@@ -75,7 +73,6 @@ class PathManager:
         """
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
-            logger.debug(f"创建目录: {description}", extra={"path": str(path)})
         return path
     
     # ==================== 核心目录 ====================

@@ -36,8 +36,6 @@ async def list_vrm_animations(
     try:
         animations = storage.list_vrm_animations()
         
-        logger.debug("获取VRM动作列表", extra={"count": len(animations)})
-        
         return ResponseModel(
             code=200,
             message="获取成功",
@@ -60,8 +58,6 @@ async def get_vrm_animation(
         
         if not animation:
             raise HTTPException(status_code=404, detail="VRM动作不存在")
-        
-        logger.debug("获取VRM动作详情", extra={"animation_id": animation_id})
         
         return ResponseModel(
             code=200,
@@ -98,8 +94,6 @@ async def update_vrm_animation(
         
         if not success:
             raise HTTPException(status_code=400, detail="更新失败")
-        
-        logger.info("更新VRM动作成功", extra={"animation_id": animation_id})
         
         return ResponseModel(
             code=200,
@@ -155,15 +149,6 @@ async def upload_vrm_animation(
             file_path.unlink(missing_ok=True)
             raise HTTPException(status_code=500, detail="保存动作到数据库失败")
         
-        logger.info(
-            "上传VRM动作成功",
-            extra={
-                "animation_id": animation_id,
-                "name": name,
-                "size": len(content)
-            }
-        )
-        
         return ResponseModel(
             code=200,
             message="上传成功",
@@ -196,8 +181,6 @@ async def delete_vrm_animation(
         if not success:
             raise HTTPException(status_code=400, detail="删除失败")
         
-        logger.info("删除VRM动作成功", extra={"animation_id": animation_id})
-        
         return ResponseModel(
             code=200,
             message="VRM动作删除成功"
@@ -223,8 +206,6 @@ async def get_animation_models(
             raise HTTPException(status_code=404, detail="VRM动作不存在")
         
         models = storage.get_animation_models(animation_id)
-        
-        logger.debug("获取动作关联的模型", extra={"animation_id": animation_id, "count": len(models)})
         
         return ResponseModel(
             code=200,

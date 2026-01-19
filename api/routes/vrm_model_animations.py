@@ -54,11 +54,6 @@ async def add_model_animation(
         if not success:
             raise HTTPException(status_code=400, detail="动作已关联到该模型")
         
-        logger.info(
-            "添加模型动作关联成功",
-            extra={"vrm_model_id": vrm_model_id, "animation_id": request.animation_id}
-        )
-        
         return ResponseModel(
             code=200,
             message="动作添加成功"
@@ -86,15 +81,6 @@ async def batch_add_model_animations(
         
         # 批量添加
         success_count = storage.batch_add_model_animations(vrm_model_id, request.animation_ids)
-        
-        logger.info(
-            "批量添加模型动作",
-            extra={
-                "vrm_model_id": vrm_model_id,
-                "total": len(request.animation_ids),
-                "success": success_count
-            }
-        )
         
         return ResponseModel(
             code=200,
@@ -203,11 +189,6 @@ async def get_model_animations(
         
         animations = storage.get_model_animations(vrm_model_id)
         
-        logger.debug(
-            "获取模型动作列表",
-            extra={"vrm_model_id": vrm_model_id, "count": len(animations)}
-        )
-        
         return ResponseModel(
             code=200,
             message="获取成功",
@@ -241,11 +222,6 @@ async def remove_model_animation(
         if not success:
             raise HTTPException(status_code=404, detail="该动作未关联到模型")
         
-        logger.info(
-            "移除模型动作关联成功",
-            extra={"vrm_model_id": vrm_model_id, "animation_id": animation_id}
-        )
-        
         return ResponseModel(
             code=200,
             message="动作移除成功"
@@ -273,15 +249,6 @@ async def batch_remove_model_animations(
         
         # 批量移除
         removed_count = storage.batch_remove_model_animations(vrm_model_id, request.animation_ids)
-        
-        logger.info(
-            "批量移除模型动作",
-            extra={
-                "vrm_model_id": vrm_model_id,
-                "total": len(request.animation_ids),
-                "removed": removed_count
-            }
-        )
         
         return ResponseModel(
             code=200,

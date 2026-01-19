@@ -9,7 +9,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from core.logger import get_logger, get_log_level
+from core.logger import get_logger, get_log_level, get_environment
 from core.middleware.logging_middleware import LoggingMiddleware
 from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
 from core.paths import get_path_manager
@@ -18,14 +18,38 @@ from api.routes import (
     vrm_models, vrm_animations, vrm_model_animations
 )
 
-logger = get_logger(__name__, category="GENERAL")
+logger = get_logger(__name__, category="SYSTEM")
+
+
+def print_startup_banner():
+    """打印启动信息"""
+    env = get_environment()
+    env_display = {
+        "development": "🔧 开发环境",
+        "production": "🚀 生产环境",
+        "staging": "🧪 测试环境"
+    }.get(env, env)
+    
+    banner = f"""
+╭─────────────────────────────────────────────╮
+│  VRM Chat Assistant                         │
+│  Version: 1.0.0                             │
+├─────────────────────────────────────────────┤
+│  Environment: {env_display: <28} │
+│  Log Level:   {get_log_level(): <28} │
+├─────────────────────────────────────────────┤
+│  API Server:  http://localhost:8000         │
+│  API Docs:    http://localhost:8000/docs    │
+╰─────────────────────────────────────────────╯
+"""
+    print(banner)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动
-    logger.info(f"初始化系统... (日志级别: {get_log_level()})")
+    print_startup_banner()
     
     # 预热单例实例（触发初始化）
     get_app_storage()
@@ -33,17 +57,17 @@ async def lifespan(app: FastAPI):
     # 初始化 AsyncSqliteSaver
     await init_checkpointer()
     
-    logger.info("✓ 系统初始化完成")   
+    logger.success("✓ 系统初始化完成")   
 
     yield
     
     # 关闭
-    logger.info("关闭系统...")
+    logger.info("正在关闭系统...")
     
     # 关闭 checkpointer
     await close_checkpointer()
     
-    logger.info("✓ 系统已关闭")
+    logger.success("✓ 系统已关闭")
 
 
 # 创建 FastAPI 应用
@@ -100,13 +124,20 @@ app.include_router(upload.router, prefix="/api", tags=["upload"])
 if __name__ == "__main__":
     import uvicorn
     import sys
+    from core.config import get_config
+    
+    config = get_config()
+    
+    # 根据环境配置 uvicorn 日志级别
+    uvicorn_log_level = "warning" if config.is_production else "warning"  # 统一使用 warning，减少噪音
     
     try:
         uvicorn.run(
             app, 
             host="0.0.0.0", 
             port=8000,
-            log_level="info"
+            log_level=uvicorn_log_level,
+            access_log=False  # 禁用 uvicorn 的访问日志，使用我们自己的中间件
         )
     except KeyboardInterrupt:
         logger.info("收到停止信号，正在关闭...")

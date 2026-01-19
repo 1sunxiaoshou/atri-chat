@@ -1,6 +1,6 @@
 import { ApiResponse, ErrorType } from '../../types';
 import { HTTP_STATUS, API_CONFIG } from '../../utils/constants';
-import { Logger } from '../../utils/logger';
+import { Logger, LogCategory } from '../../utils/logger';
 
 /**
  * 基础 HTTP 客户端类
@@ -91,7 +91,7 @@ export class HttpClient {
         status: response.status,
         errorType,
         details: errorDetails
-      });
+      }, LogCategory.API);
       
       return {
         code: response.status,
@@ -101,7 +101,7 @@ export class HttpClient {
     }
     
     const jsonData = await response.json();
-    Logger.debug('API 响应成功', { url: response.url, data: jsonData });
+    Logger.debug('API 响应成功', { url: response.url, data: jsonData }, LogCategory.API);
     return jsonData;
   }
 
@@ -129,7 +129,7 @@ export class HttpClient {
       Logger.error(`网络请求异常: ${endpoint}`, error instanceof Error ? error : new Error(errorMessage), {
         endpoint,
         errorType
-      });
+      }, LogCategory.NETWORK);
       
       return {
         code: 0,
