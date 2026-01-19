@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { Message, Character, Model, ModelParameters } from '../types';
 import { api } from '../services/api/index';
 import { MESSAGE_ID_CONFIG, HTTP_STATUS } from '../utils/constants';
@@ -27,7 +27,7 @@ export const useChat = () => {
         // 确保 response.data 是数组
         const messagesData = Array.isArray(response.data) ? response.data : [];
         setMessages(messagesData);
-        Logger.info(`加载了 ${messagesData.length} 条消息`);
+        Logger.debug(`加载了 ${messagesData.length} 条消息`);
       } else {
         const errorMsg = response.message || '加载消息失败';
         Logger.error('加载消息失败', undefined, { errorMsg });
@@ -120,7 +120,7 @@ export const useChat = () => {
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-        Logger.info('消息发送成功');
+        Logger.debug('消息发送成功');
       } else {
         const errorMsg = response.message || '发送消息失败';
         Logger.error('发送消息失败', undefined, { errorMsg });

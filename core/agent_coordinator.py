@@ -54,8 +54,6 @@ class AgentCoordinator:
         
         # 创建单个 Agent 实例
         self.agent = self._create_agent()
-        
-        logger.info("AgentCoordinator 初始化完成")
     
     def _create_agent(self):
         """创建 Agent（使用动态中间件）
@@ -167,8 +165,8 @@ class AgentCoordinator:
     
     async def start_services(self):
         """启动后台服务"""
-        logger.info("启动 AgentCoordinator 后台服务")
+        pass
     
     async def stop_services(self):
         """停止后台服务"""
-        logger.info("停止 AgentCoordinator 后台服务")
+        pass

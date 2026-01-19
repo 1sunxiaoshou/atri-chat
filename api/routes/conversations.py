@@ -131,14 +131,6 @@ async def get_conversation_history(
     logger = get_logger(__name__, category="API")
     
     try:
-        logger.info(
-            "获取会话历史",
-            extra={
-                "conversation_id": conversation_id,
-                "from_checkpoint": from_checkpoint
-            }
-        )
-        
         if from_checkpoint:
             config = {"configurable": {"thread_id": str(conversation_id)}}
             checkpoint_tuple = agent_manager.checkpointer.get_tuple(config)
@@ -151,14 +143,6 @@ async def get_conversation_history(
         else:
             messages = app_storage.list_messages(conversation_id)
             
-        logger.debug(
-            "会话历史获取成功",
-            extra={
-                "conversation_id": conversation_id,
-                "message_count": len(messages)
-            }
-        )
-            
         return ResponseModel(
             code=200,
             message="获取成功",
@@ -168,14 +152,7 @@ async def get_conversation_history(
             }
         )
     except Exception as e:
-        logger.error(
-            "获取会话历史失败",
-            extra={
-                "conversation_id": conversation_id,
-                "error": str(e)
-            },
-            exc_info=True
-        )
+        logger.error(f"获取会话历史失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -192,15 +169,6 @@ async def clear_conversation_history(
     logger = get_logger(__name__, category="API")
     
     try:
-        logger.info(
-            "清空会话历史",
-            extra={
-                "conversation_id": conversation_id,
-                "clear_checkpoint": clear_checkpoint,
-                "clear_messages": clear_messages
-            }
-        )
-        
         result = {"checkpoint_cleared": 0, "messages_deleted": 0}
         
         if clear_checkpoint:
@@ -211,26 +179,11 @@ async def clear_conversation_history(
             count = app_storage.delete_messages_by_conversation(conversation_id)
             result["messages_deleted"] = count
             
-        logger.info(
-            "会话历史清空成功",
-            extra={
-                "conversation_id": conversation_id,
-                "result": result
-            }
-        )
-            
         return ResponseModel(
             code=200,
             message="清空成功",
             data=result
         )
     except Exception as e:
-        logger.error(
-            "清空会话历史失败",
-            extra={
-                "conversation_id": conversation_id,
-                "error": str(e)
-            },
-            exc_info=True
-        )
+        logger.error(f"清空会话历史失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

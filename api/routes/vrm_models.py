@@ -42,9 +42,7 @@ async def list_vrm_models(
         for model in models:
             model["model_path"] = path_manager.build_vrm_model_url(model["filename"])
             model["thumbnail_path"] = path_manager.build_vrm_thumbnail_url(model.get("thumbnail_filename"))
-        
-        logger.debug("获取VRM模型列表", extra={"count": len(models)})
-        
+
         return {
             "code": 200,
             "message": "获取成功",
@@ -77,14 +75,6 @@ async def get_vrm_model(
         # 获取关联的动画数据（已包含完整路径）
         animations = storage.get_model_animations(vrm_model_id)
         model["animations"] = animations
-        
-        logger.debug(
-            "获取VRM模型详情", 
-            extra={
-                "vrm_model_id": vrm_model_id,
-                "animation_count": len(animations)
-            }
-        )
         
         return {
             "code": 200,
@@ -121,8 +111,6 @@ async def update_vrm_model(
         
         if not success:
             raise HTTPException(status_code=400, detail="更新失败")
-        
-        logger.info("更新VRM模型成功", extra={"vrm_model_id": vrm_model_id})
         
         # 获取更新后的模型并添加 URL 路径
         updated_model = storage.get_vrm_model(vrm_model_id)
@@ -173,14 +161,6 @@ async def upload_vrm_model(
             import json
             try:
                 expressions = json.loads(available_expressions)
-                logger.info(
-                    f"接收到VRM表情列表",
-                    extra={
-                        "vrm_model_id": vrm_model_id,
-                        "expression_count": len(expressions),
-                        "expressions": expressions
-                    }
-                )
             except json.JSONDecodeError:
                 logger.warning(f"表情列表JSON解析失败", extra={"vrm_model_id": vrm_model_id})
         else:
@@ -203,8 +183,6 @@ async def upload_vrm_model(
             with open(thumbnail_file_path, 'wb') as f:
                 thumbnail_content = await thumbnail.read()
                 f.write(thumbnail_content)
-            
-            logger.info("保存缩略图成功", extra={"thumbnail_filename": thumbnail_filename})
         
         # 保存到数据库（只存储文件名和表情列表）
         success = storage.add_vrm_model(
@@ -221,17 +199,6 @@ async def upload_vrm_model(
             if thumbnail_filename:
                 thumbnail_file_path.unlink(missing_ok=True)
             raise HTTPException(status_code=500, detail="保存到数据库失败")
-        
-        logger.info(
-            "上传VRM模型成功",
-            extra={
-                "vrm_model_id": vrm_model_id,
-                "name": name,
-                "filename": filename,
-                "size": len(content),
-                "has_thumbnail": thumbnail_filename is not None
-            }
-        )
         
         return {
             "code": 200,
@@ -263,33 +230,15 @@ async def delete_vrm_model(
         
         path_manager = get_path_manager()
         
-        logger.info(
-            "准备删除VRM模型",
-            extra={
-                "vrm_model_id": vrm_model_id,
-                "filename": existing.get("filename"),
-                "thumbnail_filename": existing.get("thumbnail_filename")
-            }
-        )
-        
         # 先删除文件，再删除数据库记录（这样如果文件删除失败，数据库记录还在）
         deleted_files = []
         
         # 删除模型文件
         try:
             model_file_path = path_manager.get_vrm_model_path(existing["filename"])
-            logger.debug(
-                "尝试删除模型文件",
-                extra={
-                    "filename": existing["filename"],
-                    "full_path": str(model_file_path),
-                    "exists": model_file_path.exists()
-                }
-            )
             if model_file_path.exists():
                 model_file_path.unlink()
                 deleted_files.append("model")
-                logger.info("删除模型文件成功", extra={"path": str(model_file_path)})
             else:
                 logger.warning("模型文件不存在，跳过删除", extra={"path": str(model_file_path)})
         except Exception as e:
@@ -299,18 +248,9 @@ async def delete_vrm_model(
         if existing.get("thumbnail_filename"):
             try:
                 thumbnail_file_path = path_manager.get_vrm_thumbnail_path(existing["thumbnail_filename"])
-                logger.debug(
-                    "尝试删除缩略图文件",
-                    extra={
-                        "thumbnail_filename": existing["thumbnail_filename"],
-                        "full_path": str(thumbnail_file_path),
-                        "exists": thumbnail_file_path.exists()
-                    }
-                )
                 if thumbnail_file_path.exists():
                     thumbnail_file_path.unlink()
                     deleted_files.append("thumbnail")
-                    logger.info("删除缩略图文件成功", extra={"path": str(thumbnail_file_path)})
                 else:
                     logger.warning("缩略图文件不存在，跳过删除", extra={"path": str(thumbnail_file_path)})
             except Exception as e:
@@ -321,14 +261,6 @@ async def delete_vrm_model(
         
         if not success:
             raise HTTPException(status_code=400, detail="删除数据库记录失败")
-        
-        logger.info(
-            "删除VRM模型成功",
-            extra={
-                "vrm_model_id": vrm_model_id,
-                "deleted_files": deleted_files
-            }
-        )
         
         return {
             "code": 200,

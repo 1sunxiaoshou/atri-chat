@@ -9,6 +9,19 @@ export enum LogLevel {
 }
 
 /**
+ * 日志分类枚举（与后端对齐）
+ */
+export enum LogCategory {
+  SYSTEM = 'SYSTEM',      // 系统级别
+  API = 'API',            // API 请求
+  BUSINESS = 'BUSINESS',  // 业务逻辑
+  UI = 'UI',              // 用户交互
+  NETWORK = 'NETWORK',    // 网络请求
+  PERFORMANCE = 'PERFORMANCE', // 性能监控
+  GENERAL = 'GENERAL'     // 通用
+}
+
+/**
  * 日志配置接口
  */
 interface LoggerConfig {
@@ -16,12 +29,13 @@ interface LoggerConfig {
   minLevel: LogLevel;
   enableTimestamp: boolean;
   enableStackTrace: boolean;
+  enableReport: boolean;
+  enablePerformance: boolean;
 }
 
 /**
  * 日志工具类
- * 提供统一的日志记录功能，支持不同级别的日志输出
- * 在生产环境中可以控制日志输出级别
+ * 提供统一的日志记录功能，支持不同级别和分类的日志输出
  */
 class LoggerClass {
   private config: LoggerConfig;
@@ -33,15 +47,46 @@ class LoggerClass {
   };
 
   constructor() {
-    // 根据环境变量判断是否为生产环境
-    const isProduction = import.meta.env.PROD;
+    // 根据环境变量配置
+    const isDev = import.meta.env.DEV;
+    const logLevel = (import.meta.env.VITE_LOG_LEVEL || (isDev ? 'DEBUG' : 'WARN')) as LogLevel;
     
     this.config = {
       enabled: true,
-      minLevel: isProduction ? LogLevel.WARN : LogLevel.DEBUG,
+      minLevel: logLevel,
       enableTimestamp: true,
-      enableStackTrace: !isProduction
+      enableStackTrace: isDev,
+      enableReport: import.meta.env.VITE_ENABLE_LOG_REPORT === 'true',
+      enablePerformance: import.meta.env.VITE_ENABLE_PERFORMANCE === 'true'
     };
+
+    // 启动时输出环境信息
+    if (isDev) {
+      this.logStartupBanner();
+    }
+  }
+
+  /**
+   * 输出启动横幅
+   */
+  private logStartupBanner(): void {
+    const appName = import.meta.env.VITE_APP_NAME || 'VRM Chat Assistant';
+    const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
+    const env = import.meta.env.MODE;
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+    console.log(
+      `%c╭─────────────────────────────────────────────╮\n` +
+      `│  ${appName.padEnd(42)} │\n` +
+      `│  Version: ${appVersion.padEnd(34)} │\n` +
+      `├─────────────────────────────────────────────┤\n` +
+      `│  Environment: ${env.padEnd(28)} │\n` +
+      `│  Log Level:   ${this.config.minLevel.padEnd(28)} │\n` +
+      `├─────────────────────────────────────────────┤\n` +
+      `│  API Server:  ${apiUrl.padEnd(28)} │\n` +
+      `╰─────────────────────────────────────────────╯`,
+      'color: #00d4aa; font-weight: bold;'
+    );
   }
 
   /**
@@ -64,15 +109,17 @@ class LoggerClass {
   /**
    * 格式化日志消息
    */
-  private formatMessage(level: LogLevel, message: string): string {
+  private formatMessage(level: LogLevel, category: LogCategory, message: string): string {
     const parts: string[] = [];
     
     if (this.config.enableTimestamp) {
-      const timestamp = new Date().toISOString();
-      parts.push(`[${timestamp}]`);
+      const now = new Date();
+      const time = now.toTimeString().split(' ')[0]; // HH:mm:ss
+      parts.push(`[${time}]`);
     }
     
     parts.push(`[${level}]`);
+    parts.push(`[${category}]`);
     parts.push(message);
     
     return parts.join(' ');
@@ -81,77 +128,75 @@ class LoggerClass {
   /**
    * 输出日志
    */
-  private log(level: LogLevel, message: string, data?: any): void {
+  private log(level: LogLevel, category: LogCategory, message: string, data?: any): void {
     if (!this.shouldLog(level)) {
       return;
     }
 
-    const formattedMessage = this.formatMessage(level, message);
+    const formattedMessage = this.formatMessage(level, category, message);
 
-    switch (level) {
-      case LogLevel.DEBUG:
-        if (data !== undefined) {
-          console.debug(formattedMessage, data);
-        } else {
-          console.debug(formattedMessage);
-        }
-        break;
-      
-      case LogLevel.INFO:
-        if (data !== undefined) {
-          console.info(formattedMessage, data);
-        } else {
-          console.info(formattedMessage);
-        }
-        break;
-      
-      case LogLevel.WARN:
-        if (data !== undefined) {
-          console.warn(formattedMessage, data);
-        } else {
-          console.warn(formattedMessage);
-        }
-        break;
-      
-      case LogLevel.ERROR:
-        if (data !== undefined) {
-          console.error(formattedMessage, data);
-        } else {
-          console.error(formattedMessage);
-        }
-        break;
+    // 根据级别选择控制台方法
+    const consoleMethod = {
+      [LogLevel.DEBUG]: console.debug,
+      [LogLevel.INFO]: console.info,
+      [LogLevel.WARN]: console.warn,
+      [LogLevel.ERROR]: console.error
+    }[level];
+
+    if (data !== undefined) {
+      consoleMethod(formattedMessage, data);
+    } else {
+      consoleMethod(formattedMessage);
+    }
+
+    // 上报错误日志到后端
+    if (this.config.enableReport && level === LogLevel.ERROR) {
+      this.reportLog(level, category, message, data);
+    }
+  }
+
+  /**
+   * 上报日志到后端
+   */
+  private async reportLog(level: LogLevel, category: LogCategory, message: string, data?: any): Promise<void> {
+    try {
+      // TODO: 实现日志上报接口
+      // await fetch('/api/v1/logs', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ level, category, message, data, timestamp: new Date().toISOString() })
+      // });
+    } catch (error) {
+      // 上报失败不影响主流程
+      console.error('Failed to report log:', error);
     }
   }
 
   /**
    * 输出 DEBUG 级别日志
-   * 用于详细的调试信息
    */
-  debug(message: string, data?: any): void {
-    this.log(LogLevel.DEBUG, message, data);
+  debug(message: string, data?: any, category: LogCategory = LogCategory.GENERAL): void {
+    this.log(LogLevel.DEBUG, category, message, data);
   }
 
   /**
    * 输出 INFO 级别日志
-   * 用于一般信息
    */
-  info(message: string, data?: any): void {
-    this.log(LogLevel.INFO, message, data);
+  info(message: string, data?: any, category: LogCategory = LogCategory.GENERAL): void {
+    this.log(LogLevel.INFO, category, message, data);
   }
 
   /**
    * 输出 WARN 级别日志
-   * 用于警告信息
    */
-  warn(message: string, data?: any): void {
-    this.log(LogLevel.WARN, message, data);
+  warn(message: string, data?: any, category: LogCategory = LogCategory.GENERAL): void {
+    this.log(LogLevel.WARN, category, message, data);
   }
 
   /**
    * 输出 ERROR 级别日志
-   * 用于错误信息
    */
-  error(message: string, error?: Error, data?: any): void {
+  error(message: string, error?: Error, data?: any, category: LogCategory = LogCategory.GENERAL): void {
     if (error) {
       const errorData = {
         name: error.name,
@@ -159,9 +204,59 @@ class LoggerClass {
         stack: this.config.enableStackTrace ? error.stack : undefined,
         ...data
       };
-      this.log(LogLevel.ERROR, message, errorData);
+      this.log(LogLevel.ERROR, category, message, errorData);
     } else {
-      this.log(LogLevel.ERROR, message, data);
+      this.log(LogLevel.ERROR, category, message, data);
+    }
+  }
+
+  /**
+   * 性能监控 - 测量函数执行时间
+   */
+  async measureAsync<T>(
+    operation: string,
+    fn: () => Promise<T>,
+    category: LogCategory = LogCategory.PERFORMANCE
+  ): Promise<T> {
+    if (!this.config.enablePerformance) {
+      return fn();
+    }
+
+    const startTime = performance.now();
+    try {
+      const result = await fn();
+      const duration = Math.round(performance.now() - startTime);
+      this.info(`${operation} completed in ${duration}ms`, { duration }, category);
+      return result;
+    } catch (error) {
+      const duration = Math.round(performance.now() - startTime);
+      this.error(`${operation} failed after ${duration}ms`, error as Error, { duration }, category);
+      throw error;
+    }
+  }
+
+  /**
+   * 性能监控 - 测量同步函数执行时间
+   */
+  measure<T>(
+    operation: string,
+    fn: () => T,
+    category: LogCategory = LogCategory.PERFORMANCE
+  ): T {
+    if (!this.config.enablePerformance) {
+      return fn();
+    }
+
+    const startTime = performance.now();
+    try {
+      const result = fn();
+      const duration = Math.round(performance.now() - startTime);
+      this.info(`${operation} completed in ${duration}ms`, { duration }, category);
+      return result;
+    } catch (error) {
+      const duration = Math.round(performance.now() - startTime);
+      this.error(`${operation} failed after ${duration}ms`, error as Error, { duration }, category);
+      throw error;
     }
   }
 }

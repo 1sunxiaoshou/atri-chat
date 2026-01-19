@@ -57,8 +57,6 @@ async def test_connection(req: TTSTestRequest, tts_factory: TTSFactory = Depends
     不保存配置，仅验证参数有效性
     """
     try:
-        logger.info(f"测试TTS连接: provider={req.provider_id}")
-        
         # 使用提供的配置创建临时TTS实例
         tts = tts_factory.create_tts(provider=req.provider_id, config=req.config)
         
@@ -66,7 +64,6 @@ async def test_connection(req: TTSTestRequest, tts_factory: TTSFactory = Depends
         result = await tts.test_connection()
         
         if result["success"]:
-            logger.info(f"TTS连接测试成功: provider={req.provider_id}")
             return ResponseModel(
                 code=200,
                 message=result.get("message", "连接测试成功"),
@@ -112,11 +109,9 @@ async def save_config(
         
         # 如果provider_id为空或"none"，禁用TTS
         if not req.provider_id or req.provider_id.lower() == "none":
-            logger.info("禁用TTS功能")
             success = service.disable_tts()
             if success:
                 factory.clear_cache()
-                logger.info("TTS已禁用")
                 return ResponseModel(
                     code=200,
                     message="TTS已禁用",
@@ -128,8 +123,6 @@ async def save_config(
         # 从 Registry 获取服务商名称
         from core.tts import TTSRegistry
         provider_name = TTSRegistry.get_provider_name(req.provider_id)
-        
-        logger.info(f"保存TTS配置: provider={req.provider_id}")
         
         # 保存配置（内部会进行验证）
         success = service.save_config(
@@ -143,7 +136,6 @@ async def save_config(
             # 清空指定服务商的缓存
             factory.clear_cache(req.provider_id)
             
-            logger.info(f"TTS配置保存成功: provider={req.provider_id}")
             return ResponseModel(
                 code=200,
                 message="配置保存成功",
@@ -174,11 +166,8 @@ async def synthesize_speech(
         stream: True=PCM流式(AudioContext播放), False=WAV完整文件
     """
     try:
-        logger.info(f"开始语音合成: text_length={len(req.text)}, language={req.language}, stream={stream}")
-        
         # 获取TTS实例
         tts = tts_factory.get_default_tts()
-        logger.info(f"获取到TTS实例: {type(tts).__name__}, 支持流式={tts.supports_streaming()}")
         
         # 流式模式（PCM raw 格式，使用 AudioContext 播放）
         if stream:
@@ -189,7 +178,6 @@ async def synthesize_speech(
             try:
                 first_chunk = await generator.__anext__()
                 sample_rate = getattr(tts, 'sample_rate', 32000)
-                logger.info(f"TTS采样率: {sample_rate}Hz")
             except StopAsyncIteration:
                 raise HTTPException(status_code=500, detail="TTS生成失败：无数据")
             except Exception as e:
@@ -222,7 +210,6 @@ async def synthesize_speech(
         # 非流式模式（返回完整 WAV 文件）
         else:
             audio_bytes = await tts.synthesize_async(req.text, req.language)
-            logger.info(f"合成成功: audio_size={len(audio_bytes)} bytes")
             
             from fastapi.responses import Response
             return Response(

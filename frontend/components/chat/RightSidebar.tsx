@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 import { Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';

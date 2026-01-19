@@ -65,10 +65,6 @@ class ASRFactory:
                 
                 # init_provider 内部使用 INSERT OR IGNORE，不会重复插入
                 self.config_service.init_provider(pid, name, cls.get_config_template())
-                
-                # 只在首次注册时打印日志
-                if not exists:
-                    logger.debug(f"ASR提供商 {pid} 已注册")
             except Exception as e:
                 logger.error(f"初始化ASR提供商 {pid} 失败: {e}")
         
@@ -106,16 +102,15 @@ class ASRFactory:
         if provider in self._instances:
             # 如果配置未变化，返回缓存实例
             if self._config_versions.get(provider) == config_version:
-                logger.debug(f"使用缓存的 ASR 实例", extra={"provider": provider})
                 return self._instances[provider]
             else:
                 # 配置已变化，清除旧实例
-                logger.info(f"检测到 ASR 配置变化，重新创建实例", extra={"provider": provider})
+                logger.info(f"ASR 配置变更，重新创建实例: {provider}")
                 del self._instances[provider]
                 del self._config_versions[provider]
 
         # 实例化并缓存
-        logger.info(f"创建新 ASR 实例", extra={"provider": provider})
+        logger.info(f"首次创建 ASR 实例: {provider}")
         instance = self._get_provider_class(provider)(config)
         self._instances[provider] = instance
         self._config_versions[provider] = config_version
@@ -133,8 +128,6 @@ class ASRFactory:
         if provider:
             self._instances.pop(provider, None)
             self._config_versions.pop(provider, None)
-            logger.info(f"已清除 {provider} 的缓存")
         else:
             self._instances.clear()
             self._config_versions.clear()
-            logger.info("已清除所有ASR实例缓存")
