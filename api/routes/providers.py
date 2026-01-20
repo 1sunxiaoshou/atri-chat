@@ -57,7 +57,6 @@ async def create_provider(
         )
         success = app_storage.add_provider(
             config,
-            name=req.name,
             logo=logo,
             template_type=template_type
         )
@@ -69,7 +68,6 @@ async def create_provider(
             message="供应商创建成功",
             data={
                 "provider_id": req.provider_id,
-                "name": req.name,
                 "template_type": template_type,
                 "logo": logo
             }
@@ -104,7 +102,6 @@ async def get_provider(
             message="获取成功",
             data={
                 "provider_id": provider["provider_id"],
-                "name": provider["name"],
                 "template_type": template_type,
                 "description": template.metadata.description if template else "",
                 "config_json": provider["config_json"],
@@ -134,7 +131,6 @@ async def list_providers(app_storage: AppStorage = Depends(get_storage)):
             
             data.append({
                 "provider_id": p["provider_id"],
-                "name": p["name"],
                 "template_type": template_type,
                 "description": template.metadata.description if template else "",
                 "config_json": p["config_json"],
@@ -160,7 +156,6 @@ async def update_provider(
     
     请求体示例:
     {
-        "name": "OpenAI",
         "template_type": "openai",
         "config_json": {
             "api_key": "sk-xxx",
@@ -184,7 +179,6 @@ async def update_provider(
         
         success = app_storage.update_provider(
             provider_id=provider_id,
-            name=req.name,
             config_json=req.config_json,
             logo=logo,
             template_type=req.template_type

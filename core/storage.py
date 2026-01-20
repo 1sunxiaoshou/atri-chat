@@ -26,7 +26,6 @@ class AppStorage:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS provider_config (
                     provider_id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
                     config_json TEXT NOT NULL,
                     logo TEXT,
                     template_type TEXT DEFAULT 'openai'
@@ -144,14 +143,13 @@ class AppStorage:
     
     # ==================== 模型供应商配置 ====================
     
-    def add_provider(self, config: ProviderConfig, name: str = None, logo: str = None, template_type: str = "openai") -> bool:
+    def add_provider(self, config: ProviderConfig, logo: str = None, template_type: str = "openai") -> bool:
         """添加供应商配置"""
         try:
             with sqlite3.connect(self.db_path) as conn:
-                provider_name = name or config.provider_id
                 conn.execute(
-                    "INSERT INTO provider_config VALUES (?, ?, ?, ?, ?)",
-                    (config.provider_id, provider_name, json.dumps(config.config_json), logo, template_type)
+                    "INSERT INTO provider_config VALUES (?, ?, ?, ?)",
+                    (config.provider_id, json.dumps(config.config_json), logo, template_type)
                 )
                 conn.commit()
             return True
@@ -162,44 +160,39 @@ class AppStorage:
         """获取供应商配置"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT provider_id, name, config_json, logo, template_type FROM provider_config WHERE provider_id = ?",
+                "SELECT provider_id, config_json, logo, template_type FROM provider_config WHERE provider_id = ?",
                 (provider_id,)
             )
             row = cursor.fetchone()
             if row:
                 return {
                     "provider_id": row[0],
-                    "name": row[1],
-                    "config_json": json.loads(row[2]),
-                    "logo": row[3],
-                    "template_type": row[4] if len(row) > 4 else "openai"
+                    "config_json": json.loads(row[1]),
+                    "logo": row[2],
+                    "template_type": row[3] if len(row) > 3 else "openai"
                 }
         return None
     
     def list_providers(self) -> List[Dict[str, Any]]:
         """列出所有供应商配置"""
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute("SELECT provider_id, name, config_json, logo, template_type FROM provider_config")
+            cursor = conn.execute("SELECT provider_id, config_json, logo, template_type FROM provider_config")
             return [
                 {
                     "provider_id": row[0],
-                    "name": row[1],
-                    "config_json": json.loads(row[2]),
-                    "logo": row[3],
-                    "template_type": row[4] if len(row) > 4 else "openai"
+                    "config_json": json.loads(row[1]),
+                    "logo": row[2],
+                    "template_type": row[3] if len(row) > 3 else "openai"
                 }
                 for row in cursor.fetchall()
             ]
     
-    def update_provider(self, provider_id: str, name: str = None, config_json: Dict[str, Any] = None, logo: str = None, template_type: str = None) -> bool:
+    def update_provider(self, provider_id: str, config_json: Dict[str, Any] = None, logo: str = None, template_type: str = None) -> bool:
         """更新供应商配置"""
         with sqlite3.connect(self.db_path) as conn:
             updates = []
             params = []
             
-            if name is not None:
-                updates.append("name = ?")
-                params.append(name)
             if config_json is not None:
                 updates.append("config_json = ?")
                 params.append(json.dumps(config_json))

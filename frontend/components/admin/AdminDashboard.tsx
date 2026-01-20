@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Cpu, Users, Box } from 'lucide-react';
+import { Cpu, Users, Box } from 'lucide-react';
 import { Provider, Model, Character, AdminTab, VRMModel } from '../../types';
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { AdminProviders } from './AdminProviders';
 import { AdminModels } from './AdminModels';
 import { AdminCharacters } from './AdminCharacters';
 import { AdminVRM } from './AdminVRM';
@@ -15,7 +14,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack: _onBack, onOpenMobileSidebar }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<AdminTab>('providers');
+  const [activeTab, setActiveTab] = useState<AdminTab>('models');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -59,7 +58,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack: _onBack, onOpen
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900/50 relative">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-800 relative">
       {/* Tabs */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 lg:px-8 pt-6">
         {/* Mobile Menu Button */}
@@ -76,7 +75,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack: _onBack, onOpen
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 lg:mb-6 ml-10 lg:ml-0">{t('admin.title')}</h2>
         <div className="flex gap-4 lg:gap-8 overflow-x-auto scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
           {[
-            { id: 'providers', label: t('admin.providers'), icon: Server },
             { id: 'models', label: t('admin.models'), icon: Cpu },
             { id: 'characters', label: t('admin.characters'), icon: Users },
             { id: 'vrm', label: 'VRM Models', icon: Box },
@@ -100,17 +98,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack: _onBack, onOpen
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="max-w-7xl mx-auto h-full">
-          {activeTab === 'providers' && (
-            <AdminProviders
-              providers={providers}
-              providerTemplates={providerTemplates}
-              onRefresh={fetchData}
-            />
-          )}
           {activeTab === 'models' && (
             <AdminModels
               providers={providers}
               models={models}
+              providerTemplates={providerTemplates}
               onRefresh={fetchData}
             />
           )}
