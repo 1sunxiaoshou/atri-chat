@@ -5,7 +5,7 @@ import { api } from '../../services/api/index';
 import { buildAvatarUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AvatarEditor } from '../AvatarEditor';
-import { Select } from '../ui';
+import { Select, ConfirmDialog } from '../ui';
 
 interface AdminCharactersProps {
   characters: Character[];
@@ -24,6 +24,17 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
   const [ttsProviders, setTtsProviders] = useState<any[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description: React.ReactNode;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info' | 'success';
+  }>({
+    isOpen: false,
+    description: '',
+    onConfirm: () => {}
+  });
 
   React.useEffect(() => {
     fetchTTSProviders();
@@ -115,14 +126,20 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   };
 
   const handleDeleteCharacter = async (id: number | string) => {
-    if (window.confirm(t('admin.confirmDelete'))) {
-      await api.deleteCharacter(id);
-      const charId = editingCharacter ? editingCharacter.character_id : null;
-      if (charId === id) {
-        setEditingCharacter(null);
+    setConfirmDialog({
+      isOpen: true,
+      title: t('admin.delete'),
+      description: t('admin.confirmDelete'),
+      type: 'danger',
+      onConfirm: async () => {
+        await api.deleteCharacter(id);
+        const charId = editingCharacter ? editingCharacter.character_id : null;
+        if (charId === id) {
+          setEditingCharacter(null);
+        }
+        await onRefresh();
       }
-      await onRefresh();
-    }
+    });
   };
 
   return (
@@ -340,6 +357,18 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
           onCancel={() => setIsAvatarEditorOpen(false)}
         />
       )}
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        type={confirmDialog.type}
+        confirmText={t('admin.delete')}
+        cancelText={t('admin.cancel')}
+      />
     </div>
   );
 };

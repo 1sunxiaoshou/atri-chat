@@ -126,11 +126,11 @@ class OpenAIProvider(BaseProvider):
             # OpenAI 的 extended_thinking 参数
             if "budget" in thinking_config:
                 params["prediction"] = {"type": "content", "content": [{"type": "extended_thinking", "budget": thinking_config["budget"]}]}
-                logger.info(f"启用深度思考 (OpenAI): model={model_id}, budget={thinking_config['budget']}")
+                logger.debug(f"启用深度思考 (OpenAI): model={model_id}, budget={thinking_config['budget']}")
             else:
                 # 默认启用 extended_thinking
                 params["prediction"] = {"type": "content", "content": [{"type": "extended_thinking"}]}
-                logger.info(f"启用深度思考 (OpenAI): model={model_id}, budget=auto")
+                logger.debug(f"启用深度思考 (OpenAI): model={model_id}, budget=auto")
         
         return ChatOpenAI(**params)
     
@@ -194,9 +194,9 @@ class AnthropicProvider(BaseProvider):
             # Anthropic 的 budget_tokens 参数（最小1024，最大128000）
             if "budget" in thinking_config and thinking_config["budget"]:
                 thinking_params["budget_tokens"] = thinking_config["budget"]
-                logger.info(f"启用深度思考 (Anthropic): model={model_id}, budget_tokens={thinking_config['budget']}")
+                logger.debug(f"启用深度思考 (Anthropic): model={model_id}, budget_tokens={thinking_config['budget']}")
             else:
-                logger.info(f"启用深度思考 (Anthropic): model={model_id}, budget_tokens=auto")
+                logger.debug(f"启用深度思考 (Anthropic): model={model_id}, budget_tokens=auto")
             
             params["thinking"] = thinking_params
         

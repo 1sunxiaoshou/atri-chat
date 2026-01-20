@@ -15,7 +15,6 @@ export interface ProviderConfig {
 
 export interface Provider {
   provider_id: string;
-  name: string;
   description?: string;
   config_json: ProviderConfig;
   logo?: string;
@@ -96,7 +95,7 @@ export interface AudioMessageData {
 
 // UI State Types
 export type ViewMode = 'chat' | 'admin';
-export type AdminTab = 'providers' | 'models' | 'characters' | 'vrm';
+export type AdminTab = 'models' | 'characters' | 'vrm';
 
 // 7. ASR
 export interface ASRConfigField {

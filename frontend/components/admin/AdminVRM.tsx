@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash, X, Box, Film, Link as LinkIcon, Upload, Edit2, AlertCircle } from 'lucide-react';
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Modal, Button, Input } from '../ui';
+import { Modal, Button, Input, ConfirmDialog } from '../ui';
 import { getAnimationDuration } from '../../utils/vrmUtils';
 import { extractExpressions } from '../../utils/vrmMetadataExtractor';
 
@@ -52,6 +52,19 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
 
     // Modal State
     const [modal, setModal] = useState<ModalState>({ isOpen: false, type: null });
+    
+    // Confirm Dialog State
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        title?: string;
+        description: React.ReactNode;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info' | 'success';
+    }>({
+        isOpen: false,
+        description: '',
+        onConfirm: () => {}
+    });
 
     // Form States (for Modal)
     const [formName, setFormName] = useState('');
@@ -302,20 +315,34 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
     // --- Direct Handlers ---
 
     const handleDeleteModel = async (id: string, name: string) => {
-        if (!window.confirm(t('admin.confirmDeleteVRM', { name }))) {return;}
-        await api.deleteVRMModel(id);
-        if (selectedModel?.vrm_model_id === id) {setSelectedModel(null);}
-        // 刷新当前组件的数据
-        await fetchData();
-        // 通知父组件更新
-        onModelsChange?.();
+        setConfirmDialog({
+            isOpen: true,
+            title: t('admin.delete'),
+            description: t('admin.confirmDeleteVRM', { name }),
+            type: 'danger',
+            onConfirm: async () => {
+                await api.deleteVRMModel(id);
+                if (selectedModel?.vrm_model_id === id) {setSelectedModel(null);}
+                // 刷新当前组件的数据
+                await fetchData();
+                // 通知父组件更新
+                onModelsChange?.();
+            }
+        });
     };
 
     const handleDeleteAnimation = async (id: string) => {
-        if (!window.confirm(t('admin.confirmDeleteAnimation'))) {return;}
-        await api.deleteVRMAnimation(id);
-        await fetchData();
-        if (selectedModel) {fetchModelAnimations(selectedModel.vrm_model_id);}
+        setConfirmDialog({
+            isOpen: true,
+            title: t('admin.delete'),
+            description: t('admin.confirmDeleteAnimation'),
+            type: 'danger',
+            onConfirm: async () => {
+                await api.deleteVRMAnimation(id);
+                await fetchData();
+                if (selectedModel) {fetchModelAnimations(selectedModel.vrm_model_id);}
+            }
+        });
     };
 
     const handleBindAnimation = async (animationId: string) => {
@@ -758,6 +785,18 @@ export const AdminVRM: React.FC<AdminVRMProps> = ({ onModelsChange }) => {
                     </div>
                 </div>
             </Modal>
+            
+            {/* Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                description={confirmDialog.description}
+                type={confirmDialog.type}
+                confirmText={t('admin.delete')}
+                cancelText={t('admin.cancel')}
+            />
         </div>
     );
 };

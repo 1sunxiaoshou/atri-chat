@@ -27,7 +27,7 @@ export const providersApi = {
    */
   updateProvider: async (
     providerId: string,
-    updates: { name?: string; config_json?: any; logo?: string }
+    updates: { config_json?: any; logo?: string }
   ): Promise<ApiResponse<Provider>> => {
     return httpClient.put<Provider>(`/providers/${providerId}`, updates);
   },

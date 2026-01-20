@@ -3,6 +3,7 @@ import { Plus, MessageSquare, Settings, LayoutDashboard, Trash2, Users, X, Chevr
 import { Conversation, ViewMode, Character } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { buildAvatarUrl } from '../utils/url';
+import { ConfirmDialog } from './ui';
 
 interface SidebarProps {
   viewMode: ViewMode;
@@ -42,6 +43,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Local state for handling sorting locally (since backend doesn't persist order in this mock)
   const [localCharacters, setLocalCharacters] = useState<Character[]>(characters);
   const [draggedItem, setDraggedItem] = useState<Character | null>(null);
+  
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description: React.ReactNode;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info' | 'success';
+  }>({
+    isOpen: false,
+    description: '',
+    onConfirm: () => {}
+  });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<Map<number, HTMLButtonElement>>(new Map());
@@ -298,7 +312,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteConversation(convId);
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: t('admin.delete'),
+                          description: t('sidebar.confirmDeleteConversation'),
+                          type: 'danger',
+                          onConfirm: () => {
+                            onDeleteConversation(convId);
+                          }
+                        });
                       }}
                       className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded transition-all flex-shrink-0"
                     >
@@ -334,6 +356,18 @@ const Sidebar: React.FC<SidebarProps> = ({
           {!isCollapsed && <span className="whitespace-nowrap">{t('sidebar.settings')}</span>}
         </button>
       </div>
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        type={confirmDialog.type}
+        confirmText={t('admin.delete')}
+        cancelText={t('admin.cancel')}
+      />
     </div>
   );
 };

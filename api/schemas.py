@@ -14,8 +14,7 @@ class ResponseModel(BaseModel):
 
 class ProviderConfigRequest(BaseModel):
     """供应商配置请求"""
-    provider_id: str = Field(..., description="供应商ID")
-    name: str = Field(..., description="供应商名称")
+    provider_id: str = Field(..., description="供应商ID（同时作为显示名称）")
     config_json: Dict[str, Any] = Field(..., description="配置JSON")
     logo: Optional[str] = Field(None, description="供应商Logo URL")
     template_type: Optional[str] = Field("openai", description="供应商模板类型: openai/anthropic/google/tongyi/local")
@@ -23,7 +22,6 @@ class ProviderConfigRequest(BaseModel):
 
 class ProviderConfigUpdateRequest(BaseModel):
     """供应商配置更新请求"""
-    name: Optional[str] = Field(None, description="供应商名称")
     config_json: Optional[Dict[str, Any]] = Field(None, description="配置JSON")
     logo: Optional[str] = Field(None, description="供应商Logo URL")
     template_type: Optional[str] = Field(None, description="供应商模板类型: openai/anthropic/google/tongyi/local")
