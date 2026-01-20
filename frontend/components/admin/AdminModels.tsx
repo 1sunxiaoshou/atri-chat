@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Search, Trash, Server, Edit2, Settings, RefreshCw, X } from 'lucide-react';
+import { Plus, Search, Trash, Edit2, Settings, RefreshCw, X } from 'lucide-react';
 import { Provider, Model } from '../../types';
 import { buildLogoUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { providersApi, modelsApi } from '../../services/api';
 import { Select, ConfirmDialog } from '../ui';
+import Toast, { ToastMessage } from '../Toast';
 
 interface AdminModelsProps {
   providers: Provider[];
@@ -27,6 +28,8 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const [editingProvider, setEditingProvider] = useState<Partial<Provider> | null>(null);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<Partial<Model> | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title?: string;
@@ -39,13 +42,10 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     onConfirm: () => {}
   });
 
-  // 分类定义
+  // 分类定义 - 只显示常用筛选
   const categories = [
     { id: 'all', label: t('admin.allCategories') || '全部' },
-    { id: 'vision', label: t('admin.vision') || '视觉' },
-    { id: 'document', label: t('admin.document') || '文档' },
-    { id: 'video', label: t('admin.video') || '视频' },
-    { id: 'audio', label: t('admin.audio') || '音频' },
+    { id: 'chat', label: t('admin.chat') || '聊天' },
     { id: 'embedding', label: t('admin.embedding') || '嵌入' },
     { id: 'rerank', label: t('admin.rerank') || '重排' },
   ];
@@ -58,8 +58,11 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     if (selectedProvider && m.provider_id !== selectedProvider) return false;
     if (searchQuery && !m.model_id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (activeCategory === 'all') return true;
-    if (activeCategory === 'embedding') return m.model_type === 'embedding';
-    if (activeCategory === 'rerank') return m.model_type === 'rerank';
+    // 按模型类型筛选
+    if (['chat', 'embedding', 'rerank'].includes(activeCategory)) {
+      return m.model_type === activeCategory;
+    }
+    // 按能力筛选
     return m.capabilities.includes(activeCategory);
   });
 
@@ -135,7 +138,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       setEditingModel({
         provider_id: selectedProvider || '',
         model_id: '',
-        model_type: 'text',
+        model_type: 'chat',
         capabilities: [],
         enabled: true
       });
@@ -143,13 +146,22 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     setIsModelModalOpen(true);
   };
 
-  // 保存模型（仅新增）
+  // 保存模型（新增或编辑）
   const handleSaveModel = async () => {
     if (!editingModel || !editingModel.model_id || !editingModel.provider_id) {
       return;
     }
 
-    await modelsApi.createModel(editingModel as Model);
+    const existing = models.find(m => m.provider_id === editingModel.provider_id && m.model_id === editingModel.model_id);
+
+    if (existing && existing.model_id === editingModel.model_id) {
+      // 编辑模式：更新模型
+      await modelsApi.updateModel(editingModel.provider_id, editingModel.model_id, editingModel as Model);
+    } else {
+      // 新增模式：创建模型
+      await modelsApi.createModel(editingModel as Model);
+    }
+    
     setIsModelModalOpen(false);
     await onRefresh();
   };
@@ -172,6 +184,79 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const handleToggleModel = async (model: Model) => {
     await modelsApi.toggleModel(model.model_id, !model.enabled, model.provider_id);
     await onRefresh();
+  };
+
+  // 同步供应商模型
+  const handleSyncModels = async () => {
+    if (!selectedProvider) return;
+    
+    // 防止重复点击
+    if (isSyncing) {
+      setToast({
+        success: false,
+        message: '正在同步中，请稍候...'
+      });
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    setIsSyncing(true);
+    
+    try {
+      const response = await modelsApi.syncProviderModels(selectedProvider, false);
+      
+      // 检查响应状态
+      if (response.code !== 200) {
+        // 直接使用 response.message（已经包含原始错误信息）
+        setToast({
+          success: false,
+          message: response.message || '同步失败'
+        });
+        setTimeout(() => setToast(null), 3000);
+        return;
+      }
+      
+      const { added, updated, skipped, failed, total } = response.data;
+      
+      // 判断是否真正成功
+      const isSuccess = total > 0 && failed === 0;
+      
+      // 构建结果消息
+      let resultMessage = '';
+      if (total === 0) {
+        resultMessage = '未获取到任何模型，请检查 API 配置';
+      } else if (failed === total) {
+        resultMessage = `同步失败：所有 ${total} 个模型都失败了`;
+      } else {
+        resultMessage = `新增 ${added} 个`;
+        if (updated > 0) resultMessage += `，更新 ${updated} 个`;
+        if (skipped > 0) resultMessage += `，跳过 ${skipped} 个`;
+        if (failed > 0) resultMessage += `，失败 ${failed} 个`;
+      }
+      
+      setToast({
+        success: isSuccess,
+        message: resultMessage
+      });
+      
+      // 3秒后自动关闭通知
+      setTimeout(() => setToast(null), 3000);
+      
+      // 只有成功时才刷新列表
+      if (isSuccess || added > 0) {
+        await onRefresh();
+      }
+    } catch (error: any) {
+      // catch 块不应该被触发，因为 API 调用已经处理了所有错误
+      // 但为了安全起见，保留兜底处理
+      setToast({
+        success: false,
+        message: error.message || '同步模型时发生未知错误'
+      });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // 切换能力标签
@@ -220,8 +305,19 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
                 }
               `}
             >
+              {/* Logo */}
+              {provider.logo && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                  <img 
+                    src={buildLogoUrl(provider.logo)} 
+                    alt={provider.provider_id}
+                    className="w-6 h-6 object-contain"
+                  />
+                </div>
+              )}
+              
               {/* Info */}
-              <div className="flex-1 min-w-0 pl-3">
+              <div className="flex-1 min-w-0">
                 <h4 className={`font-medium truncate ${selectedProvider === provider.provider_id ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}>
                   {provider.provider_id}
                 </h4>
@@ -233,7 +329,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
 
               {/* Hover Actions */}
               <div className={`
-                absolute right-2 flex gap-1 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-0.5
+                absolute right-2 flex gap-1 rounded-lg p-0.5
                 opacity-0 group-hover:opacity-100 transition-opacity duration-200 scale-95 group-hover:scale-100
                 ${selectedProvider === provider.provider_id ? 'opacity-100' : ''}
               `}>
@@ -314,11 +410,16 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
               {/* Actions */}
               <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-4">
                 <button
-                  onClick={() => onRefresh()}
-                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                  title="Sync Models"
+                  onClick={handleSyncModels}
+                  disabled={isSyncing}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isSyncing 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                  }`}
+                  title={isSyncing ? '同步中...' : '同步模型'}
                 >
-                  <RefreshCw size={18} />
+                  <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
                 </button>
                 <button
                   onClick={() => handleOpenModelModal()}
@@ -361,16 +462,14 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
                         </td>
                         <td className="px-4 py-3.5 border-b border-gray-100 dark:border-gray-800/50 align-middle" style={{ width: '48%' }}>
                           <div className="flex gap-1.5 flex-wrap">
-                            {model.capabilities
-                              .filter(cap => ['vision', 'document', 'video', 'audio', 'embedding', 'rerank'].includes(cap))
-                              .map((cap) => (
-                                <span
-                                  key={cap}
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${capabilityColor}`}
-                                >
-                                  {cap.charAt(0).toUpperCase() + cap.slice(1)}
-                                </span>
-                              ))}
+                            {model.capabilities.map((cap) => (
+                              <span
+                                key={cap}
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${capabilityColor}`}
+                              >
+                                {cap.charAt(0).toUpperCase() + cap.slice(1).replace('_', ' ')}
+                              </span>
+                            ))}
                           </div>
                         </td>
                         <td className="px-3 py-3.5 border-b border-gray-100 dark:border-gray-800/50 align-middle" style={{ width: '6%' }}>
@@ -391,13 +490,22 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
                           </button>
                         </td>
                         <td className="px-3 py-3.5 border-b border-gray-100 dark:border-gray-800 align-middle" style={{ width: '6%' }}>
-                          <button
-                            onClick={() => handleDeleteModel(model.provider_id, model.model_id)}
-                            className="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100"
-                            title="Delete Model"
-                          >
-                            <Trash size={16} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenModelModal(model)}
+                              className="text-gray-400 hover:text-blue-500 p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all opacity-0 group-hover:opacity-100"
+                              title="Edit Model"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteModel(model.provider_id, model.model_id)}
+                              className="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100"
+                              title="Delete Model"
+                            >
+                              <Trash size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -405,10 +513,15 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
                     <tr>
                       <td colSpan={4} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                          <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                            <Search size={32} className="opacity-50" />
+                          <div className="w-24 h-24 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center mb-6 rotate-3">
+                            <Search size={48} className="text-gray-400/80 dark:text-gray-500/80" />
                           </div>
-                          <p className="font-medium text-gray-900 dark:text-gray-200">No models found</p>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                            {t('admin.noModelsFound')}
+                          </h3>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs leading-relaxed">
+                            {t('admin.noModelsFoundDesc')}
+                          </p>
                         </div>
                       </td>
                     </tr>
@@ -423,10 +536,10 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
               <Settings size={48} className="text-blue-500/80 dark:text-blue-400/80" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Select a Provider
+              {t('admin.selectProvider')}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs leading-relaxed">
-              Choose a provider from the sidebar to manage its models, configurations, and settings.
+              {t('admin.selectProviderDesc')}
             </p>
           </div>
         )}
@@ -544,7 +657,9 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
               <h3 className="font-bold text-gray-800 dark:text-gray-200 text-lg">
-                {t('admin.addModelTitle')}
+                {editingModel && models.find(m => m.provider_id === editingModel.provider_id && m.model_id === editingModel.model_id)
+                  ? t('admin.editModelTitle')
+                  : t('admin.addModelTitle')}
               </h3>
               <button onClick={() => setIsModelModalOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <X size={20} />
@@ -565,12 +680,12 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{t('admin.modelTypeLabel')}</label>
                 <Select
-                  value={editingModel.model_type || 'text'}
+                  value={editingModel.model_type || 'chat'}
                   onChange={(value) => setEditingModel({ ...editingModel, model_type: value as any })}
                   options={[
-                    { label: t('admin.textModel'), value: 'text' },
-                    { label: t('admin.embeddingModel'), value: 'embedding' },
-                    { label: t('admin.rerankModel'), value: 'rerank' }
+                    { label: t('admin.chatModel') || '聊天模型', value: 'chat' },
+                    { label: t('admin.embeddingModel') || '嵌入模型', value: 'embedding' },
+                    { label: t('admin.rerankModel') || '重排模型', value: 'rerank' }
                   ]}
                   className="w-full"
                 />
@@ -579,7 +694,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{t('admin.capabilitiesLabel')}</label>
                 <div className="flex flex-wrap gap-2">
-                  {['base', 'chat', 'vision', 'document', 'video', 'audio', 'function_calling', 'reasoning'].map((cap) => (
+                  {['vision', 'document', 'video', 'audio', 'reasoning', 'tool_use', 'web_search'].map((cap) => (
                     <button
                       key={cap}
                       onClick={() => toggleCapability(cap)}
@@ -591,7 +706,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
                         }
                       `}
                     >
-                      {cap}
+                      {cap.replace('_', ' ')}
                     </button>
                   ))}
                 </div>
@@ -638,6 +753,9 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
         confirmText={t('admin.delete')}
         cancelText={t('admin.cancel')}
       />
+      
+      {/* Toast Notification */}
+      <Toast message={toast} title={{ success: '同步成功', error: '同步失败' }} />
     </div>
   );
 };

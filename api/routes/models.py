@@ -1,7 +1,7 @@
 """模型管理路由"""
 from fastapi import APIRouter, HTTPException, Depends
 from api.schemas import ResponseModel, ModelRequest, ModelResponse, ModelUpdateRequest
-from core import AppStorage, ModelConfig, ModelType, Capability
+from core import AppStorage, ModelConfig, ModelType, ModelCapability
 from core.dependencies import get_storage
 
 router = APIRouter()
@@ -12,24 +12,28 @@ async def create_model(
     req: ModelRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """创建模型
+    """创建单个模型
     
     请求体示例:
     {
         "provider_id": "openai",
         "model_id": "gpt-4",
-        "model_type": "text",
-        "capabilities": ["base", "chat", "vision"],
+        "model_type": "chat",
+        "capabilities": ["vision", "tool_use"],
+        "context_window": 128000,
+        "max_output": 4096,
         "enabled": true
     }
     """
     try:
-        capabilities = [Capability(c) for c in req.capabilities]
+        capabilities = [ModelCapability(c) for c in req.capabilities]
         model = ModelConfig(
             provider_id=req.provider_id,
             model_id=req.model_id,
             model_type=ModelType(req.model_type),
             capabilities=capabilities,
+            context_window=req.context_window,
+            max_output=req.max_output,
             enabled=req.enabled
         )
         success = app_storage.add_model(model)
@@ -68,6 +72,8 @@ async def get_model(
                 "model_id": model.model_id,
                 "model_type": model.model_type.value,
                 "capabilities": [c.value for c in model.capabilities],
+                "context_window": model.context_window,
+                "max_output": model.max_output,
                 "enabled": model.enabled
             }
         )
@@ -88,7 +94,7 @@ async def list_models(
     
     查询参数:
     - provider_id: 供应商ID (可选)
-    - model_type: 模型类型 text/embedding/rerank (可选)
+    - model_type: 模型类型 chat/embedding/rerank (可选)
     - enabled_only: 仅显示启用的模型 (默认 false，显示所有模型)
     """
     try:
@@ -100,6 +106,8 @@ async def list_models(
                 "model_id": m.model_id,
                 "model_type": m.model_type.value,
                 "capabilities": [c.value for c in m.capabilities],
+                "context_window": m.context_window,
+                "max_output": m.max_output,
                 "enabled": m.enabled
             }
             for m in models
@@ -122,22 +130,26 @@ async def update_model(
     req: ModelUpdateRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """更新模型
+    """更新单个模型
     
     请求体示例:
     {
-        "model_type": "text",
-        "capabilities": ["vision", "function_calling"],
+        "model_type": "chat",
+        "capabilities": ["vision", "tool_use"],
+        "context_window": 128000,
+        "max_output": 4096,
         "enabled": false
     }
     """
     try:
-        capabilities = [Capability(c) for c in req.capabilities]
+        capabilities = [ModelCapability(c) for c in req.capabilities]
         model = ModelConfig(
             provider_id=provider_id,
             model_id=model_id,
             model_type=ModelType(req.model_type),
             capabilities=capabilities,
+            context_window=req.context_window,
+            max_output=req.max_output,
             enabled=req.enabled
         )
         success = app_storage.update_model(model)

@@ -269,7 +269,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       />
 
       {/* Messages / VRM View */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 relative">
+      <div className="flex-1 overflow-y-auto px-4 py-6 relative">
         {vrmDisplayMode === 'vrm' && (
           <VRMViewer canvasRef={canvasRef} subtitle={subtitle} />
         )}

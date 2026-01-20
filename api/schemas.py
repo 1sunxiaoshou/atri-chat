@@ -33,8 +33,10 @@ class ModelRequest(BaseModel):
     """模型请求"""
     provider_id: str = Field(..., description="供应商ID")
     model_id: str = Field(..., description="模型ID")
-    model_type: str = Field(..., description="模型类型: text, embedding, rerank")
-    capabilities: List[str] = Field(default=["base"], description="模型能力: base, chat, vision, function_calling, reasoning")
+    model_type: str = Field(..., description="模型类型: chat, embedding, rerank")
+    capabilities: List[str] = Field(default_factory=list, description="模型能力: vision, reasoning, tool_use, web_search")
+    context_window: Optional[int] = Field(None, description="上下文窗口大小")
+    max_output: Optional[int] = Field(None, description="最大输出token数")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -44,13 +46,17 @@ class ModelResponse(BaseModel):
     model_id: str
     model_type: str
     capabilities: List[str]
+    context_window: Optional[int]
+    max_output: Optional[int]
     enabled: bool
 
 
 class ModelUpdateRequest(BaseModel):
     """模型更新请求"""
-    model_type: str = Field(..., description="模型类型: text, embedding, rerank")
-    capabilities: List[str] = Field(default=["base"], description="模型能力: base, chat, vision, function_calling, reasoning")
+    model_type: str = Field(..., description="模型类型: chat, embedding, rerank")
+    capabilities: List[str] = Field(default_factory=list, description="模型能力: vision, reasoning, tool_use, web_search")
+    context_window: Optional[int] = Field(None, description="上下文窗口大小")
+    max_output: Optional[int] = Field(None, description="最大输出token数")
     enabled: bool = Field(True, description="是否启用")
 
 

@@ -77,17 +77,15 @@ export class HttpClient {
       
       try {
         const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorMessage;
-        errorDetails = errorJson.data || errorJson;
+        // 优先提取 FastAPI 标准错误字段 detail
+        errorMessage = errorJson.detail || errorJson.message || errorMessage;
+        errorDetails = errorJson;
       } catch {
         errorMessage = errorText || errorMessage;
       }
-
-      // 获取用户友好的错误消息
-      const friendlyMessage = this.getFriendlyErrorMessage(errorType, errorMessage);
       
       // 记录错误日志
-      Logger.error(`API 请求失败: ${response.url}`, new Error(friendlyMessage), {
+      Logger.error(`API 请求失败: ${response.url}`, new Error(errorMessage), {
         status: response.status,
         errorType,
         details: errorDetails
@@ -95,8 +93,8 @@ export class HttpClient {
       
       return {
         code: response.status,
-        message: friendlyMessage,
-        data: {} as T
+        message: errorMessage,
+        data: errorDetails as T
       };
     }
     
