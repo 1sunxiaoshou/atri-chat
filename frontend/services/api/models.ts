@@ -22,6 +22,26 @@ export const modelsApi = {
   },
 
   /**
+   * 更新模型
+   * @param providerId - 服务商 ID
+   * @param modelId - 模型 ID
+   * @param model - 模型数据
+   */
+  updateModel: async (
+    providerId: string,
+    modelId: string,
+    model: Partial<Model>
+  ): Promise<ApiResponse<Model>> => {
+    return httpClient.put<Model>(`/models/${providerId}/${modelId}`, {
+      model_type: model.model_type,
+      capabilities: model.capabilities,
+      enabled: model.enabled,
+      context_window: model.context_window,
+      max_output: model.max_output
+    });
+  },
+
+  /**
    * 切换模型启用/禁用状态
    * @param modelId - 模型 ID
    * @param enabled - 是否启用
@@ -57,5 +77,33 @@ export const modelsApi = {
     modelId: string
   ): Promise<ApiResponse<void>> => {
     return httpClient.delete<void>(`/models/${providerId}/${modelId}`);
+  },
+
+  /**
+   * 同步供应商模型列表
+   * @param providerId - 服务商 ID
+   * @param updateExisting - 是否更新已存在的模型
+   */
+  syncProviderModels: async (
+    providerId: string,
+    updateExisting: boolean = false
+  ): Promise<ApiResponse<{
+    provider_id: string;
+    total: number;
+    added: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+    errors?: string[];
+  }>> => {
+    return httpClient.post<{
+      provider_id: string;
+      total: number;
+      added: number;
+      updated: number;
+      skipped: number;
+      failed: number;
+      errors?: string[];
+    }>(`/providers/${providerId}/models/sync?update_existing=${updateExisting}`, {});
   }
 };

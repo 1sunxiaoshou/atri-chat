@@ -4,7 +4,8 @@
 """
 from typing import Optional, Any, TYPE_CHECKING, Dict, List
 from .config import ModelConfig, ProviderMetadata, ProviderConfig
-from .provider import BaseProvider, OpenAIProvider, AnthropicProvider, GoogleProvider, TongyiProvider, LocalProvider
+from .providers.base import BaseProvider
+from . import providers
 from ..logger import get_logger
 
 if TYPE_CHECKING:
@@ -22,22 +23,22 @@ class ModelFactory:
     
     def __init__(self, storage: "AppStorage"):
         self.storage = storage
-        self._provider_templates: Dict[str, BaseProvider] = {}
+        self._provider_templates: Dict[str, providers.BaseProvider] = {}
         self._register_provider_templates()
     
     def _register_provider_templates(self):
         """注册供应商模板（Provider 实现类）"""
-        self.register_provider_template(OpenAIProvider())
-        self.register_provider_template(AnthropicProvider())
-        self.register_provider_template(GoogleProvider())
-        self.register_provider_template(TongyiProvider())
-        self.register_provider_template(LocalProvider())
+        self.register_provider_template(providers.OpenAIProvider())
+        self.register_provider_template(providers.AnthropicProvider())
+        self.register_provider_template(providers.GoogleProvider())
+        self.register_provider_template(providers.TongyiProvider())
+        self.register_provider_template(providers.LocalProvider())
     
     def get_available_templates(self) -> List[str]:
         """获取所有可用的供应商模板类型"""
         return list(self._provider_templates.keys())
     
-    def register_provider_template(self, provider: BaseProvider) -> None:
+    def register_provider_template(self, provider: providers.BaseProvider) -> None:
         """注册供应商模板
         
         Args:

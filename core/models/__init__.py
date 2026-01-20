@@ -1,19 +1,15 @@
 """模型管理模块"""
-from .config import ModelConfig, ProviderConfig, ModelType, Capability, ProviderMetadata
+from .config import ModelConfig, ProviderConfig, ModelType, ModelCapability, ProviderMetadata, ProviderModelInfo
 from .factory import ModelFactory
-from .provider import BaseProvider, OpenAIProvider, AnthropicProvider, GoogleProvider, TongyiProvider, LocalProvider
+from . import providers
 
 __all__ = [
     "ModelConfig",
     "ProviderConfig",
     "ModelType",
-    "Capability",
+    "ModelCapability",
     "ProviderMetadata",
+    "ProviderModelInfo",
     "ModelFactory",
-    "BaseProvider",
-    "OpenAIProvider",
-    "AnthropicProvider",
-    "GoogleProvider",
-    "TongyiProvider",
-    "LocalProvider",
+    "providers",
 ]

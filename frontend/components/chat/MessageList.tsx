@@ -61,7 +61,7 @@ const MessageList: React.FC<MessageListProps> = ({
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {children}
       
       {isTyping && (
@@ -86,7 +86,7 @@ const MessageList: React.FC<MessageListProps> = ({
       )}
       
       <div ref={messagesEndRef} />
-    </>
+    </div>
   );
 };
 

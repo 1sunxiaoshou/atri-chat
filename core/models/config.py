@@ -5,19 +5,28 @@ from pydantic import BaseModel, Field
 
 
 class ModelType(str, Enum):
-    """模型类型 - 按功能分类"""
-    TEXT = "text"
+    CHAT = "chat"
     EMBEDDING = "embedding"
     RERANK = "rerank"
 
 
-class Capability(str, Enum):
-    """模型能力 - 按能力分类"""
-    BASE = "base"  # 基础能力
-    CHAT = "chat"  # 对话能力
-    VISION = "vision"  # 视觉能力
-    FUNCTION_CALLING = "function_calling"  # 函数调用能力
-    REASONING = "reasoning"  # 推理能力（模型自动返回思维链）
+class ModelCapability(str, Enum):
+    VISION = "vision"  # 图像理解能力
+    DOCUMENT = "document"  # 文档理解能力
+    VIDEO = "video"  # 视频理解能力
+    AUDIO = "audio"  # 音频理解能力
+    REASONING = "reasoning"  # 推理能力（深度思考）
+    TOOL_USE = "tool_use"  # 工具调用/函数调用能力
+    WEB_SEARCH = "web_search"  # 网络搜索能力
+
+
+class ProviderModelInfo(BaseModel):
+    model_id: str = Field(..., description="模型ID")
+    type: ModelType = Field(default=ModelType.CHAT, description="模型类型")
+    nickname: Optional[str] = Field(default=None, description="模型昵称")
+    capabilities: List[ModelCapability] = Field(default_factory=list, description="模型能力列表")
+    context_window: Optional[int] = Field(default=None, description="上下文窗口大小")
+    max_output: Optional[int] = Field(default=None, description="最大输出token数")
 
 
 class ProviderConfig(BaseModel):
@@ -30,8 +39,10 @@ class ModelConfig(BaseModel):
     """模型配置"""
     model_id: str = Field(..., description="模型ID")
     provider_id: str = Field(..., description="供应商ID")
-    model_type: ModelType = Field(..., description="模型类型: text, embedding, rerank")
-    capabilities: List[Capability] = Field(default_factory=lambda: [Capability.BASE], description="模型能力列表")
+    model_type: ModelType = Field(..., description="模型类型: chat, embedding, rerank")
+    capabilities: List[ModelCapability] = Field(default_factory=list, description="模型能力列表")
+    context_window: Optional[int] = Field(default=None, description="上下文窗口大小")
+    max_output: Optional[int] = Field(default=None, description="最大输出token数")
     enabled: bool = Field(default=True, description="是否启用")
 
     def __str__(self) -> str:
@@ -42,6 +53,8 @@ class ModelConfig(BaseModel):
             f"  provider_id  = {self.provider_id!r},\n"
             f"  model_type   = {self.model_type.value!r},\n"
             f"  capabilities = [{caps}],\n"
+            f"  context_window = {self.context_window},\n"
+            f"  max_output   = {self.max_output},\n"
             f"  enabled      = {self.enabled}\n"
             f")"
         )
@@ -51,7 +64,15 @@ class ModelConfig(BaseModel):
     
     def is_reasoning_model(self) -> bool:
         """判断是否为推理模型"""
-        return Capability.REASONING in self.capabilities
+        return ModelCapability.REASONING in self.capabilities
+    
+    def supports_vision(self) -> bool:
+        """判断是否支持视觉"""
+        return ModelCapability.VISION in self.capabilities
+    
+    def supports_tool_use(self) -> bool:
+        """判断是否支持工具调用"""
+        return ModelCapability.TOOL_USE in self.capabilities
 
 
 class ConfigField(BaseModel):
@@ -70,3 +91,4 @@ class ProviderMetadata(BaseModel):
     description: str = Field(..., description="供应商描述")
     logo: str = Field(..., description="Logo 路径或 URL")
     config_fields: List[ConfigField] = Field(default_factory=list, description="可配置字段列表")
+    provider_options_schema: Optional[Dict[str, Any]] = Field(default=None, description="供应商特定参数的 Schema")

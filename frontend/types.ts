@@ -25,7 +25,7 @@ export interface Provider {
 export interface Model {
   provider_id: string;
   model_id: string;
-  model_type: 'text' | 'embedding' | 'rerank';
+  model_type: 'chat' | 'embedding' | 'rerank';
   capabilities: string[];
   enabled: boolean;
 }

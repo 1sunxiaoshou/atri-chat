@@ -1,5 +1,5 @@
 """核心模块"""
-from .models.config import ModelConfig, ProviderConfig, ModelType, Capability
+from .models.config import ModelConfig, ProviderConfig, ModelType, ModelCapability
 from .models.factory import ModelFactory
 
 from .storage import AppStorage
@@ -10,7 +10,7 @@ __all__ = [
     "ModelConfig",
     "ProviderConfig",
     "ModelType",
-    "Capability",
+    "ModelCapability",
     "ModelFactory",
     "AppStorage",
     "SqliteStore",
