@@ -70,9 +70,17 @@ npm run dev
 
 打开前端启动后控制台的网址，开始使用 ATRI！
 
-## 📸 截图预览
+## 📸 界面展示
 
-> 添加项目截图可以让 README 更有吸引力
+### 对话界面
+![对话界面](.github/images/chat-interface.png)
+
+### VRM 3D 模式
+![VRM模式](.github/images/vrm-mode.png)
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=1sunxiaoshou/atri-chat&type=Date)](https://star-history.com/#1sunxiaoshou/atri-chat&Date)
 
 ## 🤝 贡献指南
 
