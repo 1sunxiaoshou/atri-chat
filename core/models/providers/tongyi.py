@@ -24,7 +24,7 @@ class TongyiProvider(BaseProvider):
         from langchain_community.chat_models.tongyi import ChatTongyi
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         merged = self._merge_params(config, **kwargs)
         
@@ -65,12 +65,110 @@ class TongyiProvider(BaseProvider):
         
         return result
     
+    async def _fetch_models_concurrent(self, models: list, provider_config: ProviderConfig) -> list[ProviderModelInfo]:
+        """并发获取模型详细信息"""
+        import httpx
+        from ...logger import get_logger
+        
+        logger = get_logger(__name__)
+        config = provider_config.config_json
+        api_key = config.get("api_key")
+        base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        
+        async def fetch_model_info(model_id: str) -> ProviderModelInfo:
+            """异步获取单个模型信息"""
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.get(
+                        f"{base_url}/models/{model_id}",
+                        headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        # 提取上下文窗口信息
+                        context_window = None
+                        max_output = None
+                        if 'extra_info' in data:
+                            extra_info = data['extra_info']
+                            if isinstance(extra_info, dict):
+                                default_envs = extra_info.get('default_envs', {})
+                                context_window = default_envs.get('max_input_tokens')
+                                max_output = default_envs.get('max_output_tokens')
+                        
+                        # 根据模型 ID 推断类型和能力
+                        model_info = self._infer_model_info(model_id, context_window, max_output)
+                        return model_info
+                    else:
+                        # API 调用失败，使用默认推断
+                        return self._infer_model_info(model_id, None, None)
+                        
+            except Exception as e:
+                logger.debug(f"获取模型 {model_id} 信息失败: {e}，使用默认推断")
+                return self._infer_model_info(model_id, None, None)
+        
+        # 并发获取所有模型信息（限制并发数为 20）
+        import asyncio
+        semaphore = asyncio.Semaphore(20)
+        
+        async def fetch_with_semaphore(model_id: str):
+            async with semaphore:
+                return await fetch_model_info(model_id)
+        
+        tasks = [fetch_with_semaphore(model.id) for model in models]
+        results = await asyncio.gather(*tasks)
+        
+        return results
+    
+    def _infer_model_info(self, model_id: str, context_window: int = None, max_output: int = None) -> ProviderModelInfo:
+        """根据模型 ID 推断模型信息"""
+        model_id_lower = model_id.lower()
+        
+        # 嵌入模型
+        if "embed" in model_id_lower or "embedding" in model_id_lower:
+            return ProviderModelInfo(
+                model_id=model_id,
+                type=ModelType.EMBEDDING,
+                capabilities=[],
+                context_window=context_window,
+                max_output=max_output,
+            )
+        
+        # 聊天模型
+        capabilities = []
+        
+        # VL 系列支持多模态
+        if "vl" in model_id_lower or "vision" in model_id_lower:
+            capabilities.extend([
+                ModelCapability.VISION,
+                ModelCapability.DOCUMENT
+            ])
+        
+        # Audio 系列
+        if "audio" in model_id_lower:
+            capabilities.append(ModelCapability.AUDIO)
+        
+        # 工具调用能力
+        if "plus" in model_id_lower or "max" in model_id_lower or "turbo" in model_id_lower:
+            capabilities.append(ModelCapability.TOOL_USE)
+        
+        return ProviderModelInfo(
+            model_id=model_id,
+            type=ModelType.CHAT,
+            capabilities=capabilities,
+            context_window=context_window,
+            max_output=max_output,
+        )
+    
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         """通义千问支持嵌入模型，使用 OpenAI 兼容接口"""
         return super().create_embedding_model(model_id, provider_config, **kwargs)
     
     def list_models(self, provider_config: ProviderConfig) -> list[ProviderModelInfo]:
-        """获取通义千问模型列表 - 使用 OpenAI 兼容接口"""
+        """获取通义千问模型列表 - 使用 OpenAI 兼容接口（并发获取）"""
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
         from openai import OpenAI
         from typing import List
         
@@ -89,36 +187,20 @@ class TongyiProvider(BaseProvider):
         # 获取模型列表
         models = client.models.list()
         
-        result: List[ProviderModelInfo] = []
-        for model in models.data:
+        # 在新线程中运行异步任务，避免事件循环冲突
+        def run_async_in_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             try:
-                # 尝试获取模型详细信息
-                model_detail = client.models.retrieve(model.id)
-                
-                # 提取上下文窗口信息
-                context_window = None
-                max_output = None
-                if hasattr(model_detail, 'extra_info') and model_detail.extra_info:
-                    extra_info = model_detail.extra_info
-                    if isinstance(extra_info, dict):
-                        default_envs = extra_info.get('default_envs', {})
-                        context_window = default_envs.get('max_input_tokens')
-                        max_output = default_envs.get('max_output_tokens')
-                
-                # 调用 get_model_info 获取类型和能力信息
-                model_info = self.get_model_info(model.id, provider_config)
-                
-                # 更新上下文窗口信息
-                if context_window:
-                    model_info.context_window = context_window
-                if max_output:
-                    model_info.max_output = max_output
-                
-                result.append(model_info)
-            except Exception as e:
-                # 如果获取详细信息失败，使用基本信息
-                model_info = self.get_model_info(model.id, provider_config)
-                result.append(model_info)
+                return loop.run_until_complete(
+                    self._fetch_models_concurrent(models.data, provider_config)
+                )
+            finally:
+                loop.close()
+        
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_async_in_thread)
+            result = future.result()
         
         return result
     
@@ -127,7 +209,7 @@ class TongyiProvider(BaseProvider):
         from openai import OpenAI
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         
         try:
@@ -152,78 +234,8 @@ class TongyiProvider(BaseProvider):
             logger.debug(f"从 API 获取模型信息: {model_id}, "
                         f"context_window: {context_window}, max_output: {max_output}")
             
-            # 根据模型 ID 推断类型和能力
-            model_id_lower = model_id.lower()
-            
-            # 嵌入模型
-            if "embed" in model_id_lower or "embedding" in model_id_lower:
-                return ProviderModelInfo(
-                    model_id=model_id,
-                    type=ModelType.EMBEDDING,
-                    capabilities=[],
-                    context_window=context_window,
-                    max_output=max_output,
-                )
-            
-            # 聊天模型
-            capabilities = []
-            
-            # VL 系列支持多模态
-            if "vl" in model_id_lower or "vision" in model_id_lower:
-                capabilities.extend([
-                    ModelCapability.VISION,
-                    ModelCapability.DOCUMENT
-                ])
-            
-            # Audio 系列
-            if "audio" in model_id_lower:
-                capabilities.append(ModelCapability.AUDIO)
-            
-            # 工具调用能力
-            if "plus" in model_id_lower or "max" in model_id_lower or "turbo" in model_id_lower:
-                capabilities.append(ModelCapability.TOOL_USE)
-            
-            return ProviderModelInfo(
-                model_id=model_id,
-                type=ModelType.CHAT,
-                capabilities=capabilities,
-                context_window=context_window,
-                max_output=max_output,
-            )
+            return self._infer_model_info(model_id, context_window, max_output)
             
         except Exception as e:
             logger.warning(f"无法从 API 获取模型信息 {model_id}: {e}，使用默认推断")
-            # 降级到基于名称的推断
-            model_id_lower = model_id.lower()
-            
-            # 嵌入模型
-            if "embed" in model_id_lower or "embedding" in model_id_lower:
-                return ProviderModelInfo(
-                    model_id=model_id,
-                    type=ModelType.EMBEDDING,
-                    capabilities=[],
-                )
-            
-            # 聊天模型
-            capabilities = []
-            
-            # VL 系列支持多模态
-            if "vl" in model_id_lower or "vision" in model_id_lower:
-                capabilities.extend([
-                    ModelCapability.VISION,
-                    ModelCapability.DOCUMENT
-                ])
-            
-            # Audio 系列
-            if "audio" in model_id_lower:
-                capabilities.append(ModelCapability.AUDIO)
-            
-            # 工具调用能力
-            if "plus" in model_id_lower or "max" in model_id_lower or "turbo" in model_id_lower:
-                capabilities.append(ModelCapability.TOOL_USE)
-            
-            return ProviderModelInfo(
-                model_id=model_id,
-                type=ModelType.CHAT,
-                capabilities=capabilities,
-            )
+            return self._infer_model_info(model_id, None, None)

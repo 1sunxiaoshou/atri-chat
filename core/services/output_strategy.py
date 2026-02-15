@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator
 from ..logger import get_logger
 
-logger = get_logger(__name__, category="SERVICE")
+logger = get_logger(__name__)
 
 
 class OutputStrategy(ABC):

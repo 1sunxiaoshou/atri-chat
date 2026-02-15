@@ -7,7 +7,7 @@ from .base import TTSBase
 from .registry import TTSRegistry
 from .service import TTSConfigService
 
-logger = get_logger(__name__, category="MODEL")
+logger = get_logger(__name__)
 
 
 class TTSFactory:

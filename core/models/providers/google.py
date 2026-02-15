@@ -59,7 +59,7 @@ class GoogleProvider(BaseProvider):
         from langchain_google_genai import ChatGoogleGenerativeAI
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         merged = self._merge_params(config, **kwargs)
         
@@ -101,7 +101,7 @@ class GoogleProvider(BaseProvider):
         from google import genai
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         
         try:

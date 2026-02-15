@@ -6,7 +6,7 @@ from core.logger import get_logger
 from .base import TTSBase
 from .registry import TTSRegistry
 
-logger = get_logger(__name__, category="MODEL")
+logger = get_logger(__name__)
 
 
 @TTSRegistry.register("genie", "Genie TTS")

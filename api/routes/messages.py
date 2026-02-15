@@ -31,7 +31,7 @@ async def send_message(
                 model_kwargs["thinking_config"] = req.thinking_config
             
             from core.logger import get_logger
-            logger = get_logger(__name__, category="API")
+            logger = get_logger(__name__)
             logger.info(
                 "接收到消息请求",
                 extra={

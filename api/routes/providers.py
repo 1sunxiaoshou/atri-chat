@@ -351,7 +351,7 @@ async def sync_provider_models(
         except Exception as e:
             # API 调用失败，记录日志并返回错误信息
             from core.logger import get_logger
-            logger = get_logger(__name__, category="API")
+            logger = get_logger(__name__)
             logger.error(f"同步模型失败 [{provider_id}]: {str(e)}")
             
             raise HTTPException(status_code=400, detail=str(e))

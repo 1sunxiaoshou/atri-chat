@@ -13,7 +13,7 @@ from functools import lru_cache
 
 from core.logger import get_logger
 
-logger = get_logger(__name__, category="GENERAL")
+logger = get_logger(__name__)
 
 
 class PathManager:

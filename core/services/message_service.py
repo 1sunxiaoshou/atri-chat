@@ -4,7 +4,7 @@ from typing import AsyncGenerator, Tuple, Optional, Dict, Any
 from langchain.messages import AIMessageChunk
 from ..logger import get_logger
 
-logger = get_logger(__name__, category="SERVICE")
+logger = get_logger(__name__)
 
 
 class MessageService:

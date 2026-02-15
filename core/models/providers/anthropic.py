@@ -63,7 +63,7 @@ class AnthropicProvider(BaseProvider):
         from langchain_anthropic import ChatAnthropic
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         merged = self._merge_params(config, **kwargs)
         
@@ -95,7 +95,7 @@ class AnthropicProvider(BaseProvider):
         from anthropic import Anthropic
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         
         try:

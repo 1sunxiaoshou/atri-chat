@@ -4,7 +4,7 @@ from langchain.agents.middleware import dynamic_prompt, ModelRequest
 from typing import Dict, Any
 from ..logger import get_logger
 
-logger = get_logger(__name__, category="MIDDLEWARE")
+logger = get_logger(__name__)
 
 
 @dataclass
