@@ -11,7 +11,7 @@ from core.logger import get_logger
 from core.utils.file_naming import generate_animation_filename
 from api.schemas import ResponseModel
 
-logger = get_logger(__name__, category="API")
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/vrm/models", tags=["VRM Model Animations"])
 

@@ -4,7 +4,7 @@ import re
 from typing import Tuple
 from core.logger import get_logger
 
-logger = get_logger(__name__, category="UTILS")
+logger = get_logger(__name__)
 
 
 def generate_short_uuid() -> str:

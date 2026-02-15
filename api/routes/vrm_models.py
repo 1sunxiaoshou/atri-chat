@@ -15,7 +15,7 @@ from core.utils.file_naming import (
 )
 from api.schemas import ResponseModel
 
-logger = get_logger(__name__, category="API")
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/vrm/models", tags=["VRM Models"])
 

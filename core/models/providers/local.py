@@ -23,7 +23,7 @@ class LocalProvider(BaseProvider):
         from langchain_community.chat_models import ChatOllama
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         merged = self._merge_params(config, **kwargs)
         
@@ -75,7 +75,7 @@ class LocalProvider(BaseProvider):
         import requests
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         base_url = config.get("base_url", "http://localhost:11434")
         

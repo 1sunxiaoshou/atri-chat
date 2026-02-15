@@ -168,6 +168,8 @@ const translations: Record<Language, Translations> = {
     'app.selectConversation': 'Select a conversation or start a new chat',
     'app.selectCharHelp': 'Choose a character from the sidebar to filter your chats.',
     'app.startNewChat': 'Start New Chat',
+    'app.noCharacterAvailable': 'Please create at least one character first',
+    'app.createConversationFailed': 'Failed to create conversation',
   },
   zh: {
     // Sidebar
@@ -330,6 +332,8 @@ const translations: Record<Language, Translations> = {
     'app.selectConversation': '选择一个会话或开始新对话',
     'app.selectCharHelp': '从侧边栏选择一个角色来筛选对话。',
     'app.startNewChat': '开始新会话',
+    'app.noCharacterAvailable': '请先创建至少一个角色',
+    'app.createConversationFailed': '创建会话失败',
   }
 };
 

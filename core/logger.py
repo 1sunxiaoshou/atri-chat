@@ -1,6 +1,5 @@
-"""日志系统配置"""
+"""日志系统配置 - 简化实用版"""
 import sys
-import re
 from pathlib import Path
 from loguru import logger
 from core.config import get_config
@@ -28,40 +27,21 @@ def _get_log_dir() -> Path:
 
 LOG_DIR = _get_log_dir()
 
-# 敏感信息脱敏
-SENSITIVE_PATTERNS = [
-    (re.compile(r'(api[_-]?key["\s:=]+)[\w\-]{20,}', re.IGNORECASE), r'\1***'),
-    (re.compile(r'(token["\s:=]+)[\w\-\.]{20,}', re.IGNORECASE), r'\1***'),
-    (re.compile(r'(password["\s:=]+)[^\s,}]+', re.IGNORECASE), r'\1***'),
-    (re.compile(r'(secret["\s:=]+)[^\s,}]+', re.IGNORECASE), r'\1***'),
-    (re.compile(r'sk-[a-zA-Z0-9]{20,}'), r'sk-***'),
-]
-
-def sanitize_message(message: str) -> str:
-    """脱敏敏感信息"""
-    for pattern, replacement in SENSITIVE_PATTERNS:
-        message = pattern.sub(replacement, message)
-    return message
-
 # 移除默认处理器
 logger.remove()
 
-# 控制台输出格式（根据环境区分）
+# 1. 控制台输出（开发环境彩色，生产环境简洁）
 if config.is_development:
-    # 开发环境：彩色、详细
     console_format = (
         "<green>{time:HH:mm:ss}</green> | "
         "<level>{level: <8}</level> | "
-        "<cyan>{extra[category]: <12}</cyan> | "
         "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
         "<level>{message}</level>"
     )
 else:
-    # 生产环境：简洁、结构化
     console_format = (
         "{time:YYYY-MM-DD HH:mm:ss} | "
         "{level: <8} | "
-        "{extra[category]: <12} | "
         "{name}:{function} - "
         "{message}"
     )
@@ -71,112 +51,71 @@ logger.add(
     format=console_format,
     level=LOG_LEVEL,
     colorize=config.is_development,
-    filter=lambda record: sanitize_message(str(record["message"])) and True,
 )
 
-# 文件输出 - 所有日志
+# 2. 所有日志文件（方便查看全貌）
 logger.add(
     LOG_DIR / "app.log",
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]: <12} | {name}:{function}:{line} - {message}",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
     level=LOG_LEVEL,
-    rotation="500 MB",
+    rotation="100 MB",
     retention="7 days",
     encoding="utf-8",
-    filter=lambda record: sanitize_message(str(record["message"])) and True,
 )
 
-def _add_category_handlers():
-    """添加分类日志处理器"""
-    # 文件输出 - 错误日志
-    logger.add(
-        LOG_DIR / "error.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]: <12} | {name}:{function}:{line} - {message}\n{exception}",
-        level="ERROR",
-        rotation="500 MB",
-        retention="30 days",
-        encoding="utf-8",
-    )
+# 3. 错误日志文件（单独记录，方便快速定位问题）
+logger.add(
+    LOG_DIR / "error.log",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
+    level="ERROR",
+    rotation="100 MB",
+    retention="30 days",
+    encoding="utf-8",
+)
 
-    # 文件输出 - API请求日志
-    logger.add(
-        LOG_DIR / "api.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[method]: <6} {extra[path]: <50} | {extra[status_code]} | {extra[duration]}ms | {message}",
-        level=LOG_LEVEL,
-        filter=lambda record: record["extra"].get("category") == "API",
-        rotation="100 MB",
-        retention="7 days",
-        encoding="utf-8",
-    )
+# 4. API 日志文件（可选，用于分析接口性能）
+def api_formatter(record):
+    """API 日志格式化器"""
+    extra = record["extra"]
+    # 只记录 API 请求
+    if not extra.get("is_api"):
+        return False
+    
+    request_id = extra.get("request_id", "")
+    method = extra.get("method", "")
+    path = extra.get("path", "")
+    status_code = extra.get("status_code", "")
+    duration = extra.get("duration", "")
+    
+    time_str = record["time"].strftime("%Y-%m-%d %H:%M:%S")
+    return f"{time_str} | [{request_id}] {method:<6} {path:<50} | {status_code} | {duration}ms\n"
 
-    # 文件输出 - 业务逻辑日志
-    logger.add(
-        LOG_DIR / "business.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]: <12} | {name}:{function} - {message}",
-        level=LOG_LEVEL,
-        filter=lambda record: record["extra"].get("category") == "BUSINESS",
-        rotation="100 MB",
-        retention="7 days",
-        encoding="utf-8",
-    )
-
-    # 文件输出 - 数据库操作日志
-    logger.add(
-        LOG_DIR / "database.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]: <12} | {name}:{function} - {message}",
-        level=LOG_LEVEL,
-        filter=lambda record: record["extra"].get("category") == "DATABASE",
-        rotation="100 MB",
-        retention="7 days",
-        encoding="utf-8",
-    )
-
-    # 文件输出 - 模型调用日志
-    logger.add(
-        LOG_DIR / "model.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[category]: <12} | {name}:{function} - {message}",
-        level=LOG_LEVEL,
-        filter=lambda record: record["extra"].get("category") == "MODEL",
-        rotation="100 MB",
-        retention="7 days",
-        encoding="utf-8",
-    )
-
-    # 文件输出 - 性能日志
-    logger.add(
-        LOG_DIR / "performance.log",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[operation]: <30} | {extra[duration]}ms | {message}",
-        level=LOG_LEVEL,
-        filter=lambda record: record["extra"].get("category") == "PERFORMANCE",
-        rotation="100 MB",
-        retention="7 days",
-        encoding="utf-8",
-    )
+logger.add(
+    LOG_DIR / "api.log",
+    format=api_formatter,
+    level="INFO",
+    filter=lambda record: record["extra"].get("is_api", False),
+    rotation="50 MB",
+    retention="7 days",
+    encoding="utf-8",
+)
 
 
-# 初始化分类处理器
-_add_category_handlers()
-
-
-def get_logger(name: str = None, category: str = "GENERAL"):
-    """获取logger实例
+def get_logger(name: str = None):
+    """获取 logger 实例
     
     Args:
-        name: 模块名称
-        category: 日志分类 (SYSTEM, API, BUSINESS, DATABASE, MODEL, PERFORMANCE, GENERAL)
+        name: 模块名称（通常传入 __name__）
     
     Returns:
-        绑定了上下文的logger实例
+        logger 实例
+    
+    使用示例:
+        logger = get_logger(__name__)
+        logger.info("用户登录", extra={"user_id": user_id})
+        logger.error("操作失败", exc_info=True)
     """
-    return logger.bind(
-        name=name or __name__, 
-        category=category, 
-        method="", 
-        path="", 
-        status_code="",
-        duration="",
-        operation="",
-        function=""
-    )
+    return logger.bind(name=name or __name__)
 
 
 def get_log_level() -> str:

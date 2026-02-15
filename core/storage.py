@@ -8,7 +8,7 @@ from .models.config import ProviderConfig, ModelConfig, ModelType, ModelCapabili
 from .logger import get_logger
 from .paths import get_app_db_path
 
-logger = get_logger(__name__, category="DATABASE")
+logger = get_logger(__name__)
 
 
 class AppStorage:
@@ -19,9 +19,15 @@ class AppStorage:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     
+    def _get_connection(self):
+        """获取启用外键约束的数据库连接"""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+    
     def _init_db(self):
         """初始化数据库"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             # 模型供应商配置表
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS provider_config (
@@ -148,7 +154,7 @@ class AppStorage:
     def add_provider(self, config: ProviderConfig, logo: str = None, template_type: str = "openai") -> bool:
         """添加供应商配置"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 conn.execute(
                     "INSERT INTO provider_config VALUES (?, ?, ?, ?)",
                     (config.provider_id, json.dumps(config.config_json), logo, template_type)
@@ -160,7 +166,7 @@ class AppStorage:
     
     def get_provider(self, provider_id: str) -> Optional[Dict[str, Any]]:
         """获取供应商配置"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT provider_id, config_json, logo, template_type FROM provider_config WHERE provider_id = ?",
                 (provider_id,)
@@ -177,7 +183,7 @@ class AppStorage:
     
     def list_providers(self) -> List[Dict[str, Any]]:
         """列出所有供应商配置"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("SELECT provider_id, config_json, logo, template_type FROM provider_config")
             return [
                 {
@@ -191,7 +197,7 @@ class AppStorage:
     
     def update_provider(self, provider_id: str, config_json: Dict[str, Any] = None, logo: str = None, template_type: str = None) -> bool:
         """更新供应商配置"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             updates = []
             params = []
             
@@ -216,7 +222,7 @@ class AppStorage:
     
     def delete_provider(self, provider_id: str) -> bool:
         """删除供应商配置"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM provider_config WHERE provider_id = ?", (provider_id,))
             conn.commit()
             return cursor.rowcount > 0
@@ -226,7 +232,7 @@ class AppStorage:
     def add_model(self, model: ModelConfig) -> bool:
         """添加模型"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 capabilities_json = json.dumps([c.value for c in model.capabilities])
                 conn.execute(
                     "INSERT INTO models VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -241,7 +247,7 @@ class AppStorage:
     
     def get_model(self, provider_id: str, model_id: str) -> Optional[ModelConfig]:
         """获取模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT provider_id, model_id, model_type, capabilities, context_window, max_output, enabled FROM models WHERE provider_id = ? AND model_id = ?",
                 (provider_id, model_id)
@@ -262,7 +268,7 @@ class AppStorage:
     
     def list_models(self, provider_id: Optional[str] = None, model_type: Optional[ModelType] = None, enabled_only: bool = True) -> List[ModelConfig]:
         """列出模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             query = "SELECT provider_id, model_id, model_type, capabilities, context_window, max_output, enabled FROM models WHERE 1=1"
             params = []
             
@@ -293,7 +299,7 @@ class AppStorage:
     
     def update_model(self, model: ModelConfig) -> bool:
         """更新模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             capabilities_json = json.dumps([c.value for c in model.capabilities])
             cursor = conn.execute(
                 "UPDATE models SET model_type = ?, capabilities = ?, context_window = ?, max_output = ?, enabled = ? WHERE provider_id = ? AND model_id = ?",
@@ -304,7 +310,7 @@ class AppStorage:
     
     def delete_model(self, provider_id: str, model_id: str) -> bool:
         """删除模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM models WHERE provider_id = ? AND model_id = ?", (provider_id, model_id))
             conn.commit()
             return cursor.rowcount > 0
@@ -316,7 +322,7 @@ class AppStorage:
                 enabled: bool = True) -> bool:
         """添加 TTS 模型"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 conn.execute(
                     "INSERT INTO tts_models VALUES (?, ?, ?, ?, ?, ?)",
                     (tts_id, provider_id, voice_role, api_key, access_url, enabled)
@@ -328,7 +334,7 @@ class AppStorage:
     
     def get_tts(self, tts_id: str) -> Optional[Dict[str, Any]]:
         """获取 TTS 模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT tts_id, provider_id, voice_role, api_key, access_url, enabled FROM tts_models WHERE tts_id = ?",
                 (tts_id,)
@@ -347,7 +353,7 @@ class AppStorage:
     
     def list_tts(self, provider_id: Optional[str] = None, enabled_only: bool = True) -> List[Dict[str, Any]]:
         """列出 TTS 模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             query = "SELECT tts_id, provider_id, voice_role, api_key, access_url, enabled FROM tts_models WHERE 1=1"
             params = []
             
@@ -375,7 +381,7 @@ class AppStorage:
                    voice_role: Optional[str] = None, api_key: Optional[str] = None,
                    access_url: Optional[str] = None, enabled: Optional[bool] = None) -> bool:
         """更新 TTS 模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             updates = []
             params = []
             
@@ -406,7 +412,7 @@ class AppStorage:
     
     def delete_tts(self, tts_id: str) -> bool:
         """删除 TTS 模型"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM tts_models WHERE tts_id = ?", (tts_id,))
             conn.commit()
             return cursor.rowcount > 0
@@ -419,7 +425,7 @@ class AppStorage:
                      enabled: bool = True) -> Optional[int]:
         """添加角色，返回角色ID"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 cursor = conn.execute(
                     "INSERT INTO characters (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, vrm_model_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, vrm_model_id, enabled)
@@ -433,7 +439,7 @@ class AppStorage:
     
     def get_character(self, character_id: int) -> Optional[Dict[str, Any]]:
         """获取角色"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled, vrm_model_id FROM characters WHERE character_id = ?",
                 (character_id,)
@@ -457,7 +463,7 @@ class AppStorage:
     
     def list_characters(self, enabled_only: bool = True) -> List[Dict[str, Any]]:
         """列出角色"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             query = "SELECT character_id, name, description, system_prompt, primary_model_id, primary_provider_id, tts_id, avatar, avatar_position, enabled, vrm_model_id FROM characters"
             if enabled_only:
                 query += " WHERE enabled = 1"
@@ -499,14 +505,14 @@ class AppStorage:
 
         query = f"UPDATE characters SET {set_clause} WHERE character_id = ?"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(query, params)
             conn.commit()
             return cursor.rowcount > 0
     
     def delete_character(self, character_id: int) -> bool:
         """删除角色"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM characters WHERE character_id = ?", (character_id,))
             conn.commit()
             return cursor.rowcount > 0
@@ -517,7 +523,17 @@ class AppStorage:
         """创建会话，返回会话ID"""
         try:
             now = datetime.now().isoformat()
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
+                # 验证角色是否存在
+                cursor = conn.execute(
+                    "SELECT character_id FROM characters WHERE character_id = ?",
+                    (character_id,)
+                )
+                if not cursor.fetchone():
+                    logger.error(f"创建会话失败: 角色不存在", extra={"character_id": character_id})
+                    return None
+                
+                # 创建会话
                 cursor = conn.execute(
                     "INSERT INTO conversations (character_id, title, created_at, updated_at) VALUES (?, ?, ?, ?)",
                     (character_id, title, now, now)
@@ -531,7 +547,7 @@ class AppStorage:
     
     def get_conversation(self, conversation_id: int) -> Optional[Dict[str, Any]]:
         """获取会话"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT conversation_id, character_id, title, created_at, updated_at FROM conversations WHERE conversation_id = ?",
                 (conversation_id,)
@@ -549,7 +565,7 @@ class AppStorage:
     
     def list_conversations(self, character_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """列出会话"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             query = "SELECT conversation_id, character_id, title, created_at, updated_at FROM conversations"
             params = []
             
@@ -573,7 +589,7 @@ class AppStorage:
     
     def update_conversation(self, conversation_id: int, title: Optional[str] = None) -> bool:
         """更新会话"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             now = datetime.now().isoformat()
             updates = ["updated_at = ?"]
             params = [now]
@@ -590,7 +606,7 @@ class AppStorage:
     
     def delete_conversation(self, conversation_id: int) -> bool:
         """删除会话（同时删除关联的消息）"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             # 先删除消息
             conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
             # 再删除会话
@@ -604,7 +620,7 @@ class AppStorage:
         """添加消息，返回消息ID"""
         try:
             now = datetime.now().isoformat()
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 cursor = conn.execute(
                     "INSERT INTO messages (conversation_id, message_type, content, created_at) VALUES (?, ?, ?, ?)",
                     (conversation_id, message_type, content, now)
@@ -623,7 +639,7 @@ class AppStorage:
     
     def get_message(self, message_id: int) -> Optional[Dict[str, Any]]:
         """获取消息"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT message_id, conversation_id, message_type, content, created_at FROM messages WHERE message_id = ?",
                 (message_id,)
@@ -641,7 +657,7 @@ class AppStorage:
     
     def list_messages(self, conversation_id: int, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """列出会话的消息"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             query = "SELECT message_id, conversation_id, message_type, content, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC"
             params = [conversation_id]
             
@@ -663,14 +679,14 @@ class AppStorage:
     
     def delete_message(self, message_id: int) -> bool:
         """删除消息"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM messages WHERE message_id = ?", (message_id,))
             conn.commit()
             return cursor.rowcount > 0
     
     def delete_messages_by_conversation(self, conversation_id: int) -> int:
         """删除会话的所有消息，返回删除数量"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
             conn.commit()
             return cursor.rowcount
@@ -695,7 +711,7 @@ class AppStorage:
             available_expressions: 可用表情列表（JSON字符串，可选）
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 conn.execute(
                     "INSERT INTO vrm_models (vrm_model_id, name, filename, thumbnail_filename, available_expressions) VALUES (?, ?, ?, ?, ?)",
                     (vrm_model_id, name, filename, thumbnail_filename, available_expressions)
@@ -712,7 +728,7 @@ class AppStorage:
         Returns:
             包含 vrm_model_id, name, filename, thumbnail_filename, available_expressions 的字典
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT vrm_model_id, name, filename, thumbnail_filename, available_expressions FROM vrm_models WHERE vrm_model_id = ?",
                 (vrm_model_id,)
@@ -734,7 +750,7 @@ class AppStorage:
         Returns:
             包含 vrm_model_id, name, filename, thumbnail_filename, available_expressions 的字典列表
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT vrm_model_id, name, filename, thumbnail_filename, available_expressions FROM vrm_models"
             )
@@ -761,14 +777,14 @@ class AppStorage:
         params = list(filtered_updates.values()) + [vrm_model_id]
         query = f"UPDATE vrm_models SET {set_clause} WHERE vrm_model_id = ?"
         
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(query, params)
             conn.commit()
             return cursor.rowcount > 0
     
     def delete_vrm_model(self, vrm_model_id: str) -> bool:
         """删除VRM模型（级联删除关联关系）"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM vrm_models WHERE vrm_model_id = ?", (vrm_model_id,))
             conn.commit()
             deleted = cursor.rowcount > 0
@@ -795,7 +811,7 @@ class AppStorage:
             duration: 动作时长（秒）
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 conn.execute(
                     "INSERT INTO vrm_animations (animation_id, name, name_cn, description, duration) VALUES (?, ?, ?, ?, ?)",
                     (animation_id, name, name_cn, description, duration)
@@ -808,7 +824,7 @@ class AppStorage:
     
     def get_vrm_animation(self, animation_id: str) -> Optional[Dict[str, Any]]:
         """获取VRM动作"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT animation_id, name, name_cn, description, duration FROM vrm_animations WHERE animation_id = ?",
                 (animation_id,)
@@ -826,7 +842,7 @@ class AppStorage:
     
     def list_vrm_animations(self) -> List[Dict[str, Any]]:
         """列出所有VRM动作"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT animation_id, name, name_cn, description, duration FROM vrm_animations"
             )
@@ -853,14 +869,14 @@ class AppStorage:
         params = list(filtered_updates.values()) + [animation_id]
         query = f"UPDATE vrm_animations SET {set_clause} WHERE animation_id = ?"
         
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(query, params)
             conn.commit()
             return cursor.rowcount > 0
     
     def delete_vrm_animation(self, animation_id: str) -> bool:
         """删除VRM动作（级联删除关联关系）"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM vrm_animations WHERE animation_id = ?", (animation_id,))
             conn.commit()
             deleted = cursor.rowcount > 0
@@ -877,7 +893,7 @@ class AppStorage:
             animation_id: 动作ID
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._get_connection() as conn:
                 conn.execute(
                     "INSERT INTO vrm_model_animations (vrm_model_id, animation_id) VALUES (?, ?)",
                     (vrm_model_id, animation_id)
@@ -895,7 +911,7 @@ class AppStorage:
             vrm_model_id: 模型ID
             animation_id: 动作ID
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute(
                 "DELETE FROM vrm_model_animations WHERE vrm_model_id = ? AND animation_id = ?",
                 (vrm_model_id, animation_id)
@@ -914,7 +930,7 @@ class AppStorage:
         Returns:
             动作列表，包含文件路径信息
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("""
                 SELECT a.animation_id, a.name, a.name_cn, a.description, a.duration
                 FROM vrm_animations a
@@ -957,7 +973,7 @@ class AppStorage:
         Returns:
             模型列表
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("""
                 SELECT m.vrm_model_id, m.name, m.filename, m.thumbnail_filename
                 FROM vrm_models m
@@ -986,7 +1002,7 @@ class AppStorage:
             成功添加的数量
         """
         success_count = 0
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             for animation_id in animation_ids:
                 try:
                     conn.execute(
@@ -1010,7 +1026,7 @@ class AppStorage:
         Returns:
             成功移除的数量
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             placeholders = ','.join('?' * len(animation_ids))
             cursor = conn.execute(
                 f"DELETE FROM vrm_model_animations WHERE vrm_model_id = ? AND animation_id IN ({placeholders})",

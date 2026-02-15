@@ -18,7 +18,7 @@ from api.routes import (
     vrm_models, vrm_animations, vrm_model_animations
 )
 
-logger = get_logger(__name__, category="SYSTEM")
+logger = get_logger(__name__)
 
 
 def print_startup_banner():

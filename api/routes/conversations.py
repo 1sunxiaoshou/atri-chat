@@ -16,6 +16,11 @@ async def create_conversation(
 ):
     """创建会话"""
     try:
+        # 验证角色是否存在
+        character = app_storage.get_character(req.character_id)
+        if not character:
+            raise HTTPException(status_code=404, detail=f"角色不存在: character_id={req.character_id}")
+        
         conversation_id = app_storage.create_conversation(
             character_id=req.character_id,
             title=req.title
@@ -31,6 +36,8 @@ async def create_conversation(
             message="会话创建成功",
             data=conversation
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -128,7 +135,7 @@ async def get_conversation_history(
 ):
     """获取会话历史"""
     from core.logger import get_logger
-    logger = get_logger(__name__, category="API")
+    logger = get_logger(__name__)
     
     try:
         if from_checkpoint:
@@ -166,7 +173,7 @@ async def clear_conversation_history(
 ):
     """清空会话历史"""
     from core.logger import get_logger
-    logger = get_logger(__name__, category="API")
+    logger = get_logger(__name__)
     
     try:
         result = {"checkpoint_cleared": 0, "messages_deleted": 0}

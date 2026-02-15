@@ -3,7 +3,7 @@ from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResp
 from typing import Callable, Awaitable
 from ..logger import get_logger
 
-logger = get_logger(__name__, category="MIDDLEWARE")
+logger = get_logger(__name__)
 
 
 @wrap_model_call

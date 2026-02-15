@@ -6,7 +6,7 @@ from core.logger import get_logger
 from .base import ASRBase
 from .service import ASRConfigService
 
-logger = get_logger(__name__, category="MODEL")
+logger = get_logger(__name__)
 
 
 class ASRFactory:

@@ -3,7 +3,7 @@ from typing import Type, Dict, Tuple
 
 from core.logger import get_logger
 
-logger = get_logger(__name__, category="MODEL")
+logger = get_logger(__name__)
 
 
 class TTSRegistry:

@@ -51,7 +51,7 @@ class OpenAIProvider(BaseProvider):
         from langchain_openai import ChatOpenAI
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         merged = self._merge_params(config, **kwargs)
         
@@ -94,7 +94,7 @@ class OpenAIProvider(BaseProvider):
         from openai import OpenAI
         from ...logger import get_logger
         
-        logger = get_logger(__name__, category="MODEL")
+        logger = get_logger(__name__)
         config = provider_config.config_json
         
         try:

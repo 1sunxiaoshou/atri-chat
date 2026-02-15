@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/chat/ChatInterface';
 import AdminDashboard from './components/admin/AdminDashboard';
-
+import Toast, { ToastMessage } from './components/Toast';
 import SettingsModal from './components/settings/SettingsModal';
 import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api/index';
@@ -28,6 +28,9 @@ const App: React.FC = () => {
 
   // Desktop Sidebar Collapse State
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+
+  // Toast State
+  const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
   // Computed state
   const activeConversation = conversations.find(c => c.conversation_id === activeConversationId);
@@ -86,8 +89,19 @@ const App: React.FC = () => {
   };
 
   const handleNewChat = async () => {
-    // Default to selected character or the first available character
-    const defaultCharId = selectedCharacterId || (characters[0] ? characters[0].character_id : 1);
+    // 必须有选中的角色或至少有一个可用角色
+    const defaultCharId = selectedCharacterId || (characters[0]?.character_id);
+
+    if (!defaultCharId) {
+      // 没有可用角色，提示用户
+      setToastMessage({
+        success: false,
+        message: t('app.noCharacterAvailable')
+      });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
     const res = await api.createConversation(Number(defaultCharId));
     if (res.code === 200) {
       setConversations(prev => [res.data, ...prev]);
@@ -98,6 +112,13 @@ const App: React.FC = () => {
         setSelectedCharacterId(res.data.character_id);
       }
       setViewMode('chat');
+    } else {
+      // 处理创建失败的情况
+      setToastMessage({
+        success: false,
+        message: res.message || t('app.createConversationFailed')
+      });
+      setTimeout(() => setToastMessage(null), 3000);
     }
   };
 
@@ -117,6 +138,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white">
+      {/* Toast 提示 */}
+      <Toast message={toastMessage} />
+
       {/* Mobile Overlay */}
       {isMobileSidebarOpen && (
         <div
@@ -127,9 +151,8 @@ const App: React.FC = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed lg:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:transform-none ${
-          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed lg:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:transform-none ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
         <Sidebar
           viewMode={viewMode}
@@ -217,8 +240,8 @@ const App: React.FC = () => {
             </div>
           )
         ) : (
-          <AdminDashboard 
-            onBack={() => setViewMode('chat')} 
+          <AdminDashboard
+            onBack={() => setViewMode('chat')}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           />
         )}

@@ -11,7 +11,7 @@ from ..logger import get_logger
 if TYPE_CHECKING:
     from ..storage import AppStorage
 
-logger = get_logger(__name__, category="MODEL")
+logger = get_logger(__name__)
 
 
 class ModelFactory:
