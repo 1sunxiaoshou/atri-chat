@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Save, Activity, Loader2 } from 'lucide-react';
-import Toast, { ToastMessage } from '../Toast';
+import Toast, { ToastMessage } from '../ui/Toast';
 import { extractConfigValues } from '../../utils/helpers';
-import { Button, Select, Input } from '../ui';
+import { Button, Select, Input, Card, CardContent } from '../ui';
+import { cn } from '../../utils/cn';
 
 interface ConfigField {
   type: 'string' | 'password' | 'number' | 'select' | 'file';
@@ -29,15 +29,10 @@ interface Provider {
 }
 
 interface ProviderSettingsTemplateProps {
-  // API 调用函数
   fetchProviders: () => Promise<{ active_provider: string | null; providers: Provider[] }>;
   testConnection: (providerId: string, config: any) => Promise<{ success: boolean; message: string }>;
   saveConfig: (providerId: string, config: any) => Promise<{ success: boolean; message: string }>;
-  
-  // 可选的回调
   onConfigSaved?: () => Promise<void>;
-  
-  // UI 配置
   emptyStateIcon?: string;
   emptyStateText?: string;
 }
@@ -59,7 +54,6 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   const [testResult, setTestResult] = useState<ToastMessage | null>(null);
   const [saveResult, setSaveResult] = useState<ToastMessage | null>(null);
 
-
   useEffect(() => {
     loadProviders();
   }, []);
@@ -71,7 +65,6 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
       setProviders(data.providers);
       setSelectedProviderId(data.active_provider || '');
       if (data.active_provider) {
-        setSelectedProviderId(data.active_provider);
         const active = data.providers.find(p => p.id === data.active_provider);
         if (active && active.config) {
           setFormData(active.config);
@@ -109,21 +102,17 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     setSaveResult(null);
   };
 
-
-
   const handleTestConnection = async () => {
-    if (!selectedProviderId) {return;}
+    if (!selectedProviderId) return;
     setTesting(true);
     setTestResult(null);
-    setSaveResult(null);
     try {
       const values = extractConfigValues(formData);
       const result = await testConnection(selectedProviderId, values);
       setTestResult(result);
       setTimeout(() => setTestResult(null), 3000);
     } catch (error: any) {
-      const errorMsg = error?.message || '网络错误或服务不可用';
-      setTestResult({ success: false, message: errorMsg });
+      setTestResult({ success: false, message: error?.message || '网络错误或服务不可用' });
       setTimeout(() => setTestResult(null), 3000);
     } finally {
       setTesting(false);
@@ -133,23 +122,13 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   const handleSave = async () => {
     setSaving(true);
     setSaveResult(null);
-    setTestResult(null);
-
     try {
       const values = selectedProviderId ? extractConfigValues(formData) : {};
-      const result = await saveConfig(
-        selectedProviderId || 'none',
-        values
-      );
+      const result = await saveConfig(selectedProviderId || 'none', values);
 
       if (result.success) {
-        setSelectedProviderId(selectedProviderId || '');
         setSaveResult(result);
-        
-        if (onConfigSaved) {
-          await onConfigSaved();
-        }
-
+        if (onConfigSaved) await onConfigSaved();
         setTimeout(() => setSaveResult(null), 3000);
 
         if (selectedProviderId) {
@@ -163,58 +142,48 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
         setSaveResult(result);
       }
     } catch (error: any) {
-      setSaveResult({
-        success: false,
-        message: error?.message || '网络错误'
-      });
+      setSaveResult({ success: false, message: error?.message || '网络错误' });
     } finally {
       setSaving(false);
     }
   };
 
   const renderFormFields = () => {
-    if (!selectedProviderId) {
-      return <div className="text-gray-500 dark:text-gray-500 italic">选择服务商以进行配置</div>;
-    }
+    if (!selectedProviderId) return null;
 
     const configKeys = Object.keys(formData);
     if (configKeys.length === 0) {
-      return <div className="text-gray-500 dark:text-gray-500 italic">该服务商暂无配置项</div>;
+      return <div className="text-muted-foreground italic text-center py-8">该服务商暂无配置项</div>;
     }
 
     return (
-      <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
         {configKeys.map((key) => {
           const fieldConfig = formData[key];
-          
-          if (!fieldConfig || typeof fieldConfig !== 'object' || !('type' in fieldConfig)) {
-            console.error(`配置字段 ${key} 格式错误，应为元数据格式`);
-            return null;
-          }
+          if (!fieldConfig || typeof fieldConfig !== 'object' || !('type' in fieldConfig)) return null;
 
           const { type, label, description, required, placeholder, options, min, max, step, value } = fieldConfig;
           const currentValue = value !== undefined ? value : (fieldConfig.default || '');
           const isPassword = type === 'password' || fieldConfig.sensitive;
 
           return (
-            <div key={key} className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {label}
-                {required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-              {description && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{description}</p>
-              )}
-              
+            <div key={key}>
               {type === 'select' ? (
-                <Select
-                  value={currentValue}
-                  onChange={(val) => handleInputChange(key, val)}
-                  options={options?.map((opt: string) => ({ label: opt, value: opt })) || []}
-                  className="w-full"
-                />
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">{label}{required && <span className="text-destructive ml-1">*</span>}</label>
+                  {description && <p className="text-xs text-muted-foreground">{description}</p>}
+                  <Select
+                    value={currentValue}
+                    onChange={(val) => handleInputChange(key, val)}
+                    options={options?.map((opt: string) => ({ label: opt, value: opt })) || []}
+                    className="w-full"
+                  />
+                </div>
               ) : type === 'number' ? (
                 <Input
+                  label={label}
+                  description={description}
+                  required={required}
                   type="number"
                   value={currentValue}
                   onChange={(e) => handleInputChange(key, parseFloat(e.target.value))}
@@ -223,16 +192,11 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                   step={step}
                   placeholder={placeholder}
                 />
-              ) : type === 'file' ? (
-                <Input
-                  type="text"
-                  value={currentValue}
-                  onChange={(e) => handleInputChange(key, e.target.value)}
-                  placeholder={placeholder}
-                  className="font-mono text-sm"
-                />
               ) : (
                 <Input
+                  label={label}
+                  description={description}
+                  required={required}
                   type={isPassword ? 'password' : 'text'}
                   value={currentValue}
                   onChange={(e) => handleInputChange(key, e.target.value)}
@@ -249,8 +213,9 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Loader2 className="animate-spin text-primary" size={32} />
+        <p className="text-sm text-muted-foreground">加载配置中...</p>
       </div>
     );
   }
@@ -260,7 +225,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     ...providers.map(p => ({
       label: p.name,
       value: p.id,
-      icon: p.is_configured ? <span className="text-green-500">●</span> : <span className="text-yellow-500">○</span>
+      icon: <div className={cn("w-2 h-2 rounded-full mr-2", p.is_configured ? "bg-emerald-500" : "bg-muted")} />
     }))
   ];
 
@@ -270,49 +235,45 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
       {!saveResult && <Toast message={testResult} title={{ success: '测试成功', error: '测试失败' }} />}
 
       <div className="flex flex-col h-full space-y-4">
-        {/* Provider 选择器 */}
-        <div className="flex-shrink-0">
-          <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
+        {/* Provider Selector */}
+        <Card className="bg-muted/30 border-none shadow-none">
+          <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                Provider
-              </label>
-              <div className="flex-1">
-                <Select
-                  value={selectedProviderId}
-                  onChange={handleProviderChange}
-                  options={providerOptions}
-                  className="w-full"
-                />
-              </div>
+              <label className="text-sm font-medium whitespace-nowrap">服务商</label>
+              <Select
+                value={selectedProviderId}
+                onChange={handleProviderChange}
+                options={providerOptions}
+                className="flex-1"
+              />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* 配置表单区域 */}
+        {/* Config Form Area */}
         <div className="flex-1 min-h-0 flex flex-col">
           {selectedProviderId ? (
-            <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-6 border border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-1">
               {renderFormFields()}
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-500 italic bg-gray-100 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-800 border-dashed">
-              <div className="mb-2 text-4xl">{emptyStateIcon}</div>
-              <div>{emptyStateText}</div>
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground italic bg-muted/20 rounded-xl border border-dashed border-border p-8">
+              <div className="mb-3 text-4xl opacity-50">{emptyStateIcon}</div>
+              <div className="text-sm">{emptyStateText}</div>
             </div>
           )}
         </div>
 
-        {/* 操作按钮 */}
-        <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-2">
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
           {selectedProviderId && (
             <Button
               onClick={handleTestConnection}
               disabled={testing}
               variant="outline"
               loading={testing}
-              icon={<Activity />}
             >
+              <Activity size={16} className="mr-2" />
               测试连接
             </Button>
           )}
@@ -320,10 +281,9 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
           <Button
             onClick={handleSave}
             disabled={saving}
-            variant="primary"
             loading={saving}
-            icon={<Save />}
           >
+            <Save size={16} className="mr-2" />
             保存配置
           </Button>
         </div>

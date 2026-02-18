@@ -3,6 +3,8 @@ import { Bot, Sparkles } from 'lucide-react';
 import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { buildAvatarUrl } from '../../utils/url';
+import { Button } from '../ui';
+import { cn } from '../../utils/cn';
 
 interface MessageListProps {
   messages: Message[];
@@ -34,26 +36,35 @@ const MessageList: React.FC<MessageListProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 overflow-hidden">
+      <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-in fade-in zoom-in-95 duration-500">
+        <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 overflow-hidden ring-4 ring-background shadow-2xl transition-transform hover:scale-110 duration-500">
           {activeCharacter?.avatar ? (
             <img src={buildAvatarUrl(activeCharacter.avatar)} alt="Character" className="w-full h-full object-cover" />
           ) : (
-            <Sparkles size={40} className="text-gray-400 dark:text-gray-500" />
+            <Sparkles size={40} className="text-primary animate-pulse" />
           )}
         </div>
-        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
-          {activeCharacter ? `${t('chat.chatWith')} ${activeCharacter.name}` : t('chat.welcome')}
-        </h3>
-        <div className="flex gap-2 mt-4">
+
+        <div className="max-w-md space-y-4">
+          <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+            {activeCharacter ? `${t('chat.chatWith')} ${activeCharacter.name}` : t('chat.welcome')}
+          </h3>
+          <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
+            {activeCharacter?.description || "准备好开始一段奇妙的对话了吗？您可以尝试发送以下建议，或直接输入您想说的话。"}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mt-10">
           {[t('chat.suggestion.summarize'), t('chat.suggestion.code'), t('chat.suggestion.translate')].map(suggestion => (
-            <button 
-              key={suggestion} 
-              onClick={() => onSetInputValue(suggestion)} 
-              className="px-4 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-colors"
+            <Button
+              key={suggestion}
+              variant="outline"
+              size="sm"
+              onClick={() => onSetInputValue(suggestion)}
+              className="rounded-full bg-background/50 backdrop-blur-sm border-border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
             >
               {suggestion}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -61,31 +72,31 @@ const MessageList: React.FC<MessageListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4 pb-32">
       {children}
-      
+
       {isTyping && (
-        <div className="flex gap-4">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+        <div className="flex gap-4 items-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-primary/10 text-primary ring-2 ring-background shadow-sm">
             {activeCharacter?.avatar ? (
               <img src={buildAvatarUrl(activeCharacter.avatar)} alt="AI" className="w-full h-full object-cover" />
             ) : (
-              <Bot size={16} />
+              <Bot size={18} />
             )}
           </div>
-          <div className="max-w-[75%]">
-            <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-              <div className="flex gap-1.5 items-center">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="max-w-[85%] md:max-w-[75%]">
+            <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-card border border-border">
+              <div className="flex gap-1.5 items-center h-5">
+                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce"></div>
               </div>
             </div>
           </div>
         </div>
       )}
-      
-      <div ref={messagesEndRef} />
+
+      <div ref={messagesEndRef} className="h-4" />
     </div>
   );
 };

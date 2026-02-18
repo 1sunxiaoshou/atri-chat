@@ -1,8 +1,9 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, RotateCcw, Brain, Thermometer } from 'lucide-react';
 import { Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import Select from '../ui/Select';
+import { Select, Button } from '../ui';
+import { cn } from '../../utils/cn';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -48,35 +49,43 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   return (
     <>
       {/* Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 z-40 transition-opacity"
-          onClick={onClose}
-        />
-      )}
+      <div
+        className={cn(
+          "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-all duration-300",
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+      />
 
       {/* Sidebar */}
       <div
-        className={`fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={cn(
+          "fixed right-0 top-0 h-full w-80 bg-card border-l border-border shadow-2xl z-50 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)",
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('chat.settings.title')}</h3>
-          <button
+        <div className="flex items-center justify-between p-6 border-b border-border bg-muted/5">
+          <div>
+            <h3 className="text-lg font-bold text-foreground tracking-tight">{t('chat.settings.title')}</h3>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium mt-1">Parameters Configuration</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="h-10 w-10 rounded-xl hover:bg-muted transition-colors"
           >
-            <X size={20} className="text-gray-500 dark:text-gray-400" />
-          </button>
+            <X size={20} className="text-muted-foreground" />
+          </Button>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-6 overflow-y-auto h-[calc(100%-140px)]">
+        <div className="p-6 space-y-8 overflow-y-auto h-[calc(100%-150px)] custom-scrollbar">
           {/* Model Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               {t('chat.settings.modelSelection')}
             </label>
             <Select
@@ -84,17 +93,23 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               onChange={onUpdateModel}
               options={modelOptions}
               placeholder="选择模型..."
+              className="h-11"
             />
           </div>
 
+          <div className="h-px bg-border/50" />
+
           {/* Enable Thinking */}
-          <div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
-                  {t('chat.settings.enableThinking')}
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-border/50 group hover:border-primary/30 transition-all duration-300">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Brain size={16} className="text-primary" />
+                  <label className="text-sm font-bold text-foreground">
+                    {t('chat.settings.enableThinking')}
+                  </label>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
                   {t('chat.settings.enableThinkingDesc')}
                 </p>
               </div>
@@ -105,48 +120,55 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                   onChange={(e) => handleChange('enable_thinking', e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-muted border border-border rounded-full peer peer-checked:bg-primary peer-checked:border-primary transition-all duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full after:shadow-sm"></div>
               </label>
             </div>
           </div>
 
           {/* Temperature */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                <Thermometer size={14} className="text-primary" />
                 {t('chat.settings.temperature')}
               </label>
-              <span className="text-sm font-mono text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+              <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg">
                 {modelParameters.temperature?.toFixed(1) ?? '1.0'}
               </span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="2"
-              step="0.1"
-              value={modelParameters.temperature ?? 1}
-              onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
-              <span>{t('chat.settings.precise')}</span>
-              <span>{t('chat.settings.creative')}</span>
+
+            <div className="px-1">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={modelParameters.temperature ?? 1}
+                onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary/80 transition-all"
+              />
+              <div className="flex justify-between mt-3">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{t('chat.settings.precise')}</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{t('chat.settings.creative')}</span>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed bg-muted/20 p-3 rounded-xl border border-border/30">
               {t('chat.settings.temperatureDesc')}
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <button
+        <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-border bg-card">
+          <Button
+            variant="outline"
             onClick={resetToDefaults}
-            className="w-full py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="w-full h-11 gap-2 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all duration-300"
           >
+            <RotateCcw size={14} />
             {t('chat.settings.reset')}
-          </button>
+          </Button>
         </div>
       </div>
     </>

@@ -10,6 +10,7 @@ const translations: Record<Language, Translations> = {
   en: {
     // Sidebar
     'sidebar.newChat': 'New Chat',
+    'sidebar.selectCharacterFirst': 'Please select a character first',
     'sidebar.characters': 'Characters',
     'sidebar.recentChats': 'Recent Chats',
     'sidebar.characterHistory': 'Character History',
@@ -20,6 +21,9 @@ const translations: Record<Language, Translations> = {
     'sidebar.confirmDeleteConversation': 'Are you sure you want to delete this conversation?',
     // Settings
     'settings.title': 'Settings',
+    'settings.general': 'General',
+    'settings.asr': 'Speech Recognition',
+    'settings.tts': 'Text to Speech',
     // Admin - Filters
     'admin.filter': 'Filter',
     'admin.allProviders': 'All Providers',
@@ -41,7 +45,6 @@ const translations: Record<Language, Translations> = {
     'chat.recordingBanner': 'Recording... Tap microphone to stop and send.',
     'chat.welcome': 'How can I help you today?',
     'chat.chatWith': 'Chat with',
-    'chat.disclaimer': 'NexusAI can make mistakes. Consider checking important information.',
     'chat.suggestion.summarize': 'Summarize text',
     'chat.suggestion.code': 'Write code',
     'chat.suggestion.translate': 'Translate',
@@ -174,6 +177,7 @@ const translations: Record<Language, Translations> = {
   zh: {
     // Sidebar
     'sidebar.newChat': '新建会话',
+    'sidebar.selectCharacterFirst': '请先选择一个角色',
     'sidebar.characters': '角色列表',
     'sidebar.recentChats': '最近会话',
     'sidebar.characterHistory': '历史会话',
@@ -184,6 +188,9 @@ const translations: Record<Language, Translations> = {
     'sidebar.confirmDeleteConversation': '确定要删除此会话吗？',
     // Settings
     'settings.title': '设置',
+    'settings.general': '通用',
+    'settings.asr': '语音识别',
+    'settings.tts': '语音合成',
     // Admin - Filters
     'admin.filter': '筛选',
     'admin.allProviders': '所有供应商',
@@ -205,7 +212,6 @@ const translations: Record<Language, Translations> = {
     'chat.recordingBanner': '正在录音... 点击麦克风结束并发送',
     'chat.welcome': '今天有什么可以帮您？',
     'chat.chatWith': '正在对话：',
-    'chat.disclaimer': 'AI 可能会犯错，请核对重要信息。',
     'chat.suggestion.summarize': '总结文本',
     'chat.suggestion.code': '写代码',
     'chat.suggestion.translate': '翻译',

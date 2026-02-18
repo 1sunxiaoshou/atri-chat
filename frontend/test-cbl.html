@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <title>AI Companion Admin - Optimized</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 flex h-screen overflow-hidden">
+
+    <!-- 1. 侧边栏 (Sidebar) - 优化后的极简结构 -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col z-20">
+        <!-- 品牌标识 -->
+        <div class="h-16 flex items-center justify-between px-6 border-b border-slate-50">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200">
+                    <i class="ph-bold ph-sparkle text-white"></i>
+                </div>
+                <span class="font-bold tracking-tight text-slate-800">SoulAI</span>
+            </div>
+            <button class="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-all">
+                <i class="ph-bold ph-caret-left text-sm"></i>
+            </button>
+        </div>
+
+        <!-- 主导航区 -->
+        <nav class="flex-1 p-4 space-y-6 overflow-y-auto custom-scrollbar">
+            
+            <!-- 功能分组 -->
+            <div>
+                <p class="px-2 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">核心交互</p>
+                <div class="space-y-1">
+                    <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-all font-medium text-sm">
+                        <i class="ph-bold ph-chat-centered-text text-lg"></i> 对话大厅
+                    </a>
+                    <a href="#" class="flex items-center gap-3 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl transition-all font-bold text-sm">
+                        <i class="ph-bold ph-users-three text-lg"></i> 角色库
+                    </a>
+                </div>
+            </div>
+
+            <!-- 最近会话 (在管理模式下进行折叠或简化) -->
+            <div>
+                <p class="px-2 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                    最近互动 <span class="text-blue-500 hover:underline cursor-pointer">全部</span>
+                </p>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3 px-3 py-2 group cursor-pointer hover:bg-slate-50 rounded-xl transition-all">
+                        <img src="https://images.unsplash.com/photo-1634926878768-2a5b3c426d0d?q=80&w=100" class="w-8 h-8 rounded-full object-cover">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-slate-700 truncate">早柚</p>
+                            <p class="text-[10px] text-slate-400 truncate tracking-tight">哈欠...想睡觉了</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 底部系统功能区 -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+            <div class="space-y-1">
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-white hover:shadow-sm rounded-xl transition-all font-medium text-sm">
+                    <i class="ph-bold ph-gear text-lg"></i> 设置
+                </a>
+                <div class="flex items-center gap-3 px-3 py-3 mt-2 bg-white rounded-2xl shadow-sm border border-slate-100">
+                    <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-800 truncate">高级版用户</p>
+                        <p class="text-[9px] text-slate-400 uppercase font-black">Pro Member</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 2. 主内容区 (Main Content) -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden">
+        
+        <!-- 顶部操作栏 -->
+        <header class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="text-slate-400 text-sm">资源管理</div>
+                <div class="text-slate-300">/</div>
+                <h1 class="font-bold text-slate-800">我的 AI 角色</h1>
+            </div>
+            
+            <!-- 胶囊式 Tab 切换 -->
+            <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
+                <button class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-white shadow-sm text-blue-600">角色模型</button>
+                <button class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-700">音色配置</button>
+                <button class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-700">VRM 模型</button>
+            </div>
+        </header>
+
+        <!-- 内容滚动区域 -->
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            
+            <div class="max-w-7xl mx-auto">
+                <!-- 统计条 -->
+                <div class="flex items-center gap-3 mb-8">
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">管理你的灵魂</h2>
+                    <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-full shadow-lg shadow-blue-200 uppercase">2 Characters</span>
+                </div>
+
+                <!-- 角色卡片网格 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 items-start">
+                    
+                    <!-- 卡片 1 (早柚) -->
+                    <div class="group bg-white border border-slate-200 rounded-3xl p-3 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:-translate-y-2 cursor-pointer relative">
+                        <!-- 立绘区域 -->
+                        <div class="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100">
+                            <img src="https://images.unsplash.com/photo-1634926878768-2a5b3c426d0d?q=80&w=600" 
+                                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                            <!-- 呼吸灯 -->
+                            <div class="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-black/30 backdrop-blur-md rounded-full border border-white/20 text-[10px] text-white font-bold">
+                                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> 在线
+                            </div>
+                            <!-- 删除按钮 -->
+                            <button class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-xl text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:text-red-500">
+                                <i class="ph-bold ph-trash"></i>
+                            </button>
+                        </div>
+
+                        <!-- 详情 -->
+                        <div class="mt-4 flex justify-between items-end px-1">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-800">早柚</h3>
+                                <p class="text-[10px] text-slate-400 font-medium uppercase mt-1 tracking-widest">Last active: 2h ago</p>
+                                <div class="mt-2 flex gap-1.5">
+                                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded border border-indigo-100 uppercase">DeepSeek</span>
+                                    <span class="px-2 py-0.5 bg-slate-50 text-slate-500 text-[9px] font-black rounded border border-slate-100 uppercase">TTS-v2</span>
+                                </div>
+                            </div>
+                            <div class="w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                <i class="ph-bold ph-arrow-right text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 新建卡片 -->
+                    <div class="group border-2 border-dashed border-slate-200 rounded-3xl p-3 flex flex-col items-center justify-center aspect-[3/4] transition-all hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer">
+                        <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:shadow-lg group-hover:scale-110 group-hover:text-blue-600 transition-all text-slate-300">
+                            <i class="ph-bold ph-plus text-2xl"></i>
+                        </div>
+                        <p class="mt-4 font-bold text-slate-400 group-hover:text-blue-600 transition-colors">新建灵魂</p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>

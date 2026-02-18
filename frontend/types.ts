@@ -94,7 +94,7 @@ export interface AudioMessageData {
 }
 
 // UI State Types
-export type ViewMode = 'chat' | 'admin';
+export type ViewMode = 'chat' | 'admin' | 'settings';
 export type AdminTab = 'models' | 'characters' | 'vrm';
 
 // 7. ASR

@@ -1,34 +1,34 @@
 import React from 'react';
-import { Send, Mic, Image as ImageIcon, MicOff } from 'lucide-react';
+import { Send, Mic, MicOff, Paperclip } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useASR } from '../../contexts/ASRContext';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
-import Toast, { ToastMessage } from '../Toast';
+import Toast, { ToastMessage } from '../ui/Toast';
 import { Logger } from '../../utils/logger';
+import { Button } from '../ui';
+import { cn } from '../../utils/cn';
 
 interface ChatInputProps {
   inputValue: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
   isTyping: boolean;
-  vrmDisplayMode: 'normal' | 'vrm' | 'live2d';
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
   inputValue,
   onInputChange,
   onSend,
-  isTyping,
-  vrmDisplayMode
+  isTyping
 }) => {
   const { t } = useLanguage();
   const { asrEnabled } = useASR();
-  const { 
-    isRecording, 
+  const {
+    isRecording,
     isProcessing,
     error: asrError,
     transcribedText,
-    startRecording, 
+    startRecording,
     stopRecording,
     clearTranscribedText,
     clearError
@@ -69,7 +69,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const toggleRecording = () => {
     Logger.debug('切换录音状态', { isRecording, isProcessing });
-    
+
     if (isRecording) {
       stopRecording();
     } else {
@@ -80,92 +80,95 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <>
       <Toast message={toastMessage} />
-      <div className={`p-3 md:p-4 transition-colors ${
-        vrmDisplayMode === 'vrm' 
-          ? 'absolute bottom-0 left-0 right-0 bg-transparent z-10' 
-          : 'bg-white dark:bg-gray-900'
-      }`}>
-      <div className="max-w-4xl mx-auto relative">
-        {/* Recording Banner */}
-        <div className={`absolute bottom-full left-0 mb-4 px-4 py-2 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 text-sm transition-all duration-300 ${
-          isRecording ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
-        }`}>
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-          {t('chat.recordingBanner')}
-        </div>
+      <div className={cn(
+        "pt-0 pb-3 px-3 md:pb-4 md:px-4 transition-all duration-500 absolute bottom-0 left-0 right-0 z-10"
+      )}>
+        <div className="max-w-4xl mx-auto relative">
+          {/* Recording Banner */}
+          <div className={cn(
+            "absolute bottom-full left-0 mb-4 px-4 py-2 bg-destructive/20 text-destructive border border-destructive/30 rounded-full flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all duration-500 shadow-lg",
+            isRecording ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+          )}>
+            <div className="w-2 h-2 bg-destructive rounded-full animate-ping" />
+            {t('chat.recordingBanner')}
+          </div>
 
-        {/* Input Container */}
-        <div className={`relative bg-white dark:bg-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-black/20 rounded-2xl border transition-all overflow-hidden ${
-          isRecording 
-            ? 'border-red-400 ring-4 ring-red-50' 
-            : 'border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500'
-        }`}>
-          <textarea
-            value={inputValue}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isRecording 
-                ? t('chat.recordingPlaceholder') 
-                : isProcessing 
-                  ? "正在转换语音..." 
-                  : t('chat.placeholder')
-            }
-            disabled={isRecording}
-            className="w-full max-h-40 p-3 md:p-4 pr-28 md:pr-32 bg-transparent border-none focus:ring-0 resize-none text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none custom-scrollbar disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 text-sm md:text-base"
-            rows={1}
-            style={{ minHeight: '56px' }}
-          />
-
-          {/* Action Buttons */}
-          <div className="absolute bottom-2 right-2 flex items-center gap-1">
-            <button className="hidden sm:block p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-              <ImageIcon size={18} />
-            </button>
-            <button
-              onClick={toggleRecording}
-              disabled={!asrEnabled || isProcessing}
-              className={`p-2 rounded-xl transition-colors ${
-                !asrEnabled
-                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                  : isRecording
-                    ? 'text-red-500 bg-red-50 hover:bg-red-100 animate-pulse'
-                    : isProcessing
-                      ? 'text-blue-500 bg-blue-50 animate-pulse cursor-wait'
-                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              title={
-                !asrEnabled 
-                  ? "ASR 未配置" 
-                  : isRecording 
-                    ? "点击停止录音" 
-                    : isProcessing
-                      ? "正在处理..."
-                      : "点击开始录音"
+          {/* Input Container */}
+          <div className={cn(
+            "relative bg-card/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl border transition-all duration-300",
+            isRecording
+              ? "border-destructive ring-4 ring-destructive/10"
+              : "border-border focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10"
+          )}>
+            <textarea
+              value={inputValue}
+              onChange={(e) => onInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isRecording
+                  ? t('chat.recordingPlaceholder')
+                  : isProcessing
+                    ? "正在转换语音..."
+                    : t('chat.placeholder')
               }
-            >
-              {!asrEnabled ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
-            <button
-              onClick={onSend}
-              disabled={(!inputValue.trim() && !isRecording) || isTyping}
-              className={`p-2 rounded-xl transition-colors ml-1 ${
-                inputValue.trim() && !isTyping
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              <Send size={18} />
-            </button>
+              disabled={isRecording}
+              className="w-full max-h-40 p-4 pr-32 bg-transparent border-none focus:ring-0 resize-none text-foreground placeholder:text-muted-foreground outline-none custom-scrollbar disabled:opacity-50 text-sm md:text-base leading-relaxed"
+              rows={1}
+              style={{ minHeight: '64px' }}
+            />
+
+            {/* Action Buttons */}
+            <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground hidden sm:flex"
+              >
+                <Paperclip size={18} />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleRecording}
+                disabled={!asrEnabled || isProcessing}
+                className={cn(
+                  "h-9 w-9",
+                  !asrEnabled && "text-muted-foreground/30",
+                  isRecording && "text-destructive bg-destructive/10 animate-pulse",
+                  isProcessing && "text-primary bg-primary/10 animate-pulse",
+                  asrEnabled && !isRecording && !isProcessing && "text-muted-foreground hover:text-foreground"
+                )}
+                title={
+                  !asrEnabled
+                    ? "ASR 未配置"
+                    : isRecording
+                      ? "点击停止录音"
+                      : isProcessing
+                        ? "正在处理..."
+                        : "点击开始录音"
+                }
+              >
+                {!asrEnabled ? <MicOff size={18} /> : <Mic size={18} />}
+              </Button>
+
+              <Button
+                onClick={onSend}
+                disabled={(!inputValue.trim() && !isRecording) || isTyping}
+                size="icon"
+                className={cn(
+                  "h-9 w-9 transition-all duration-300",
+                  inputValue.trim() && !isTyping
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                <Send size={18} />
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Disclaimer */}
-        <div className="text-center mt-2 text-xs text-gray-400 dark:text-gray-500">
-          {t('chat.disclaimer')}
-        </div>
       </div>
-    </div>
     </>
   );
 };

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
+import Sidebar from './components/layout/Sidebar';
 import ChatInterface from './components/chat/ChatInterface';
 import AdminDashboard from './components/admin/AdminDashboard';
-import Toast, { ToastMessage } from './components/Toast';
-import SettingsModal from './components/settings/SettingsModal';
+import SettingsView from './components/settings/SettingsView';
+import Toast, { ToastMessage } from './components/ui/Toast';
 import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api/index';
 import { useLanguage } from './contexts/LanguageContext';
 import { buildAvatarUrl } from './utils/url';
+import { Button } from './components/ui';
+import { Plus, Sparkles, Menu, PanelLeftOpen } from 'lucide-react';
+import { cn } from './utils/cn';
 
 const App: React.FC = () => {
   const { t } = useLanguage();
@@ -17,17 +20,14 @@ const App: React.FC = () => {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [models, setModels] = useState<Model[]>([]);
 
-  // Settings Modal State
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   // Character Selection State
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
 
   // Mobile Sidebar State
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Desktop Sidebar Collapse State
-  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  // Desktop Sidebar Hidden State
+  const [isLeftSidebarHidden, setIsLeftSidebarHidden] = useState(false);
 
   // Toast State
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
@@ -137,22 +137,30 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-background">
       {/* Toast 提示 */}
       <Toast message={toastMessage} />
 
       {/* Mobile Overlay */}
-      {isMobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsMobileSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
       <div
-        className={`fixed lg:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:transform-none ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
+        className={cn(
+          "fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300",
+          isMobileSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setIsMobileSidebarOpen(false)}
+      />
+
+      {/* Sidebar Wrapper */}
+      <aside
+        className={cn(
+          // 基础样式
+          "h-full z-50 transition-[margin,transform] duration-300 ease-in-out bg-sidebar border-r border-sidebar-border",
+          // 移动端：固定定位，通过 translate 切换
+          "fixed inset-y-0 left-0 w-64 lg:static",
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          // 桌面端：通过负 margin 实现平滑推拉效果
+          isLeftSidebarHidden ? "lg:ml-[-256px]" : "lg:ml-0"
+        )}
       >
         <Sidebar
           viewMode={viewMode}
@@ -161,7 +169,7 @@ const App: React.FC = () => {
           activeConversationId={activeConversationId}
           onSelectConversation={(id) => {
             setActiveConversationId(id);
-            setIsMobileSidebarOpen(false); // 选择对话后关闭侧边栏
+            setIsMobileSidebarOpen(false);
           }}
           onNewChat={() => {
             handleNewChat();
@@ -175,16 +183,15 @@ const App: React.FC = () => {
             setIsMobileSidebarOpen(false);
           }}
           onOpenSettings={() => {
-            setIsSettingsOpen(true);
+            setViewMode('settings');
             setIsMobileSidebarOpen(false);
           }}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
-          isCollapsed={isLeftSidebarCollapsed}
-          onToggleCollapse={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
+          onHideSidebar={() => setIsLeftSidebarHidden(true)}
         />
-      </div>
+      </aside>
 
-      <main className="flex-1 h-full relative w-full lg:w-auto">
+      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-background transition-all duration-300">
         {viewMode === 'chat' ? (
           activeConversationId ? (
             <ChatInterface
@@ -195,21 +202,35 @@ const App: React.FC = () => {
               onUpdateModel={setActiveModelId}
               onConversationUpdated={() => loadConversations(selectedCharacterId)}
               onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+              onShowSidebar={() => setIsLeftSidebarHidden(false)}
+              isSidebarHidden={isLeftSidebarHidden}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50/30 relative">
+            <div className="flex flex-col items-center justify-center h-full bg-muted/10 relative p-6 animate-in fade-in duration-500">
               {/* Mobile Menu Button for Empty State */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsMobileSidebarOpen(true)}
-                className="lg:hidden absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
+                className="lg:hidden absolute top-4 left-4 h-10 w-10 text-muted-foreground hover:text-foreground"
                 aria-label="Open menu"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+                <Menu size={20} />
+              </Button>
 
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-6 overflow-hidden">
+              {/* Desktop Show Sidebar Button */}
+              {isLeftSidebarHidden && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsLeftSidebarHidden(false)}
+                  className="hidden lg:flex absolute top-4 left-4 h-10 w-10 text-muted-foreground z-10"
+                >
+                  <PanelLeftOpen size={20} />
+                </Button>
+              )}
+
+              <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 overflow-hidden ring-4 ring-background shadow-2xl transition-transform hover:scale-110 duration-500">
                 {selectedCharacterId ? (
                   <img
                     src={buildAvatarUrl(characters.find(c => c.character_id === selectedCharacterId)?.avatar)}
@@ -217,40 +238,48 @@ const App: React.FC = () => {
                     alt="Character"
                   />
                 ) : (
-                  <span className="text-2xl">✨</span>
+                  <Sparkles size={40} className="text-primary animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2 px-4 text-center">
-                {selectedCharacterId
-                  ? `${t('app.startChatting')} ${characters.find(c => c.character_id === selectedCharacterId)?.name}`
-                  : t('app.selectConversation')}
-              </h3>
-              <p className="text-gray-500 mb-8 max-w-sm text-center px-4">
-                {selectedCharacterId
-                  ? characters.find(c => c.character_id === selectedCharacterId)?.system_prompt.substring(0, 100) + '...'
-                  : t('app.selectCharHelp')
-                }
-              </p>
-              <button
-                onClick={handleNewChat}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 font-medium flex items-center gap-2"
-              >
-                <span>+</span> {t('app.startNewChat')}
-              </button>
+
+              <div className="max-w-md text-center space-y-4">
+                <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight px-4">
+                  {selectedCharacterId
+                    ? `${t('app.startChatting')} ${characters.find(c => c.character_id === selectedCharacterId)?.name}`
+                    : t('app.selectConversation')}
+                </h3>
+                <p className="text-muted-foreground text-sm md:text-base leading-relaxed px-4 max-w-sm mx-auto">
+                  {selectedCharacterId
+                    ? characters.find(c => c.character_id === selectedCharacterId)?.system_prompt.substring(0, 100) + '...'
+                    : t('app.selectCharHelp')
+                  }
+                </p>
+              </div>
+
+              <div className="mt-10">
+                <Button
+                  onClick={handleNewChat}
+                  size="lg"
+                  className="gap-2 rounded-2xl shadow-xl shadow-primary/20 font-bold uppercase tracking-widest text-xs h-12 px-8"
+                >
+                  <Plus size={18} />
+                  {t('app.startNewChat')}
+                </Button>
+              </div>
             </div>
           )
-        ) : (
+        ) : viewMode === 'admin' ? (
           <AdminDashboard
+            onBack={() => setViewMode('chat')}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          />
+        ) : (
+          <SettingsView
             onBack={() => setViewMode('chat')}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           />
         )}
       </main>
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
     </div>
   );
 };
