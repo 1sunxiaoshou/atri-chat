@@ -1,5 +1,7 @@
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
+import StyleGuide from './pages/StyleGuide';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ASRProvider } from './contexts/ASRContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -13,7 +15,12 @@ root.render(
   <ThemeProvider>
     <LanguageProvider>
       <ASRProvider>
-        <App />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/style-guide" element={<StyleGuide />} />
+          </Routes>
+        </BrowserRouter>
       </ASRProvider>
     </LanguageProvider>
   </ThemeProvider>

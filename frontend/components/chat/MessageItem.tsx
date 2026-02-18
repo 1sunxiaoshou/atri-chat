@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -7,6 +7,8 @@ import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { createMarkdownComponents } from '../../utils/markdownConfig';
 import { buildAvatarUrl } from '../../utils/url';
+import { cn } from '../../utils/cn';
+import { Button } from '../ui';
 
 interface MessageItemProps {
   message: Message;
@@ -31,8 +33,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const { t } = useLanguage();
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
-  
+
   const isExpanded = expandedReasoning?.has(message.message_id) ?? isReasoningExpanded;
+  const isUser = message.message_type === 'user';
+
   const handleToggleReasoning = () => {
     if (onToggleReasoning) {
       onToggleReasoning(message.message_id);
@@ -42,26 +46,32 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex gap-4 ${message.message_type === 'user' ? 'flex-row-reverse' : ''}`}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden ${
-        message.message_type === 'user' 
-          ? 'bg-gray-800 dark:bg-gray-700 text-white' 
-          : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-      }`}>
-        {message.message_type === 'user' ? (
-          <User size={16} />
+    <div className={cn(
+      "group flex gap-4 items-start",
+      isUser ? "flex-row-reverse" : "flex-row"
+    )}>
+      {/* Avatar */}
+      <div className={cn(
+        "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden",
+        isUser
+          ? "bg-gray-800 dark:bg-gray-700 text-white"
+          : "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+      )}>
+        {isUser ? (
+          <User size={18} />
         ) : (
           activeCharacter?.avatar ? (
             <img src={buildAvatarUrl(activeCharacter.avatar)} alt="AI" className="w-full h-full object-cover" />
           ) : (
-            <Bot size={16} />
+            <Bot size={18} />
           )
         )}
       </div>
 
-      <div className="max-w-[75%] space-y-2">
-        {/* 工具调用状态 */}
-        {message.message_type === 'assistant' && message.status && (
+      {/* Message Content Area */}
+      <div className="max-w-[75%] space-y-1.5">
+        {/* Tool Status */}
+        {!isUser && message.status && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
               <div className={message.generating ? 'animate-spin' : ''}>⚙️</div>
@@ -70,41 +80,43 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {/* 思维链 */}
-        {message.message_type === 'assistant' && message.reasoning && (
+        {/* Reasoning (Chain of Thought) */}
+        {!isUser && message.reasoning && (
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
             <button
               onClick={handleToggleReasoning}
-              className="w-full px-4 py-2 flex items-center justify-between hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors"
+              className="w-full px-4 py-2 flex items-center justify-between hover:bg-muted/60 transition-colors"
             >
-              <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                <Brain size={16} />
-                <span className="text-sm font-medium">思维链</span>
+              <div className="flex items-center gap-2 text-primary/80">
+                <Brain size={14} />
+                <span className="text-xs font-bold uppercase tracking-widest">{t('chat.reasoning') || '思维链'}</span>
               </div>
               {isExpanded ? (
-                <ChevronUp size={16} className="text-purple-600 dark:text-purple-400" />
+                <ChevronUp size={14} className="opacity-50" />
               ) : (
-                <ChevronDown size={16} className="text-purple-600 dark:text-purple-400" />
+                <ChevronDown size={14} className="opacity-50" />
               )}
             </button>
             {isExpanded && (
-              <div className="px-4 py-3 border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
-                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                  {message.reasoning}
-                </div>
+              <div className="px-4 py-3 border-t border-border bg-background/50 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap animate-in slide-in-from-top-1 duration-200">
+                {message.reasoning}
               </div>
             )}
           </div>
         )}
 
-        {/* 消息内容 */}
+        {/* Message Bubble */}
         {message.content && (
-          <div className={`px-5 py-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${
-            message.message_type === 'user'
-              ? 'bg-blue-600 text-white rounded-tr-none'
-              : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
-          }`}>
-            <div className={`markdown-content ${message.message_type === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
+          <div className={cn(
+            "px-4 md:px-5 py-3 rounded-2xl shadow-sm text-sm leading-relaxed transition-all",
+            isUser
+              ? "bg-primary text-primary-foreground rounded-tr-none"
+              : "bg-card border border-border text-card-foreground rounded-tl-none"
+          )}>
+            <div className={cn(
+              "markdown-content",
+              isUser ? "markdown-user" : "markdown-assistant"
+            )}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -116,42 +128,41 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {/* Action Buttons */}
-        {message.message_type === 'assistant' && (
-          <div className="flex gap-2 px-1">
-            <button
-              className={`transition-colors relative group ${
-                copiedMessageId === message.message_id
-                  ? 'text-green-600'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
+        {/* Message Actions */}
+        {!isUser && (
+          <div className="flex gap-1.5 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full",
+                copiedMessageId === message.message_id ? "text-emerald-500" : "text-muted-foreground"
+              )}
               onClick={() => onCopyMessage(message.message_id, message.content)}
               title={copiedMessageId === message.message_id ? "已复制" : "复制"}
             >
-              <Copy size={14} />
-              {copiedMessageId === message.message_id && (
-                <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-green-600 text-white text-xs rounded whitespace-nowrap">
-                  已复制
-                </span>
+              <Copy size={12} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full",
+                playingMessageId === message.message_id ? "text-primary animate-pulse" : "text-muted-foreground"
               )}
-            </button>
-            <button
-              className={`transition-colors ${
-                playingMessageId === message.message_id 
-                  ? 'text-blue-600 animate-pulse' 
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
               onClick={() => onPlayTTS(message.message_id, message.content)}
               title={playingMessageId === message.message_id ? "停止播放" : "朗读"}
             >
-              <Volume2 size={14} />
-            </button>
-            <button
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              <Volume2 size={12} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full text-muted-foreground"
               title="重新生成"
             >
-              <RotateCcw size={14} />
-            </button>
+              <RotateCcw size={12} />
+            </Button>
           </div>
         )}
       </div>

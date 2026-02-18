@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { cn } from "../../utils/cn"
 
 interface ModalProps {
   isOpen: boolean;
@@ -32,28 +33,33 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl w-full ${sizeClasses[size]} flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${className}`}>
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div
+        className={cn(
+          "bg-background border border-border rounded-lg shadow-lg w-full flex flex-col overflow-hidden animate-in zoom-in-95 duration-200",
+          sizeClasses[size],
+          className
+        )}
+      >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/50">
             {title && (
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+              <h2 className="text-lg font-semibold leading-none tracking-tight text-foreground">{title}</h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1 hover:bg-accent rounded-md"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             )}
           </div>
         )}
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0">
           {children}
         </div>
       </div>

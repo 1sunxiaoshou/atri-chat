@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { Volume2, Database, Save, Moon, Sun, Monitor } from 'lucide-react';
+import { Volume2, Database, Save, Moon, Sun, Monitor, Palette } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../hooks/useSettings';
-import { Button, Select } from '../ui';
+import { Button, Select, Card, CardContent } from '../ui';
 import { SUCCESS_MESSAGES } from '../../utils/constants';
+import { cn } from '../../utils/cn';
 
 interface GeneralSettingsProps {
   onSettingsChange?: (settings: { audioVolume: number; audioCacheLimit: number }) => void;
@@ -13,7 +14,7 @@ interface GeneralSettingsProps {
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) => {
   const { language, setLanguage } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, themeColor, setThemeColor } = useTheme();
   const { settings, saveSettings } = useSettings();
   const [saveMessage, setSaveMessage] = React.useState<string>('');
 
@@ -37,156 +38,249 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
   };
 
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar">
-      <div className="space-y-6">
-        
-        {/* Appearance & Language */}
-        <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
-           <div className="flex items-start gap-3 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Monitor size={20} className="text-blue-500 dark:text-blue-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                {language === 'zh' ? '界面设置' : 'Interface Settings'}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {language === 'zh' ? '自定义外观和语言偏好' : 'Customize appearance and language preferences'}
-              </p>
-            </div>
-          </div>
+    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* 头部标题 */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-foreground">
+          {language === 'zh' ? '常规设置' : 'General Settings'}
+        </h2>
+        <p className="text-muted-foreground mt-1">
+          {language === 'zh' ? '管理界面的基本偏好与音频缓存' : 'Manage interface preferences and audio settings'}
+        </p>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {language === 'zh' ? '主题模式' : 'Theme Mode'}
-              </label>
-              <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700">
-                {[
-                  { id: 'light', icon: Sun, label: language === 'zh' ? '亮色' : 'Light' },
-                  { id: 'dark', icon: Moon, label: language === 'zh' ? '暗色' : 'Dark' },
-                  { id: 'system', icon: Monitor, label: language === 'zh' ? '系统' : 'System' }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setTheme(item.id as any)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                      theme === item.id 
-                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    <item.icon size={16} />
-                    {item.label}
-                  </button>
-                ))}
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+        {/* Appearance & Language */}
+        <Card className="border-none bg-muted/30 shadow-none">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
+                <Monitor size={20} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-foreground mb-1">
+                  {language === 'zh' ? '界面设置' : 'Interface Settings'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'zh' ? '自定义外观和语言偏好' : 'Customize appearance and language preferences'}
+                </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {language === 'zh' ? '语言' : 'Language'}
-              </label>
-              <Select 
-                value={language}
-                onChange={(val) => setLanguage(val as any)}
-                options={[
-                  { label: 'English', value: 'en', icon: <span className="text-lg">🇺🇸</span> },
-                  { label: '简体中文', value: 'zh', icon: <span className="text-lg">🇨🇳</span> }
-                ]}
-                className="w-full"
-              />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-foreground">
+                    {language === 'zh' ? '主题模式' : 'Theme Mode'}
+                  </label>
+                  <div className="flex p-1 bg-muted rounded-lg ring-1 ring-border/50">
+                    {[
+                      { id: 'light', icon: Sun, label: language === 'zh' ? '亮色' : 'Light' },
+                      { id: 'dark', icon: Moon, label: language === 'zh' ? '暗色' : 'Dark' },
+                      { id: 'system', icon: Monitor, label: language === 'zh' ? '系统' : 'System' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setTheme(item.id as any)}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-medium transition-all",
+                          theme === item.id
+                            ? "bg-background text-primary shadow-sm ring-1 ring-border/20"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <item.icon size={14} />
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-foreground">
+                    {language === 'zh' ? '语言' : 'Language'}
+                  </label>
+                  <Select
+                    value={language}
+                    onChange={(val) => setLanguage(val as any)}
+                    options={[
+                      { label: 'English', value: 'en' },
+                      { label: '简体中文', value: 'zh' }
+                    ]}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Palette size={16} />
+                  {language === 'zh' ? '主题配色' : 'Theme Color'}
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {[
+                    {
+                      id: 'indigo',
+                      name: language === 'zh' ? '靛蓝烟波' : 'Indigo Slate',
+                      desc: language === 'zh' ? '专业深邃' : 'Professional',
+                      colors: ['#6366f1', '#4f46e5', '#4338ca']
+                    },
+                    {
+                      id: 'emerald',
+                      name: language === 'zh' ? '宝石翡翠' : 'Emerald',
+                      desc: language === 'zh' ? '沉静优雅' : 'Elegant',
+                      colors: ['#10b981', '#059669', '#047857']
+                    },
+                    {
+                      id: 'violet',
+                      name: language === 'zh' ? '紫罗兰' : 'Violet',
+                      desc: language === 'zh' ? '时尚创意' : 'Creative',
+                      colors: ['#8b5cf6', '#7c3aed', '#6d28d9']
+                    },
+                    {
+                      id: 'obsidian',
+                      name: language === 'zh' ? '极简黑曜石' : 'Obsidian',
+                      desc: language === 'zh' ? '极致冷淡' : 'Minimalist',
+                      colors: ['#1a1a1a', '#404040', '#737373']
+                    },
+                    {
+                      id: 'warm',
+                      name: language === 'zh' ? '暖石灰' : 'Warm Stone',
+                      desc: language === 'zh' ? '温润阅读' : 'Warm',
+                      colors: ['#78716c', '#a8a29e', '#d6d3d1']
+                    }
+                  ].map((color) => (
+                    <button
+                      key={color.id}
+                      onClick={() => setThemeColor(color.id as any)}
+                      className={cn(
+                        "relative p-4 rounded-lg border-2 transition-all text-left",
+                        themeColor === color.id
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border hover:border-muted-foreground/30 bg-card"
+                      )}
+                    >
+                      <div className="flex gap-1.5 mb-3">
+                        {color.colors.map((c, i) => (
+                          <div
+                            key={i}
+                            className="w-6 h-6 rounded-md shadow-sm"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-sm font-semibold text-foreground mb-0.5">
+                        {color.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {color.desc}
+                      </div>
+                      {themeColor === color.id && (
+                        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Audio Volume */}
-        <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <Volume2 size={20} className="text-green-600 dark:text-green-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                {language === 'zh' ? '音频音量' : 'Audio Volume'}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {language === 'zh' ? '控制 TTS 语音播放的音量大小' : 'Control TTS voice playback volume'}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={settings.audioVolume}
-                onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                className="flex-1 h-2 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
-              />
-              <div className="w-16 text-right">
-                <span className="text-gray-900 dark:text-white font-medium">{settings.audioVolume}%</span>
+        <Card className="border-none bg-muted/30 shadow-none">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-2.5 bg-emerald-500/10 rounded-xl shrink-0">
+                <Volume2 size={20} className="text-emerald-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-foreground mb-1">
+                  {language === 'zh' ? '音频音量' : 'Audio Volume'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'zh' ? '控制 TTS 语音播放的音量大小' : 'Control TTS voice playback volume'}
+                </p>
               </div>
             </div>
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500">
-              <span>{language === 'zh' ? '静音' : 'Mute'}</span>
-              <span>{language === 'zh' ? '最大' : 'Max'}</span>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-6">
+                <div className="flex-1 relative h-6 flex items-center">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.audioVolume}
+                    onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                    className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
+                <div className="w-12 text-right">
+                  <span className="text-sm font-bold text-primary">{settings.audioVolume}%</span>
+                </div>
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium tracking-wider">
+                <span>{language === 'zh' ? '静音' : 'Mute'}</span>
+                <span>{language === 'zh' ? '最大' : 'Max'}</span>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Audio Cache */}
-        <div className="bg-gray-100 dark:bg-gray-800/30 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 bg-purple-500/10 rounded-lg">
-              <Database size={20} className="text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                {language === 'zh' ? '音频缓存上限' : 'Audio Cache Limit'}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {language === 'zh' ? '设置最多缓存多少条音频，超出后将删除最早的缓存' : 'Set maximum cached audio items, oldest will be removed when exceeded'}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-4">
-              <input
-                type="number"
-                min="10"
-                max="200"
-                step="10"
-                value={settings.audioCacheLimit}
-                onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
-                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              />
-              <div className="text-gray-600 dark:text-gray-400 text-sm">
-                {language === 'zh' ? '条' : 'items'}
+        <Card className="border-none bg-muted/30 shadow-none">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-2.5 bg-purple-500/10 rounded-xl shrink-0">
+                <Database size={20} className="text-purple-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-foreground mb-1">
+                  {language === 'zh' ? '音频缓存上限' : 'Audio Cache Limit'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'zh' ? '设置最多缓存多少条音频，超出后将删除最早的缓存' : 'Set maximum cached audio items'}
+                </p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              {language === 'zh' ? '建议值：10-100 条。缓存过多可能占用较多内存。' : 'Recommended: 10-100 items. Too many may consume more memory.'}
-            </p>
-          </div>
-        </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 max-w-xs">
+                <div className="flex-1 relative">
+                  <input
+                    type="number"
+                    min="10"
+                    max="200"
+                    step="10"
+                    value={settings.audioCacheLimit}
+                    onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
+                    className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium uppercase">
+                    {language === 'zh' ? '条' : 'items'}
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                {language === 'zh' ? '建议值：10-100 条。缓存过多可能占用较多内存。' : 'Recommended: 10-100 items. Too many may consume more memory.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Save Button */}
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-4 pt-4 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur-sm -mx-6 px-6 pb-6">
           {saveMessage && (
-            <span className="text-green-600 dark:text-green-400 text-sm animate-in fade-in slide-in-from-right-2">
+            <span className="text-emerald-500 text-xs font-medium animate-in fade-in slide-in-from-right-2">
               {saveMessage}
             </span>
           )}
           <Button
             onClick={handleSave}
-            icon={<Save />}
-            variant="primary"
-            size="lg"
+            className="min-w-[120px]"
           >
+            <Save size={18} className="mr-2" />
             {language === 'zh' ? '保存设置' : 'Save Settings'}
           </Button>
         </div>

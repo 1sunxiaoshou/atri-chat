@@ -63,7 +63,7 @@ async def send_message(
                 ValueError: "config_error",
                 RuntimeError: "model_error"
             }.get(type(e), "unknown_error")
-            yield f"data: {json.dumps({'error': str(e), 'error_type': error_type}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'error_type': error_type}, ensure_ascii=False)}\n\n"
         
         finally:
             yield f"data: {json.dumps({'done': True})}\n\n"

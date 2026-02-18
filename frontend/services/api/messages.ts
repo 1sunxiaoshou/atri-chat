@@ -49,7 +49,7 @@ export const messagesApi = {
   ): Promise<ApiResponse<Message[]>> => {
     const response = await httpClient.get<any>(`/conversations/${conversationId}/messages`);
     Logger.debug('getMessages 原始响应', { conversationId, response });
-    
+
     // 后端返回格式: { code, message, data: { conversation_id, messages } }
     // 需要提取 data.messages
     if (response.code === HTTP_STATUS.OK && response.data && response.data.messages) {
@@ -59,7 +59,7 @@ export const messagesApi = {
         data: response.data.messages
       };
     }
-    
+
     // 如果格式不对，返回空数组
     Logger.warn('getMessages 响应格式异常', { response });
     return {
@@ -149,7 +149,7 @@ export const messagesApi = {
     let fullContent = '';
     let fullReasoning = '';
     let buffer = '';
-    
+
     // VRM 模式下收集所有段的文本
     let vrmSegments: string[] = [];
     const isVrmMode = body.display_mode === 'vrm';
@@ -173,7 +173,7 @@ export const messagesApi = {
               marked_text: data.data.marked_text,
               audio_url: data.data.audio_data ? `data:audio/wav;base64,${data.data.audio_data}` : null
             });
-            
+
             // 收集 VRM 段的纯文本用于消息历史
             if (isVrmMode) {
               // 去除标记，提取纯文本
@@ -209,11 +209,11 @@ export const messagesApi = {
             try {
               const data = JSON.parse(line.slice(6));
 
-              if (data.error) {
+              if (data.type === 'error') {
                 return {
                   code: HTTP_STATUS.INTERNAL_SERVER_ERROR,
                   message: data.message || '发送消息失败',
-                  data: { message: '', error: data.error, error_type: data.error_type }
+                  data: { message: '', error: data.message, error_type: data.error_type }
                 };
               }
 
