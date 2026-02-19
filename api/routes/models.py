@@ -53,13 +53,18 @@ async def create_model(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/models/{provider_id}/{model_id}", response_model=ResponseModel)
+@router.get("/models/detail", response_model=ResponseModel)
 async def get_model(
     provider_id: str,
     model_id: str,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """获取模型详情"""
+    """获取模型详情
+    
+    查询参数:
+    - provider_id: 供应商ID
+    - model_id: 模型ID
+    """
     try:
         model = app_storage.get_model(provider_id, model_id)
         if not model:
@@ -123,7 +128,7 @@ async def list_models(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/models/{provider_id}/{model_id}", response_model=ResponseModel)
+@router.put("/models/update", response_model=ResponseModel)
 async def update_model(
     provider_id: str,
     model_id: str,
@@ -131,6 +136,10 @@ async def update_model(
     app_storage: AppStorage = Depends(get_storage)
 ):
     """更新单个模型
+    
+    查询参数:
+    - provider_id: 供应商ID
+    - model_id: 模型ID
     
     请求体示例:
     {
@@ -171,13 +180,18 @@ async def update_model(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/models/{provider_id}/{model_id}", response_model=ResponseModel)
+@router.delete("/models/delete", response_model=ResponseModel)
 async def delete_model(
     provider_id: str,
     model_id: str,
     app_storage: AppStorage = Depends(get_storage)
 ):
-    """删除模型"""
+    """删除模型
+    
+    查询参数:
+    - provider_id: 供应商ID
+    - model_id: 模型ID
+    """
     try:
         success = app_storage.delete_model(provider_id, model_id)
         if not success:

@@ -6,7 +6,7 @@ import { ApiResponse } from '../../types';
  */
 export const vrmApi = {
   // ==================== VRM 模型 ====================
-  
+
   /**
    * 获取所有 VRM 模型列表
    */
@@ -19,7 +19,7 @@ export const vrmApi = {
    * @param modelId - 模型 ID
    */
   getVRMModel: async (modelId: string): Promise<ApiResponse<any>> => {
-    return httpClient.get<any>(`/vrm/models/${modelId}`);
+    return httpClient.get<any>(`/vrm/models/${encodeURIComponent(modelId)}`);
   },
 
   /**
@@ -51,7 +51,7 @@ export const vrmApi = {
   },
 
   // ==================== VRM 动作 ====================
-  
+
   /**
    * 获取所有动作列表
    */
@@ -104,7 +104,7 @@ export const vrmApi = {
   },
 
   // ==================== 模型-动作关联 ====================
-  
+
   /**
    * 获取模型的所有动作
    * @param modelId - 模型 ID
