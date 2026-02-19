@@ -106,33 +106,33 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full select-none overflow-hidden">
-      {/* --- 顶部区域：角色列表 --- */}
-      <div className="p-4 flex flex-col gap-4">
-        {/* 标题与隐藏按钮 */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
-            {t('sidebar.characters')}
-          </span>
-          {/* 隐藏按钮：在桌面端显示 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onHideSidebar}
-            className="hidden lg:flex h-8 w-8 text-muted-foreground hover:bg-sidebar-hover rounded-md"
-          >
-            <PanelLeftClose size={16} />
-          </Button>
-          {/* 移动端关闭按钮 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCloseMobile}
-            className="lg:hidden h-8 w-8 text-muted-foreground"
-          >
-            <X size={20} />
-          </Button>
-        </div>
+      {/* --- 顶部区域：标题与隐藏按钮 --- */}
+      <div className="h-16 md:h-18 flex items-center justify-between px-4">
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+          {t('sidebar.characters')}
+        </span>
+        {/* 隐藏按钮：在桌面端显示 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onHideSidebar}
+          className="hidden lg:flex h-9 w-9 gap-0 text-muted-foreground hover:text-primary hover:bg-transparent rounded-lg [&_svg]:size-5"
+        >
+          <PanelLeftClose size={20} />
+        </Button>
+        {/* 移动端关闭按钮 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onCloseMobile}
+          className="lg:hidden h-8 w-8 text-muted-foreground"
+        >
+          <X size={20} />
+        </Button>
+      </div>
 
+      {/* --- 角色列表区域 --- */}
+      <div className="px-4 pb-3">
         {/* 横向角色滚动条 - 带渐变遮罩 */}
         <div className="relative group">
           {/* 左侧渐变遮罩 - 仅在滚动时显示 */}
@@ -204,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* --- 新建会话按钮 (突出显示) --- */}
-      <div className="px-3 py-2">
+      <div className="px-3 pt-3 pb-2">
         <Button
           onClick={onNewChat}
           disabled={selectedCharacterId === null}
@@ -314,8 +314,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* --- 底部菜单 (Admin & Settings) --- */}
+      {/* --- 底部菜单 (Characters, Admin & Settings) --- */}
       <div className="p-3 border-t space-y-1 bg-muted/30 border-sidebar-border">
+        <NavItem
+          icon={Users}
+          label={t('sidebar.characterManagement')}
+          active={viewMode === 'characters'}
+          onClick={() => setViewMode('characters')}
+        />
         <NavItem
           icon={LayoutDashboard}
           label={t('sidebar.adminDashboard')}
@@ -325,6 +331,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <NavItem
           icon={Settings}
           label={t('sidebar.settings')}
+          active={viewMode === 'settings'}
           onClick={onOpenSettings}
         />
       </div>

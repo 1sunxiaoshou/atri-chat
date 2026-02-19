@@ -7,8 +7,12 @@ import { buildResourceUrl } from './constants';
 
 /**
  * 构建头像 URL
+ * 如果没有提供头像路径，返回默认头像
  */
 export const buildAvatarUrl = (avatarPath: string | undefined): string => {
+  if (!avatarPath) {
+    return '/default-avatar.png';
+  }
   return buildResourceUrl(avatarPath);
 };
 

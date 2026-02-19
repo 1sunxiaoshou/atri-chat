@@ -76,7 +76,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             variant="ghost"
             size="icon"
             onClick={onShowSidebar}
-            className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg"
+            className="h-9 w-9 gap-0 text-muted-foreground hover:text-primary hover:bg-transparent rounded-lg [&_svg]:size-5"
           >
             <PanelLeftOpen size={20} />
           </Button>

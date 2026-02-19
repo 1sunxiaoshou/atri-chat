@@ -146,13 +146,16 @@ async def list_providers(app_storage: AppStorage = Depends(get_storage)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/providers/{provider_id}", response_model=ResponseModel)
+@router.put("/providers/update", response_model=ResponseModel)
 async def update_provider(
     provider_id: str,
     req: ProviderConfigUpdateRequest,
     app_storage: AppStorage = Depends(get_storage)
 ):
     """更新供应商配置
+    
+    查询参数:
+    - provider_id: 供应商ID
     
     请求体示例:
     {
@@ -197,12 +200,15 @@ async def update_provider(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/providers/{provider_id}", response_model=ResponseModel)
+@router.delete("/providers/delete", response_model=ResponseModel)
 async def delete_provider(
     provider_id: str,
     app_storage: AppStorage = Depends(get_storage)
 ):
     """删除供应商配置及其下所有模型
+    
+    查询参数:
+    - provider_id: 供应商ID
     
     注意：不会删除使用该供应商的角色，但这些角色的模型引用会失效
     """
@@ -304,7 +310,7 @@ async def get_provider_models(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/providers/{provider_id}/models/sync", response_model=ResponseModel)
+@router.post("/providers/sync-models", response_model=ResponseModel)
 async def sync_provider_models(
     provider_id: str,
     update_existing: bool = False,
@@ -315,6 +321,7 @@ async def sync_provider_models(
     从供应商 API 获取所有可用模型，并自动添加到系统中。
     
     查询参数:
+    - provider_id: 供应商ID
     - update_existing: 是否更新已存在的模型信息 (默认 false，只添加新模型)
     
     返回:

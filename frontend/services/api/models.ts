@@ -32,13 +32,16 @@ export const modelsApi = {
     modelId: string,
     model: Partial<Model>
   ): Promise<ApiResponse<Model>> => {
-    return httpClient.put<Model>(`/models/${providerId}/${modelId}`, {
-      model_type: model.model_type,
-      capabilities: model.capabilities,
-      enabled: model.enabled,
-      context_window: model.context_window,
-      max_output: model.max_output
-    });
+    return httpClient.put<Model>(
+      `/models/update?provider_id=${providerId}&model_id=${modelId}`,
+      {
+        model_type: model.model_type,
+        capabilities: model.capabilities,
+        enabled: model.enabled,
+        context_window: model.context_window,
+        max_output: model.max_output
+      }
+    );
   },
 
   /**
@@ -53,18 +56,23 @@ export const modelsApi = {
     providerId: string
   ): Promise<ApiResponse<void>> => {
     // 先获取模型信息
-    const modelData = await httpClient.get<any>(`/models/${providerId}/${modelId}`);
+    const modelData = await httpClient.get<any>(
+      `/models/detail?provider_id=${providerId}&model_id=${modelId}`
+    );
 
     if (modelData.code !== HTTP_STATUS.OK) {
       return modelData;
     }
 
     // 更新模型
-    return httpClient.put<void>(`/models/${providerId}/${modelId}`, {
-      model_type: modelData.data.model_type,
-      capabilities: modelData.data.capabilities,
-      enabled
-    });
+    return httpClient.put<void>(
+      `/models/update?provider_id=${providerId}&model_id=${modelId}`,
+      {
+        model_type: modelData.data.model_type,
+        capabilities: modelData.data.capabilities,
+        enabled
+      }
+    );
   },
 
   /**
@@ -76,7 +84,9 @@ export const modelsApi = {
     providerId: string,
     modelId: string
   ): Promise<ApiResponse<void>> => {
-    return httpClient.delete<void>(`/models/${providerId}/${modelId}`);
+    return httpClient.delete<void>(
+      `/models/delete?provider_id=${providerId}&model_id=${modelId}`
+    );
   },
 
   /**
@@ -104,6 +114,9 @@ export const modelsApi = {
       skipped: number;
       failed: number;
       errors?: string[];
-    }>(`/providers/${providerId}/models/sync?update_existing=${updateExisting}`, {});
+    }>(
+      `/providers/sync-models?provider_id=${providerId}&update_existing=${updateExisting}`,
+      {}
+    );
   }
 };

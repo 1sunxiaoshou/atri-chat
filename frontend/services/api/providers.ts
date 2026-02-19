@@ -29,7 +29,10 @@ export const providersApi = {
     providerId: string,
     updates: { config_json?: any; logo?: string }
   ): Promise<ApiResponse<Provider>> => {
-    return httpClient.put<Provider>(`/providers/${providerId}`, updates);
+    return httpClient.put<Provider>(
+      `/providers/update?provider_id=${providerId}`,
+      updates
+    );
   },
 
   /**
@@ -37,7 +40,7 @@ export const providersApi = {
    * @param providerId - 服务商 ID
    */
   deleteProvider: async (providerId: string): Promise<ApiResponse<void>> => {
-    return httpClient.delete<void>(`/providers/${providerId}`);
+    return httpClient.delete<void>(`/providers/delete?provider_id=${providerId}`);
   },
 
   /**
@@ -61,7 +64,9 @@ export const providersApi = {
 
     // 使用统一的 URL 构建工具
     const baseUploadUrl = buildUploadURL('provider-logo');
-    const url = providerId ? `${baseUploadUrl}?provider_id=${providerId}` : baseUploadUrl;
+    const url = providerId
+      ? `${baseUploadUrl}?provider_id=${providerId}`
+      : baseUploadUrl;
 
     const response = await fetch(url, {
       method: 'POST',

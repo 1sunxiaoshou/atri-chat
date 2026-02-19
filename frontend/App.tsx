@@ -3,8 +3,9 @@ import Sidebar from './components/layout/Sidebar';
 import ChatInterface from './components/chat/ChatInterface';
 import AdminDashboard from './components/admin/AdminDashboard';
 import SettingsView from './components/settings/SettingsView';
+import { AdminCharacters } from './components/characters/AdminCharacters';
 import Toast, { ToastMessage } from './components/ui/Toast';
-import { Conversation, ViewMode, Character, Model } from './types';
+import { Conversation, ViewMode, Character, Model, VRMModel } from './types';
 import { api } from './services/api/index';
 import { useLanguage } from './contexts/LanguageContext';
 import { buildAvatarUrl } from './utils/url';
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [models, setModels] = useState<Model[]>([]);
+  const [vrmModels, setVrmModels] = useState<VRMModel[]>([]);
 
   // Character Selection State
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
@@ -51,6 +53,8 @@ const App: React.FC = () => {
     if (viewMode === 'chat') {
       loadGlobalData(true);
       loadConversations(selectedCharacterId);
+    } else if (viewMode === 'characters' || viewMode === 'admin') {
+      loadGlobalData(true);
     }
   }, [viewMode]);
 
@@ -67,6 +71,13 @@ const App: React.FC = () => {
       const modelRes = await api.getModels();
       if (modelRes.code === 200) {
         setModels(modelRes.data);
+      }
+    }
+    // Load VRM models if empty or forced
+    if (force || vrmModels.length === 0) {
+      const vrmRes = await api.getVRMModels();
+      if (vrmRes.code === 200) {
+        setVrmModels(vrmRes.data || []);
       }
     }
   };
@@ -272,13 +283,27 @@ const App: React.FC = () => {
           <AdminDashboard
             onBack={() => setViewMode('chat')}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            isSidebarHidden={isLeftSidebarHidden}
+            onShowSidebar={() => setIsLeftSidebarHidden(false)}
           />
-        ) : (
+        ) : viewMode === 'characters' ? (
+          <AdminCharacters
+            characters={characters}
+            models={models}
+            vrmModels={vrmModels}
+            onRefresh={loadGlobalData}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            isSidebarHidden={isLeftSidebarHidden}
+            onShowSidebar={() => setIsLeftSidebarHidden(false)}
+          />
+        ) : viewMode === 'settings' ? (
           <SettingsView
             onBack={() => setViewMode('chat')}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            isSidebarHidden={isLeftSidebarHidden}
+            onShowSidebar={() => setIsLeftSidebarHidden(false)}
           />
-        )}
+        ) : null}
       </main>
     </div>
   );
