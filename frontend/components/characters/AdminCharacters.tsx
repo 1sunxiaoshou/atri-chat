@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { Plus, Menu, PanelLeftOpen } from 'lucide-react';
-import { Character, Model, VRMModel } from '../../types';
+import { Character, Model } from '../../types';
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ConfirmDialog, Button } from '../ui';
-import { CharacterLibrary } from './CharacterLibrary';
-import { CharacterEditor } from './CharacterEditor';
+import { CharacterLibrary } from './library';
+import { CharacterEditor } from './editor';
 import { cn } from '../../utils/cn';
 
 interface AdminCharactersProps {
   characters: Character[];
   models: Model[];
-  vrmModels: VRMModel[];
   onRefresh: () => Promise<void>;
   onOpenMobileSidebar?: () => void;
   isSidebarHidden?: boolean;
@@ -21,7 +20,6 @@ interface AdminCharactersProps {
 export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   characters,
   models,
-  vrmModels,
   onRefresh,
   onOpenMobileSidebar,
   isSidebarHidden,
@@ -29,7 +27,6 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
 }) => {
   const { t } = useLanguage();
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
-  const [ttsProviders, setTtsProviders] = useState<any[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title?: string;
@@ -42,48 +39,61 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
     onConfirm: () => { }
   });
 
-  React.useEffect(() => {
-    fetchTTSProviders();
-  }, []);
-
-  const fetchTTSProviders = async () => {
-    try {
-      const res = await api.getTTSProviders();
-      if (res.code === 200) {
-        if (Array.isArray(res.data)) {
-          setTtsProviders(res.data);
-        } else if (res.data && Array.isArray(res.data.providers)) {
-          setTtsProviders(res.data.providers);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch TTS providers', error);
-    }
-  };
-
   const handleCreate = () => {
     const defaultModel = models.filter(m => m.enabled)[0];
     setEditingCharacter({
-      character_id: 0,
+      id: '', // 空字符串表示新建
       name: '',
       description: '',
-      system_prompt: '',
-      primary_model_id: defaultModel?.model_id || '',
+      system_prompt: '你是一个友好、乐于助人的AI助手。', // 提供默认系统提示词
+      primary_model_id: defaultModel?.id || '', // 使用 UUID 而不是 model_id
       primary_provider_id: defaultModel?.provider_id || '',
-      tts_id: '',
-      enabled: true,
-      avatar: ''
+      avatar_id: '',
+      voice_asset_id: '',
+      enabled: true
     });
   };
 
-  const handleSave = async (character: Character) => {
-    const charId = character.character_id;
+  const handleSave = async (character: Character, motionBindings?: any[]) => {
+    if (!character.id) {
+      // 创建新角色
+      const { id, created_at, updated_at, avatar, voice_asset, primary_model, ...newCharData } = character;
 
-    if (charId === 0 || !charId) {
-      const { character_id: _character_id, ...newCharData } = character;
-      await api.createCharacter(newCharData);
+      // 清理空字符串字段，避免后端验证失败
+      const cleanedData: any = { ...newCharData };
+
+      // 清理所有空字符串和 undefined 字段
+      if (!cleanedData.avatar_id) {
+        delete cleanedData.avatar_id;
+      }
+      if (!cleanedData.voice_asset_id) {
+        delete cleanedData.voice_asset_id;
+      }
+      if (!cleanedData.voice_speaker_id) {
+        delete cleanedData.voice_speaker_id;
+      }
+      if (!cleanedData.primary_model_id) {
+        delete cleanedData.primary_model_id;
+      }
+      if (!cleanedData.primary_provider_id) {
+        delete cleanedData.primary_provider_id;
+      }
+      if (!cleanedData.description) {
+        delete cleanedData.description;
+      }
+      if (!cleanedData.portrait_url) {
+        delete cleanedData.portrait_url;
+      }
+
+      // 如果有动作绑定，添加到请求数据中
+      const createData = motionBindings && motionBindings.length > 0
+        ? { ...cleanedData, motion_bindings: motionBindings }
+        : cleanedData;
+
+      await api.createCharacter(createData);
     } else {
-      const originalChar = characters.find(c => c.character_id === charId);
+      // 更新现有角色
+      const originalChar = characters.find(c => c.id === character.id);
       if (!originalChar) return;
 
       const updateData: Partial<Character> = {};
@@ -92,13 +102,12 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
       if (character.system_prompt !== originalChar.system_prompt) updateData.system_prompt = character.system_prompt;
       if (character.primary_model_id !== originalChar.primary_model_id) updateData.primary_model_id = character.primary_model_id;
       if (character.primary_provider_id !== originalChar.primary_provider_id) updateData.primary_provider_id = character.primary_provider_id;
-      if (character.tts_id !== originalChar.tts_id) updateData.tts_id = character.tts_id;
-      if (character.vrm_model_id !== originalChar.vrm_model_id) updateData.vrm_model_id = character.vrm_model_id;
+      if (character.avatar_id !== originalChar.avatar_id) updateData.avatar_id = character.avatar_id;
+      if (character.voice_asset_id !== originalChar.voice_asset_id) updateData.voice_asset_id = character.voice_asset_id;
       if (character.enabled !== originalChar.enabled) updateData.enabled = character.enabled;
-      if (character.avatar && character.avatar !== originalChar.avatar) updateData.avatar = character.avatar;
 
       if (Object.keys(updateData).length > 0) {
-        await api.updateCharacter(charId, updateData);
+        await api.updateCharacter(character.id, updateData);
       }
     }
 
@@ -106,7 +115,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
     setEditingCharacter(null);
   };
 
-  const handleDelete = async (id: number | string) => {
+  const handleDelete = async (id: string) => {
     setConfirmDialog({
       isOpen: true,
       title: t('admin.delete'),
@@ -188,8 +197,6 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
           <CharacterEditor
             character={editingCharacter}
             models={models}
-            vrmModels={vrmModels}
-            ttsProviders={ttsProviders}
             onSave={handleSave}
             onBack={() => setEditingCharacter(null)}
           />

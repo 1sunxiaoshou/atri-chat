@@ -51,22 +51,38 @@ export const ProviderList: React.FC<ProviderListProps> = ({
                         )}
 
                         {/* Logo */}
-                        {provider.logo && (
-                            <div
-                                className={cn(
-                                    "flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center border transition-colors",
-                                    selectedProvider === provider.provider_id
-                                        ? "bg-background border-primary/20"
-                                        : "bg-muted/50 border-border"
-                                )}
-                            >
+                        <div
+                            className={cn(
+                                "flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center border transition-colors",
+                                selectedProvider === provider.provider_id
+                                    ? "bg-background border-primary/20"
+                                    : "bg-muted/50 border-border"
+                            )}
+                        >
+                            {provider.logo ? (
                                 <img
                                     src={buildLogoUrl(provider.logo)}
                                     alt=""
                                     className="w-6 h-6 object-contain"
+                                    onError={(e) => {
+                                        // 图片加载失败时显示首字母
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const parent = target.parentElement;
+                                        if (parent && !parent.querySelector('.fallback-text')) {
+                                            const fallback = document.createElement('span');
+                                            fallback.className = 'fallback-text text-xs font-bold text-muted-foreground';
+                                            fallback.textContent = provider.provider_id.charAt(0).toUpperCase();
+                                            parent.appendChild(fallback);
+                                        }
+                                    }}
                                 />
-                            </div>
-                        )}
+                            ) : (
+                                <span className="text-xs font-bold text-muted-foreground">
+                                    {provider.provider_id.charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">

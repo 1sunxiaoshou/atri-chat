@@ -1,9 +1,10 @@
-"""消息管理路由"""
+"""消息管理路由 (ORM 版本)"""
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 from api.schemas import ResponseModel, MessageRequest
 from core import AgentCoordinator
-from core.dependencies import get_agent
+from core.dependencies import get_agent, get_db
 
 router = APIRouter()
 
@@ -11,7 +12,8 @@ router = APIRouter()
 @router.post("/messages")
 async def send_message(
     req: MessageRequest,
-    agent_manager: AgentCoordinator = Depends(get_agent)
+    agent_manager: AgentCoordinator = Depends(get_agent),
+    db: Session = Depends(get_db)
 ):
     """发送文本消息（流式响应）"""
     async def generate():
@@ -52,6 +54,7 @@ async def send_message(
                 character_id=req.character_id,
                 model_id=req.model_id,
                 provider_id=req.provider_id,
+                db_session=db,
                 output_mode=output_mode,
                 **model_kwargs
             ):

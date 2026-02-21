@@ -12,13 +12,16 @@ import { messagesApi } from './messages';
 import { vrmApi } from './vrm';
 import { asrApi } from './asr';
 import { ttsApi } from './tts';
+import { avatarsApi } from './avatars';
+import { voiceAssetsApi } from './voiceAssets';
+import { motionsApi, motionBindingsApi } from './motions';
 
-export { 
-  httpClient, 
-  getBaseURL, 
+export {
+  httpClient,
+  getBaseURL,
   getUploadBaseURL,
   buildURL,
-  buildUploadURL 
+  buildUploadURL
 } from './base';
 export { ErrorType, type AppError } from '../../types';
 export { providersApi } from './providers';
@@ -29,6 +32,9 @@ export { messagesApi, type SendMessageParams, type StreamCallbacks } from './mes
 export { vrmApi } from './vrm';
 export { asrApi } from './asr';
 export { ttsApi } from './tts';
+export { avatarsApi } from './avatars';
+export { voiceAssetsApi } from './voiceAssets';
+export { motionsApi, motionBindingsApi } from './motions';
 
 /**
  * 向后兼容的 API 对象
@@ -74,9 +80,6 @@ export const api = {
   sendAudioMessage: messagesApi.sendAudioMessage,
 
   // ASR API
-  getASRProviders: asrApi.getASRProviders,
-  testASRConnection: asrApi.testASRConnection,
-  saveASRConfig: asrApi.saveASRConfig,
   transcribeAudio: asrApi.transcribeAudio,
 
   // TTS API
@@ -84,6 +87,28 @@ export const api = {
   testTTSConnection: ttsApi.testTTSConnection,
   saveTTSConfig: ttsApi.saveTTSConfig,
   synthesizeSpeechStream: ttsApi.synthesizeSpeechStream,
+
+  // Avatar API
+  getAvatars: avatarsApi.getAvatars,
+  getAvatar: avatarsApi.getAvatar,
+  uploadAvatarAsset: avatarsApi.uploadAvatar,
+  deleteAvatar: avatarsApi.deleteAvatar,
+
+  // Voice Asset API
+  getVoiceAssets: voiceAssetsApi.getVoiceAssets,
+  getVoiceProviders: voiceAssetsApi.getProviders,
+  createVoiceAsset: voiceAssetsApi.createVoiceAsset,
+  updateVoiceAsset: voiceAssetsApi.updateVoiceAsset,
+  deleteVoiceAsset: voiceAssetsApi.deleteVoiceAsset,
+
+  // Motion API
+  getMotions: motionsApi.getMotions,
+  uploadMotion: motionsApi.uploadMotion,
+  deleteMotion: motionsApi.deleteMotion,
+  getCharacterMotionBindings: motionBindingsApi.getCharacterBindings,
+  createMotionBinding: motionBindingsApi.createBinding,
+  updateMotionBinding: motionBindingsApi.updateBinding,
+  deleteMotionBinding: motionBindingsApi.deleteBinding,
 
   // VRM API
   getVRMModels: vrmApi.getVRMModels,

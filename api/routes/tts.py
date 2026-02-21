@@ -1,173 +1,144 @@
-"""TTS配置管理路由"""
+"""TTS 语音合成路由（重构版 - 使用 ORM）"""
+from __future__ import annotations
+
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+
 from api.schemas import ResponseModel
-from core.tts.service import TTSConfigService
 from core.tts.factory import TTSFactory
-from core.dependencies import get_tts_factory
+from core.dependencies import get_db, get_tts_factory
+from core.db import TTSProvider, VoiceAsset, Character
 from core.logger import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
 
 
-class TTSTestRequest(BaseModel):
-    """测试连接请求"""
-    provider_id: str
-    config: Dict[str, Any]
-
-
-class TTSConfigRequest(BaseModel):
-    """保存配置请求"""
-    provider_id: Optional[str] = None
-    config: Dict[str, Any] = {}
-
-
 class TTSSynthesizeRequest(BaseModel):
     """语音合成请求"""
     text: str
     language: Optional[str] = None
+    character_id: Optional[str] = None  # 可选：指定角色使用其绑定的音色
 
 
-@router.get("/providers", response_model=ResponseModel)
-async def get_providers(tts_factory: TTSFactory = Depends(get_tts_factory)):
-    """获取配置列表与状态
+@router.get("/status", response_model=ResponseModel)
+async def get_tts_status(db: Session = Depends(get_db)):
+    """获取 TTS 状态
     
-    返回所有服务商的配置状态，包括当前active的服务商
+    返回当前启用的供应商和可用的音色列表
     """
     try:
-        service = tts_factory.config_service
-        data = service.get_all_providers()
-        return ResponseModel(
-            code=200,
-            message="获取成功",
-            data=data
-        )
-    except Exception as e:
-        logger.error(f"获取TTS配置列表失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取配置失败: {str(e)}")
-
-
-@router.post("/test", response_model=ResponseModel)
-async def test_connection(req: TTSTestRequest, tts_factory: TTSFactory = Depends(get_tts_factory)):
-    """测试连接
-    
-    不保存配置，仅验证参数有效性
-    """
-    try:
-        # 使用提供的配置创建临时TTS实例
-        tts = tts_factory.create_tts(provider=req.provider_id, config=req.config)
+        # 查询启用的供应商
+        enabled_providers = db.query(TTSProvider).filter(
+            TTSProvider.enabled == True
+        ).all()
         
-        # 执行连接测试
-        result = await tts.test_connection()
+        if not enabled_providers:
+            return {
+                "code": 200,
+                "message": "TTS 未配置",
+                "data": {
+                    "enabled": False,
+                    "providers": [],
+                    "voices": []
+                }
+            }
         
-        if result["success"]:
-            return ResponseModel(
-                code=200,
-                message=result.get("message", "连接测试成功"),
-                data=result
-            )
-        else:
-            logger.warning(f"TTS连接测试失败: provider={req.provider_id}, reason={result.get('message')}")
-            return ResponseModel(
-                code=400,
-                message=result.get("message", "连接测试失败"),
-                data=result
-            )
-    
-    except ValueError as e:
-        logger.error(f"TTS配置错误: provider={req.provider_id}, error={e}")
-        return ResponseModel(
-            code=400,
-            message=f"配置错误: {str(e)}",
-            data={"success": False, "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"TTS测试异常: provider={req.provider_id}, error={e}")
-        return ResponseModel(
-            code=500,
-            message=f"测试失败: {str(e)}",
-            data={"success": False, "message": str(e)}
-        )
-
-
-@router.post("/config", response_model=ResponseModel)
-async def save_config(
-    req: TTSConfigRequest,
-    tts_factory: TTSFactory = Depends(get_tts_factory)
-):
-    """保存并应用配置
-    
-    验证通过后，持久化存储并切换当前生效服务商
-    如果provider_id为空，则禁用TTS功能
-    """
-    try:
-        service = tts_factory.config_service
-        factory = tts_factory
+        # 构建响应
+        providers_data = []
+        all_voices = []
         
-        # 如果provider_id为空或"none"，禁用TTS
-        if not req.provider_id or req.provider_id.lower() == "none":
-            success = service.disable_tts()
-            if success:
-                factory.clear_cache()
-                return ResponseModel(
-                    code=200,
-                    message="TTS已禁用",
-                    data={"provider_id": None}
-                )
-            else:
-                raise HTTPException(status_code=500, detail="禁用TTS失败")
-        
-        # 从 Registry 获取服务商名称
-        from core.tts import TTSRegistry
-        provider_name = TTSRegistry.get_provider_name(req.provider_id)
-        
-        # 保存配置（内部会进行验证）
-        success = service.save_config(
-            provider_id=req.provider_id,
-            name=provider_name,
-            config=req.config,
-            set_active=True
-        )
-        
-        if success:
-            # 清空指定服务商的缓存
-            factory.clear_cache(req.provider_id)
+        for provider in enabled_providers:
+            providers_data.append({
+                "id": provider.id,
+                "type": provider.provider_type,
+                "name": provider.name,
+                "voice_count": len(provider.voices)
+            })
             
-            return ResponseModel(
-                code=200,
-                message="配置保存成功",
-                data={"provider_id": req.provider_id}
-            )
-        else:
-            raise HTTPException(status_code=500, detail="保存配置失败")
-    
-    except ValueError as e:
-        logger.error(f"TTS配置验证失败: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+            # 收集该供应商的音色
+            for voice in provider.voices:
+                all_voices.append({
+                    "id": voice.id,
+                    "name": voice.name,
+                    "provider_id": provider.id,
+                    "provider_name": provider.name
+                })
+        
+        return {
+            "code": 200,
+            "message": "获取成功",
+            "data": {
+                "enabled": True,
+                "providers": providers_data,
+                "voices": all_voices
+            }
+        }
+        
     except Exception as e:
-        logger.error(f"保存TTS配置失败: {e}")
-        raise HTTPException(status_code=500, detail=f"保存配置失败: {str(e)}")
+        logger.error(f"获取 TTS 状态失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/synthesize")
 async def synthesize_speech(
     req: TTSSynthesizeRequest,
     stream: bool = False,
+    db: Session = Depends(get_db),
     tts_factory: TTSFactory = Depends(get_tts_factory)
 ):
-    """文本转语音
+    """文本转语音（重构版 - 支持角色音色）
     
-    使用当前active的TTS服务商进行合成
+    支持两种模式：
+    1. 使用默认启用的 TTS 供应商
+    2. 使用指定角色绑定的音色
     
     Args:
         stream: True=PCM流式(AudioContext播放), False=WAV完整文件
     """
     try:
-        # 获取TTS实例
-        tts = tts_factory.get_default_tts()
+        provider_type = None
+        config = None
+        
+        # 如果指定了角色，使用角色绑定的音色
+        if req.character_id:
+            character = db.query(Character).filter(
+                Character.id == req.character_id
+            ).first()
+            
+            if not character:
+                raise HTTPException(status_code=404, detail="角色不存在")
+            
+            # 获取角色的音色资产
+            voice_asset = db.query(VoiceAsset).filter(
+                VoiceAsset.id == character.voice_asset_id
+            ).first()
+            
+            if not voice_asset:
+                raise HTTPException(status_code=404, detail="角色未配置音色")
+            
+            # 获取供应商
+            provider = db.query(TTSProvider).filter(
+                TTSProvider.id == voice_asset.provider_id
+            ).first()
+            
+            if not provider or not provider.enabled:
+                raise HTTPException(status_code=400, detail="音色供应商未启用")
+            
+            provider_type = provider.provider_type
+            # 合并供应商配置和音色配置
+            config = {**provider.config_payload, **voice_asset.voice_config}
+        
+        # 获取 TTS 实例
+        if config:
+            # 使用角色音色配置
+            tts = tts_factory.create_tts(provider_type=provider_type, config=config)
+        else:
+            # 使用默认启用的供应商
+            tts = tts_factory.get_default_tts(db_session=db)
         
         # 流式模式（PCM raw 格式，使用 AudioContext 播放）
         if stream:
@@ -211,12 +182,13 @@ async def synthesize_speech(
         else:
             audio_bytes = await tts.synthesize_async(req.text, req.language)
             
-            from fastapi.responses import Response
             return Response(
                 content=audio_bytes,
                 media_type="audio/wav",
             )
     
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.error(f"TTS配置错误: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"配置错误: {str(e)}")

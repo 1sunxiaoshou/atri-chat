@@ -10,12 +10,12 @@ export const conversationsApi = {
    * @param characterId - 可选的角色 ID
    */
   getConversations: async (
-    characterId?: number | string | null
+    characterId?: string | null
   ): Promise<ApiResponse<Conversation[]>> => {
     const endpoint = characterId
       ? `/conversations?character_id=${characterId}`
       : '/conversations';
-    
+
     return httpClient.get<Conversation[]>(endpoint);
   },
 
@@ -24,7 +24,7 @@ export const conversationsApi = {
    * @param characterId - 角色 ID
    */
   createConversation: async (
-    characterId: number | string
+    characterId: string
   ): Promise<ApiResponse<Conversation>> => {
     return httpClient.post<Conversation>('/conversations', {
       character_id: characterId

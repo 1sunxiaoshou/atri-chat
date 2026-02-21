@@ -38,12 +38,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const modelOptions = availableModels.map(m => ({
     label: m.model_id,
-    value: m.model_id,
+    value: m.id, // 使用 UUID 作为 value
     group: m.provider_id
   }));
 
   const handleDisplayModeChange = (mode: 'normal' | 'vrm' | 'live2d') => {
-    if (mode === 'vrm' && !activeCharacter?.vrm_model_id) {
+    if (mode === 'vrm' && !activeCharacter?.avatar_id) {
       setShowVrmError(true);
       setTimeout(() => setShowVrmError(false), 3000);
       return;
@@ -91,8 +91,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         >
           <div className="relative shrink-0">
             <div className="w-10 md:w-12 h-10 md:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary ring-2 ring-background shadow-md overflow-hidden transition-transform duration-300 group-hover:scale-105">
-              {activeCharacter?.avatar ? (
-                <img src={buildAvatarUrl(activeCharacter.avatar)} alt={activeCharacter.name} className="w-full h-full object-cover" />
+              {activeCharacter?.avatar?.file_url ? (
+                <img src={buildAvatarUrl(activeCharacter.avatar.file_url)} alt={activeCharacter.name} className="w-full h-full object-cover" />
               ) : (
                 <Bot size={24} />
               )}
@@ -115,7 +115,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         {/* Model Selector - Hidden on mobile */}
         <div className="hidden md:block w-48 lg:w-64">
           <Select
-            value={activeModel?.model_id || ''}
+            value={activeModel?.id || ''}
             onChange={onUpdateModel}
             options={modelOptions}
             placeholder="选择模型..."

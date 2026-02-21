@@ -53,7 +53,7 @@ export const useChat = () => {
     modelParameters?: ModelParameters,
     onVrmData?: (data: any) => void
   ) => {
-    if (!content.trim()) {return;}
+    if (!content.trim()) { return; }
 
     // 重置错误状态
     setError(null);
@@ -81,7 +81,7 @@ export const useChat = () => {
         {
           conversationId,
           content: content.trim(),
-          characterId: character.character_id,
+          characterId: character.id,
           modelId: model.model_id,
           providerId: model.provider_id,
           modelParameters
@@ -125,7 +125,7 @@ export const useChat = () => {
         const errorMsg = response.message || '发送消息失败';
         Logger.error('发送消息失败', undefined, { errorMsg });
         setError(errorMsg);
-        
+
         // 添加错误消息
         const errorMessage: Message = {
           message_id: Date.now() + MESSAGE_ID_CONFIG.TEMP_ID_OFFSET,
@@ -140,7 +140,7 @@ export const useChat = () => {
       const errorMsg = err instanceof Error ? err.message : '发送消息失败';
       Logger.error('发送消息失败', err instanceof Error ? err : undefined);
       setError(errorMsg);
-      
+
       // 添加错误消息
       const errorMessage: Message = {
         message_id: Date.now() + MESSAGE_ID_CONFIG.TEMP_ID_OFFSET,

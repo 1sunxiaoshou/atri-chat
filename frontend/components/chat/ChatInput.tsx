@@ -1,7 +1,6 @@
 import React from 'react';
 import { Send, Mic, MicOff, Paperclip } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useASR } from '../../contexts/ASRContext';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import Toast, { ToastMessage } from '../ui/Toast';
 import { Logger } from '../../utils/logger';
@@ -22,7 +21,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isTyping
 }) => {
   const { t } = useLanguage();
-  const { asrEnabled } = useASR();
   const {
     isRecording,
     isProcessing,
@@ -131,25 +129,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={toggleRecording}
-                disabled={!asrEnabled || isProcessing}
+                disabled={isProcessing}
                 className={cn(
                   "h-9 w-9",
-                  !asrEnabled && "text-muted-foreground/30",
                   isRecording && "text-destructive bg-destructive/10 animate-pulse",
                   isProcessing && "text-primary bg-primary/10 animate-pulse",
-                  asrEnabled && !isRecording && !isProcessing && "text-muted-foreground hover:text-foreground"
+                  !isRecording && !isProcessing && "text-muted-foreground hover:text-foreground"
                 )}
                 title={
-                  !asrEnabled
-                    ? "ASR 未配置"
-                    : isRecording
-                      ? "点击停止录音"
-                      : isProcessing
-                        ? "正在处理..."
-                        : "点击开始录音"
+                  isRecording
+                    ? "点击停止录音"
+                    : isProcessing
+                      ? "正在处理..."
+                      : "点击开始录音"
                 }
               >
-                {!asrEnabled ? <MicOff size={18} /> : <Mic size={18} />}
+                {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
               </Button>
 
               <Button

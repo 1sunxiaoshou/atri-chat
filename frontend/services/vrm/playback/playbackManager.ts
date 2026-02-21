@@ -6,9 +6,14 @@
  * 2. 标记触发（表情、动作）
  * 3. 口型同步
  * 4. 字幕更新
+ * 5. 闲置动作管理
+ * 6. 思考动作管理
  */
 import { ModelManager } from '../model/modelManager';
 import { AudioSegment, ParsedAudioSegment, TimedMarkup, parseMarkedText } from '../../../types/vrm';
+import { CharacterMotionBindings } from '../../../types/motion';
+import { IdleMotionManager } from './idleMotionManager';
+import { ThinkingMotionManager } from './thinkingMotionManager';
 import { Logger } from '../../../utils/logger';
 
 export class PlaybackManager {
@@ -28,13 +33,75 @@ export class PlaybackManager {
   // 音频缓存（预加载优化）
   private audioCache: Map<string, AudioBuffer> = new Map();
 
+  // 动作管理器
+  private idleMotionManager: IdleMotionManager;
+  private thinkingMotionManager: ThinkingMotionManager;
+
   constructor(
     private modelManager: ModelManager,
     private onTextUpdate?: (text: string) => void
   ) {
     this.initAudioContext();
     this.syncLipLoop();
+
+    // 初始化动作管理器
+    this.idleMotionManager = new IdleMotionManager((motionName) => {
+      this.modelManager.playAnimation(motionName, false);
+    });
+
+    this.thinkingMotionManager = new ThinkingMotionManager((motionName) => {
+      this.modelManager.playAnimation(motionName, false);
+    });
+
+    // 启动闲置计时器
+    this.idleMotionManager.resetIdleTimer();
+
     Logger.debug('PlaybackManager: 初始化播放管理器');
+  }
+
+  /**
+   * 设置角色动作绑定
+   */
+  setMotionBindings(bindings: CharacterMotionBindings | null): void {
+    this.idleMotionManager.setMotionBindings(bindings);
+    this.thinkingMotionManager.setMotionBindings(bindings);
+    if (bindings) {
+      Logger.debug('设置角色动作绑定', {
+        character_id: bindings.character_id,
+        total_bindings: bindings.total_bindings,
+        has_bindings_by_category: !!bindings.bindings_by_category,
+        categories: bindings.bindings_by_category ? Object.keys(bindings.bindings_by_category) : []
+      });
+    } else {
+      Logger.debug('清除角色动作绑定');
+    }
+  }
+
+  /**
+   * 开始思考状态（发送消息时调用）
+   */
+  startThinking(): void {
+    // 停止闲置动作
+    this.idleMotionManager.stop();
+    // 开始思考动作
+    this.thinkingMotionManager.startThinking();
+  }
+
+  /**
+   * 根据分类和权重随机选择动作（用于标记触发）
+   */
+  private selectRandomMotion(_category: string): string | null {
+    // 注意：这个方法现在只用于标记触发的 reply 动作
+    // idle 和 thinking 动作由各自的管理器处理
+    if (!this.idleMotionManager || !this.thinkingMotionManager) {
+      Logger.warn('动作管理器未初始化');
+      return null;
+    }
+
+    // 这里可以复用 IdleMotionManager 的逻辑
+    // 但为了保持独立性，我们直接访问绑定数据
+    // 实际上这个方法现在主要用于 reply 分类
+    return null; // 暂时返回 null，reply 动作应该由标记直接指定
   }
 
   /**
@@ -147,8 +214,8 @@ export class PlaybackManager {
         try {
           await this.playAudioSegment(segment);
         } catch (error) {
-          Logger.error('音频播放失败', error instanceof Error ? error : undefined, { 
-            index: segment.sentence_index 
+          Logger.error('音频播放失败', error instanceof Error ? error : undefined, {
+            index: segment.sentence_index
           });
           // 降级：手动触发标记和字幕
           this.triggerMarkups(segment.markups);
@@ -176,7 +243,7 @@ export class PlaybackManager {
     this.isPlaying = false;
     this.segments = [];
     this.clearAudioCache();
-    
+
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
@@ -339,20 +406,33 @@ export class PlaybackManager {
    */
   private triggerMarkups(markups: TimedMarkup[]): void {
     Logger.info(`触发标记数量: ${markups.length}`, { markups });
-    
+
     let hasExpressionMarkup = false;
-    
+
     for (const markup of markups) {
       if (markup.type === 'state') {
         Logger.info(`触发表情: ${markup.value}`);
         this.modelManager.setExpression(markup.value);
         hasExpressionMarkup = true;
       } else if (markup.type === 'action') {
-        Logger.info(`触发动作: ${markup.value}`);
-        this.modelManager.playAnimation(markup.value, false);
+        // 判断是否是分类标记
+        if (markup.isCategory) {
+          // 随机选择动作
+          const selectedMotion = this.selectRandomMotion(markup.value);
+          if (selectedMotion) {
+            Logger.info(`触发随机动作: ${selectedMotion} (分类: ${markup.value})`);
+            this.modelManager.playAnimation(selectedMotion, false);
+          } else {
+            Logger.warn(`无法为分类 ${markup.value} 选择动作`);
+          }
+        } else {
+          // 直接播放指定动作
+          Logger.info(`触发动作: ${markup.value}`);
+          this.modelManager.playAnimation(markup.value, false);
+        }
       }
     }
-    
+
     // 如果这个片段包含表情标记，清除保存的表情
     // 这样播放结束后就不会恢复到旧表情
     if (hasExpressionMarkup) {
@@ -417,7 +497,7 @@ export class PlaybackManager {
 
     // 恢复之前的表情（如果有）
     this.restoreSavedExpression();
-    
+
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
@@ -441,6 +521,10 @@ export class PlaybackManager {
     Logger.debug('PlaybackManager: 销毁播放管理器');
 
     this.stop();
+
+    // 销毁动作管理器
+    this.idleMotionManager.dispose();
+    this.thinkingMotionManager.dispose();
 
     // 清空音频缓存
     this.audioCache.clear();

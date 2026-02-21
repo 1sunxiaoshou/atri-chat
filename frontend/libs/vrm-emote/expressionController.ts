@@ -1,6 +1,7 @@
 import { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
 import { Logger } from '../../utils/logger';
 import { ExpressionName } from '../../types/vrm';
+import { easeInOutCubic, isLipSyncOrBlinkExpression, clamp } from './utils';
 
 /**
  * 表情控制器 - 管理VRM模型的面部表情
@@ -15,11 +16,11 @@ export class ExpressionController {
 
     constructor(vrm: VRM, transitionDuration?: number) {
         this.vrm = vrm;
-        
+
         if (transitionDuration !== undefined) {
             this.transitionDuration = transitionDuration;
         }
-        
+
         // 输出可用的表情列表
         if (vrm.expressionManager) {
             const expressionNames = Object.keys(vrm.expressionManager.expressionMap);
@@ -63,7 +64,7 @@ export class ExpressionController {
         // 关键修复：切换表情前，清空所有非口型、非眨眼的表情
         // 参考 Airi 项目的实现
         for (const name of expressionNames) {
-            if (!this.isLipSyncOrBlinkExpression(name)) {
+            if (!isLipSyncOrBlinkExpression(name)) {
                 expressionManager.setValue(name, 0);
             }
         }
@@ -109,9 +110,9 @@ export class ExpressionController {
         }
 
         if (lipSyncExpression) {
-            // 限制值在 0-1 范围内
-            const clampedValue = Math.max(0, Math.min(1, value));
-            
+            // 使用共享工具函数限制值在 0-1 范围内
+            const clampedValue = clamp(value, 0, 1);
+
             // 直接设置口型权重，不再降低
             // 口型和表情的混合由 VRM 的 expressionManager 自动处理
             expressionManager.setValue(lipSyncExpression, clampedValue);
@@ -132,8 +133,8 @@ export class ExpressionController {
             this.transitionProgress += delta / this.transitionDuration;
             this.transitionProgress = Math.min(1.0, this.transitionProgress);
 
-            // 平滑插值
-            const t = this.easeInOutCubic(this.transitionProgress);
+            // 使用共享缓动函数进行平滑插值
+            const t = easeInOutCubic(this.transitionProgress);
 
             // 更新表情权重
             this.updateExpressionWeights(t);
@@ -153,8 +154,9 @@ export class ExpressionController {
         const expressionNames = Object.keys(expressionManager.expressionMap);
 
         // 重置所有表情（除了口型和眨眼相关的）
+        // 使用共享工具函数进行快速判断
         for (const name of expressionNames) {
-            if (!this.isLipSyncOrBlinkExpression(name)) {
+            if (!isLipSyncOrBlinkExpression(name)) {
                 expressionManager.setValue(name, 0);
             }
         }
@@ -168,38 +170,6 @@ export class ExpressionController {
         if (this.targetExpression && expressionNames.includes(this.targetExpression)) {
             expressionManager.setValue(this.targetExpression, t);
         }
-    }
-
-    /**
-     * 判断是否是口型表情或眨眼表情
-     * 增强版：支持更多口型表情命名变体
-     */
-    private isLipSyncOrBlinkExpression(name: string): boolean {
-        const lowerName = name.toLowerCase();
-        
-        // 标准口型表情
-        const lipSyncNames = ['aa', 'ih', 'ou', 'ee', 'oh', 'a', 'i', 'u', 'e', 'o'];
-        
-        // 眨眼表情
-        const blinkNames = ['blink', 'blinkleft', 'blinkright'];
-        
-        // 检查是否包含口型或嘴部相关关键词
-        const mouthKeywords = ['mouth', 'lip', 'viseme', 'vrc.v_'];
-        
-        // 精确匹配
-        if (lipSyncNames.includes(lowerName) || blinkNames.includes(lowerName)) {
-            return true;
-        }
-        
-        // 关键词匹配（避免误判其他表情）
-        return mouthKeywords.some(keyword => lowerName.includes(keyword));
-    }
-
-    /**
-     * 缓动函数 - 三次方缓入缓出
-     */
-    private easeInOutCubic(t: number): number {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     /**
@@ -224,13 +194,13 @@ export class ExpressionController {
         if (this.vrm.expressionManager) {
             const expressionManager = this.vrm.expressionManager;
             const expressionNames = Object.keys(expressionManager.expressionMap);
-            
+
             // 重置所有表情
             for (const name of expressionNames) {
                 expressionManager.setValue(name, 0);
             }
         }
-        
+
         Logger.debug('ExpressionController 资源已清理');
     }
 }

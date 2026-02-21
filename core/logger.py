@@ -17,8 +17,8 @@ if LOG_LEVEL not in VALID_LEVELS:
 def _get_log_dir() -> Path:
     """获取日志目录"""
     try:
-        from core.paths import get_logs_dir
-        return get_logs_dir()
+        from core.paths import get_path_manager
+        return get_path_manager().logs_dir
     except ImportError:
         # 如果paths模块还未初始化，使用默认路径
         log_dir = Path("logs")

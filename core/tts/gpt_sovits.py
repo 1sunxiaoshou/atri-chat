@@ -8,20 +8,34 @@ from .registry import TTSRegistry
 
 @TTSRegistry.register("gpt_sovits", "GPT-SoVITS")
 class GPTSoVITSTTS(TTSBase):
-    """GPT-SoVITS TTS 实现（适配 api_v2.py 的 POST /tts 接口）"""
+    """GPT-SoVITS TTS 实现（适配 api_v2.py 的 POST /tts 接口）
+    
+    配置分离：
+    - 供应商配置：api_url（服务地址）
+    - 音色配置：refer_wav_path, prompt_text, prompt_language, text_language
+    """
     
     @classmethod
     def get_config_template(cls) -> Dict[str, Any]:
-        """获取配置模板（带UI元数据）"""
+        """获取配置模板（带UI元数据）
+        
+        注意：这个模板包含所有字段，但在实际使用时：
+        - TTSProvider.config_payload 只存储供应商级别字段
+        - VoiceAsset.voice_config 只存储音色级别字段
+        """
         return {
+            # ========== 供应商级别配置 ==========
             "api_url": {
                 "type": "string",
                 "label": "API地址",
                 "description": "GPT-SoVITS服务地址",
                 "default": "http://localhost:9880",
                 "required": True,
-                "placeholder": "http://localhost:9880"
+                "placeholder": "http://localhost:9880",
+                "level": "provider"  # 标记为供应商级别
             },
+            
+            # ========== 音色级别配置 ==========
             "refer_wav_path": {
                 "type": "file",
                 "label": "参考音频路径",
@@ -29,7 +43,8 @@ class GPTSoVITSTTS(TTSBase):
                 "default": "",
                 "required": True,
                 "placeholder": "",
-                "accept": ".wav,.mp3"
+                "accept": ".wav,.mp3",
+                "level": "voice"  # 标记为音色级别
             },
             "prompt_text": {
                 "type": "string",
@@ -37,7 +52,8 @@ class GPTSoVITSTTS(TTSBase):
                 "description": "参考音频对应的文本",
                 "default": "",
                 "required": True,
-                "placeholder": ""
+                "placeholder": "",
+                "level": "voice"
             },
             "prompt_language": {
                 "type": "select",
@@ -45,7 +61,8 @@ class GPTSoVITSTTS(TTSBase):
                 "description": "参考文本的语言",
                 "default": "zh",
                 "required": True,
-                "options": ["zh", "en", "ja"]
+                "options": ["zh", "en", "ja"],
+                "level": "voice"
             },
             "text_language": {
                 "type": "select",
@@ -53,16 +70,26 @@ class GPTSoVITSTTS(TTSBase):
                 "description": "默认合成语言",
                 "default": "zh",
                 "required": True,
-                "options": ["zh", "en", "ja"]
+                "options": ["zh", "en", "ja"],
+                "level": "voice"
             }
         }
     
     def __init__(self, config: dict):
+        """初始化 TTS 实例
+        
+        Args:
+            config: 合并后的完整配置（供应商配置 + 音色配置）
+        """
+        # 供应商级别配置
         self.api_url = config.get("api_url", "http://localhost:9880") + "/tts"
+        
+        # 音色级别配置
         self.refer_wav_path = config.get("refer_wav_path", "")
         self.prompt_text = config.get("prompt_text", "")
         self.prompt_language = config.get("prompt_language", "zh")
         self.text_language = config.get("text_language", "zh")
+        
         self.sample_rate = 48000 
 
     async def synthesize_async(

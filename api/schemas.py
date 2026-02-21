@@ -94,17 +94,43 @@ class TTSUpdateRequest(BaseModel):
 # ==================== 角色相关 ====================
 
 class CharacterRequest(BaseModel):
-    """角色请求"""
+    """角色请求 (已废弃,请使用 CharacterCreate)"""
     name: str = Field(..., description="角色名称")
     description: str = Field(..., description="角色描述")
     system_prompt: str = Field(..., description="系统提示词")
     primary_model_id: Optional[str] = Field(None, description="主模型ID（可选）")
     primary_provider_id: Optional[str] = Field(None, description="主供应商ID（可选）")
-    tts_id: Optional[str] = Field("default", description="TTS ID")
-    avatar: Optional[str] = Field(None, description="角色头像URL")
-    avatar_position: Optional[str] = Field("center", description="头像显示位置: left/center/right")
+    tts_id: Optional[str] = Field("default", description="TTS ID (已废弃)")
+    avatar: Optional[str] = Field(None, description="角色头像URL (已废弃)")
+    avatar_position: Optional[str] = Field("center", description="头像显示位置 (已废弃)")
     vrm_model_id: Optional[str] = Field(None, description="VRM模型ID")
     enabled: bool = Field(True, description="是否启用")
+
+
+class CharacterCreate(BaseModel):
+    """创建角色 (新架构)"""
+    name: str = Field(..., description="角色名称")
+    system_prompt: str = Field(..., description="系统提示词")
+    portrait_url: Optional[str] = Field(None, description="2D立绘/头像URL")
+    avatar_id: str = Field(..., description="3D形象资产ID")
+    voice_asset_id: str = Field(..., description="音色资产ID")
+    voice_speaker_id: Optional[str] = Field(None, description="音色说话人ID（可选）")
+    primary_model_id: Optional[str] = Field(None, description="主模型ID（可选）")
+    primary_provider_id: Optional[str] = Field(None, description="主供应商ID（可选）")
+    enabled: bool = Field(True, description="是否启用")
+
+
+class CharacterUpdate(BaseModel):
+    """更新角色 (新架构)"""
+    name: Optional[str] = Field(None, description="角色名称")
+    system_prompt: Optional[str] = Field(None, description="系统提示词")
+    portrait_url: Optional[str] = Field(None, description="2D立绘/头像URL")
+    avatar_id: Optional[str] = Field(None, description="3D形象资产ID")
+    voice_asset_id: Optional[str] = Field(None, description="音色资产ID")
+    voice_speaker_id: Optional[str] = Field(None, description="音色说话人ID")
+    primary_model_id: Optional[str] = Field(None, description="主模型ID")
+    primary_provider_id: Optional[str] = Field(None, description="主供应商ID")
+    enabled: Optional[bool] = Field(None, description="是否启用")
 
 
 class CharacterResponse(BaseModel):
@@ -122,7 +148,7 @@ class CharacterResponse(BaseModel):
 
 
 class CharacterUpdateRequest(BaseModel):
-    """角色更新请求"""
+    """角色更新请求 (已废弃,请使用 CharacterUpdate)"""
     name: Optional[str] = None
     description: Optional[str] = None
     system_prompt: Optional[str] = None
@@ -139,14 +165,14 @@ class CharacterUpdateRequest(BaseModel):
 
 class ConversationRequest(BaseModel):
     """会话请求"""
-    character_id: int = Field(..., description="角色ID")
+    character_id: str = Field(..., description="角色ID（UUID）")
     title: Optional[str] = Field("New Chat", description="会话标题")
 
 
 class ConversationResponse(BaseModel):
     """会话响应"""
-    conversation_id: int
-    character_id: int
+    conversation_id: str
+    character_id: str
     title: str
     created_at: str
     updated_at: str
@@ -168,8 +194,8 @@ class DisplayMode(str):
 
 class MessageRequest(BaseModel):
     """消息请求"""
-    conversation_id: int = Field(..., description="会话ID")
-    character_id: int = Field(..., description="角色ID")
+    conversation_id: str = Field(..., description="会话ID（UUID）")
+    character_id: str = Field(..., description="角色ID（UUID）")
     model_id: str = Field(..., description="模型ID")
     provider_id: str = Field(..., description="供应商ID")
     content: str = Field(..., description="消息内容")
@@ -184,7 +210,7 @@ class MessageRequest(BaseModel):
 class MessageResponse(BaseModel):
     """消息响应"""
     message_id: int
-    conversation_id: int
+    conversation_id: str
     message_type: str
     content: str
     created_at: str
@@ -192,7 +218,7 @@ class MessageResponse(BaseModel):
 
 class ConversationHistoryResponse(BaseModel):
     """会话历史响应"""
-    conversation_id: int
+    conversation_id: str
     messages: List[MessageResponse]
 
 
@@ -200,8 +226,8 @@ class ConversationHistoryResponse(BaseModel):
 
 class AudioMessageRequest(BaseModel):
     """音频消息请求"""
-    conversation_id: int = Field(..., description="会话ID")
-    character_id: int = Field(..., description="角色ID")
+    conversation_id: str = Field(..., description="会话ID（UUID）")
+    character_id: str = Field(..., description="角色ID（UUID）")
     model_id: str = Field(..., description="模型ID")
     provider_id: str = Field(..., description="供应商ID")
     asr_provider: Optional[str] = Field(None, description="ASR提供商")

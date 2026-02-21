@@ -2,182 +2,225 @@ import { httpClient } from './base';
 import { ApiResponse } from '../../types';
 
 /**
- * VRM 相关 API
+ * VRM 相关 API（更新为新架构：Avatar + Motion）
  */
 export const vrmApi = {
-  // ==================== VRM 模型 ====================
+  // ==================== Avatar（3D形象） ====================
 
   /**
-   * 获取所有 VRM 模型列表
+   * 获取所有 Avatar 列表
    */
   getVRMModels: async (): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>('/vrm/models');
+    return httpClient.get<any[]>('/avatars');
   },
 
   /**
-   * 获取 VRM 模型详情
-   * @param modelId - 模型 ID
+   * 获取 Avatar 详情
+   * @param avatarId - Avatar ID
    */
-  getVRMModel: async (modelId: string): Promise<ApiResponse<any>> => {
-    return httpClient.get<any>(`/vrm/models/${encodeURIComponent(modelId)}`);
+  getVRMModel: async (avatarId: string): Promise<ApiResponse<any>> => {
+    return httpClient.get<any>(`/avatars/${encodeURIComponent(avatarId)}`);
   },
 
   /**
-   * 上传 VRM 模型
-   * @param formData - 包含模型文件的表单数据
+   * 上传 Avatar
+   * @param formData - 包含VRM文件和缩略图的表单数据
    */
   uploadVRMModel: async (formData: FormData): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/vrm/models/upload', formData);
+    return httpClient.post<any>('/avatars/upload', formData);
   },
 
   /**
-   * 更新 VRM 模型
-   * @param modelId - 模型 ID
+   * 更新 Avatar
+   * @param avatarId - Avatar ID
    * @param data - 更新的数据
    */
   updateVRMModel: async (
-    modelId: string,
-    data: { name?: string; thumbnail_path?: string }
+    avatarId: string,
+    data: { name?: string }
   ): Promise<ApiResponse<any>> => {
-    return httpClient.put<any>(`/vrm/models/${modelId}`, data);
+    return httpClient.put<any>(`/avatars/${avatarId}`, data);
   },
 
   /**
-   * 删除 VRM 模型
-   * @param modelId - 模型 ID
+   * 删除 Avatar
+   * @param avatarId - Avatar ID
    */
-  deleteVRMModel: async (modelId: string): Promise<ApiResponse<any>> => {
-    return httpClient.delete<any>(`/vrm/models/${modelId}`);
+  deleteVRMModel: async (avatarId: string): Promise<ApiResponse<any>> => {
+    return httpClient.delete<any>(`/avatars/${avatarId}`);
   },
 
-  // ==================== VRM 动作 ====================
+  // ==================== Motion（动作） ====================
 
   /**
    * 获取所有动作列表
    */
   getVRMAnimations: async (): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>('/vrm/animations');
+    return httpClient.get<any[]>('/motions');
   },
 
   /**
    * 获取动作详情
-   * @param animationId - 动作 ID
+   * @param motionId - 动作 ID
    */
-  getVRMAnimation: async (animationId: string): Promise<ApiResponse<any>> => {
-    return httpClient.get<any>(`/vrm/animations/${animationId}`);
+  getVRMAnimation: async (motionId: string): Promise<ApiResponse<any>> => {
+    return httpClient.get<any>(`/motions/${motionId}`);
   },
 
   /**
-   * 上传 VRM 动作
+   * 上传动作
    * @param formData - 包含动作文件的表单数据
    */
   uploadVRMAnimation: async (formData: FormData): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/vrm/animations/upload', formData);
+    return httpClient.post<any>('/motions/upload', formData);
   },
 
   /**
    * 更新动作信息
-   * @param animationId - 动作 ID
+   * @param motionId - 动作 ID
    * @param data - 更新的数据
    */
   updateVRMAnimation: async (
-    animationId: string,
-    data: { description?: string; duration?: number }
+    motionId: string,
+    data: { name?: string; description?: string; tags?: string[] }
   ): Promise<ApiResponse<any>> => {
-    return httpClient.put<any>(`/vrm/animations/${animationId}`, data);
+    return httpClient.put<any>(`/motions/${motionId}`, data);
   },
 
   /**
    * 删除动作
-   * @param animationId - 动作 ID
+   * @param motionId - 动作 ID
    */
-  deleteVRMAnimation: async (animationId: string): Promise<ApiResponse<any>> => {
-    return httpClient.delete<any>(`/vrm/animations/${animationId}`);
+  deleteVRMAnimation: async (motionId: string): Promise<ApiResponse<any>> => {
+    return httpClient.delete<any>(`/motions/${motionId}`);
   },
 
   /**
-   * 查询使用该动作的模型
-   * @param animationId - 动作 ID
+   * 查询使用该动作的角色（通过绑定）
+   * @param motionId - 动作 ID
    */
-  getVRMAnimationModels: async (animationId: string): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>(`/vrm/animations/${animationId}/models`);
+  getVRMAnimationModels: async (motionId: string): Promise<ApiResponse<any[]>> => {
+    return httpClient.get<any[]>(`/motions/${motionId}`).then(res => {
+      // 从详情中提取 bound_characters
+      return { ...res, data: res.data?.bound_characters || [] };
+    });
   },
 
-  // ==================== 模型-动作关联 ====================
+  // ==================== 角色-动作绑定 ====================
 
   /**
-   * 获取模型的所有动作
-   * @param modelId - 模型 ID
+   * 获取角色的所有动作绑定
+   * @param characterId - 角色 ID
    */
-  getModelAnimations: async (modelId: string): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>(`/vrm/models/${modelId}/animations`);
+  getModelAnimations: async (characterId: string): Promise<ApiResponse<any>> => {
+    return httpClient.get<any>(`/characters/${characterId}/motions`);
   },
 
   /**
-   * 为模型添加动作
-   * @param modelId - 模型 ID
-   * @param animationId - 动作 ID
+   * 为角色添加动作绑定
+   * @param characterId - 角色 ID
+   * @param motionId - 动作 ID
+   * @param category - 分类（idle/thinking/reply）
+   * @param weight - 权重
    */
   addModelAnimation: async (
-    modelId: string,
-    animationId: string
+    characterId: string,
+    motionId: string,
+    category: string = 'idle',
+    weight: number = 1.0
   ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>(`/vrm/models/${modelId}/animations`, {
-      animation_id: animationId
+    return httpClient.post<any>('/character-motion-bindings', {
+      character_id: characterId,
+      motion_id: motionId,
+      category,
+      weight
     });
   },
 
   /**
-   * 上传动作并关联到模型
-   * @param modelId - 模型 ID
+   * 上传动作并绑定到角色（暂不支持，需要分两步）
+   * @param characterId - 角色 ID
    * @param formData - 包含动作文件的表单数据
    */
   uploadAndBindModelAnimation: async (
-    modelId: string,
+    characterId: string,
     formData: FormData
   ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>(`/vrm/models/${modelId}/animations/upload`, formData);
+    // 先上传动作
+    const uploadRes = await httpClient.post<any>('/motions/upload', formData);
+    if (uploadRes.code !== 200) {
+      return uploadRes;
+    }
+
+    // 再创建绑定
+    const motionId = uploadRes.data.id;
+    const category = formData.get('category') as string || 'idle';
+    const weight = parseFloat(formData.get('weight') as string || '1.0');
+
+    return httpClient.post<any>('/character-motion-bindings', {
+      character_id: characterId,
+      motion_id: motionId,
+      category,
+      weight
+    });
   },
 
   /**
-   * 批量添加动作到模型
-   * @param modelId - 模型 ID
-   * @param animationIds - 动作 ID 列表
+   * 批量添加动作到角色
+   * @param characterId - 角色 ID
+   * @param motionIds - 动作 ID 列表
+   * @param category - 分类
+   * @param weight - 权重
    */
   batchAddModelAnimations: async (
-    modelId: string,
-    animationIds: string[]
+    characterId: string,
+    motionIds: string[],
+    category: string = 'idle',
+    weight: number = 1.0
   ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>(`/vrm/models/${modelId}/animations/batch`, {
-      animation_ids: animationIds
+    return httpClient.post<any>('/character-motion-bindings/batch', {
+      character_id: characterId,
+      motion_ids: motionIds,
+      category,
+      weight
     });
   },
 
   /**
-   * 移除模型的动作
-   * @param modelId - 模型 ID
-   * @param animationId - 动作 ID
+   * 移除角色的动作绑定
+   * @param characterId - 角色 ID（暂不使用）
+   * @param bindingId - 绑定 ID
    */
   removeModelAnimation: async (
-    modelId: string,
-    animationId: string
+    characterId: string,
+    bindingId: string
   ): Promise<ApiResponse<any>> => {
-    return httpClient.delete<any>(`/vrm/models/${modelId}/animations/${animationId}`);
+    return httpClient.delete<any>(`/character-motion-bindings/${bindingId}`);
   },
 
   /**
-   * 批量移除模型的动作
-   * @param modelId - 模型 ID
-   * @param animationIds - 动作 ID 列表
+   * 批量移除角色的动作绑定
+   * @param characterId - 角色 ID
+   * @param motionIds - 动作 ID 列表
+   * @param category - 分类（可选）
    */
   batchRemoveModelAnimations: async (
-    modelId: string,
-    animationIds: string[]
+    characterId: string,
+    motionIds: string[],
+    category?: string
   ): Promise<ApiResponse<any>> => {
-    return httpClient.request<any>(`/vrm/models/${modelId}/animations/batch`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ animation_ids: animationIds })
-    });
+    const params = new URLSearchParams();
+    if (category) {
+      params.append('category', category);
+    }
+
+    return httpClient.request<any>(
+      `/characters/${characterId}/motions/batch-delete?${params.toString()}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(motionIds)
+      }
+    );
   }
 };

@@ -5,12 +5,17 @@
 2. 去除标记
 3. 调用 TTS 生成音频
 4. 流式返回（带标记文本 + base64 音频数据）
+
+架构改进：
+- 移除对 AppStorage 的依赖
+- 使用 CharacterRepository 获取角色信息
 """
 import re
 import base64
 from typing import AsyncGenerator, Dict, Any
+from sqlalchemy.orm import Session
 
-from ..storage import AppStorage
+from ..repositories import CharacterRepository
 from ..tts.factory import TTSFactory
 from ..logger import get_logger
 
@@ -23,35 +28,60 @@ class VRMService:
     # 标记正则：匹配 [xxx:yyy] 格式
     MARKUP_PATTERN = re.compile(r'\[[^\]]+:[^\]]+\]')
     
-    def __init__(self, app_storage: AppStorage, tts_factory: TTSFactory):
-        self.app_storage = app_storage
+    def __init__(self, tts_factory: TTSFactory):
+        """初始化 VRM 服务
+        
+        Args:
+            tts_factory: TTS 工厂（单例，可共享）
+        """
         self.tts_factory = tts_factory
     
     async def generate_stream(
         self,
         marked_text: str,
-        character_id: int
+        character_id: str,
+        db_session: Session
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """流式生成 VRM 音频段
         
         Args:
             marked_text: 带标记的完整文本
-            character_id: 角色 ID
+            character_id: 角色 ID (UUID)
+            db_session: 数据库会话（请求级别）
             
         Yields:
             {"marked_text": "...", "audio_data": "base64...", "index": 0}
         """
-        # 获取角色的 TTS 配置
-        character = self.app_storage.get_character(character_id)
+        # 通过 Repository 获取角色信息
+        character_repo = CharacterRepository(db_session)
+        character = character_repo.get_with_relations(character_id)
+        
         if not character:
             raise ValueError(f"角色 {character_id} 不存在")
         
-        tts_id = character.get("tts_id", "default")
+        # 获取音色资产信息
+        voice_asset = character.voice_asset
+        if not voice_asset:
+            raise ValueError(f"角色 {character_id} 未配置音色")
+        
+        # 获取 TTS 供应商信息
+        tts_provider = voice_asset.provider
+        if not tts_provider or not tts_provider.enabled:
+            raise ValueError(f"TTS 供应商未配置或未启用")
+        
+        # 创建 TTS 实例
+        # TODO: 这里需要根据新的 TTS 架构创建实例
+        # 暂时使用旧的方式，后续需要重构 TTSFactory
+        tts_id = f"{tts_provider.provider_type}:{voice_asset.id}"
         tts = self.tts_factory.create_tts(tts_id)
         
         logger.info(
             "开始 VRM 流式生成",
-            extra={"character_id": character_id, "tts_id": tts_id}
+            extra={
+                "character_id": character_id,
+                "voice_asset_id": voice_asset.id,
+                "provider_type": tts_provider.provider_type
+            }
         )
         
         # 1. 按换行分句
@@ -102,3 +132,4 @@ class VRMService:
             "VRM 流式生成完成",
             extra={"total_sentences": len(sentences)}
         )
+

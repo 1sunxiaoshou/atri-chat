@@ -60,8 +60,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
         {isUser ? (
           <User size={18} />
         ) : (
-          activeCharacter?.avatar ? (
-            <img src={buildAvatarUrl(activeCharacter.avatar)} alt="AI" className="w-full h-full object-cover" />
+          activeCharacter?.avatar?.file_url ? (
+            <img src={buildAvatarUrl(activeCharacter.avatar.file_url)} alt="AI" className="w-full h-full object-cover" />
           ) : (
             <Bot size={18} />
           )

@@ -1,16 +1,17 @@
 ﻿/**
- * VRMManager - VRM 协调管理器
- * 
- * 职责：
- * 1. 协调三个子管理器（Scene、Model、Playback）
- * 2. 提供统一的对外接口
- * 3. 处理跨层逻辑
- * 4. 错误处理和日志
- */
+* VRMManager - VRM 协调管理器
+* 
+* 职责：
+* 1. 协调三个子管理器（Scene、Model、Playback）
+* 2. 提供统一的对外接口
+* 3. 处理跨层逻辑
+* 4. 错误处理和日志
+*/
 import { SceneManager } from './scene/sceneManager';
 import { ModelManager } from './model/modelManager';
 import { PlaybackManager } from './playback/playbackManager';
 import { AudioSegment, VRMCallbacks } from '../../types/vrm';
+import { CharacterMotionBindings } from '../../types/motion';
 import { api } from '../api/index';
 import { HTTP_STATUS, UI_TIMING, DEV_SERVER } from '../../utils/constants';
 import { Logger } from '../../utils/logger';
@@ -40,24 +41,24 @@ export class VRMManager {
   /**
    * 加载 VRM 模型
    */
-  async loadModel(vrmModelId: string): Promise<void> {
+  async loadModel(avatarId: string, characterId?: string): Promise<void> {
     try {
       this.callbacks.onLoadingChange?.(true);
       this.callbacks.onError?.(null as any);
 
-      Logger.info('🎭 开始加载VRM模型', { vrmModelId });
+      Logger.info('🎭 开始加载VRM模型', { avatarId, characterId });
 
-      // 1. 获取模型数据
-      const response = await api.getVRMModel(vrmModelId);
+      // 1. 获取Avatar数据
+      const response = await api.getAvatar(avatarId);
       if (response.code !== HTTP_STATUS.OK || !response.data) {
-        throw new Error('获取模型数据失败');
+        throw new Error('获取Avatar数据失败');
       }
 
-      const modelData = response.data;
+      const avatarData = response.data;
 
       // 2. 构造完整的 URL
       const baseUrl = import.meta.env.PROD ? '' : DEV_SERVER.BACKEND_URL;
-      const modelUrl = `${baseUrl}${modelData.model_path}`;
+      const modelUrl = `${baseUrl}${avatarData.file_url}`;
 
       // 3. 加载模型
       const vrm = await this.modelManager.loadModel(modelUrl);
@@ -69,26 +70,27 @@ export class VRMManager {
       const idleAnimationUrl = '/static/animations/idle.vrma';
       await this.modelManager.loadIdleAnimation(idleAnimationUrl);
 
-      // 6. 预加载其他动画（可选）
-      if (modelData.animations && modelData.animations.length > 0) {
-        Logger.debug(`预加载 ${modelData.animations.length} 个额外动画`);
-
-        // 构造动画数据
-        const animations = modelData.animations.map((anim: any) => ({
-          name: anim.name,
-          animation_path: `${baseUrl}${anim.animation_path}`
-        }));
-
+      // 6. 加载角色动作绑定（如果提供了角色ID）
+      if (characterId) {
         try {
-          await this.modelManager.preloadAnimations(
-            animations,
-            (loaded, total) => {
-              this.callbacks.onSubtitleChange?.(`正在加载动画 ${loaded}/${total}...`);
-            }
-          );
-          Logger.debug('额外动画预加载完成');
+          const bindingsResponse = await api.getCharacterMotionBindings(characterId);
+          Logger.debug('动作绑定API响应', {
+            code: bindingsResponse.code,
+            hasData: !!bindingsResponse.data,
+            data: bindingsResponse.data
+          });
+
+          if (bindingsResponse.code === HTTP_STATUS.OK && bindingsResponse.data) {
+            this.playbackManager.setMotionBindings(bindingsResponse.data);
+            Logger.info('✅ 角色动作绑定加载完成', {
+              total_bindings: bindingsResponse.data.total_bindings,
+              has_bindings_by_category: !!bindingsResponse.data.bindings_by_category
+            });
+          } else {
+            Logger.warn('动作绑定API返回数据为空');
+          }
         } catch (error) {
-          Logger.warn('部分动画加载失败，但不影响使用', error instanceof Error ? error : undefined);
+          Logger.warn('加载角色动作绑定失败，将无法使用随机动作', error instanceof Error ? error : undefined);
         }
       }
 
@@ -99,11 +101,11 @@ export class VRMManager {
         this.callbacks.onSubtitleChange?.('');
       }, UI_TIMING.SUBTITLE_CLEAR_DELAY);
 
-      Logger.info('✅ VRM模型加载完成', { vrmModelId });
+      Logger.info('✅ VRM模型加载完成', { avatarId, characterId });
 
     } catch (error) {
-      Logger.error('加载VRM模型失败', error instanceof Error ? error : undefined, { vrmModelId });
-      
+      Logger.error('加载VRM模型失败', error instanceof Error ? error : undefined, { avatarId });
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.callbacks.onError?.(errorMessage);
       this.callbacks.onSubtitleChange?.('VRM模型加载失败，将使用默认显示');
@@ -119,6 +121,7 @@ export class VRMManager {
       this.callbacks.onLoadingChange?.(false);
     }
   }
+
 
   /**
    * 播放音频片段（批量模式）

@@ -5,20 +5,33 @@ from typing_extensions import TypedDict
 
 
 class ConfigField(TypedDict, total=False):
-    """配置字段元数据"""
+    """配置字段元数据
+    
+    用于定义 TTS 配置模板的字段结构，支持前端动态表单生成
+    """
+    # 基础字段
     type: Literal["string", "password", "number", "select", "file"]
     label: str
     description: str
-    default: Any
     required: bool
+    
+    # UI 相关
+    default: Any
     placeholder: str
-    sensitive: bool
-    options: list[str]
-    min: float
-    max: float
-    step: float
-    accept: str
-    value: Any
+    
+    # 类型特定
+    options: list[str]  # select 类型
+    accept: str  # file 类型
+    min: float  # number 类型
+    max: float  # number 类型
+    step: float  # number 类型
+    
+    # 配置分离
+    level: Literal["provider", "voice"]  # provider=供应商级别, voice=音色级别
+    
+    # 其他
+    sensitive: bool  # 是否敏感信息（如密码）
+    value: Any  # 当前值（用于编辑时）
 
 
 class TTSBase(ABC):

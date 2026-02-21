@@ -3,45 +3,9 @@ import { ApiResponse } from '../../types';
 
 /**
  * TTS (文本转语音) 相关 API
+ * 注意：TTS 供应商管理使用 voiceAssetsApi，这里是 TTS 服务 API
  */
 export const ttsApi = {
-  /**
-   * 获取 TTS 配置列表与状态
-   */
-  getTTSProviders: async (): Promise<ApiResponse<any>> => {
-    return httpClient.get<any>('/tts/providers');
-  },
-
-  /**
-   * 测试 TTS 连接
-   * @param providerId - 服务商 ID
-   * @param config - 配置信息
-   */
-  testTTSConnection: async (
-    providerId: string,
-    config: any
-  ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/tts/test', {
-      provider_id: providerId,
-      config
-    });
-  },
-
-  /**
-   * 保存 TTS 配置
-   * @param providerId - 服务商 ID
-   * @param config - 配置信息
-   */
-  saveTTSConfig: async (
-    providerId: string,
-    config: any
-  ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/tts/config', {
-      provider_id: providerId,
-      config
-    });
-  },
-
   /**
    * TTS 流式合成（PCM raw 格式）
    * @param text - 要合成的文本
@@ -83,5 +47,35 @@ export const ttsApi = {
       sampleRate,
       channels
     };
+  },
+
+  // 保留旧的 API 方法以兼容现有代码，但重定向到新的 voiceAssetsApi
+  /**
+   * @deprecated 使用 voiceAssetsApi.getProviders() 替代
+   */
+  getTTSProviders: async (): Promise<ApiResponse<any>> => {
+    return httpClient.get<any>('/tts-providers');
+  },
+
+  /**
+   * @deprecated 使用 voiceAssetsApi 管理 TTS 供应商
+   */
+  testTTSConnection: async (
+    providerId: string,
+    config: any
+  ): Promise<ApiResponse<any>> => {
+    return httpClient.post<any>(`/tts-providers/${providerId}/test`, {});
+  },
+
+  /**
+   * @deprecated 使用 voiceAssetsApi 管理 TTS 供应商
+   */
+  saveTTSConfig: async (
+    providerId: string,
+    config: any
+  ): Promise<ApiResponse<any>> => {
+    return httpClient.put<any>(`/tts-providers/${providerId}`, {
+      config_payload: config
+    });
   }
 };
