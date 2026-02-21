@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Settings, Mic, Volume2, Menu, PanelLeftOpen } from 'lucide-react';
+import { Settings, Mic, Menu, PanelLeftOpen } from 'lucide-react';
 import { Button } from '../ui';
 import { useLanguage } from '../../contexts/LanguageContext';
 import GeneralSettings from './GeneralSettings';
 import ASRSettings from './ASRSettings';
-import TTSSettings from './TTSSettings';
 import { cn } from '../../utils/cn';
 
 interface SettingsViewProps {
@@ -21,7 +20,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     onShowSidebar
 }) => {
     const { language } = useLanguage();
-    const [activeTab, setActiveTab] = useState<'general' | 'asr' | 'tts'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'asr'>('general');
 
     const tabs = [
         {
@@ -33,11 +32,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             id: 'asr',
             label: language === 'zh' ? '语音识别' : 'ASR',
             icon: Mic
-        },
-        {
-            id: 'tts',
-            label: language === 'zh' ? '语音合成' : 'TTS',
-            icon: Volume2
         },
     ];
 
@@ -126,7 +120,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <div className="max-w-6xl mx-auto p-6 lg:p-8">
                             {activeTab === 'general' && <GeneralSettings />}
                             {activeTab === 'asr' && <ASRSettings />}
-                            {activeTab === 'tts' && <TTSSettings />}
                         </div>
                     </div>
                 </div>

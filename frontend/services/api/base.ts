@@ -31,7 +31,7 @@ export class HttpClient {
    */
   private categorizeError(status: number): ErrorType {
     const { UNAUTHORIZED, FORBIDDEN, BAD_REQUEST, INTERNAL_SERVER_ERROR } = HTTP_STATUS;
-    
+
     if (status === 0) {
       return ErrorType.NETWORK_ERROR;
     } else if (status === UNAUTHORIZED || status === FORBIDDEN) {
@@ -71,33 +71,44 @@ export class HttpClient {
     if (!response.ok) {
       const errorType = this.categorizeError(response.status);
       const errorText = await response.text();
-      
+
       let errorMessage = '请求失败';
       let errorDetails: any = null;
-      
+
       try {
         const errorJson = JSON.parse(errorText);
-        // 优先提取 FastAPI 标准错误字段 detail
-        errorMessage = errorJson.detail || errorJson.message || errorMessage;
+
+        // 处理 FastAPI 422 验证错误（detail 是数组）
+        if (Array.isArray(errorJson.detail)) {
+          const errors = errorJson.detail.map((err: any) => {
+            const field = err.loc?.join('.') || 'unknown';
+            return `${field}: ${err.msg}`;
+          }).join('; ');
+          errorMessage = `验证错误: ${errors}`;
+        } else {
+          // 优先提取 FastAPI 标准错误字段 detail
+          errorMessage = errorJson.detail || errorJson.message || errorMessage;
+        }
+
         errorDetails = errorJson;
       } catch {
         errorMessage = errorText || errorMessage;
       }
-      
+
       // 记录错误日志
       Logger.error(`API 请求失败: ${response.url}`, new Error(errorMessage), {
         status: response.status,
         errorType,
         details: errorDetails
       }, LogCategory.API);
-      
+
       return {
         code: response.status,
         message: errorMessage,
         data: errorDetails as T
       };
     }
-    
+
     const jsonData = await response.json();
     Logger.debug('API 响应成功', { url: response.url, data: jsonData }, LogCategory.API);
     return jsonData;
@@ -122,13 +133,13 @@ export class HttpClient {
       const errorMessage = error instanceof Error ? error.message : '网络请求失败';
       const errorType = ErrorType.NETWORK_ERROR;
       const friendlyMessage = this.getFriendlyErrorMessage(errorType, errorMessage);
-      
+
       // 记录错误日志
       Logger.error(`网络请求异常: ${endpoint}`, error instanceof Error ? error : new Error(errorMessage), {
         endpoint,
         errorType
       }, LogCategory.NETWORK);
-      
+
       return {
         code: 0,
         message: friendlyMessage,
@@ -161,7 +172,7 @@ export class HttpClient {
     options?: RequestInit
   ): Promise<ApiResponse<T>> {
     const isFormData = data instanceof FormData;
-    
+
     return this.request<T>(endpoint, {
       method: 'POST',
       headers: isFormData ? {} : { 'Content-Type': 'application/json' },
@@ -224,7 +235,6 @@ const BASE_URL = API_CONFIG.BASE_URL;
 
 /**
  * 上传 URL 配置
- * 上传端点不在 /api/v1 下，需要单独配置
  */
 const UPLOAD_BASE_URL = API_CONFIG.UPLOAD_URL;
 

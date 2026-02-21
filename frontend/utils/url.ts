@@ -20,6 +20,9 @@ export const buildAvatarUrl = (avatarPath: string | undefined): string => {
  * 构建 Logo URL
  */
 export const buildLogoUrl = (logoPath: string | undefined): string => {
+  if (!logoPath) {
+    return '/default-logo.png'; // 返回默认 logo
+  }
   return buildResourceUrl(logoPath);
 };
 

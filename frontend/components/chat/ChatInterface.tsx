@@ -13,7 +13,7 @@ import Toast, { ToastMessage } from '../ui/Toast';
 import { cn } from '../../utils/cn';
 
 interface ChatInterfaceProps {
-  activeConversationId: number;
+  activeConversationId: number | string;
   activeCharacter: Character | null;
   activeModel: Model | null;
   onUpdateModel: (modelId: string) => void;
@@ -40,7 +40,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
-  const [streamingMessageId] = useState(() => Date.now() + 999999);
+  const [streamingMessageId] = useState(() => `streaming-${Date.now()}`);
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 

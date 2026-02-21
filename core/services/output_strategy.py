@@ -101,6 +101,7 @@ class VRMOutputStrategy(OutputStrategy):
     ) -> AsyncGenerator[str, None]:
         """非流式获取回复，然后流式生成音频"""
         character_id = context.character_id
+        db_session = context.db_session
         
         # 非流式获取完整回复
         response = await agent.ainvoke(
@@ -124,9 +125,13 @@ class VRMOutputStrategy(OutputStrategy):
             "content": full_response
         }, ensure_ascii=False)
         
-        # 流式生成音频段
+        # 流式生成音频段（传递 db_session）
         segment_count = 0
-        async for segment in self.vrm_service.generate_stream(full_response, character_id):
+        async for segment in self.vrm_service.generate_stream(
+            full_response, 
+            character_id,
+            db_session
+        ):
             segment_count += 1
             yield json.dumps({"type": "vrm_segment", "data": segment}, ensure_ascii=False)
         

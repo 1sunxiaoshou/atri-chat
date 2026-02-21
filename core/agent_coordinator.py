@@ -5,9 +5,15 @@
 2. 通过中间件实现动态配置
 3. 协调各个服务层
 4. 统一消息处理入口
+
+架构改进：
+- 完全移除对 AppStorage 的依赖 ✅
+- 使用 Repository 模式进行数据访问
+- 通过请求级别的 Session 传递数据库连接
 """
 import json
 from typing import AsyncGenerator
+from sqlalchemy.orm import Session
 from langchain.agents import create_agent
 
 from .middleware import (
@@ -17,6 +23,8 @@ from .middleware import (
     AgentContext
 )
 from .services import ConversationService, MessageService, get_output_strategy
+from .services.model_service import ModelService
+from .repositories import CharacterRepository
 from .tools.memory_tools import get_memory_tools
 from .models.factory import ModelFactory
 from .prompts import PromptManager
@@ -33,24 +41,27 @@ class AgentCoordinator:
     - 通过 thread_id 实现会话隔离
     - 通过中间件实现模型、提示词、工具的动态配置
     - 通过策略模式处理不同输出模式
+    - 使用 Repository 模式进行数据访问
     """
     
-    def __init__(self, app_storage, store, checkpointer):
-        self.app_storage = app_storage
+    def __init__(self, store, checkpointer):
+        """初始化协调器
+        
+        Args:
+            store: SqliteStore 实例
+            checkpointer: AsyncSqliteSaver 实例
+        """
         self.checkpointer = checkpointer
         self.store = store
         
-        # 服务层
-        self.conversation_service = ConversationService(app_storage)
+        # 无状态服务（可共享）
         self.message_service = MessageService()
-        
-        # 工厂
-        self.model_factory = ModelFactory(app_storage)
-        self.prompt_manager = PromptManager(app_storage)
+        self.model_factory = ModelFactory()
+        self.prompt_manager = PromptManager()  # 已完全移除 AppStorage 依赖
         
         # VRM 服务（复用 TTSFactory 单例）
         from .dependencies import get_tts_factory
-        self.vrm_service = VRMService(app_storage, get_tts_factory())
+        self.vrm_service = VRMService(get_tts_factory())  # 移除 app_storage
         
         # 创建单个 Agent 实例
         self.agent = self._create_agent()
@@ -83,10 +94,11 @@ class AgentCoordinator:
     async def send_message(
         self,
         user_message: str,
-        conversation_id: int,
-        character_id: int,
+        conversation_id: str,
+        character_id: str,
         model_id: str,
         provider_id: str,
+        db_session: Session,
         output_mode: str = "text",
         **model_kwargs
     ) -> AsyncGenerator[str, None]:
@@ -94,10 +106,11 @@ class AgentCoordinator:
         
         Args:
             user_message: 用户消息
-            conversation_id: 会话ID
-            character_id: 角色ID
+            conversation_id: 会话ID (UUID)
+            character_id: 角色ID (UUID)
             model_id: 模型ID
             provider_id: 供应商ID
+            db_session: 数据库会话（用于保存消息和创建模型）
             output_mode: 输出模式 ("text" | "vrm")
             **model_kwargs: 模型参数
             
@@ -106,10 +119,16 @@ class AgentCoordinator:
         """
         enable_vrm = output_mode == "vrm"
         
+        # 创建请求级别的服务
+        conversation_service = ConversationService(db_session)
+        model_service = ModelService(db_session, self.model_factory)
+        character_repo = CharacterRepository(db_session)
+        
         # 1. 验证
-        self.conversation_service.validate_conversation(conversation_id)
+        conversation_service.validate_conversation(conversation_id)
         if enable_vrm:
-            character = self.app_storage.get_character(character_id)
+            # 使用 CharacterRepository 验证角色
+            character = character_repo.get(character_id)
             if not character:
                 raise ValueError(f"角色 {character_id} 不存在")
         
@@ -120,8 +139,9 @@ class AgentCoordinator:
             model_id=model_id,
             provider_id=provider_id,
             model_kwargs={**model_kwargs, "streaming": not enable_vrm},
-            prompt_manager=self.prompt_manager,
-            model_factory=self.model_factory
+            db_session=db_session,
+            model_service=model_service,
+            prompt_manager=self.prompt_manager
         )
         
         # 3. 获取输出策略
@@ -155,9 +175,9 @@ class AgentCoordinator:
             # 5. 保存消息
             if full_response:
                 clean_response = strategy.clean_response(full_response)
-                self.conversation_service.save_message(conversation_id, "user", user_message)
-                self.conversation_service.save_message(conversation_id, "assistant", clean_response)
-                self.conversation_service.auto_title(conversation_id, user_message)
+                conversation_service.save_message(conversation_id, "user", user_message)
+                conversation_service.save_message(conversation_id, "assistant", clean_response)
+                conversation_service.auto_title(conversation_id, user_message)
                 
         except Exception as e:
             logger.error(f"消息处理失败: {e}", exc_info=True)

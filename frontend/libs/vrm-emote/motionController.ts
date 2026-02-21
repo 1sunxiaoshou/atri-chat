@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Logger } from '../../utils/logger';
 import { AnimationProgressCallback, MotionState, AnimationCacheConfig } from '../../types/vrm';
+import { easeInOutCubic } from './utils';
 
 /**
  * 动作控制器 - 管理VRM模型的动作播放和过渡
@@ -29,11 +30,11 @@ export class MotionController {
     constructor(vrm: VRM, cacheConfig?: Partial<AnimationCacheConfig>) {
         this.vrm = vrm;
         this.mixer = new THREE.AnimationMixer(vrm.scene);
-        
+
         if (cacheConfig) {
             this.cacheConfig = { ...this.cacheConfig, ...cacheConfig };
         }
-        
+
         Logger.debug('MotionController 初始化完成', {
             maxCacheSize: this.cacheConfig.maxSize,
             autoEvict: this.cacheConfig.enableAutoEvict
@@ -143,7 +144,7 @@ export class MotionController {
      */
     public async resetToIdle(): Promise<void> {
         Logger.debug('重置到闲置状态');
-        
+
         if (!this.idleAnimationUrl) {
             Logger.warn('未设置闲置动画 URL，只能停止当前动作');
             this.stopCurrentMotion();
@@ -261,7 +262,7 @@ export class MotionController {
 
         // 创建新动作
         const newAction = this.mixer.clipAction(clip);
-        
+
         // 设置循环模式
         if (loop) {
             newAction.loop = THREE.LoopRepeat;
@@ -291,7 +292,7 @@ export class MotionController {
                 duration: clip.duration.toFixed(2) + 's',
                 isFirstAction: !this.currentAction
             });
-            
+
             // 优化：如果是第一个动作，也使用平滑启动
             if (!this.currentAction) {
                 newAction.reset().play();
@@ -301,7 +302,7 @@ export class MotionController {
                 newAction.play();
                 newAction.fadeIn(0.3); // 淡入效果
             }
-            
+
             this.currentAction = newAction;
         }
 
@@ -348,50 +349,43 @@ export class MotionController {
             const updateTransition = () => {
                 const elapsed = (Date.now() - startTime) / 1000;
                 const progress = Math.min(elapsed / duration, 1);
-                
+
                 if (progress < 1 && this.isTransitioning) {
-                    // 使用缓动函数让过渡更自然
-                    const easeProgress = this.easeInOutCubic(progress);
-                    
+                    // 使用共享缓动函数让过渡更自然
+                    const easeProgress = easeInOutCubic(progress);
+
                     // 手动调整权重分布
                     oldAction.setEffectiveWeight(1 - easeProgress);
                     newAction.setEffectiveWeight(easeProgress);
-                    
+
                     requestAnimationFrame(updateTransition);
                 } else {
                     // 过渡完成
                     this.finishTransition(oldAction, newAction, resolve);
                 }
             };
-            
+
             requestAnimationFrame(updateTransition);
         });
-    }
-
-    /**
-     * 缓动函数：三次贝塞尔曲线，让过渡更自然
-     */
-    private easeInOutCubic(t: number): number {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     /**
      * 完成过渡
      */
     private finishTransition(
-        oldAction: THREE.AnimationAction, 
-        newAction: THREE.AnimationAction, 
+        oldAction: THREE.AnimationAction,
+        newAction: THREE.AnimationAction,
         resolve: () => void
     ): void {
         // 停止旧动作
         oldAction.enabled = false;
         oldAction.stop();
-        
+
         // 确保新动作权重为1
         newAction.setEffectiveWeight(1);
         this.currentAction = newAction;
         this.isTransitioning = false;
-        
+
         Logger.debug(`✅ 动作过渡完成，当前动作权重: ${newAction.getEffectiveWeight()}`);
         resolve();
     }
@@ -413,12 +407,12 @@ export class MotionController {
                     animationName: animationName,
                     duration: action.getClip().duration.toFixed(2) + 's'
                 });
-                
+
                 // 延迟一小段时间再回到闲置状态，让动画自然结束
                 setTimeout(() => {
                     this.resetToIdle();
                 }, 200);
-                
+
                 // 移除监听器
                 this.mixer.removeEventListener('finished', this.animationEndListener!);
                 this.animationEndListener = null;
@@ -537,11 +531,11 @@ export class MotionController {
     public clearCache(): void {
         // 停止当前动作
         this.stopCurrentMotion();
-        
+
         // 清空缓存
         this.animationClips.clear();
         this.animationLoadOrder = [];
-        
+
         Logger.debug('动画缓存已清空');
     }
 

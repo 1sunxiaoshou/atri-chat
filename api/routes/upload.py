@@ -28,9 +28,13 @@ def validate_image(file: UploadFile) -> None:
         )
 
 
-@router.post("/upload/avatar")
-async def upload_avatar(file: UploadFile = File(...)):
-    """上传角色头像"""
+@router.post("/upload/portrait")
+async def upload_portrait(file: UploadFile = File(...)):
+    """上传角色立绘/头像(2D图片)
+    
+    注意: 此接口用于临时上传,文件会在24小时后自动清理
+    建议在创建/更新角色时一并上传,避免产生孤儿文件
+    """
     try:
         validate_image(file)
         

@@ -11,6 +11,14 @@ export { AutoBlink } from './autoBlink';
 export { AutoLookAt } from './autoLookAt';
 export { VRMExpressionPresetName } from '@pixiv/three-vrm';
 
+// 导出共享工具函数
+export {
+    easeInOutCubic,
+    isLipSyncOrBlinkExpression,
+    clamp,
+    lerp
+} from './utils';
+
 // 导出类型定义
 export type {
     AnimationInfo,

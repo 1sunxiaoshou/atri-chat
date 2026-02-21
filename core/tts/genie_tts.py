@@ -11,27 +11,42 @@ logger = get_logger(__name__)
 
 @TTSRegistry.register("genie", "Genie TTS")
 class GenieTTS(TTSBase):
-    """Genie TTS 实现（支持角色语音克隆）"""
+    """Genie TTS 实现（支持角色语音克隆）
+    
+    配置分离：
+    - 供应商配置：api_url（服务地址）
+    - 音色配置：character_name, onnx_model_dir, language, reference_audio_path等
+    """
     
     @classmethod
     def get_config_template(cls) -> Dict[str, Any]:
-        """获取配置模板"""
+        """获取配置模板
+        
+        注意：这个模板包含所有字段，但在实际使用时：
+        - TTSProvider.config_payload 只存储供应商级别字段
+        - VoiceAsset.voice_config 只存储音色级别字段
+        """
         return {
+            # ========== 供应商级别配置 ==========
             "api_url": {
                 "type": "string",
                 "label": "API地址",
                 "description": "Genie TTS 服务地址",
                 "default": "http://127.0.0.1:8000",
                 "required": True,
-                "placeholder": "http://127.0.0.1:8000"
+                "placeholder": "http://127.0.0.1:8000",
+                "level": "provider"  # 标记为供应商级别
             },
+            
+            # ========== 音色级别配置 ==========
             "character_name": {
                 "type": "string",
                 "label": "角色名称",
                 "description": "唯一的角色标识符",
                 "default": "",
                 "required": True,
-                "placeholder": "my_character"
+                "placeholder": "my_character",
+                "level": "voice"  # 标记为音色级别
             },
             "onnx_model_dir": {
                 "type": "string",
@@ -39,7 +54,8 @@ class GenieTTS(TTSBase):
                 "description": "ONNX 模型文件夹路径（服务器端）",
                 "default": "",
                 "required": True,
-                "placeholder": "C:\\models\\character_model"
+                "placeholder": "C:\\models\\character_model",
+                "level": "voice"
             },
             "language": {
                 "type": "select",
@@ -47,7 +63,8 @@ class GenieTTS(TTSBase):
                 "description": "模型支持的语言",
                 "default": "zh",
                 "required": True,
-                "options": ["zh", "en", "jp"]
+                "options": ["zh", "en", "jp"],
+                "level": "voice"
             },
             "reference_audio_path": {
                 "type": "string",
@@ -55,7 +72,8 @@ class GenieTTS(TTSBase):
                 "description": "用于声音克隆的参考音频文件路径（服务器端）",
                 "default": "",
                 "required": True,
-                "placeholder": "C:\\audio\\reference.wav"
+                "placeholder": "C:\\audio\\reference.wav",
+                "level": "voice"
             },
             "reference_audio_text": {
                 "type": "string",
@@ -63,7 +81,8 @@ class GenieTTS(TTSBase):
                 "description": "参考音频对应的文本内容",
                 "default": "",
                 "required": True,
-                "placeholder": "这是参考音频的文本"
+                "placeholder": "这是参考音频的文本",
+                "level": "voice"
             },
             "reference_language": {
                 "type": "select",
@@ -71,7 +90,8 @@ class GenieTTS(TTSBase):
                 "description": "参考音频的语言",
                 "default": "zh",
                 "required": True,
-                "options": ["zh", "en", "jp"]
+                "options": ["zh", "en", "jp"],
+                "level": "voice"
             },
             "split_sentence": {
                 "type": "select",
@@ -79,12 +99,21 @@ class GenieTTS(TTSBase):
                 "description": "是否自动分割长句子",
                 "default": "true",
                 "required": False,
-                "options": ["true", "false"]
+                "options": ["true", "false"],
+                "level": "voice"
             }
         }
     
     def __init__(self, config: dict):
+        """初始化 TTS 实例
+        
+        Args:
+            config: 合并后的完整配置（供应商配置 + 音色配置）
+        """
+        # 供应商级别配置
         self.api_url = config.get("api_url", "http://127.0.0.1:8000")
+        
+        # 音色级别配置
         self.character_name = config.get("character_name", "")
         self.onnx_model_dir = config.get("onnx_model_dir", "")
         self.language = config.get("language", "zh")

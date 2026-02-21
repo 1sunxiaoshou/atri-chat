@@ -1,11 +1,14 @@
 """FastAPI 依赖注入"""
+from __future__ import annotations
+
 from typing import Generator, Optional
 from functools import lru_cache
 import aiosqlite
+from sqlalchemy.orm import Session
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .store import SqliteStore
-from .storage import AppStorage
+from .db import get_session as get_db_session
 from .agent_coordinator import AgentCoordinator
 from .paths import get_app_db_path, get_store_db_path, get_checkpoints_db_path
 
@@ -16,11 +19,6 @@ _aiosqlite_conn = None
 
 
 # ==================== 单例获取器 ====================
-
-@lru_cache()
-def get_app_storage() -> AppStorage:
-    """获取 AppStorage 单例"""
-    return AppStorage(db_path=get_app_db_path())
 
 @lru_cache()
 def get_store() -> SqliteStore:
@@ -62,25 +60,32 @@ async def close_checkpointer():
     _checkpointer_instance = None
 
 
-@lru_cache()
-def get_asr_factory():
-    """获取 ASRFactory 单例"""
-    from .asr.factory import ASRFactory
-    return ASRFactory(db_path=get_app_db_path())
-
+# ==================== 工厂单例 ====================
 
 @lru_cache()
-def get_tts_factory():
-    """获取 TTSFactory 单例"""
+def get_tts_factory() -> "TTSFactory":
+    """获取 TTSFactory 单例
+    
+    TTSFactory 维护 TTS 实例缓存，使用单例避免重复创建
+    """
     from .tts.factory import TTSFactory
-    return TTSFactory(db_path=get_app_db_path())
+    return TTSFactory()
+
+
+@lru_cache()
+def get_model_factory() -> "ModelFactory":
+    """获取 ModelFactory 单例
+    
+    ModelFactory 注册供应商模板，使用单例避免重复注册
+    """
+    from .models.factory import ModelFactory
+    return ModelFactory()
 
 
 @lru_cache()
 def get_agent_coordinator() -> AgentCoordinator:
     """获取 AgentCoordinator 单例"""
     return AgentCoordinator(
-        app_storage=get_app_storage(),
         store=get_store(),
         checkpointer=get_checkpointer()
     )
@@ -88,9 +93,9 @@ def get_agent_coordinator() -> AgentCoordinator:
 
 # ==================== FastAPI 依赖项 ====================
 
-def get_storage() -> Generator[AppStorage, None, None]:
-    """FastAPI 依赖：获取 AppStorage"""
-    yield get_app_storage()
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI 依赖：获取 SQLAlchemy Session"""
+    yield from get_db_session()
 
 
 def get_agent() -> Generator[AgentCoordinator, None, None]:

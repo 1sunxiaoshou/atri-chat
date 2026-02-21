@@ -14,13 +14,14 @@ async def select_model_and_params(
     """动态选择模型和参数
     
     根据运行时上下文动态创建模型实例，支持不同的供应商和模型配置。
+    使用 ModelService 通过 Repository 获取配置并创建模型。
     """
     context = request.runtime.context
     
-    # 创建模型实例
-    model = context.model_factory.create_model(
-        context.provider_id,
-        context.model_id,
+    # 使用 ModelService 创建模型实例
+    model = context.model_service.create_model_instance(
+        provider_id=context.provider_id,
+        model_id=context.model_id,
         streaming=context.model_kwargs.get("streaming", True),
         **{k: v for k, v in context.model_kwargs.items() if k != "streaming"}
     )
@@ -31,3 +32,4 @@ async def select_model_and_params(
     )
     
     return await handler(request.override(model=model))
+

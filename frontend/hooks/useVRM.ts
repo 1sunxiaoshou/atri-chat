@@ -25,14 +25,14 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
   /**
    * 加载 VRM 模型
    */
-  const loadModel = useCallback(async (vrmModelId: string) => {
+  const loadModel = useCallback(async (vrmModelId: string, characterId?: string) => {
     if (!managerRef.current) {
       Logger.warn('VRM管理器未初始化');
       return;
     }
 
     try {
-      await managerRef.current.loadModel(vrmModelId);
+      await managerRef.current.loadModel(vrmModelId, characterId);
     } catch (err) {
       Logger.error('加载VRM模型失败', err instanceof Error ? err : undefined);
     }
@@ -76,11 +76,11 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         }
 
         // 加载模型
-        if (character?.vrm_model_id) {
-          loadModel(character.vrm_model_id);
+        if (character?.avatar_id) {
+          loadModel(character.avatar_id, character.id);
         } else {
-          Logger.warn('当前角色未配置 VRM 模型ID');
-          setSubtitle('请先为角色配置VRM模型');
+          Logger.warn('当前角色未配置 Avatar');
+          setSubtitle('请先为角色配置 VRM 模型');
         }
       }
     } else {
@@ -88,7 +88,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       if (managerRef.current) {
         managerRef.current.dispose();
         managerRef.current = null;
-        
+
         // 清理全局变量
         if (typeof window !== 'undefined') {
           delete (window as any).__vrmManager;
@@ -96,7 +96,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       }
       setSubtitle('');
     }
-  }, [isVRMMode, character?.character_id, character?.vrm_model_id, loadModel]);
+  }, [isVRMMode, character?.id, character?.avatar_id, loadModel]);
 
   /**
    * 组件卸载时清理资源

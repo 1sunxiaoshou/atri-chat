@@ -11,11 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from core.logger import get_logger, get_log_level, get_environment
 from core.middleware.logging_middleware import LoggingMiddleware
-from core.dependencies import get_app_storage, init_checkpointer, close_checkpointer
+from core.dependencies import init_checkpointer, close_checkpointer
 from core.paths import get_path_manager
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health, upload, asr,
-    vrm_models, vrm_animations, vrm_model_animations
+    # ORM 路由
+    avatars, motions, tts_providers, voice_assets, character_motion_bindings
 )
 
 logger = get_logger(__name__)
@@ -51,23 +52,20 @@ async def lifespan(app: FastAPI):
     # 启动
     print_startup_banner()
     
-    # 预热单例实例（触发初始化）
-    get_app_storage()
+    # 初始化数据库
+    from core.db import init_db
+    init_db()
     
     # 初始化 AsyncSqliteSaver
     await init_checkpointer()
     
-    logger.success("✓ 系统初始化完成")   
+    logger.success("✓ 系统启动完成")   
 
     yield
     
     # 关闭
-    logger.info("正在关闭系统...")
-    
-    # 关闭 checkpointer
     await close_checkpointer()
-    
-    logger.success("✓ 系统已关闭")
+    logger.info("系统已关闭")
 
 
 # 创建 FastAPI 应用
@@ -95,24 +93,40 @@ app.add_middleware(
 # 获取路径管理器
 path_manager = get_path_manager()
 
-# 挂载静态文件目录
+# 挂载静态文件目录（logos 等）
 app.mount("/static", StaticFiles(directory=str(path_manager.static_dir)), name="static")
 
 # 挂载上传文件目录
 app.mount("/uploads", StaticFiles(directory=str(path_manager.uploads_dir)), name="uploads")
 
-# 注册路由（必须在前端静态文件挂载之前）
+# 注册路由
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+
+# 资产管理路由
+app.include_router(avatars.router, prefix="/api/v1", tags=["assets"])
+app.include_router(motions.router, prefix="/api/v1", tags=["assets"])
+
+# TTS 路由
+app.include_router(tts_providers.router, prefix="/api/v1", tags=["tts"])
+app.include_router(voice_assets.router, prefix="/api/v1", tags=["tts"])
+app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
+
+# 角色管理路由
 app.include_router(characters.router, prefix="/api/v1", tags=["characters"])
+app.include_router(character_motion_bindings.router, prefix="/api/v1", tags=["characters"])
+
+# 会话和消息路由
 app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])
 app.include_router(messages.router, prefix="/api/v1", tags=["messages"])
+
+# 模型配置路由
 app.include_router(models.router, prefix="/api/v1", tags=["models"])
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
-app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
+
+# ASR 路由
 app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
-app.include_router(vrm_models.router, prefix="/api/v1", tags=["vrm"])
-app.include_router(vrm_animations.router, prefix="/api/v1", tags=["vrm"])
-app.include_router(vrm_model_animations.router, prefix="/api/v1", tags=["vrm"])
+
+# 文件上传路由
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # 挂载前端静态文件（必须在最后，避免覆盖 API 路由）

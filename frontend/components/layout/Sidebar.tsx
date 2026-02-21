@@ -10,8 +10,8 @@ interface SidebarProps {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   conversations: Conversation[];
-  activeConversationId: number | null;
-  onSelectConversation: (id: number) => void;
+  activeConversationId: number | string | null;
+  onSelectConversation: (id: number | string) => void;
   onNewChat: () => void;
   onDeleteConversation: (id: number) => void;
   characters: Character[];
@@ -55,10 +55,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   // 同步字符数据
   useEffect(() => {
     setLocalCharacters(prev => {
-      const prevMap = new Map(prev.map(c => [c.character_id, c]));
-      const newIds = new Set(characters.map(c => c.character_id));
-      const existing = prev.filter(c => newIds.has(c.character_id)).map(c => characters.find(nc => nc.character_id === c.character_id) || c);
-      const brandNew = characters.filter(c => !prevMap.has(c.character_id));
+      const prevMap = new Map(prev.map(c => [c.id, c]));
+      const newIds = new Set(characters.map(c => c.id));
+      const existing = prev.filter(c => newIds.has(c.id)).map(c => characters.find(nc => nc.id === c.id) || c);
+      const brandNew = characters.filter(c => !prevMap.has(c.id));
       return [...existing, ...brandNew];
     });
   }, [characters]);
@@ -76,9 +76,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const onDragStart = (e: React.DragEvent, item: Character) => { setDraggedItem(item); e.dataTransfer.effectAllowed = 'move'; };
   const onDragOver = (e: React.DragEvent, targetItem: Character) => {
     e.preventDefault();
-    if (!draggedItem || draggedItem.character_id === targetItem.character_id) return;
-    const fromIndex = localCharacters.findIndex(c => c.character_id === draggedItem.character_id);
-    const toIndex = localCharacters.findIndex(c => c.character_id === targetItem.character_id);
+    if (!draggedItem || draggedItem.id === targetItem.id) return;
+    const fromIndex = localCharacters.findIndex(c => c.id === draggedItem.id);
+    const toIndex = localCharacters.findIndex(c => c.id === targetItem.id);
     if (fromIndex === -1 || toIndex === -1) return;
     const newList = [...localCharacters];
     newList.splice(fromIndex, 1);
@@ -166,23 +166,23 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Character Avatars */}
             {localCharacters.map((char) => {
-              const isActive = selectedCharacterId === char.character_id;
-              const avatarUrl = buildAvatarUrl(char.avatar);
+              const isActive = selectedCharacterId === char.id;
+              const avatarUrl = char.avatar?.thumbnail_url ? buildAvatarUrl(char.avatar.thumbnail_url) : buildAvatarUrl(`/uploads/vrm_thumbnails/${char.avatar_id}.jpg`);
               return (
                 <button
-                  key={char.character_id}
-                  ref={el => { if (el) itemsRef.current.set(char.character_id, el); }}
+                  key={char.id}
+                  ref={el => { if (el) itemsRef.current.set(char.id, el); }}
                   draggable
                   onDragStart={(e) => onDragStart(e, char)}
                   onDragOver={(e) => onDragOver(e, char)}
                   onDragEnd={onDragEnd}
-                  onClick={() => onSelectCharacter(char.character_id)}
+                  onClick={() => onSelectCharacter(char.id)}
                   className={cn(
                     "flex-shrink-0 relative rounded-full overflow-hidden transition-all duration-200 border-2 w-10 h-10 snap-center",
                     isActive
                       ? "border-primary opacity-100 shadow-md shadow-primary/20 scale-105"
                       : "border-transparent opacity-70 hover:opacity-100 hover:border-border",
-                    draggedItem?.character_id === char.character_id && 'opacity-30'
+                    draggedItem?.id === char.id && 'opacity-30'
                   )}
                   title={char.name}
                 >
@@ -243,16 +243,16 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ) : (
             conversations.map((conv) => {
-              const isActive = activeConversationId === conv.conversation_id && viewMode === 'chat';
-              const char = characters.find(c => c.character_id === conv.character_id);
-              const avatarUrl = char ? buildAvatarUrl(char.avatar) : null;
+              const isActive = activeConversationId === (conv.id || conv.conversation_id) && viewMode === 'chat';
+              const char = characters.find(c => c.id === conv.character_id);
+              const avatarUrl = char?.avatar?.thumbnail_url ? buildAvatarUrl(char.avatar.thumbnail_url) : null;
 
               return (
                 <div
-                  key={conv.conversation_id}
+                  key={conv.id || conv.conversation_id}
                   onClick={() => {
                     setViewMode('chat');
-                    onSelectConversation(conv.conversation_id);
+                    onSelectConversation(conv.id || conv.conversation_id);
                   }}
                   className={cn(
                     "group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 border border-transparent",
@@ -297,7 +297,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         title: t('admin.delete'),
                         description: t('sidebar.confirmDeleteConversation'),
                         type: 'danger',
-                        onConfirm: () => onDeleteConversation(conv.conversation_id)
+                        onConfirm: () => onDeleteConversation(conv.id || conv.conversation_id)
                       });
                     }}
                     className={cn(

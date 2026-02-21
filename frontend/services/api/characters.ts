@@ -14,10 +14,10 @@ export const charactersApi = {
 
   /**
    * 创建新的角色
-   * @param characterData - 角色数据（不包含 character_id）
+   * @param characterData - 角色数据
    */
   createCharacter: async (
-    characterData: Omit<Character, 'character_id'>
+    characterData: Omit<Character, 'id' | 'created_at' | 'updated_at' | 'avatar' | 'voice_asset'>
   ): Promise<ApiResponse<Character>> => {
     return httpClient.post<Character>('/characters', characterData);
   },
@@ -43,17 +43,17 @@ export const charactersApi = {
   },
 
   /**
-   * 上传角色头像
-   * @param file - 头像文件
+   * 上传角色立绘/头像(2D图片)
+   * @param file - 图片文件
    */
-  uploadAvatar: async (
+  uploadPortrait: async (
     file: File
   ): Promise<ApiResponse<{ url: string; filename: string }>> => {
     const formData = new FormData();
     formData.append('file', file);
 
     // 使用统一的 URL 构建工具
-    const uploadUrl = buildUploadURL('avatar');
+    const uploadUrl = buildUploadURL('portrait');
 
     const response = await fetch(uploadUrl, {
       method: 'POST',

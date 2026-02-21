@@ -28,7 +28,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   const modelOptions = availableModels.map(m => ({
     label: m.model_id,
-    value: m.model_id,
+    value: m.id, // 使用 UUID 作为 value
     group: m.provider_id
   }));
 
@@ -89,7 +89,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               {t('chat.settings.modelSelection')}
             </label>
             <Select
-              value={activeModel?.model_id || ''}
+              value={activeModel?.id || ''}
               onChange={onUpdateModel}
               options={modelOptions}
               placeholder="选择模型..."

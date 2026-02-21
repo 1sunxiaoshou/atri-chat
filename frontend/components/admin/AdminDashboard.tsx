@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Box, Zap, Mic, Menu, PanelLeftOpen } from 'lucide-react';
-import { Provider, Model, AdminTab, VRMModel } from '../../types';
+import { Provider, Model, AdminTab } from '../../types';
 import { providersApi, modelsApi, vrmApi } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AdminModels } from './models/AdminModels';
-import { AdminVRM } from './vrm/AdminVRM';
+import { AdminAvatars, AdminMotions } from './vrm';
+import { AdminVoice } from './voice';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 
@@ -27,7 +28,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [providers, setProviders] = useState<Provider[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [providerTemplates, setProviderTemplates] = useState<any[]>([]);
-  const [vrmModels, setVrmModels] = useState<VRMModel[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -35,24 +35,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, []);
 
   const fetchData = async () => {
-    const [providersRes, modelsRes, vrmRes] = await Promise.all([
+    const [providersRes, modelsRes] = await Promise.all([
       providersApi.getProviders(),
-      modelsApi.getModels(),
-      vrmApi.getVRMModels()
+      modelsApi.getModels()
     ]);
 
     setProviders(providersRes.data);
     setModels(modelsRes.data);
-    if (vrmRes.code === 200) {
-      setVrmModels(vrmRes.data || []);
-    }
   };
 
   const fetchVRMModels = async () => {
-    const res = await vrmApi.getVRMModels();
-    if (res.code === 200) {
-      setVrmModels(res.data || []);
-    }
+    // VRM模型数据刷新逻辑（如果需要）
+    console.log('刷新VRM模型数据');
+  };
+
+  const fetchAnimations = async () => {
+    // 动作数据刷新逻辑（如果需要）
+    console.log('刷新动作数据');
   };
 
   const fetchTemplates = async () => {
@@ -170,25 +169,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onRefresh={fetchData}
               />
             )}
-            {activeTab === 'vrm' && <AdminVRM onModelsChange={fetchVRMModels} />}
-            {activeTab === 'animations' && (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <Zap size={48} className="mx-auto text-muted-foreground" />
-                  <h3 className="text-xl font-semibold text-foreground">{t('admin.animations')}</h3>
-                  <p className="text-muted-foreground">动作管理功能开发中...</p>
-                </div>
-              </div>
-            )}
-            {activeTab === 'voice' && (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <Mic size={48} className="mx-auto text-muted-foreground" />
-                  <h3 className="text-xl font-semibold text-foreground">{t('admin.voice')}</h3>
-                  <p className="text-muted-foreground">语音配置功能开发中...</p>
-                </div>
-              </div>
-            )}
+            {activeTab === 'vrm' && <AdminAvatars onAvatarsChange={fetchVRMModels} />}
+            {activeTab === 'animations' && <AdminMotions onMotionsChange={fetchAnimations} />}
+            {activeTab === 'voice' && <AdminVoice />}
           </div>
         </div>
       </main>

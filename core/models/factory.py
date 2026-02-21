@@ -1,15 +1,18 @@
 """模型工厂
 
-提供模型创建、供应商管理和依赖检查功能
+提供模型创建和供应商模板管理功能。
+职责：
+1. 注册和管理供应商模板（Provider 实现类）
+2. 根据配置创建模型实例
+3. 提供模板元数据查询
+
+注意：不再负责数据访问，配置由 ModelService 通过 Repository 获取。
 """
-from typing import Optional, Any, TYPE_CHECKING, Dict, List
+from typing import Optional, Any, Dict, List
 from .config import ModelConfig, ProviderMetadata, ProviderConfig
 from .providers.base import BaseProvider
 from . import providers
 from ..logger import get_logger
-
-if TYPE_CHECKING:
-    from ..storage import AppStorage
 
 logger = get_logger(__name__)
 
@@ -19,10 +22,12 @@ class ModelFactory:
     
     使用供应商插件化架构管理不同供应商的模型创建逻辑。
     所有供应商配置统一存储在数据库，通过 template_type 路由到对应的 Provider 实现类。
+    
+    注意：Factory 不再持有 storage，所有配置由调用者（ModelService）提供。
     """
     
-    def __init__(self, storage: "AppStorage"):
-        self.storage = storage
+    def __init__(self):
+        """初始化模型工厂（无状态）"""
         self._provider_templates: Dict[str, providers.BaseProvider] = {}
         self._register_provider_templates()
     
@@ -64,92 +69,55 @@ class ModelFactory:
             for template_id, provider in self._provider_templates.items()
         }
     
-    def create_model(self, provider_id: str, model_id: str, **kwargs) -> Optional[Any]:
-        """根据 provider_id 和 model_id 创建模型实例
+    def create_model(
+        self,
+        model_config: ModelConfig,
+        provider_config: ProviderConfig,
+        template_type: str,
+        **kwargs
+    ) -> Optional[Any]:
+        """根据配置创建模型实例
         
-        流程：
-        1. 从数据库查询模型配置
-        2. 从数据库查询供应商配置（获取 api_key、base_url、template_type 等）
-        3. 根据 template_type 找到对应的 Provider 实现类
-        4. 使用 Provider 实例化模型
+        注意：配置由调用者提供（通过 Repository 获取），Factory 只负责创建。
         
         Args:
-            provider_id: 供应商ID
-            model_id: 模型ID
+            model_config: 模型配置对象
+            provider_config: 供应商配置对象
+            template_type: 模板类型（openai, anthropic 等）
             **kwargs: 动态参数（temperature, max_tokens等），会覆盖配置中的默认值
             
+        Returns:
+            模型实例（LangChain ChatModel）
+            
         Raises:
-            ValueError: 当模型或供应商配置不存在、未启用或创建失败时
+            ValueError: 当模板类型不支持或创建失败时
         """
-        # 1. 获取模型配置
-        model_config = self.storage.get_model(provider_id, model_id)
-        if not model_config:
-            logger.error(f"模型不存在: {provider_id}/{model_id}")
-            raise ValueError(f"模型 {provider_id}/{model_id} 不存在")
-        if not model_config.enabled:
-            logger.error(f"模型未启用: {provider_id}/{model_id}")
-            raise ValueError(f"模型 {provider_id}/{model_id} 未启用")
-        
-        # 2. 获取供应商配置
-        provider_config_dict = self.storage.get_provider(provider_id)
-        if not provider_config_dict:
-            logger.error(f"供应商不存在: {provider_id}")
-            raise ValueError(f"供应商 {provider_id} 不存在")
-        
-        # 3. 根据 template_type 获取 Provider 实现类
-        template_type = provider_config_dict.get("template_type", "openai")
+        # 根据 template_type 获取 Provider 实现类
         provider_template = self.get_provider_template(template_type)
         if not provider_template:
             logger.error(f"不支持的模板类型: {template_type}")
             raise ValueError(f"不支持的供应商模板类型: {template_type}")
         
-        # 4. 构造 ProviderConfig 并实例化模型
+        # 使用 Provider 实例化模型
         try:
-            provider_config = ProviderConfig(
-                provider_id=provider_config_dict["provider_id"],
-                config_json=provider_config_dict["config_json"]
-            )
-            
             model = provider_template.create_model(model_config, provider_config, **kwargs)
             if model is None:
-                logger.error(f"模型创建失败: {provider_id}/{model_id}")
-                raise ValueError(f"模型 {provider_id}/{model_id} 创建失败，请检查配置")
+                logger.error(f"模型创建失败: {model_config.provider_id}/{model_config.model_id}")
+                raise ValueError(f"模型创建失败，请检查配置")
             
-            logger.info(f"模型创建: {provider_id}/{model_id}")
+            logger.info(f"模型创建: {model_config.provider_id}/{model_config.model_id}")
             return model
         except Exception as e:
             logger.error(
                 f"创建模型时出错",
-                extra={"provider_id": provider_id, "model_id": model_id, "error": str(e)},
+                extra={
+                    "provider_id": model_config.provider_id,
+                    "model_id": model_config.model_id,
+                    "error": str(e)
+                },
                 exc_info=True
             )
-            raise ValueError(f"创建模型 {provider_id}/{model_id} 时出错: {str(e)}")
-    
-    def check_provider_dependencies(self, provider_id: str) -> Dict[str, List[str]]:
-        """检查供应商的依赖关系
-        
-        Args:
-            provider_id: 供应商ID
-            
-        Returns:
-            依赖信息字典，包含 models 和 characters 列表
-        """
-        dependencies = {
-            "models": [],
-            "characters": []
-        }
-        
-        # 检查依赖的模型
-        models = self.storage.list_models(provider_id=provider_id, enabled_only=False)
-        dependencies["models"] = [m.model_id for m in models]
-        
-        # 检查依赖的角色
-        characters = self.storage.list_characters(enabled_only=False)
-        for char in characters:
-            if char["primary_provider_id"] == provider_id:
-                dependencies["characters"].append(char["name"])
-        
-        return dependencies
+            raise ValueError(f"创建模型时出错: {str(e)}")
     
     def validate_template_type(self, template_type: str) -> bool:
         """验证模板类型是否有效
@@ -161,3 +129,4 @@ class ModelFactory:
             是否有效
         """
         return template_type in self._provider_templates
+

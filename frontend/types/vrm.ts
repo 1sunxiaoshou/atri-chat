@@ -82,6 +82,7 @@ export interface ParsedAudioSegment {
 export interface TimedMarkup {
   type: 'state' | 'action';
   value: string;
+  isCategory?: boolean; // 是否是动作分类（需要随机选择）
 }
 
 /**
@@ -100,22 +101,30 @@ export interface VRMCallbacks {
 /**
  * 解析带标记的文本
  * 从 "[State:happy][Action:wave] 你好！" 中提取标记和纯文本
+ * 支持动作分类标记：[Action:thinking] 会从该分类中随机选择动作
  */
 export function parseMarkedText(markedText: string): { text: string; markups: TimedMarkup[] } {
   const markups: TimedMarkup[] = [];
-  
+
   // 匹配 [State:xxx] 或 [Action:xxx] 格式
   const markupRegex = /\[(State|Action):([^\]]+)\]/gi;
   let match;
-  
+
+  // 动作分类列表（用于判断是否是分类标记）
+  const actionCategories = ['idle', 'thinking', 'reply'];
+
   while ((match = markupRegex.exec(markedText)) !== null) {
     const type = match[1]!.toLowerCase() as 'state' | 'action';
     const value = match[2]!;
-    markups.push({ type, value });
+
+    // 判断是否是动作分类
+    const isCategory = type === 'action' && actionCategories.includes(value.toLowerCase());
+
+    markups.push({ type, value, isCategory });
   }
-  
+
   // 去除所有标记，得到纯文本
   const text = markedText.replace(/\[[^\]]+:[^\]]+\]/g, '').trim();
-  
+
   return { text, markups };
 }

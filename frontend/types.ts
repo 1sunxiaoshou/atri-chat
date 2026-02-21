@@ -23,40 +23,105 @@ export interface Provider {
 
 // 3. Models
 export interface Model {
+  id: string; // UUID (primary key)
   provider_id: string;
   model_id: string;
   model_type: 'chat' | 'embedding' | 'rerank';
   capabilities: string[];
+  context_window?: number;
+  max_output?: number;
   enabled: boolean;
 }
 
 // 4. Characters
 export interface Character {
-  character_id: number;
+  id: string; // UUID (primary key from backend)
   name: string;
   description?: string;
-  avatar?: string; // Avatar URL (supports both URL and local upload)
+  portrait_url?: string; // 2D立绘URL
+  avatar?: Avatar; // Avatar object (from API with relationships)
+  avatar_id?: string; // Avatar asset ID (可选)
   avatar_position?: 'left' | 'center' | 'right'; // Avatar display position
   system_prompt: string;
-  primary_model_id: string;
-  primary_provider_id: string;
-  tts_id?: string;
-  vrm_model_id?: string;
+  primary_model_id?: string; // UUID of the model (references models.id, 可选)
+  primary_provider_id?: string;
+  primary_model?: { // 模型详情（从后端返回）
+    id: string;
+    model_id: string;
+    provider_id: string;
+  };
+  voice_asset_id?: string; // Voice asset ID (可选)
+  voice_asset?: VoiceAsset; // Voice asset object (from API with relationships)
   enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Avatar 资产（3D VRM 模型）
+export interface Avatar {
+  id: string;
+  name: string;
+  file_url: string;
+  thumbnail_url?: string;
+  available_expressions?: string[]; // 可用表情列表
+  created_at: string;
+  updated_at: string;
+}
+
+// 音色资产
+export interface VoiceAsset {
+  id: string;
+  name: string;
+  provider_id: string;
+  voice_config: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  provider?: {
+    id: string;
+    name: string;
+    provider_type: string;
+  };
+}
+
+// 动作资产（VRM 动画）
+export interface Motion {
+  id: string;
+  name: string;
+  file_url: string;
+  duration_ms: number;
+  description?: string;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+// 动作绑定
+export interface MotionBinding {
+  id: string;
+  character_id: string;
+  motion_id: string;
+  category: 'idle' | 'thinking' | 'reply';
+  weight: number;
+  motion?: Motion;
+  created_at: string;
 }
 
 // 5. Conversations
 export interface Conversation {
-  conversation_id: number;
-  character_id: number;
+  id?: string; // 后端返回的字段名（UUID）
+  conversation_id?: number; // 兼容旧代码
+  character_id: string; // UUID
   title: string;
-  updated_at?: string; // Optional in doc, but good for sorting
+  updated_at?: string;
+  created_at?: string;
+  message_count?: number;
+  character_name?: string;
 }
 
 // 6. Messages
 export interface Message {
   message_id: number;
-  conversation_id: number;
+  conversation_id: number | string; // 支持两种类型
   message_type: 'user' | 'assistant';
   content: string;
   reasoning?: string; // 思维链内容
@@ -156,26 +221,6 @@ export interface TTSConfigResponse {
 }
 
 
-// VRM 类型定义
-export interface VRMModel {
-  vrm_model_id: string;
-  name: string;
-  model_path: string;
-  thumbnail_path?: string;
-  description?: string;
-  created_at: string;
-  animations?: VRMAnimation[];
-}
-
-export interface VRMAnimation {
-  animation_id: string;
-  vrm_model_id: string;
-  name: string;
-  name_cn: string;
-  animation_path: string;
-  duration?: number;
-  type: string;
-}
 
 // 9. 错误处理类型
 export enum ErrorType {

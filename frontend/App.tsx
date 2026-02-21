@@ -5,7 +5,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import SettingsView from './components/settings/SettingsView';
 import { AdminCharacters } from './components/characters/AdminCharacters';
 import Toast, { ToastMessage } from './components/ui/Toast';
-import { Conversation, ViewMode, Character, Model, VRMModel } from './types';
+import { Conversation, ViewMode, Character, Model } from './types';
 import { api } from './services/api/index';
 import { useLanguage } from './contexts/LanguageContext';
 import { buildAvatarUrl } from './utils/url';
@@ -17,10 +17,9 @@ const App: React.FC = () => {
   const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<ViewMode>('chat');
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<number | string | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [models, setModels] = useState<Model[]>([]);
-  const [vrmModels, setVrmModels] = useState<VRMModel[]>([]);
 
   // Character Selection State
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
@@ -35,13 +34,14 @@ const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
   // Computed state
-  const activeConversation = conversations.find(c => c.conversation_id === activeConversationId);
-  const activeCharacter = characters.find(c => c.character_id === activeConversation?.character_id) || null;
+  const activeConversation = conversations.find(c => (c.id || c.conversation_id) === activeConversationId);
+  const activeCharacter = characters.find(c => c.id === activeConversation?.character_id) || null;
 
   // Local state for temporary model override in chat
   const [activeModelId, setActiveModelId] = useState<string | null>(null);
 
-  const activeModel = models.find(m => m.model_id === (activeModelId || activeCharacter?.primary_model_id)) || null;
+  // 查找活动模型：activeModelId 和 primary_model_id 都是 UUID
+  const activeModel = models.find(m => m.id === (activeModelId || activeCharacter?.primary_model_id)) || null;
 
   useEffect(() => {
     loadGlobalData();
@@ -73,35 +73,29 @@ const App: React.FC = () => {
         setModels(modelRes.data);
       }
     }
-    // Load VRM models if empty or forced
-    if (force || vrmModels.length === 0) {
-      const vrmRes = await api.getVRMModels();
-      if (vrmRes.code === 200) {
-        setVrmModels(vrmRes.data || []);
-      }
-    }
+    // 不再需要加载VRM models，已整合到Avatar资产中
   };
 
-  const loadConversations = async (charId: number | null) => {
+  const loadConversations = async (charId: string | null) => {
     // API supports filtering by character_id
     const res = await api.getConversations(charId);
     if (res.code === 200) {
       setConversations(res.data);
       // If we just switched characters and have conversations, pick the first one
-      if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => c.conversation_id === activeConversationId))) {
-        setActiveConversationId(res.data[0].conversation_id);
+      if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => (c.id || c.conversation_id) === activeConversationId))) {
+        setActiveConversationId(res.data[0].id || res.data[0].conversation_id);
       } else if (charId && res.data.length === 0) {
         setActiveConversationId(null);
       } else if (!charId && res.data.length > 0 && res.data[0] && !activeConversationId) {
         // Fallback for 'All' view if nothing selected
-        setActiveConversationId(res.data[0].conversation_id);
+        setActiveConversationId(res.data[0].id || res.data[0].conversation_id);
       }
     }
   };
 
   const handleNewChat = async () => {
     // 必须有选中的角色或至少有一个可用角色
-    const defaultCharId = selectedCharacterId || (characters[0]?.character_id);
+    const defaultCharId = selectedCharacterId || (characters[0]?.id);
 
     if (!defaultCharId) {
       // 没有可用角色，提示用户
@@ -113,10 +107,10 @@ const App: React.FC = () => {
       return;
     }
 
-    const res = await api.createConversation(Number(defaultCharId));
+    const res = await api.createConversation(defaultCharId);
     if (res.code === 200) {
       setConversations(prev => [res.data, ...prev]);
-      setActiveConversationId(res.data.conversation_id);
+      setActiveConversationId(res.data.id || res.data.conversation_id);
 
       // If we are currently filtering by a DIFFERENT character, switch filter to this new one
       if (selectedCharacterId && selectedCharacterId !== res.data.character_id) {
@@ -133,9 +127,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteConversation = async (id: number) => {
+  const handleDeleteConversation = async (id: number | string) => {
     await api.deleteConversation(id);
-    setConversations(prev => prev.filter(c => c.conversation_id !== id));
+    setConversations(prev => prev.filter(c => (c.id || c.conversation_id) !== id));
     if (activeConversationId === id) {
       setActiveConversationId(null);
     }
@@ -244,7 +238,7 @@ const App: React.FC = () => {
               <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 overflow-hidden ring-4 ring-background shadow-2xl transition-transform hover:scale-110 duration-500">
                 {selectedCharacterId ? (
                   <img
-                    src={buildAvatarUrl(characters.find(c => c.character_id === selectedCharacterId)?.avatar)}
+                    src={buildAvatarUrl(characters.find(c => c.id === selectedCharacterId)?.avatar?.thumbnail_url || `/uploads/vrm_thumbnails/${selectedCharacterId}.jpg`)}
                     className="w-full h-full object-cover opacity-80"
                     alt="Character"
                   />
@@ -256,12 +250,12 @@ const App: React.FC = () => {
               <div className="max-w-md text-center space-y-4">
                 <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight px-4">
                   {selectedCharacterId
-                    ? `${t('app.startChatting')} ${characters.find(c => c.character_id === selectedCharacterId)?.name}`
+                    ? `${t('app.startChatting')} ${characters.find(c => c.id === selectedCharacterId)?.name}`
                     : t('app.selectConversation')}
                 </h3>
                 <p className="text-muted-foreground text-sm md:text-base leading-relaxed px-4 max-w-sm mx-auto">
                   {selectedCharacterId
-                    ? characters.find(c => c.character_id === selectedCharacterId)?.system_prompt.substring(0, 100) + '...'
+                    ? characters.find(c => c.id === selectedCharacterId)?.system_prompt.substring(0, 100) + '...'
                     : t('app.selectCharHelp')
                   }
                 </p>
@@ -290,7 +284,6 @@ const App: React.FC = () => {
           <AdminCharacters
             characters={characters}
             models={models}
-            vrmModels={vrmModels}
             onRefresh={loadGlobalData}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
             isSidebarHidden={isLeftSidebarHidden}
