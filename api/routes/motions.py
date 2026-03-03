@@ -139,8 +139,7 @@ async def get_motion(
                 {
                     "id": binding.character.id,
                     "name": binding.character.name,
-                    "category": binding.category,
-                    "weight": binding.weight
+                    "category": binding.category
                 }
                 for binding in motion.bindings
             ]
@@ -227,8 +226,14 @@ async def upload_motion(
         if not file.filename.endswith('.vrma'):
             raise HTTPException(status_code=400, detail="只支持.vrma文件")
         
-        # 生成唯一ID
-        motion_id = str(uuid.uuid4())
+        # 生成唯一的 5 位短 UUID
+        from core.utils.short_uuid import generate_short_uuid
+        
+        motion_id = generate_short_uuid(5)
+        
+        # 检查 ID 是否已存在（极小概率冲突）
+        while db.query(Motion).filter(Motion.id == motion_id).first():
+            motion_id = generate_short_uuid(5)
         
         # 保存文件
         path_manager = get_path_manager()

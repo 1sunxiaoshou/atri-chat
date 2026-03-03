@@ -19,5 +19,6 @@ from .factory import TTSFactory
 # 自动导入所有 Provider（触发装饰器注册）
 from . import gpt_sovits  # noqa: F401
 from . import genie_tts  # noqa: F401
+from . import qwen_tts  # noqa: F401
 
 __all__ = ["TTSBase", "TTSRegistry", "TTSFactory"]

@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [models, setModels] = useState<Model[]>([]);
 
   // Character Selection State
-  const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
 
   // Mobile Sidebar State
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -83,12 +83,12 @@ const App: React.FC = () => {
       setConversations(res.data);
       // If we just switched characters and have conversations, pick the first one
       if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => (c.id || c.conversation_id) === activeConversationId))) {
-        setActiveConversationId(res.data[0].id || res.data[0].conversation_id);
+        setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
       } else if (charId && res.data.length === 0) {
         setActiveConversationId(null);
       } else if (!charId && res.data.length > 0 && res.data[0] && !activeConversationId) {
         // Fallback for 'All' view if nothing selected
-        setActiveConversationId(res.data[0].id || res.data[0].conversation_id);
+        setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
       }
     }
   };
@@ -110,7 +110,7 @@ const App: React.FC = () => {
     const res = await api.createConversation(defaultCharId);
     if (res.code === 200) {
       setConversations(prev => [res.data, ...prev]);
-      setActiveConversationId(res.data.id || res.data.conversation_id);
+      setActiveConversationId(res.data.id || res.data.conversation_id || null);
 
       // If we are currently filtering by a DIFFERENT character, switch filter to this new one
       if (selectedCharacterId && selectedCharacterId !== res.data.character_id) {
@@ -127,7 +127,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteConversation = async (id: number | string) => {
+  const handleDeleteConversation = async (id: string | number) => {
     await api.deleteConversation(id);
     setConversations(prev => prev.filter(c => (c.id || c.conversation_id) !== id));
     if (activeConversationId === id) {
@@ -136,7 +136,7 @@ const App: React.FC = () => {
   };
 
   // Handle Switching Characters
-  const handleCharacterSelect = (charId: number | null) => {
+  const handleCharacterSelect = (charId: string | null) => {
     setSelectedCharacterId(charId);
     // loadConversations is triggered by useEffect dependency on selectedCharacterId
   };
@@ -237,11 +237,21 @@ const App: React.FC = () => {
 
               <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 overflow-hidden ring-4 ring-background shadow-2xl transition-transform hover:scale-110 duration-500">
                 {selectedCharacterId ? (
-                  <img
-                    src={buildAvatarUrl(characters.find(c => c.id === selectedCharacterId)?.avatar?.thumbnail_url || `/uploads/vrm_thumbnails/${selectedCharacterId}.jpg`)}
-                    className="w-full h-full object-cover opacity-80"
-                    alt="Character"
-                  />
+                  (() => {
+                    const selectedChar = characters.find(c => c.id === selectedCharacterId);
+                    const avatarUrl = selectedChar?.portrait_url
+                      ? buildAvatarUrl(selectedChar.portrait_url)
+                      : selectedChar?.avatar?.thumbnail_url
+                        ? buildAvatarUrl(selectedChar.avatar.thumbnail_url)
+                        : buildAvatarUrl(`/uploads/vrm_thumbnails/${selectedCharacterId}.jpg`);
+                    return (
+                      <img
+                        src={avatarUrl}
+                        className="w-full h-full object-cover opacity-80"
+                        alt="Character"
+                      />
+                    );
+                  })()
                 ) : (
                   <Sparkles size={40} className="text-primary animate-pulse" />
                 )}

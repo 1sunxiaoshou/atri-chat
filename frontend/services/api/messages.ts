@@ -51,12 +51,24 @@ export const messagesApi = {
     Logger.debug('getMessages 原始响应', { conversationId, response });
 
     // 后端返回格式: { code, message, data: { conversation_id, messages } }
-    // 需要提取 data.messages
+    // 需要提取 data.messages 并映射字段
     if (response.code === HTTP_STATUS.OK && response.data && response.data.messages) {
+      // 将后端的 id 字段映射为前端的 message_id
+      const messages = response.data.messages.map((msg: any) => ({
+        message_id: msg.id,
+        conversation_id: msg.conversation_id,
+        message_type: msg.message_type,
+        content: msg.content,
+        reasoning: msg.reasoning,
+        status: msg.status,
+        created_at: msg.created_at,
+        generating: msg.generating
+      }));
+
       return {
         code: response.code,
         message: response.message,
-        data: response.data.messages
+        data: messages
       };
     }
 
@@ -168,11 +180,8 @@ export const messagesApi = {
         },
         vrm_segment: () => {
           if (data.data && callbacks?.onVrmData) {
-            callbacks.onVrmData({
-              sentence_index: data.data.index,
-              marked_text: data.data.marked_text,
-              audio_url: data.data.audio_data ? `data:audio/wav;base64,${data.data.audio_data}` : null
-            });
+            // 后端已经返回标准格式，直接使用
+            callbacks.onVrmData(data.data);
 
             // 收集 VRM 段的纯文本用于消息历史
             if (isVrmMode) {

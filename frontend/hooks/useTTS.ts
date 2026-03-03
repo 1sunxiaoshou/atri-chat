@@ -25,7 +25,7 @@ export const useTTS = () => {
   /**
    * 播放 TTS
    */
-  const playTTS = useCallback(async (messageId: string | number, text: string) => {
+  const playTTS = useCallback(async (messageId: string | number, text: string, characterId?: string) => {
     try {
       setError(null);
 
@@ -62,7 +62,7 @@ export const useTTS = () => {
 
       // 开始播放
       await playerRef.current.onPlay(text, async () => {
-        return await api.synthesizeSpeechStream(text);
+        return await api.synthesizeSpeechStream(text, characterId);
       });
 
     } catch (err) {

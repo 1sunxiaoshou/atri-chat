@@ -48,6 +48,16 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
   }, []);
 
   /**
+   * 开始思考状态（用户发送消息时调用）
+   */
+  const startThinking = useCallback(() => {
+    if (managerRef.current) {
+      const playbackManager = managerRef.current.getPlaybackManager();
+      playbackManager.startThinking();
+    }
+  }, []);
+
+  /**
    * 停止 VRM 播放
    */
   const stop = useCallback(() => {
@@ -125,6 +135,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     error,
     loadModel,
     playSegments,
+    startThinking,
     stop,
     clearError
   };

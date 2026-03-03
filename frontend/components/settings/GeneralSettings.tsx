@@ -9,7 +9,7 @@ import { SUCCESS_MESSAGES } from '../../utils/constants';
 import { cn } from '../../utils/cn';
 
 interface GeneralSettingsProps {
-  onSettingsChange?: (settings: { audioVolume: number; audioCacheLimit: number }) => void;
+  onSettingsChange?: (settings: { audioVolume: number; audioCacheLimit: number; asrLanguage?: string; asrUseInt8?: boolean }) => void;
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) => {

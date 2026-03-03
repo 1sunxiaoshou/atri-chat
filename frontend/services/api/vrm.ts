@@ -100,9 +100,9 @@ export const vrmApi = {
    * @param motionId - 动作 ID
    */
   getVRMAnimationModels: async (motionId: string): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>(`/motions/${motionId}`).then(res => {
+    return httpClient.get<any>(`/motions/${motionId}`).then(res => {
       // 从详情中提取 bound_characters
-      return { ...res, data: res.data?.bound_characters || [] };
+      return { ...res, data: (res.data as any)?.bound_characters || [] };
     });
   },
 
@@ -121,19 +121,16 @@ export const vrmApi = {
    * @param characterId - 角色 ID
    * @param motionId - 动作 ID
    * @param category - 分类（idle/thinking/reply）
-   * @param weight - 权重
    */
   addModelAnimation: async (
     characterId: string,
     motionId: string,
-    category: string = 'idle',
-    weight: number = 1.0
+    category: string = 'idle'
   ): Promise<ApiResponse<any>> => {
     return httpClient.post<any>('/character-motion-bindings', {
       character_id: characterId,
       motion_id: motionId,
-      category,
-      weight
+      category
     });
   },
 
@@ -155,13 +152,11 @@ export const vrmApi = {
     // 再创建绑定
     const motionId = uploadRes.data.id;
     const category = formData.get('category') as string || 'idle';
-    const weight = parseFloat(formData.get('weight') as string || '1.0');
 
     return httpClient.post<any>('/character-motion-bindings', {
       character_id: characterId,
       motion_id: motionId,
-      category,
-      weight
+      category
     });
   },
 
@@ -170,29 +165,25 @@ export const vrmApi = {
    * @param characterId - 角色 ID
    * @param motionIds - 动作 ID 列表
    * @param category - 分类
-   * @param weight - 权重
    */
   batchAddModelAnimations: async (
     characterId: string,
     motionIds: string[],
-    category: string = 'idle',
-    weight: number = 1.0
+    category: string = 'idle'
   ): Promise<ApiResponse<any>> => {
     return httpClient.post<any>('/character-motion-bindings/batch', {
       character_id: characterId,
       motion_ids: motionIds,
-      category,
-      weight
+      category
     });
   },
 
   /**
    * 移除角色的动作绑定
-   * @param characterId - 角色 ID（暂不使用）
    * @param bindingId - 绑定 ID
    */
   removeModelAnimation: async (
-    characterId: string,
+    _characterId: string,
     bindingId: string
   ): Promise<ApiResponse<any>> => {
     return httpClient.delete<any>(`/character-motion-bindings/${bindingId}`);

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { Volume2, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { Button, Toast, ToastMessage } from '../../ui';
+import { ConfirmDialog, Toast, ToastMessage } from '../../ui';
 import { httpClient } from '../../../services/api/base';
 import ProviderList from './ProviderList';
 import ProviderModal from './ProviderModal';
-import VoiceList from './VoiceList';
+import VoiceTable from './VoiceTable';
+import VoiceToolbar from './VoiceToolbar';
 import VoiceModal from './VoiceModal';
 
 interface TTSProvider {
@@ -22,12 +23,15 @@ interface TTSProvider {
 interface VoiceAsset {
     id: string;
     provider_id: string;
-    provider_name: string;
-    provider_type: string;
     name: string;
     voice_config: Record<string, any>;
     created_at: string;
     updated_at: string;
+    provider?: {
+        id: string;
+        name: string;
+        provider_type: string;
+    };
 }
 
 interface ProviderType {
@@ -37,20 +41,40 @@ interface ProviderType {
 }
 
 const AdminVoice: React.FC = () => {
-    const { language } = useLanguage();
+    const { t, language } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [providers, setProviders] = useState<TTSProvider[]>([]);
     const [voices, setVoices] = useState<VoiceAsset[]>([]);
     const [providerTypes, setProviderTypes] = useState<ProviderType[]>([]);
-    const [selectedProvider, setSelectedProvider] = useState<TTSProvider | null>(null);
+    const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
+    const [editingProvider, setEditingProvider] = useState<TTSProvider | null>(null);
     const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-    const [selectedVoice, setSelectedVoice] = useState<VoiceAsset | null>(null);
+    const [editingVoice, setEditingVoice] = useState<VoiceAsset | null>(null);
     const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        title?: string;
+        description: React.ReactNode;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info' | 'success';
+    }>({
+        isOpen: false,
+        description: '',
+        onConfirm: () => { }
+    });
 
     useEffect(() => {
         loadData();
     }, []);
+
+    // 默认选中第一个供应商
+    useEffect(() => {
+        if (providers.length > 0 && !selectedProviderId && providers[0]) {
+            setSelectedProviderId(providers[0].id);
+        }
+    }, [providers, selectedProviderId]);
 
     const loadData = async () => {
         setLoading(true);
@@ -83,70 +107,118 @@ const AdminVoice: React.FC = () => {
         setTimeout(() => setToastMessage(null), 3000);
     };
 
-    const handleCreateProvider = () => {
-        setSelectedProvider(null);
+    const getProviderVoiceCount = (providerId: string) => {
+        return voices.filter(v => v.provider_id === providerId).length;
+    };
+
+    const filteredVoices = voices.filter(v => {
+        if (selectedProviderId && v.provider_id !== selectedProviderId) return false;
+        if (searchQuery && !v.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+    });
+
+    const handleOpenProviderModal = (provider?: TTSProvider) => {
+        setEditingProvider(provider || null);
         setIsProviderModalOpen(true);
     };
 
     const handleEditProvider = (provider: TTSProvider) => {
-        setSelectedProvider(provider);
+        setEditingProvider(provider);
         setIsProviderModalOpen(true);
     };
 
     const handleDeleteProvider = async (providerId: string) => {
-        if (!confirm(language === 'zh' ? '确定要删除此供应商吗？这将同时删除其下的所有音色。' : 'Delete this provider? All voices will be deleted.')) {
-            return;
-        }
-
-        try {
-            const res = await httpClient.delete(`/tts-providers/${providerId}`);
-            if (res.code === 200) {
-                showToast(true, language === 'zh' ? '删除成功' : 'Deleted');
-                loadData();
-            } else {
-                showToast(false, res.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+        setConfirmDialog({
+            isOpen: true,
+            title: t('admin.delete'),
+            description: language === 'zh'
+                ? '确定要删除此供应商吗？这将同时删除其下的所有音色。'
+                : 'Delete this provider? All voices will be deleted.',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    const res = await httpClient.delete(`/tts-providers/${providerId}`);
+                    if (res.code === 200) {
+                        showToast(true, language === 'zh' ? '删除成功' : 'Deleted');
+                        if (selectedProviderId === providerId) {
+                            setSelectedProviderId(null);
+                        }
+                        loadData();
+                    } else {
+                        showToast(false, res.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                    }
+                } catch (error: any) {
+                    console.error('删除供应商失败:', error);
+                    showToast(false, error?.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                }
             }
-        } catch (error: any) {
-            console.error('删除供应商失败:', error);
-            showToast(false, error?.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
-        }
+        });
     };
 
-    const handleCreateVoice = (providerId?: string) => {
-        setSelectedVoice(null);
-        setIsVoiceModalOpen(true);
-        if (providerId) {
-            // 可以预设供应商
+    const handleOpenVoiceModal = (voice?: VoiceAsset) => {
+        if (voice) {
+            setEditingVoice(voice);
+        } else {
+            // 新建模式：使用当前选中的供应商
+            if (!selectedProviderId) {
+                showToast(false, language === 'zh' ? '请先选择供应商' : 'Please select a provider first');
+                return;
+            }
+
+            const selectedProvider = providers.find(p => p.id === selectedProviderId);
+            if (!selectedProvider) {
+                showToast(false, language === 'zh' ? '供应商不存在' : 'Provider not found');
+                return;
+            }
+
+            setEditingVoice({
+                id: '',
+                provider_id: selectedProviderId,
+                name: '',
+                voice_config: {},
+                created_at: '',
+                updated_at: '',
+                provider: {
+                    id: selectedProviderId,
+                    name: selectedProvider.name,
+                    provider_type: selectedProvider.provider_type
+                }
+            });
         }
+        setIsVoiceModalOpen(true);
     };
 
     const handleEditVoice = (voice: VoiceAsset) => {
-        setSelectedVoice(voice);
+        setEditingVoice(voice);
         setIsVoiceModalOpen(true);
     };
 
     const handleDeleteVoice = async (voiceId: string) => {
-        if (!confirm(language === 'zh' ? '确定要删除此音色吗？' : 'Delete this voice?')) {
-            return;
-        }
-
-        try {
-            const res = await httpClient.delete(`/voice-assets/${voiceId}`);
-            if (res.code === 200) {
-                showToast(true, language === 'zh' ? '删除成功' : 'Deleted');
-                loadData();
-            } else {
-                showToast(false, res.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+        setConfirmDialog({
+            isOpen: true,
+            title: t('admin.delete'),
+            description: language === 'zh' ? '确定要删除此音色吗？' : 'Delete this voice?',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    const res = await httpClient.delete(`/voice-assets/${voiceId}`);
+                    if (res.code === 200) {
+                        showToast(true, language === 'zh' ? '删除成功' : 'Deleted');
+                        loadData();
+                    } else {
+                        showToast(false, res.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                    }
+                } catch (error: any) {
+                    console.error('删除音色失败:', error);
+                    showToast(false, error?.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                }
             }
-        } catch (error: any) {
-            console.error('删除音色失败:', error);
-            showToast(false, error?.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
-        }
+        });
     };
 
     const handleProviderModalClose = (needRefresh?: boolean) => {
         setIsProviderModalOpen(false);
-        setSelectedProvider(null);
+        setEditingProvider(null);
         if (needRefresh) {
             loadData();
         }
@@ -154,7 +226,7 @@ const AdminVoice: React.FC = () => {
 
     const handleVoiceModalClose = (needRefresh?: boolean) => {
         setIsVoiceModalOpen(false);
-        setSelectedVoice(null);
+        setEditingVoice(null);
         if (needRefresh) {
             loadData();
         }
@@ -169,88 +241,82 @@ const AdminVoice: React.FC = () => {
     }
 
     return (
-        <>
-            <Toast message={toastMessage} />
-
-            <div className="h-full flex flex-col bg-background">
-                {/* Header */}
-                <div className="flex-shrink-0 px-6 py-4 border-b border-border">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-xl font-semibold">
-                                {language === 'zh' ? 'TTS 音色配置' : 'TTS Voice Configuration'}
-                            </h2>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {language === 'zh'
-                                    ? '管理 TTS 供应商和音色资产'
-                                    : 'Manage TTS providers and voice assets'}
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button onClick={handleCreateProvider} size="sm">
-                                <Plus size={16} className="mr-1" />
-                                {language === 'zh' ? '添加供应商' : 'Add Provider'}
-                            </Button>
-                            <Button onClick={() => handleCreateVoice()} variant="outline" size="sm">
-                                <Plus size={16} className="mr-1" />
-                                {language === 'zh' ? '添加音色' : 'Add Voice'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-hidden">
-                    <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-                        {/* Left: Providers */}
-                        <div className="flex flex-col h-full">
-                            <h3 className="text-lg font-medium mb-4">
-                                {language === 'zh' ? 'TTS 供应商' : 'TTS Providers'}
-                            </h3>
-                            <div className="flex-1 overflow-auto custom-scrollbar">
-                                <ProviderList
-                                    providers={providers}
-                                    onEdit={handleEditProvider}
-                                    onDelete={handleDeleteProvider}
-                                    onCreateVoice={handleCreateVoice}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Right: Voices */}
-                        <div className="flex flex-col h-full">
-                            <h3 className="text-lg font-medium mb-4">
-                                {language === 'zh' ? '音色资产' : 'Voice Assets'}
-                            </h3>
-                            <div className="flex-1 overflow-auto custom-scrollbar">
-                                <VoiceList
-                                    voices={voices}
-                                    onEdit={handleEditVoice}
-                                    onDelete={handleDeleteVoice}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div className="flex h-full bg-background overflow-hidden animate-in fade-in duration-500">
+            {/* Sidebar: Providers - 占25%宽度 */}
+            <div className="w-[25%] min-w-[240px] max-w-[400px]">
+                <ProviderList
+                    providers={providers}
+                    selectedProvider={selectedProviderId}
+                    onSelectProvider={setSelectedProviderId}
+                    onEditProvider={handleEditProvider}
+                    onDeleteProvider={handleDeleteProvider}
+                    onAddProvider={() => handleOpenProviderModal()}
+                    getVoiceCount={getProviderVoiceCount}
+                />
             </div>
 
-            {/* Modals */}
-            {isProviderModalOpen && (
-                <ProviderModal
-                    provider={selectedProvider}
-                    providerTypes={providerTypes}
-                    onClose={handleProviderModalClose}
-                />
-            )}
+            {/* Main: Voices */}
+            <main className="flex-1 flex flex-col min-w-0 bg-background relative">
+                {selectedProviderId ? (
+                    <>
+                        <VoiceToolbar
+                            searchQuery={searchQuery}
+                            onSearchChange={setSearchQuery}
+                            onAddVoice={() => handleOpenVoiceModal()}
+                            hasSelectedProvider={!!selectedProviderId}
+                        />
 
-            {isVoiceModalOpen && (
-                <VoiceModal
-                    voice={selectedVoice}
-                    providers={providers}
-                    onClose={handleVoiceModalClose}
-                />
-            )}
-        </>
+                        <VoiceTable
+                            voices={filteredVoices}
+                            onEditVoice={handleEditVoice}
+                            onDeleteVoice={handleDeleteVoice}
+                        />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 overflow-hidden ring-4 ring-background shadow-2xl">
+                            <Volume2 size={40} className="text-primary" />
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground mb-2">
+                            {language === 'zh' ? '选择 TTS 供应商' : 'Select TTS Provider'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                            {language === 'zh'
+                                ? '从左侧列表选择一个 TTS 供应商以查看和管理其音色资产'
+                                : 'Select a TTS provider from the left to view and manage voice assets'}
+                        </p>
+                    </div>
+                )}
+            </main>
+
+            {/* Modals */}
+            <ProviderModal
+                isOpen={isProviderModalOpen}
+                provider={editingProvider}
+                providerTypes={providerTypes}
+                onClose={handleProviderModalClose}
+            />
+
+            <VoiceModal
+                isOpen={isVoiceModalOpen}
+                voice={editingVoice}
+                providers={providers}
+                onClose={handleVoiceModalClose}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                description={confirmDialog.description}
+                type={confirmDialog.type}
+                confirmText={t('admin.delete')}
+                cancelText={t('admin.cancel')}
+            />
+
+            <Toast message={toastMessage} />
+        </div>
     );
 };
 

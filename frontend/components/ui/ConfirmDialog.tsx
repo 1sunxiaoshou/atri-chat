@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Info, X, CheckCircle2 } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from "../../utils/cn"
@@ -33,13 +34,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
+      return undefined;
     } else {
       const timer = setTimeout(() => setIsVisible(false), 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
-  if (!isVisible && !isOpen) return null;
+  if (!isVisible && !isOpen) {
+    return null;
+  }
 
   const typeStyles = {
     danger: {
@@ -52,7 +56,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       icon: AlertTriangle,
       color: 'text-amber-600 dark:text-amber-500',
       bg: 'bg-amber-50 dark:bg-amber-900/20',
-      variant: 'default' as const, // We'll need a warning variant in Button if we want it perfect
+      variant: 'default' as const,
     },
     info: {
       icon: Info,
@@ -77,7 +81,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     }
   };
 
-  return (
+  const dialogContent = (
     <div
       className={cn(
         "fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-200",
@@ -137,4 +141,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(dialogContent, document.body);
 };

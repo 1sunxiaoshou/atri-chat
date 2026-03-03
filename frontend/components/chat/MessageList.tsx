@@ -4,7 +4,6 @@ import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { buildAvatarUrl } from '../../utils/url';
 import { Button } from '../ui';
-import { cn } from '../../utils/cn';
 
 interface MessageListProps {
   messages: Message[];
@@ -38,8 +37,10 @@ const MessageList: React.FC<MessageListProps> = ({
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-in fade-in zoom-in-95 duration-500">
         <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 overflow-hidden ring-4 ring-background shadow-2xl transition-transform hover:scale-110 duration-500">
-          {activeCharacter?.avatar?.file_url ? (
-            <img src={buildAvatarUrl(activeCharacter.avatar.file_url)} alt="Character" className="w-full h-full object-cover" />
+          {activeCharacter?.portrait_url ? (
+            <img src={buildAvatarUrl(activeCharacter.portrait_url)} alt="Character" className="w-full h-full object-cover" />
+          ) : activeCharacter?.avatar?.thumbnail_url ? (
+            <img src={buildAvatarUrl(activeCharacter.avatar.thumbnail_url)} alt="Character" className="w-full h-full object-cover" />
           ) : (
             <Sparkles size={40} className="text-primary animate-pulse" />
           )}
@@ -50,14 +51,14 @@ const MessageList: React.FC<MessageListProps> = ({
             {activeCharacter ? `${t('chat.chatWith')} ${activeCharacter.name}` : t('chat.welcome')}
           </h3>
           <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-            {activeCharacter?.description || "准备好开始一段奇妙的对话了吗？您可以尝试发送以下建议，或直接输入您想说的话。"}
+            准备好开始一段奇妙的对话了吗？您可以尝试发送以下建议，或直接输入您想说的话。
           </p>
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 mt-10">
-          {[t('chat.suggestion.summarize'), t('chat.suggestion.code'), t('chat.suggestion.translate')].map(suggestion => (
+          {[t('chat.suggestion.summarize'), t('chat.suggestion.code'), t('chat.suggestion.translate')].map((suggestion, index) => (
             <Button
-              key={suggestion}
+              key={index}
               variant="outline"
               size="sm"
               onClick={() => onSetInputValue(suggestion)}
@@ -78,8 +79,10 @@ const MessageList: React.FC<MessageListProps> = ({
       {isTyping && (
         <div className="flex gap-4 items-start animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-primary/10 text-primary ring-2 ring-background shadow-sm">
-            {activeCharacter?.avatar?.file_url ? (
-              <img src={buildAvatarUrl(activeCharacter.avatar.file_url)} alt="AI" className="w-full h-full object-cover" />
+            {activeCharacter?.portrait_url ? (
+              <img src={buildAvatarUrl(activeCharacter.portrait_url)} alt="AI" className="w-full h-full object-cover" />
+            ) : activeCharacter?.avatar?.thumbnail_url ? (
+              <img src={buildAvatarUrl(activeCharacter.avatar.thumbnail_url)} alt="AI" className="w-full h-full object-cover" />
             ) : (
               <Bot size={18} />
             )}

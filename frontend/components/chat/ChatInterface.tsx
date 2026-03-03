@@ -13,7 +13,7 @@ import Toast, { ToastMessage } from '../ui/Toast';
 import { cn } from '../../utils/cn';
 
 interface ChatInterfaceProps {
-  activeConversationId: number | string;
+  activeConversationId: string | number;
   activeCharacter: Character | null;
   activeModel: Model | null;
   onUpdateModel: (modelId: string) => void;
@@ -40,7 +40,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
-  const [streamingMessageId] = useState(() => `streaming-${Date.now()}`);
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
@@ -61,6 +60,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     subtitle,
     error: vrmError,
     playSegments,
+    startThinking,
     clearError: clearVrmError
   } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
 
@@ -99,6 +99,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setInputValue('');
 
     try {
+      // 如果是VRM模式，开始思考动作
+      if (vrmDisplayMode === 'vrm' && startThinking) {
+        startThinking();
+      }
+
       const finalModelParams = { ...modelParameters };
       finalModelParams.display_mode = vrmDisplayMode === 'vrm' ? 'vrm' : 'text';
 
@@ -124,7 +129,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (err) {
       console.error('发送消息失败:', err);
     }
-  }, [inputValue, activeCharacter, activeModel, activeConversationId, modelParameters, vrmDisplayMode, sendMessage, playSegments, onConversationUpdated, messages.length]);
+  }, [inputValue, activeCharacter, activeModel, activeConversationId, modelParameters, vrmDisplayMode, startThinking, sendMessage, playSegments, onConversationUpdated, messages.length]);
 
   const handleCopyMessage = useCallback(async (messageId: string | number, content: string) => {
     try {
@@ -137,8 +142,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   const handlePlayTTS = useCallback(async (messageId: string | number, text: string) => {
-    await playTTS(messageId, text);
-  }, [playTTS]);
+    // 传递当前角色 ID，使用角色绑定的音色
+    await playTTS(messageId, text, activeCharacter?.id);
+  }, [playTTS, activeCharacter]);
 
   const handleVrmDisplayModeChange = useCallback((mode: 'normal' | 'vrm' | 'live2d') => {
     setVrmDisplayMode(mode);
@@ -148,7 +154,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const safeMessages = Array.isArray(messages) ? messages : [];
     if (isTyping && (currentResponse || currentReasoning || currentStatus)) {
       const streamingMessage: Message = {
-        message_id: streamingMessageId,
+        message_id: `streaming-${Date.now()}`, // 使用唯一的临时 ID
         conversation_id: activeConversationId,
         message_type: 'assistant',
         content: currentResponse || '',
@@ -160,7 +166,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return [...safeMessages, streamingMessage];
     }
     return safeMessages;
-  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, activeConversationId, streamingMessageId]);
+  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, activeConversationId]);
 
   return (
     <div className="flex flex-col h-full bg-background transition-colors relative overflow-hidden">

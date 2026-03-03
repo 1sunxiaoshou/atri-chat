@@ -3,6 +3,7 @@ import { Plus, Trash, Box } from 'lucide-react';
 import { api } from '../../../services/api/index';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Button, ConfirmDialog } from '../../ui';
+import Toast, { ToastMessage } from '../../ui/Toast';
 import { VRMUploadPreview } from './VRMUploadPreview';
 import { VRMEditPreview } from './VRMEditPreview';
 
@@ -31,6 +32,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
     // UI States
     const [showUploadPreview, setShowUploadPreview] = useState(false);
     const [editingAvatar, setEditingAvatar] = useState<Avatar | null>(null);
+    const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
     // Confirm Dialog State
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -89,13 +91,59 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
             description: t('admin.confirmDeleteVRM', { name }),
             type: 'danger',
             onConfirm: async () => {
-                try {
-                    await api.deleteVRMModel(id);
+                // 清除之前的 Toast
+                setToastMessage(null);
+
+                const response = await api.deleteVRMModel(id);
+
+                // 检查响应状态码
+                if (response.code === 204 || response.code === 200) {
+                    // 删除成功
                     await fetchAvatars();
                     onAvatarsChange?.();
-                } catch (error) {
-                    console.error('删除失败:', error);
-                    alert('删除失败，该形象可能正在被角色使用');
+                    setToastMessage({ success: true, message: '形象删除成功' });
+                    setTimeout(() => setToastMessage(null), 3000);
+                } else if (response.code === 409) {
+                    // 409 冲突错误（资源正在使用）
+                    const detail = response.data as any;
+
+                    if (detail && typeof detail === 'object' && detail.referenced_by) {
+                        const referencedBy = detail.referenced_by || [];
+                        const characterNames = referencedBy
+                            .map((ref: any) => ref.name)
+                            .join('、');
+
+                        setToastMessage({
+                            success: false,
+                            message: `该形象正在被以下角色使用：${characterNames}。请先解除角色绑定后再删除`
+                        });
+                        setTimeout(() => setToastMessage(null), 5000);
+                    } else {
+                        // 提取错误消息
+                        const errorMsg = typeof detail === 'object' && detail.message
+                            ? detail.message
+                            : (typeof response.message === 'string' ? response.message : '该形象正在被角色使用，请先解除绑定');
+
+                        setToastMessage({
+                            success: false,
+                            message: errorMsg
+                        });
+                        setTimeout(() => setToastMessage(null), 3000);
+                    }
+                } else {
+                    // 其他错误 - 安全地提取错误消息
+                    let errorMsg = '未知错误';
+                    if (typeof response.message === 'string') {
+                        errorMsg = response.message;
+                    } else if (typeof response.message === 'object' && response.message !== null) {
+                        errorMsg = (response.message as any).message || JSON.stringify(response.message);
+                    }
+
+                    setToastMessage({
+                        success: false,
+                        message: `删除失败：${errorMsg}`
+                    });
+                    setTimeout(() => setToastMessage(null), 3000);
                 }
             }
         });
@@ -103,6 +151,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
 
     return (
         <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Toast message={toastMessage} title={{ success: '操作成功', error: '操作失败' }} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -138,50 +187,48 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                         </Button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                         {avatars.map(avatar => (
                             <div
                                 key={avatar.id}
-                                className="bg-card border border-border rounded-xl overflow-hidden transition-all hover:shadow-lg hover:border-primary/50 group relative flex flex-col cursor-pointer"
                                 onClick={() => setEditingAvatar(avatar)}
+                                className="group relative bg-card border border-border rounded-xl p-3 
+                                       transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/50 cursor-pointer"
                             >
-                                {/* Thumbnail */}
-                                <div className="aspect-square bg-muted/30 relative flex items-center justify-center overflow-hidden">
+                                {/* Thumbnail - 3:4 ratio */}
+                                <div className="relative w-full rounded-md overflow-hidden bg-muted/30 will-change-transform" style={{ paddingBottom: '133.33%' }}>
                                     {avatar.thumbnail_path ? (
                                         <img
                                             src={avatar.thumbnail_path}
                                             alt={avatar.name}
-                                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         />
                                     ) : (
-                                        <Box size={48} className="text-muted/60" />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Box size={48} className="text-muted/60" />
+                                        </div>
                                     )}
 
                                     {/* Delete Button */}
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDelete(avatar.id, avatar.name);
-                                            }}
-                                            className="h-8 w-8 bg-background/90 backdrop-blur-sm border-none shadow-sm text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            title="删除"
-                                        >
-                                            <Trash size={14} />
-                                        </Button>
-                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(avatar.id, avatar.name);
+                                        }}
+                                        className="absolute top-1 right-1 w-7 h-7 flex items-center justify-center 
+                                               text-primary rounded-md
+                                               opacity-0 group-hover:opacity-100 transition-all duration-200
+                                               hover:text-destructive hover:scale-110"
+                                    >
+                                        <Trash size={16} strokeWidth={2.5} />
+                                    </button>
                                 </div>
 
                                 {/* Info */}
-                                <div className="p-4 flex-1">
-                                    <h4 className="font-bold text-foreground truncate text-sm mb-1" title={avatar.name}>
+                                <div className="mt-3">
+                                    <h3 className="text-lg font-bold text-foreground truncate leading-tight" title={avatar.name}>
                                         {avatar.name}
-                                    </h4>
-                                    <p className="text-[10px] text-muted-foreground font-mono truncate opacity-70">
-                                        {avatar.id}
-                                    </p>
+                                    </h3>
                                 </div>
                             </div>
                         ))}

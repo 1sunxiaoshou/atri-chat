@@ -13,10 +13,10 @@ interface SidebarProps {
   activeConversationId: number | string | null;
   onSelectConversation: (id: number | string) => void;
   onNewChat: () => void;
-  onDeleteConversation: (id: number) => void;
+  onDeleteConversation: (id: string | number) => void;
   characters: Character[];
-  selectedCharacterId: number | null;
-  onSelectCharacter: (id: number | null) => void;
+  selectedCharacterId: string | null;
+  onSelectCharacter: (id: string | null) => void;
   onOpenSettings: () => void;
   onCloseMobile?: () => void;
   onHideSidebar?: () => void;
@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   }>({ isOpen: false, description: '', onConfirm: () => { } });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const itemsRef = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   // 同步字符数据
   useEffect(() => {
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   // 滚动到选中的角色
   useEffect(() => {
     if (selectedCharacterId !== null) {
-      itemsRef.current.get(Number(selectedCharacterId))?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      itemsRef.current.get(selectedCharacterId)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     } else {
       scrollContainerRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
     }
@@ -167,7 +167,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             {/* Character Avatars */}
             {localCharacters.map((char) => {
               const isActive = selectedCharacterId === char.id;
-              const avatarUrl = char.avatar?.thumbnail_url ? buildAvatarUrl(char.avatar.thumbnail_url) : buildAvatarUrl(`/uploads/vrm_thumbnails/${char.avatar_id}.jpg`);
+              // 优先使用角色立绘，其次使用 3D 形象缩略图
+              const avatarUrl = char.portrait_url
+                ? buildAvatarUrl(char.portrait_url)
+                : char.avatar?.thumbnail_url
+                  ? buildAvatarUrl(char.avatar.thumbnail_url)
+                  : buildAvatarUrl(`/uploads/vrm_thumbnails/${char.avatar_id}.jpg`);
               return (
                 <button
                   key={char.id}
@@ -245,14 +250,22 @@ const Sidebar: React.FC<SidebarProps> = ({
             conversations.map((conv) => {
               const isActive = activeConversationId === (conv.id || conv.conversation_id) && viewMode === 'chat';
               const char = characters.find(c => c.id === conv.character_id);
-              const avatarUrl = char?.avatar?.thumbnail_url ? buildAvatarUrl(char.avatar.thumbnail_url) : null;
+              // 优先使用角色立绘，其次使用 3D 形象缩略图
+              const avatarUrl = char?.portrait_url
+                ? buildAvatarUrl(char.portrait_url)
+                : char?.avatar?.thumbnail_url
+                  ? buildAvatarUrl(char.avatar.thumbnail_url)
+                  : null;
 
               return (
                 <div
                   key={conv.id || conv.conversation_id}
                   onClick={() => {
                     setViewMode('chat');
-                    onSelectConversation(conv.id || conv.conversation_id);
+                    const convId = conv.id || conv.conversation_id;
+                    if (convId !== undefined) {
+                      onSelectConversation(convId);
+                    }
                   }}
                   className={cn(
                     "group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 border border-transparent",
@@ -292,13 +305,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setConfirmDialog({
-                        isOpen: true,
-                        title: t('admin.delete'),
-                        description: t('sidebar.confirmDeleteConversation'),
-                        type: 'danger',
-                        onConfirm: () => onDeleteConversation(conv.id || conv.conversation_id)
-                      });
+                      const convId = conv.id || conv.conversation_id;
+                      if (convId !== undefined) {
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: t('admin.delete'),
+                          description: t('sidebar.confirmDeleteConversation'),
+                          type: 'danger',
+                          onConfirm: () => onDeleteConversation(convId)
+                        });
+                      }
                     }}
                     className={cn(
                       "absolute right-2 p-1.5 opacity-0 group-hover:opacity-100 rounded transition-all",

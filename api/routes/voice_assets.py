@@ -75,12 +75,15 @@ async def list_voice_assets(
             {
                 "id": voice.id,
                 "provider_id": voice.provider_id,
-                "provider_name": voice.provider.name,
-                "provider_type": voice.provider.provider_type,
                 "name": voice.name,
                 "voice_config": voice.voice_config,
                 "created_at": voice.created_at.isoformat(),
                 "updated_at": voice.updated_at.isoformat(),
+                "provider": {
+                    "id": voice.provider.id,
+                    "name": voice.provider.name,
+                    "provider_type": voice.provider.provider_type,
+                } if voice.provider else None
             }
             for voice in voices
         ]

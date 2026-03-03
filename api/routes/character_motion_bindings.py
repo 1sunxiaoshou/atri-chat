@@ -20,22 +20,19 @@ class BindingCreate(BaseModel):
     """创建绑定"""
     character_id: str = Field(..., description="角色 ID")
     motion_id: str = Field(..., description="动作 ID")
-    category: str = Field(..., description="分类（idle/thinking/reply）")
-    weight: float = Field(1.0, ge=0.0, description="权重（用于随机选择）")
+    category: str = Field(..., description="分类（initial/idle/thinking/reply）")
 
 
 class BindingUpdate(BaseModel):
     """更新绑定"""
     category: Optional[str] = Field(None, description="分类")
-    weight: Optional[float] = Field(None, ge=0.0, description="权重")
 
 
 class BatchBindingCreate(BaseModel):
     """批量创建绑定"""
     character_id: str = Field(..., description="角色 ID")
     motion_ids: List[str] = Field(..., description="动作 ID 列表")
-    category: str = Field(..., description="分类")
-    weight: float = Field(1.0, ge=0.0, description="权重")
+    category: str = Field(..., description="分类（initial/idle/thinking/reply）")
 
 
 # ==================== API 端点 ====================
@@ -76,7 +73,6 @@ async def list_bindings(
                 "motion_id": binding.motion_id,
                 "motion_name": binding.motion.name,
                 "category": binding.category,
-                "weight": binding.weight,
                 "created_at": binding.created_at.isoformat(),
             }
             for binding in bindings
@@ -132,7 +128,6 @@ async def get_character_motions(
                 "motion_name": binding.motion.name,
                 "motion_file_url": binding.motion.file_url,
                 "motion_duration_ms": binding.motion.duration_ms,
-                "weight": binding.weight,
                 "created_at": binding.created_at.isoformat(),
             })
         
@@ -161,6 +156,13 @@ async def create_binding(
 ) -> Dict[str, Any]:
     """创建角色-动作绑定"""
     try:
+        # 验证分类
+        if binding_create.category not in ['initial', 'idle', 'thinking', 'reply']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"无效的动作分类: {binding_create.category}，必须是 initial/idle/thinking/reply 之一"
+            )
+        
         # 验证角色和动作是否存在
         character = db.query(Character).filter(
             Character.id == binding_create.character_id
@@ -191,8 +193,7 @@ async def create_binding(
         binding = CharacterMotionBinding(
             character_id=binding_create.character_id,
             motion_id=binding_create.motion_id,
-            category=binding_create.category,
-            weight=binding_create.weight
+            category=binding_create.category
         )
         
         db.add(binding)
@@ -207,7 +208,6 @@ async def create_binding(
                 "character_id": binding.character_id,
                 "motion_id": binding.motion_id,
                 "category": binding.category,
-                "weight": binding.weight,
                 "created_at": binding.created_at.isoformat(),
             }
         }
@@ -227,6 +227,13 @@ async def batch_create_bindings(
 ) -> Dict[str, Any]:
     """批量创建角色-动作绑定"""
     try:
+        # 验证分类
+        if batch_create.category not in ['initial', 'idle', 'thinking', 'reply']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"无效的动作分类: {batch_create.category}，必须是 initial/idle/thinking/reply 之一"
+            )
+        
         # 验证角色是否存在
         character = db.query(Character).filter(
             Character.id == batch_create.character_id
@@ -262,8 +269,7 @@ async def batch_create_bindings(
             binding = CharacterMotionBinding(
                 character_id=batch_create.character_id,
                 motion_id=motion_id,
-                category=batch_create.category,
-                weight=batch_create.weight
+                category=batch_create.category
             )
             db.add(binding)
             created_count += 1
@@ -309,6 +315,13 @@ async def update_binding(
         if not updates:
             raise HTTPException(status_code=400, detail="没有提供更新字段")
         
+        # 验证分类（如果更新了分类）
+        if "category" in updates and updates["category"] not in ['initial', 'idle', 'thinking', 'reply']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"无效的动作分类: {updates['category']}，必须是 initial/idle/thinking/reply 之一"
+            )
+        
         # 如果更新分类，检查唯一性
         if "category" in updates:
             existing = db.query(CharacterMotionBinding).filter(
@@ -338,7 +351,6 @@ async def update_binding(
                 "character_id": binding.character_id,
                 "motion_id": binding.motion_id,
                 "category": binding.category,
-                "weight": binding.weight,
                 "created_at": binding.created_at.isoformat(),
             }
         }

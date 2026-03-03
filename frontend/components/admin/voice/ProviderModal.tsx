@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Activity } from 'lucide-react';
+import { Save, Activity } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { Button, Input, Select, Modal } from '../../ui';
+import { Button, Input, Select, RadioGroup, Modal } from '../../ui';
 import { httpClient } from '../../../services/api/base';
 import { extractConfigValues } from '../../../utils/helpers';
 
@@ -19,29 +19,15 @@ interface ProviderType {
     description: string;
 }
 
-interface ConfigField {
-    type: 'string' | 'password' | 'number' | 'select' | 'file';
-    label: string;
-    description?: string;
-    default?: any;
-    required?: boolean;
-    placeholder?: string;
-    sensitive?: boolean;
-    options?: string[];
-    min?: number;
-    max?: number;
-    step?: number;
-    level?: 'provider' | 'voice';
-    value?: any;
-}
-
 interface ProviderModalProps {
+    isOpen: boolean;
     provider: TTSProvider | null;
     providerTypes: ProviderType[];
     onClose: (needRefresh?: boolean) => void;
 }
 
 const ProviderModal: React.FC<ProviderModalProps> = ({
+    isOpen,
     provider,
     providerTypes,
     onClose
@@ -50,11 +36,24 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
     const [providerType, setProviderType] = useState(provider?.provider_type || '');
     const [name, setName] = useState(provider?.name || '');
     const [enabled, setEnabled] = useState(provider?.enabled ?? true);
-    const [configTemplate, setConfigTemplate] = useState<Record<string, ConfigField>>({});
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // 当弹窗打开或provider变化时，重新初始化状态
+    useEffect(() => {
+        if (isOpen && provider) {
+            setProviderType(provider.provider_type);
+            setName(provider.name);
+            setEnabled(provider.enabled);
+        } else if (isOpen && !provider) {
+            setProviderType('');
+            setName('');
+            setEnabled(true);
+            setFormData({});
+        }
+    }, [isOpen, provider]);
 
     useEffect(() => {
         if (providerType) {
@@ -65,12 +64,11 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
     const loadTemplate = async (type: string) => {
         try {
             const res = await httpClient.get(`/tts-providers/types/${type}/template`);
-            if (res.code === 200) {
-                const template = res.data.template;
-                setConfigTemplate(template);
+            if (res.code === 200 && res.data) {
+                const template = (res.data as any).template;
 
                 // 如果是编辑模式，填充现有配置
-                if (provider) {
+                if (provider && provider.config_payload) {
                     const initialData: Record<string, any> = {};
                     Object.keys(template).forEach((key) => {
                         if (template[key].level === 'provider') {
@@ -120,9 +118,9 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
         try {
             const res = await httpClient.post(`/tts-providers/${provider.id}/test`, {});
             if (res.code === 200) {
-                setTestResult({ success: true, message: res.data.message || '连接成功' });
+                setTestResult({ success: true, message: (res.data as any)?.message || '连接成功' });
             } else {
-                setTestResult({ success: false, message: res.data?.message || '连接失败' });
+                setTestResult({ success: false, message: (res.data as any)?.message || '连接失败' });
             }
         } catch (error: any) {
             setTestResult({ success: false, message: error?.message || '测试失败' });
@@ -191,9 +189,21 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                     const currentValue = value !== undefined ? value : (field.default || '');
                     const isPassword = type === 'password' || field.sensitive;
 
+                    // 判断是否应该使用 RadioGroup：select 类型且选项少于 5 个
+                    const shouldUseRadioGroup = type === 'select' && options && options.length < 5;
+
                     return (
                         <div key={key}>
-                            {type === 'select' ? (
+                            {shouldUseRadioGroup ? (
+                                <RadioGroup
+                                    label={label}
+                                    required={required}
+                                    value={currentValue}
+                                    onChange={(val) => handleInputChange(key, val)}
+                                    options={options.map((opt: string) => ({ label: opt, value: opt }))}
+                                    variant="segmented"
+                                />
+                            ) : type === 'select' ? (
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-medium">
                                         {label}
@@ -241,52 +251,57 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
 
     return (
         <Modal
-            isOpen={true}
+            isOpen={isOpen}
             onClose={() => onClose(false)}
             title={provider ? (language === 'zh' ? '编辑供应商' : 'Edit Provider') : (language === 'zh' ? '添加供应商' : 'Add Provider')}
             size="lg"
         >
-            <div className="space-y-4">
+            <div className="p-6 space-y-6">
                 {/* 基本信息 */}
-                <Input
-                    label={language === 'zh' ? '供应商名称' : 'Provider Name'}
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={language === 'zh' ? '例如：我的 GPT-SoVITS' : 'e.g., My GPT-SoVITS'}
-                />
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium">
-                        {language === 'zh' ? '供应商类型' : 'Provider Type'}
-                        <span className="text-destructive ml-1">*</span>
-                    </label>
-                    <Select
-                        value={providerType}
-                        onChange={setProviderType}
-                        options={providerTypes.map((t) => ({ label: t.name, value: t.id }))}
-                        disabled={!!provider}
-                        className="w-full"
+                <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
+                        {language === 'zh' ? '基本信息' : 'Basic Information'}
+                    </h4>
+                    <Input
+                        label={language === 'zh' ? '供应商名称' : 'Provider Name'}
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={language === 'zh' ? '例如：我的 GPT-SoVITS' : 'e.g., My GPT-SoVITS'}
                     />
-                </div>
 
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="enabled"
-                        checked={enabled}
-                        onChange={(e) => setEnabled(e.target.checked)}
-                        className="rounded"
-                    />
-                    <label htmlFor="enabled" className="text-sm">
-                        {language === 'zh' ? '启用此供应商' : 'Enable this provider'}
-                    </label>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">
+                            {language === 'zh' ? '供应商类型' : 'Provider Type'}
+                            <span className="text-destructive ml-1">*</span>
+                        </label>
+                        <Select
+                            value={providerType}
+                            onChange={setProviderType}
+                            options={providerTypes.map((t) => ({ label: t.name, value: t.id }))}
+                            disabled={!!provider}
+                            className="w-full"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="enabled"
+                            checked={enabled}
+                            onChange={(e) => setEnabled(e.target.checked)}
+                            className="rounded"
+                        />
+                        <label htmlFor="enabled" className="text-sm">
+                            {language === 'zh' ? '启用此供应商' : 'Enable this provider'}
+                        </label>
+                    </div>
                 </div>
 
                 {/* 配置表单 */}
                 {providerType && (
-                    <div className="border-t pt-4">
-                        <h4 className="text-sm font-medium mb-3">
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
                             {language === 'zh' ? '供应商配置' : 'Provider Configuration'}
                         </h4>
                         {renderFormFields()}
@@ -301,7 +316,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                 )}
 
                 {/* 操作按钮 */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                     <Button variant="outline" onClick={() => onClose(false)}>
                         {language === 'zh' ? '取消' : 'Cancel'}
                     </Button>

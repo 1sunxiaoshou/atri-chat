@@ -23,8 +23,7 @@ router = APIRouter()
 class MotionBindingInput(BaseModel):
     """动作绑定输入"""
     motion_id: str = Field(..., description="动作 ID")
-    category: str = Field(..., description="分类（idle/thinking/reply）")
-    weight: float = Field(1.0, ge=0.0, description="权重（用于随机选择）")
+    category: str = Field(..., description="分类（initial/idle/thinking/reply）")
 
 
 class CharacterCreate(BaseModel):
@@ -174,7 +173,6 @@ async def get_character(
                 {
                     "id": binding.id,
                     "category": binding.category,
-                    "weight": binding.weight,
                     "motion": {
                         "id": binding.motion.id,
                         "name": binding.motion.name,
@@ -223,10 +221,10 @@ async def create_character(
                         raise InvalidReferenceError(f"动作不存在: {binding.motion_id}")
                     
                     # 验证分类
-                    if binding.category not in ['idle', 'thinking', 'reply']:
+                    if binding.category not in ['initial', 'idle', 'thinking', 'reply']:
                         raise HTTPException(
                             status_code=400, 
-                            detail=f"无效的动作分类: {binding.category}，必须是 idle/thinking/reply 之一"
+                            detail=f"无效的动作分类: {binding.category}，必须是 initial/idle/thinking/reply 之一"
                         )
         except InvalidReferenceError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -255,8 +253,7 @@ async def create_character(
                 binding = CharacterMotionBinding(
                     character_id=character.id,
                     motion_id=binding_input.motion_id,
-                    category=binding_input.category,
-                    weight=binding_input.weight
+                    category=binding_input.category
                 )
                 db.add(binding)
                 created_bindings.append(binding)
@@ -286,8 +283,7 @@ async def create_character(
                 {
                     "id": binding.id,
                     "motion_id": binding.motion_id,
-                    "category": binding.category,
-                    "weight": binding.weight
+                    "category": binding.category
                 }
                 for binding in created_bindings
             ]

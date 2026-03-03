@@ -85,12 +85,20 @@ export class HttpClient {
             return `${field}: ${err.msg}`;
           }).join('; ');
           errorMessage = `验证错误: ${errors}`;
+        } else if (typeof errorJson.detail === 'object' && errorJson.detail !== null) {
+          // detail 是对象（如 409 冲突错误）
+          errorMessage = errorJson.detail.message || errorJson.message || errorMessage;
+          errorDetails = errorJson.detail;
         } else {
-          // 优先提取 FastAPI 标准错误字段 detail
+          // detail 是字符串或其他类型
           errorMessage = errorJson.detail || errorJson.message || errorMessage;
+          errorDetails = errorJson;
         }
 
-        errorDetails = errorJson;
+        // 如果还没有设置 errorDetails，使用完整的 errorJson
+        if (!errorDetails) {
+          errorDetails = errorJson;
+        }
       } catch {
         errorMessage = errorText || errorMessage;
       }

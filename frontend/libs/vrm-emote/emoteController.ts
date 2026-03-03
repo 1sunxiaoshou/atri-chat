@@ -2,11 +2,11 @@ import { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
 import { ExpressionController } from './expressionController';
 import { MotionController } from './motionController';
 import { Logger } from '../../utils/logger';
-import { 
-    EmoteControllerConfig, 
-    AnimationProgressCallback, 
+import {
+    EmoteControllerConfig,
+    AnimationProgressCallback,
     MotionState,
-    ExpressionName 
+    ExpressionName
 } from '../../types/vrm';
 
 /**
@@ -18,7 +18,7 @@ export class EmoteController {
 
     constructor(vrm: VRM, config?: EmoteControllerConfig) {
         this.expressionController = new ExpressionController(
-            vrm, 
+            vrm,
             config?.transitionDuration
         );
         this.motionController = new MotionController(
@@ -29,10 +29,10 @@ export class EmoteController {
     }
 
     /**
-     * 设置闲置动画 URL
+     * 设置初始动画 URL
      */
-    public setIdleAnimationUrl(url: string): void {
-        this.motionController.setIdleAnimationUrl(url);
+    public setInitialAnimationUrl(url: string): void {
+        this.motionController.setInitialAnimationUrl(url);
     }
 
     /**
@@ -81,21 +81,21 @@ export class EmoteController {
     }
 
     /**
-     * 加载闲置动画
+     * 加载初始动画
      */
-    public async loadIdleAnimation(): Promise<void> {
+    public async loadInitialAnimation(): Promise<void> {
         this.expressionController.playEmotion(VRMExpressionPresetName.Neutral);
-        await this.motionController.loadIdleAnimation();
-        Logger.debug('闲置动画已加载');
+        await this.motionController.loadInitialAnimation();
+        Logger.debug('初始动画已加载');
     }
 
     /**
-     * 重置到闲置状态
+     * 重置到初始状态
      */
-    public async resetToIdle(): Promise<void> {
+    public async resetToInitial(): Promise<void> {
         this.expressionController.resetToNeutral();
-        await this.motionController.resetToIdle();
-        Logger.debug('已重置到闲置状态');
+        await this.motionController.resetToInitial();
+        Logger.debug('已重置到初始状态');
     }
 
     /**
@@ -174,7 +174,7 @@ export class EmoteController {
 
 // 导出类型
 export { VRMExpressionPresetName } from '@pixiv/three-vrm';
-export type { 
+export type {
     EmoteControllerConfig,
     AnimationProgressCallback,
     MotionState,

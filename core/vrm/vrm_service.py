@@ -50,7 +50,12 @@ class VRMService:
             db_session: 数据库会话（请求级别）
             
         Yields:
-            {"marked_text": "...", "audio_data": "base64...", "index": 0}
+            标准格式的音频段（与前端 AudioSegment 接口一致）：
+            {
+                "sentence_index": 0,
+                "marked_text": "[State:happy] 你好！",
+                "audio_url": "data:audio/wav;base64,..." 或 None
+            }
         """
         # 通过 Repository 获取角色信息
         character_repo = CharacterRepository(db_session)
@@ -69,11 +74,12 @@ class VRMService:
         if not tts_provider or not tts_provider.enabled:
             raise ValueError(f"TTS 供应商未配置或未启用")
         
-        # 创建 TTS 实例
-        # TODO: 这里需要根据新的 TTS 架构创建实例
-        # 暂时使用旧的方式，后续需要重构 TTSFactory
-        tts_id = f"{tts_provider.provider_type}:{voice_asset.id}"
-        tts = self.tts_factory.create_tts(tts_id)
+        # 创建 TTS 实例（合并供应商配置和音色配置）
+        config = {**tts_provider.config_payload, **voice_asset.voice_config}
+        tts = self.tts_factory.create_tts(
+            provider_type=tts_provider.provider_type,
+            config=config
+        )
         
         logger.info(
             "开始 VRM 流式生成",
@@ -122,10 +128,11 @@ class VRMService:
                 )
             
             # 2.4 流式返回（即使没有音频也要返回，以便触发动作）
+            # 直接返回前端期望的格式，避免中间转换
             yield {
-                "marked_text": sentence,  # 带标记的原文
-                "audio_data": audio_data,  # base64 编码的音频数据（可能为 None）
-                "index": index             # 句子索引
+                "sentence_index": index,      # 使用前端期望的字段名
+                "marked_text": sentence,      # 带标记的原文
+                "audio_url": f"data:audio/wav;base64,{audio_data}" if audio_data else None  # 直接返回 data URI
             }
         
         logger.info(

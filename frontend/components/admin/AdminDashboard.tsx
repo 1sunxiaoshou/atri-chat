@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Box, Zap, Mic, Menu, PanelLeftOpen } from 'lucide-react';
 import { Provider, Model, AdminTab } from '../../types';
-import { providersApi, modelsApi, vrmApi } from '../../services/api';
+import { providersApi, modelsApi } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AdminModels } from './models/AdminModels';
 import { AdminAvatars, AdminMotions } from './vrm';

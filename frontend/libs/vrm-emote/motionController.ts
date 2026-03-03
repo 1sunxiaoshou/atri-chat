@@ -21,7 +21,10 @@ export class MotionController {
     private animationLoadOrder: string[] = []; // 记录加载顺序，用于LRU清理
     private isTransitioning = false;
     private isPlaying = false;
-    private idleAnimationUrl: string | null = null;
+
+    // 区分初始动画和闲置动画
+    private initialAnimationUrl: string | null = null; // 初始动作：AI加载时的默认姿态，循环播放
+
     private cacheConfig: AnimationCacheConfig = {
         maxSize: 50,
         enableAutoEvict: true
@@ -50,12 +53,12 @@ export class MotionController {
     }
 
     /**
-     * 设置闲置动画 URL
-     * 由外部（如从后端获取）设置闲置动画的 URL
+     * 设置初始动画 URL
+     * 初始动作：AI加载时的默认姿态，循环播放
      */
-    public setIdleAnimationUrl(url: string): void {
-        this.idleAnimationUrl = url;
-        Logger.debug(`设置闲置动画 URL: ${url}`);
+    public setInitialAnimationUrl(url: string): void {
+        this.initialAnimationUrl = url;
+        Logger.debug(`设置初始动画 URL: ${url}`);
     }
 
     /**
@@ -121,43 +124,43 @@ export class MotionController {
     }
 
     /**
-     * 加载闲置动画（初始姿态）
-     * 参考 lobe-vidol 的 loadIdleAnimation 方法
+     * 加载初始动画（默认姿态）
+     * 初始动作在AI加载时播放，循环播放
      */
-    public async loadIdleAnimation(): Promise<void> {
-        if (!this.idleAnimationUrl) {
-            Logger.warn('未设置闲置动画 URL，跳过加载');
+    public async loadInitialAnimation(): Promise<void> {
+        if (!this.initialAnimationUrl) {
+            Logger.warn('未设置初始动画 URL，跳过加载');
             return;
         }
 
-        Logger.debug('加载闲置动画');
+        Logger.debug('加载初始动画');
         try {
-            await this.playAnimationUrl(this.idleAnimationUrl, true);
+            await this.playAnimationUrl(this.initialAnimationUrl, true);
             this.isPlaying = true;
         } catch (error) {
-            Logger.error('加载闲置动画失败', error instanceof Error ? error : undefined);
+            Logger.error('加载初始动画失败', error instanceof Error ? error : undefined);
         }
     }
 
     /**
-     * 重置到闲置状态
+     * 重置到初始状态
+     * 回到初始动作（而不是闲置动作）
      */
-    public async resetToIdle(): Promise<void> {
-        Logger.debug('重置到闲置状态');
+    public async resetToInitial(): Promise<void> {
+        Logger.debug('重置到初始状态');
 
-        if (!this.idleAnimationUrl) {
-            Logger.warn('未设置闲置动画 URL，只能停止当前动作');
+        if (!this.initialAnimationUrl) {
+            Logger.warn('未设置初始动画 URL，只能停止当前动作');
             this.stopCurrentMotion();
             return;
         }
 
-        // 不要先停止动作，而是直接过渡到闲置动画
-        // 这样可以避免回到 T-pose
+        // 平滑过渡到初始动画
         try {
-            await this.playAnimationUrl(this.idleAnimationUrl, true);
-            Logger.debug('已平滑过渡到闲置动画');
+            await this.playAnimationUrl(this.initialAnimationUrl, true);
+            Logger.debug('已平滑过渡到初始动画');
         } catch (error) {
-            Logger.error('过渡到闲置动画失败，回退到停止动作', error instanceof Error ? error : undefined);
+            Logger.error('过渡到初始动画失败，回退到停止动作', error instanceof Error ? error : undefined);
             this.stopCurrentMotion();
         }
     }
@@ -180,6 +183,16 @@ export class MotionController {
         const loader = new GLTFLoader();
         loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
 
+        // 临时禁用 specVersion 警告
+        const originalWarn = console.warn;
+        console.warn = (...args: any[]) => {
+            const message = args[0];
+            if (typeof message === 'string' && message.includes('specVersion of the VRMA is not defined')) {
+                return; // 忽略这个特定警告
+            }
+            originalWarn.apply(console, args);
+        };
+
         try {
             const gltf = await loader.loadAsync(url);
             const vrmAnimations = gltf.userData.vrmAnimations;
@@ -197,6 +210,9 @@ export class MotionController {
         } catch (error) {
             Logger.error(`动画加载失败: ${key}`, error instanceof Error ? error : undefined);
             throw error;
+        } finally {
+            // 恢复原始的 console.warn
+            console.warn = originalWarn;
         }
     }
 
@@ -408,9 +424,9 @@ export class MotionController {
                     duration: action.getClip().duration.toFixed(2) + 's'
                 });
 
-                // 延迟一小段时间再回到闲置状态，让动画自然结束
+                // 延迟一小段时间再回到初始状态，让动画自然结束
                 setTimeout(() => {
-                    this.resetToIdle();
+                    this.resetToInitial();
                 }, 200);
 
                 // 移除监听器
@@ -428,7 +444,6 @@ export class MotionController {
 
     /**
      * 停止当前动作
-     * 参考 lobe-vidol 的 stopMotion 方法
      */
     public stopCurrentMotion(): void {
         // 移除动画结束监听器
@@ -437,18 +452,18 @@ export class MotionController {
             this.animationEndListener = null;
         }
 
-        // 如果有闲置动画，尝试平滑过渡而不是直接停止
-        if (this.idleAnimationUrl && this.currentAction) {
-            Logger.debug('尝试平滑过渡到闲置动画而不是直接停止');
+        // 如果有初始动画，尝试平滑过渡而不是直接停止
+        if (this.initialAnimationUrl && this.currentAction) {
+            Logger.debug('尝试平滑过渡到初始动画而不是直接停止');
             // 异步调用，不阻塞当前流程
-            this.playAnimationUrl(this.idleAnimationUrl, true).catch((error) => {
-                Logger.error('过渡到闲置动画失败，强制停止', error instanceof Error ? error : undefined);
+            this.playAnimationUrl(this.initialAnimationUrl, true).catch((error) => {
+                Logger.error('过渡到初始动画失败，强制停止', error instanceof Error ? error : undefined);
                 this.forceStopAllActions();
             });
             return;
         }
 
-        // 没有闲置动画或没有当前动作，直接停止
+        // 没有初始动画或没有当前动作，直接停止
         this.forceStopAllActions();
     }
 

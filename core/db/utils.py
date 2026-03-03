@@ -366,7 +366,6 @@ def get_character_with_assets(db: Session, character_id: str) -> Optional[Dict[s
             {
                 "id": binding.id,
                 "category": binding.category,
-                "weight": binding.weight,
                 "motion": {
                     "id": binding.motion.id,
                     "name": binding.motion.name,

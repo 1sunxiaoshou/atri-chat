@@ -1,7 +1,7 @@
 import React from 'react';
-import { Settings, Trash2, Plus, Power, PowerOff } from 'lucide-react';
+import { Plus, Edit2, Trash, Volume2, Power, PowerOff } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { Button, Card, CardContent } from '../../ui';
+import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
 
 interface TTSProvider {
@@ -17,96 +17,124 @@ interface TTSProvider {
 
 interface ProviderListProps {
     providers: TTSProvider[];
-    onEdit: (provider: TTSProvider) => void;
-    onDelete: (providerId: string) => void;
-    onCreateVoice: (providerId: string) => void;
+    selectedProvider: string | null;
+    onSelectProvider: (providerId: string) => void;
+    onEditProvider: (provider: TTSProvider) => void;
+    onDeleteProvider: (providerId: string) => void;
+    onAddProvider: () => void;
+    getVoiceCount: (providerId: string) => number;
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
     providers,
-    onEdit,
-    onDelete,
-    onCreateVoice
+    selectedProvider,
+    onSelectProvider,
+    onEditProvider,
+    onDeleteProvider,
+    onAddProvider,
+    getVoiceCount,
 }) => {
     const { language } = useLanguage();
 
-    if (providers.length === 0) {
-        return (
-            <Card className="bg-muted/20 border-dashed">
-                <CardContent className="p-12 text-center">
-                    <p className="text-sm text-muted-foreground">
-                        {language === 'zh' ? '暂无 TTS 供应商' : 'No TTS providers'}
-                    </p>
-                </CardContent>
-            </Card>
-        );
-    }
-
     return (
-        <div className="space-y-3">
-            {providers.map((provider) => (
-                <Card key={provider.id} className={cn(
-                    "transition-all hover:shadow-md",
-                    !provider.enabled && "opacity-60"
-                )}>
-                    <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <h4 className="font-medium">{provider.name}</h4>
-                                    {provider.enabled ? (
-                                        <Power size={14} className="text-green-500" />
-                                    ) : (
-                                        <PowerOff size={14} className="text-muted-foreground" />
-                                    )}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {provider.provider_type}
-                                </p>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                    <span>
-                                        {language === 'zh' ? '音色数量' : 'Voices'}: {provider.voice_count}
-                                    </span>
-                                    <span>
-                                        {language === 'zh' ? '创建于' : 'Created'}: {new Date(provider.created_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </div>
+        <aside className="w-full h-full flex flex-col border-r border-border bg-muted/20">
+            <div className="h-16 px-4 border-b border-border flex justify-between items-center bg-background">
+                <h3 className="text-sm font-bold text-foreground">
+                    {language === 'zh' ? 'TTS 供应商' : 'TTS Providers'}
+                </h3>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {providers.length}
+                </span>
+            </div>
 
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => onCreateVoice(provider.id)}
-                                    title={language === 'zh' ? '添加音色' : 'Add voice'}
-                                >
-                                    <Plus size={14} />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => onEdit(provider)}
-                                    title={language === 'zh' ? '编辑' : 'Edit'}
-                                >
-                                    <Settings size={14} />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                    onClick={() => onDelete(provider.id)}
-                                    title={language === 'zh' ? '删除' : 'Delete'}
-                                >
-                                    <Trash2 size={14} />
-                                </Button>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                {providers.map((provider) => (
+                    <div
+                        key={provider.id}
+                        onClick={() => onSelectProvider(provider.id)}
+                        className={cn(
+                            "group relative flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg cursor-pointer transition-all duration-200",
+                            selectedProvider === provider.id
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            !provider.enabled && "opacity-60"
+                        )}
+                    >
+                        {/* 左侧选中指示条 */}
+                        {selectedProvider === provider.id && (
+                            <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-5 w-1 bg-primary rounded-full" />
+                        )}
+
+                        {/* Icon */}
+                        <div
+                            className={cn(
+                                "flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center border transition-colors",
+                                selectedProvider === provider.id
+                                    ? "bg-background border-primary/20"
+                                    : "bg-muted/50 border-border"
+                            )}
+                        >
+                            <Volume2 size={16} className={cn(
+                                selectedProvider === provider.id ? "text-primary" : "text-muted-foreground"
+                            )} />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <span className="truncate text-sm">{provider.name}</span>
+                                {provider.enabled ? (
+                                    <Power size={10} className="text-green-500 flex-shrink-0" />
+                                ) : (
+                                    <PowerOff size={10} className="text-muted-foreground flex-shrink-0" />
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground truncate">
+                                    {provider.provider_type}
+                                </span>
+                                <span className="text-[10px] bg-muted/50 px-1.5 rounded text-muted-foreground">
+                                    {getVoiceCount(provider.id)}
+                                </span>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+
+                        {/* Actions: 仅 hover 显示 */}
+                        <div className="absolute right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur rounded-md shadow-sm">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEditProvider(provider);
+                                }}
+                            >
+                                <Edit2 size={12} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteProvider(provider.id);
+                                }}
+                            >
+                                <Trash size={12} />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="p-4 border-t border-border bg-background">
+                <Button onClick={onAddProvider} className="w-full" size="sm">
+                    <Plus size={16} className="mr-2" />
+                    {language === 'zh' ? '添加供应商' : 'Add Provider'}
+                </Button>
+            </div>
+        </aside>
     );
 };
 
