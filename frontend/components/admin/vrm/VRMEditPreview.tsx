@@ -31,7 +31,7 @@ export const VRMEditPreview: React.FC<{
                 <div className="w-96 flex flex-col bg-card border-l border-border">
                     {/* 头部 */}
                     <div className="flex items-center justify-between p-6 border-b border-border">
-                        <h2 className="text-2xl font-semibold text-foreground">编辑角色档案</h2>
+                        <h2 className="text-2xl font-semibold text-foreground">{t('admin.editModel')}</h2>
                         <button
                             onClick={onClose}
                             className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
@@ -44,7 +44,7 @@ export const VRMEditPreview: React.FC<{
                     <div className="flex-1 p-6 overflow-y-auto">
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">角色名称</label>
+                                <label className="text-sm font-medium text-foreground">{t('admin.name')}</label>
                                 <input
                                     type="text"
                                     value={name}
@@ -79,7 +79,7 @@ export const VRMEditPreview: React.FC<{
                                 className="flex-1"
                                 disabled={isSaving}
                             >
-                                取消
+                                {t('admin.cancel')}
                             </Button>
                             <Button
                                 onClick={handleSave}
@@ -89,10 +89,10 @@ export const VRMEditPreview: React.FC<{
                                 {isSaving ? (
                                     <>
                                         <Loader2 className="animate-spin mr-2" size={16} />
-                                        保存中...
+                                        {t('admin.saving')}
                                     </>
                                 ) : (
-                                    "保存修改"
+                                    t('admin.save')
                                 )}
                             </Button>
                         </div>

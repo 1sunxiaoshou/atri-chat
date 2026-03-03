@@ -3,11 +3,13 @@ import { Upload, X, Loader2, FileCode } from 'lucide-react';
 import { Button } from '../../ui';
 import { VRMPreview } from './VRMPreview';
 import { VRMThumbnailGenerator } from './VRMThumbnailGenerator';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const VRMUploadPreview: React.FC<{
     onSave: (data: { file: File; name: string; thumbnail: Blob }) => Promise<void>;
     onCancel: () => void;
 }> = ({ onSave, onCancel }) => {
+    const { t } = useLanguage();
     const [file, setFile] = useState<File | null>(null);
     const [name, setName] = useState('');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -41,8 +43,8 @@ export const VRMUploadPreview: React.FC<{
                                 <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                     <Upload className="w-10 h-10 text-primary" />
                                 </div>
-                                <p className="text-xl font-medium text-white mb-2">点击或拖拽上传 VRM 模型</p>
-                                <p className="text-sm text-slate-400">支持 .vrm 格式文件</p>
+                                <p className="text-xl font-medium text-white mb-2">{t('character.clickOrDragUpload')}</p>
+                                <p className="text-sm text-slate-400">{t('character.supportVRMFormat')}</p>
                             </div>
                             <input type="file" accept=".vrm" className="hidden" onChange={handleFileChange} />
                         </label>
@@ -59,7 +61,7 @@ export const VRMUploadPreview: React.FC<{
                             <div className="p-2 bg-primary/10 rounded-lg">
                                 <FileCode size={20} className="text-primary" />
                             </div>
-                            <h2 className="text-2xl font-semibold text-foreground">导入 3D 资产</h2>
+                            <h2 className="text-2xl font-semibold text-foreground">{t('character.importAssets')}</h2>
                         </div>
                         <button
                             onClick={onCancel}
@@ -74,14 +76,14 @@ export const VRMUploadPreview: React.FC<{
                         <div className="space-y-6">
                             {/* 文件选择 */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">模型文件</label>
+                                <label className="text-sm font-medium text-foreground">{t('character.modelFile')}</label>
                                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer transition-all hover:border-primary/50 hover:bg-muted/50 group">
                                     <div className="flex flex-col items-center justify-center p-4 text-center">
                                         <Upload className="w-8 h-8 mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
                                         <p className="text-sm font-medium text-foreground">
-                                            {file ? file.name : "点击选择 VRM 文件"}
+                                            {file ? file.name : t('admin.uploadVRMModel')}
                                         </p>
-                                        <p className="text-xs text-muted-foreground mt-1">仅支持 .vrm 格式</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{t('character.onlySupportVRM')}</p>
                                     </div>
                                     <input
                                         type="file"
@@ -96,21 +98,21 @@ export const VRMUploadPreview: React.FC<{
                             {file && (
                                 <>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-foreground">角色名称</label>
+                                        <label className="text-sm font-medium text-foreground">{t('character.characterName')}</label>
                                         <input
                                             type="text"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             className="w-full bg-background border border-border text-foreground text-base focus:ring-2 focus:ring-primary focus:border-primary rounded-lg px-4 py-2.5 outline-none transition-all placeholder:text-muted-foreground"
-                                            placeholder="输入角色名称..."
+                                            placeholder={t('character.enterCharacterName')}
                                         />
                                     </div>
 
                                     {/* 缩略图生成状态 */}
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-muted-foreground">缩略图</label>
+                                        <label className="text-sm font-medium text-muted-foreground">{t('character.thumbnail')}</label>
                                         <div className={`text-xs rounded-lg px-3 py-2 ${thumbnail ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-muted/50 text-muted-foreground'}`}>
-                                            {thumbnail ? '✓ 缩略图已生成' : '⏳ 正在生成缩略图...'}
+                                            {thumbnail ? t('admin.syncSuccess') : t('admin.loading')}
                                         </div>
                                     </div>
                                 </>
@@ -127,7 +129,7 @@ export const VRMUploadPreview: React.FC<{
                                 className="flex-1"
                                 disabled={isSaving}
                             >
-                                取消
+                                {t('admin.cancel')}
                             </Button>
                             <Button
                                 onClick={handleSave}
@@ -137,10 +139,10 @@ export const VRMUploadPreview: React.FC<{
                                 {isSaving ? (
                                     <>
                                         <Loader2 className="animate-spin mr-2" size={16} />
-                                        导入中...
+                                        {t('character.importing')}
                                     </>
                                 ) : (
-                                    "完成导入"
+                                    t('character.completeImport')
                                 )}
                             </Button>
                         </div>

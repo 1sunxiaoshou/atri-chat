@@ -28,14 +28,14 @@ const VoiceList: React.FC<VoiceListProps> = ({
     onEdit,
     onDelete
 }) => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
 
     if (voices.length === 0) {
         return (
             <Card className="bg-muted/20 border-dashed">
                 <CardContent className="p-12 text-center">
                     <p className="text-sm text-muted-foreground">
-                        {language === 'zh' ? '暂无音色资产' : 'No voice assets'}
+                        {t('admin.noVoiceAssets')}
                     </p>
                 </CardContent>
             </Card>
@@ -54,10 +54,10 @@ const VoiceList: React.FC<VoiceListProps> = ({
                                     <h4 className="font-medium">{voice.name}</h4>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {voice.provider?.name || '未知'} ({voice.provider?.provider_type || '未知'})
+                                    {voice.provider?.name || t('admin.unknown')} ({voice.provider?.provider_type || t('admin.unknown')})
                                 </p>
                                 <div className="mt-2 text-xs text-muted-foreground">
-                                    {language === 'zh' ? '创建于' : 'Created'}: {new Date(voice.created_at).toLocaleDateString()}
+                                    {t('admin.createdAt')}: {new Date(voice.created_at).toLocaleDateString()}
                                 </div>
                             </div>
 
@@ -67,7 +67,7 @@ const VoiceList: React.FC<VoiceListProps> = ({
                                     size="icon"
                                     className="h-8 w-8"
                                     onClick={() => onEdit(voice)}
-                                    title={language === 'zh' ? '编辑' : 'Edit'}
+                                    title={t('admin.edit')}
                                 >
                                     <Edit size={14} />
                                 </Button>
@@ -76,7 +76,7 @@ const VoiceList: React.FC<VoiceListProps> = ({
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive"
                                     onClick={() => onDelete(voice.id)}
-                                    title={language === 'zh' ? '删除' : 'Delete'}
+                                    title={t('admin.delete')}
                                 >
                                     <Trash2 size={14} />
                                 </Button>

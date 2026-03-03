@@ -142,7 +142,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
             const vrm = gltf.userData.vrm as VRM;
 
             if (!vrm) {
-                throw new Error('无效的VRM文件');
+                throw new Error(t('admin.loadDataFailed'));
             }
 
             VRMUtils.rotateVRM0(vrm);
@@ -169,7 +169,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
 
             setIsLoading(false);
         } catch (e) {
-            console.error('加载VRM失败:', e);
+            console.error(t('admin.loadDataFailed'), e);
             setIsLoading(false);
         }
     };
@@ -248,7 +248,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-                        <p className="text-white text-sm">加载模型中...</p>
+                        <p className="text-white text-sm">{t('admin.loading')}</p>
                     </div>
                 </div>
             )}
@@ -264,7 +264,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
                             "h-8 w-8 hover:bg-slate-700 hover:text-white",
                             isAutoRotating ? "text-blue-400" : "text-white"
                         )}
-                        title={isAutoRotating ? "暂停" : "播放"}
+                        title={isAutoRotating ? t('admin.cancel') : t('admin.save')}
                     >
                         {isAutoRotating ? <Pause size={16} /> : <Play size={16} />}
                     </Button>
@@ -274,7 +274,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
                         size="icon"
                         onClick={handleZoomOut}
                         className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title="缩小"
+                        title={t('admin.cancel')}
                     >
                         <ZoomOut size={16} />
                     </Button>
@@ -283,7 +283,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
                         size="icon"
                         onClick={handleZoomIn}
                         className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title="放大"
+                        title={t('admin.save')}
                     >
                         <ZoomIn size={16} />
                     </Button>
@@ -292,7 +292,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
                         size="icon"
                         onClick={handleReset}
                         className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title="重置视角"
+                        title={t('admin.reset')}
                     >
                         <RotateCcw size={16} />
                     </Button>

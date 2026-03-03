@@ -45,13 +45,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const fetchVRMModels = async () => {
-    // VRM模型数据刷新逻辑（如果需要）
-    console.log('刷新VRM模型数据');
+    // VRM model data refresh logic (if needed)
   };
 
   const fetchAnimations = async () => {
-    // 动作数据刷新逻辑（如果需要）
-    console.log('刷新动作数据');
+    // Animation data refresh logic (if needed)
   };
 
   const fetchTemplates = async () => {
@@ -99,7 +97,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               size="icon"
               onClick={onShowSidebar}
               className="h-9 w-9 gap-0 text-muted-foreground hover:text-primary hover:bg-transparent rounded-lg [&_svg]:size-5"
-              title="显示侧边栏"
+              title={t('admin.showSidebar')}
             >
               <PanelLeftOpen size={20} />
             </Button>

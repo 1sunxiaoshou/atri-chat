@@ -91,7 +91,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             >
               <div className="flex items-center gap-2 text-primary/80">
                 <Brain size={14} />
-                <span className="text-xs font-bold uppercase tracking-widest">{t('chat.reasoning') || '思维链'}</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{t('chat.reasoning')}</span>
               </div>
               {isExpanded ? (
                 <ChevronUp size={14} className="opacity-50" />
@@ -141,7 +141,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 copiedMessageId === message.message_id ? "text-emerald-500" : "text-muted-foreground"
               )}
               onClick={() => onCopyMessage(message.message_id, message.content)}
-              title={copiedMessageId === message.message_id ? "已复制" : "复制"}
+              title={copiedMessageId === message.message_id ? t('chat.copied') : t('chat.copy')}
             >
               <Copy size={12} />
             </Button>
@@ -153,7 +153,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 playingMessageId === message.message_id ? "text-primary animate-pulse" : "text-muted-foreground"
               )}
               onClick={() => onPlayTTS(message.message_id, message.content)}
-              title={playingMessageId === message.message_id ? "停止播放" : "朗读"}
+              title={playingMessageId === message.message_id ? t('chat.stopPlaying') : t('chat.read')}
             >
               <Volume2 size={12} />
             </Button>
@@ -161,7 +161,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               variant="ghost"
               size="icon"
               className="h-7 w-7 rounded-full text-muted-foreground"
-              title="重新生成"
+              title={t('chat.regenerate')}
             >
               <RotateCcw size={12} />
             </Button>

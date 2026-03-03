@@ -4,6 +4,7 @@ import Toast, { ToastMessage } from '../ui/Toast';
 import { extractConfigValues } from '../../utils/helpers';
 import { Button, Select, Input, Card, CardContent } from '../ui';
 import { cn } from '../../utils/cn';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ConfigField {
   type: 'string' | 'password' | 'number' | 'select' | 'file';
@@ -43,8 +44,9 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   saveConfig,
   onConfigSaved,
   emptyStateIcon = '⚙️',
-  emptyStateText = '请选择上方的服务商进行配置'
+  emptyStateText = undefined
 }) => {
+  const { t } = useLanguage();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [formData, setFormData] = useState<any>({});
@@ -112,7 +114,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
       setTestResult(result);
       setTimeout(() => setTestResult(null), 3000);
     } catch (error: any) {
-      setTestResult({ success: false, message: error?.message || '网络错误或服务不可用' });
+      setTestResult({ success: false, message: error?.message || t('settings.networkError') });
       setTimeout(() => setTestResult(null), 3000);
     } finally {
       setTesting(false);
@@ -142,7 +144,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
         setSaveResult(result);
       }
     } catch (error: any) {
-      setSaveResult({ success: false, message: error?.message || '网络错误' });
+      setSaveResult({ success: false, message: error?.message || t('settings.networkError') });
     } finally {
       setSaving(false);
     }
@@ -231,8 +233,8 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
 
   return (
     <>
-      <Toast message={saveResult} title={{ success: '保存成功', error: '保存失败' }} />
-      {!saveResult && <Toast message={testResult} title={{ success: '测试成功', error: '测试失败' }} />}
+      <Toast message={saveResult} title={{ success: t('settings.saveSuccess'), error: t('settings.saveFailed') }} />
+      {!saveResult && <Toast message={testResult} title={{ success: t('settings.testSuccess'), error: t('settings.testFailed') }} />}
 
       <div className="flex flex-col h-full space-y-4">
         {/* Provider Selector */}

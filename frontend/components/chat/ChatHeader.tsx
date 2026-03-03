@@ -120,7 +120,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             value={activeModel?.id || ''}
             onChange={onUpdateModel}
             options={modelOptions}
-            placeholder="选择模型..."
+            placeholder={t('chat.selectModel')}
             className="h-9 md:h-10"
           />
         </div>
@@ -131,7 +131,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {showVrmError && (
             <div className="absolute top-14 right-0 bg-destructive text-destructive-foreground text-[10px] md:text-xs px-4 py-2 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-4 flex items-center gap-2 whitespace-nowrap border border-destructive/20 font-bold uppercase tracking-wider">
               <Circle size={8} className="fill-current animate-pulse" />
-              请先在角色设置中配置 VRM 模型
+              {t('chat.configureVRMFirst')}
             </div>
           )}
 
@@ -139,7 +139,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             value={vrmDisplayMode}
             onChange={(mode) => handleDisplayModeChange(mode as 'normal' | 'vrm' | 'live2d')}
             options={[
-              { label: '正常', value: 'normal' },
+              { label: t('chat.normal'), value: 'normal' },
               { label: 'VRM', value: 'vrm' },
               { label: 'Live2D', value: 'live2d' }
             ]}
@@ -154,7 +154,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           size="icon"
           onClick={onOpenRightSidebar}
           className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
-          title="模型参数设置"
+          title={t('chat.modelSettings')}
         >
           <Settings size={20} />
         </Button>

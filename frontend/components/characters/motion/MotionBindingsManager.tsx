@@ -4,6 +4,7 @@ import { Motion } from '../../../types';
 import { api } from '../../../services/api/index';
 import { Button, RadioGroup } from '../../ui';
 import { VRMMotionPreviewOptimized } from '../../admin/vrm/VRMMotionPreviewOptimized';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface LocalMotionBinding {
     motion_id: string;
@@ -37,10 +38,10 @@ interface MotionBindingsManagerProps {
 }
 
 const CATEGORIES = [
-    { value: 'initial', label: '初始', icon: '🎬', description: 'VRM加载时的默认姿态' },
-    { value: 'idle', label: '待机', icon: '🧘', description: '15秒无交互时触发' },
-    { value: 'thinking', label: '思考', icon: '🤔', description: '等待AI响应时播放' },
-    { value: 'reply', label: '回复', icon: '💬', description: '由AI通过标记控制' }
+    { value: 'initial', labelKey: 'character.motionCategories.idle', icon: '🎬', descriptionKey: 'character.motionCategories.idleDesc' },
+    { value: 'idle', labelKey: 'character.motionCategories.standby', icon: '🧘', descriptionKey: 'character.motionCategories.standbyDesc' },
+    { value: 'thinking', labelKey: 'character.motionCategories.thinking', icon: '🤔', descriptionKey: 'character.motionCategories.thinkingDesc' },
+    { value: 'reply', labelKey: 'character.motionCategories.reply', icon: '💬', descriptionKey: 'character.motionCategories.replyDesc' }
 ];
 
 export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
@@ -49,6 +50,8 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
     localBindings = [],
     onLocalBindingsChange
 }) => {
+    const { t } = useLanguage();
+
     // 判断是否为 API 模式（已保存角色）
     const isApiMode = !!characterId;
 
@@ -129,7 +132,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                 setAllMotions(motionsRes.data || []);
             }
         } catch (error) {
-            console.error('获取数据失败:', error);
+            console.error(t('character.fetchDataFailed'), error);
         } finally {
             setIsLoading(false);
         }
@@ -168,16 +171,16 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
 
             // 请求成功，但不重新获取数据，保持当前状态
             if (response.code !== 200) {
-                throw new Error('添加失败');
+                throw new Error(t('character.addBindingFailed'));
             }
         } catch (error) {
-            console.error('添加绑定失败:', error);
+            console.error(t('character.addBindingError'), error);
             // 失败时回滚
             setBindingsByCategory(prev => ({
                 ...prev,
                 [activeCategory]: (prev[activeCategory] || []).filter(b => b.binding_id !== newBinding.binding_id)
             }));
-            alert('添加失败');
+            alert(t('character.addBindingFailed'));
         }
     };
 
@@ -191,7 +194,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
         );
 
         if (exists) {
-            alert('该动作已在此分类中绑定');
+            alert(t('character.motionAlreadyBound'));
             return;
         }
 
@@ -228,13 +231,13 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
             // 后台发送请求
             await api.removeModelAnimation(characterId, bindingId);
         } catch (error) {
-            console.error('移除绑定失败:', error);
+            console.error(t('character.removeBindingFailed'), error);
             // 失败时回滚
             setBindingsByCategory(prev => ({
                 ...prev,
                 [activeCategory]: previousBindings
             }));
-            alert('移除失败');
+            alert(t('character.removeBindingFailed'));
         }
     };
 
@@ -315,7 +318,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
                                     <Film size={48} className="opacity-20 mb-4" />
-                                    <p className="text-xs">选择动作以预览</p>
+                                    <p className="text-xs">{t('character.selectMotionToPreview')}</p>
                                 </div>
                             )}
                         </div>
@@ -331,7 +334,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                                 onChange={(value: string) => setActiveCategory(value as any)}
                                 options={CATEGORIES.map(cat => ({
                                     value: cat.value,
-                                    label: `${cat.icon} ${cat.label} (${getCategoryCount(cat.value)})`
+                                    label: `${cat.icon} ${t(cat.labelKey)} (${getCategoryCount(cat.value)})`
                                 }))}
                                 variant="segmented"
                             />
@@ -342,7 +345,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                             {/* 2.1 可选动作 (资源池) */}
                             <div className="flex flex-col min-h-0">
                                 <h4 className="px-2 mb-2 md:mb-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex justify-between shrink-0">
-                                    动作资源池 <span>{availableMotions.length}</span>
+                                    {t('character.motionPool')} <span>{availableMotions.length}</span>
                                 </h4>
                                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
                                     {availableMotions.map(motion => (
@@ -372,7 +375,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                             {/* 2.2 已绑定动作 (决策结果) */}
                             <div className="flex flex-col min-h-0">
                                 <h4 className="px-2 mb-2 md:mb-3 text-[11px] font-bold text-primary uppercase tracking-wider flex justify-between shrink-0">
-                                    已配置到当前分类 <span>{isApiMode ? getCurrentBindingsApi().length : getCurrentBindingsLocal().length}</span>
+                                    {t('character.boundToCategory')} <span>{isApiMode ? getCurrentBindingsApi().length : getCurrentBindingsLocal().length}</span>
                                 </h4>
                                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
                                     {(isApiMode ? getCurrentBindingsApi() : getCurrentBindingsLocal()).map((binding: any) => {

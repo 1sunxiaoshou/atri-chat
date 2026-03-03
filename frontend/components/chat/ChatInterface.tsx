@@ -127,7 +127,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         onConversationUpdated?.();
       }
     } catch (err) {
-      console.error('发送消息失败:', err);
+      console.error(t('chat.sendMessageFailed'), err);
     }
   }, [inputValue, activeCharacter, activeModel, activeConversationId, modelParameters, vrmDisplayMode, startThinking, sendMessage, playSegments, onConversationUpdated, messages.length]);
 
@@ -137,7 +137,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setCopiedMessageId(messageId);
       setTimeout(() => setCopiedMessageId(null), 2000);
     } catch (error) {
-      console.error('复制失败:', error);
+      console.error(t('chat.copyFailed'), error);
     }
   }, []);
 

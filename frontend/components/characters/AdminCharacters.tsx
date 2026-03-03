@@ -44,7 +44,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
     setEditingCharacter({
       id: '', // 空字符串表示新建
       name: '',
-      system_prompt: '你是一个友好、乐于助人的AI助手。', // 提供默认系统提示词
+      system_prompt: t('character.defaultSystemPrompt'), // 提供默认系统提示词
       primary_model_id: defaultModel?.id || '', // 使用 UUID 而不是 model_id
       primary_provider_id: defaultModel?.provider_id || '',
       avatar_id: '',
@@ -154,7 +154,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                     size="icon"
                     onClick={onShowSidebar}
                     className="h-9 w-9 gap-0 text-muted-foreground hover:text-primary hover:bg-transparent rounded-lg [&_svg]:size-5"
-                    title="显示侧边栏"
+                    title={t('admin.showSidebar')}
                   >
                     <PanelLeftOpen size={20} />
                   </Button>
@@ -166,7 +166,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                 )}>{t('sidebar.characterManagement')}</h2>
 
                 <span className="ml-3 px-2.5 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium border border-border">
-                  {characters.length} {t('admin.modelsCount').replace('模型', '角色').replace('models', 'characters')}
+                  {characters.length} {t('admin.charactersCount')}
                 </span>
               </div>
 

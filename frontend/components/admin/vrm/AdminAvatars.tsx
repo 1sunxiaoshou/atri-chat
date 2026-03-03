@@ -59,7 +59,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                 setAvatars(res.data || []);
             }
         } catch (error) {
-            console.error('获取3D形象失败:', error);
+            console.error('Failed to get 3D avatars:', error);
         } finally {
             setIsLoading(false);
         }
@@ -101,7 +101,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                     // 删除成功
                     await fetchAvatars();
                     onAvatarsChange?.();
-                    setToastMessage({ success: true, message: '形象删除成功' });
+                    setToastMessage({ success: true, message: t('vrm.avatar.deleteSuccess') });
                     setTimeout(() => setToastMessage(null), 3000);
                 } else if (response.code === 409) {
                     // 409 冲突错误（资源正在使用）
@@ -115,14 +115,14 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
 
                         setToastMessage({
                             success: false,
-                            message: `该形象正在被以下角色使用：${characterNames}。请先解除角色绑定后再删除`
+                            message: t('vrm.avatar.inUseByCharacters', { characterNames })
                         });
                         setTimeout(() => setToastMessage(null), 5000);
                     } else {
                         // 提取错误消息
                         const errorMsg = typeof detail === 'object' && detail.message
                             ? detail.message
-                            : (typeof response.message === 'string' ? response.message : '该形象正在被角色使用，请先解除绑定');
+                            : (typeof response.message === 'string' ? response.message : t('vrm.avatar.inUse'));
 
                         setToastMessage({
                             success: false,
@@ -132,7 +132,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                     }
                 } else {
                     // 其他错误 - 安全地提取错误消息
-                    let errorMsg = '未知错误';
+                    let errorMsg = t('vrm.avatar.unknownError');
                     if (typeof response.message === 'string') {
                         errorMsg = response.message;
                     } else if (typeof response.message === 'object' && response.message !== null) {
@@ -141,7 +141,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
 
                     setToastMessage({
                         success: false,
-                        message: `删除失败：${errorMsg}`
+                        message: t('vrm.avatar.deleteFailed', { errorMsg })
                     });
                     setTimeout(() => setToastMessage(null), 3000);
                 }
@@ -151,13 +151,13 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
 
     return (
         <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Toast message={toastMessage} title={{ success: '操作成功', error: '操作失败' }} />
+            <Toast message={toastMessage} title={{ success: t('vrm.avatar.operationSuccess'), error: t('vrm.avatar.operationFailed') }} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-foreground">3D形象库</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{t('admin.avatar3DLibrary')}</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                        管理VRM格式的3D模型资产
+                        {t('admin.manageVRMAssets')}
                     </p>
                 </div>
                 <Button onClick={() => setShowUploadPreview(true)} className="gap-2">
@@ -177,13 +177,13 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                         <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 overflow-hidden ring-4 ring-background shadow-2xl">
                             <Box size={40} className="text-primary" />
                         </div>
-                        <h3 className="text-xl font-bold text-foreground mb-2">还没有3D形象</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-2">{t('admin.noAvatarsYet')}</h3>
                         <p className="text-sm text-muted-foreground mb-8 text-center max-w-md">
-                            上传第一个VRM模型，开始创建你的虚拟角色
+                            {t('admin.uploadFirstVRM')}
                         </p>
                         <Button onClick={() => setShowUploadPreview(true)} className="gap-2">
                             <Plus size={18} />
-                            上传VRM模型
+                            {t('admin.uploadVRMModel')}
                         </Button>
                     </div>
                 ) : (

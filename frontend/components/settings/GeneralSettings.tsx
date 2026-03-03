@@ -13,7 +13,7 @@ interface GeneralSettingsProps {
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) => {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme, themeColor, setThemeColor } = useTheme();
   const { settings, saveSettings } = useSettings();
   const [saveMessage, setSaveMessage] = React.useState<string>('');
@@ -42,10 +42,10 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
       {/* 头部标题 */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground">
-          {language === 'zh' ? '常规设置' : 'General Settings'}
+          {t('settings.generalSettings')}
         </h2>
         <p className="text-muted-foreground mt-1">
-          {language === 'zh' ? '管理界面的基本偏好与音频缓存' : 'Manage interface preferences and audio settings'}
+          {t('settings.managePreferences')}
         </p>
       </div>
 
@@ -60,10 +60,10 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-foreground mb-1">
-                  {language === 'zh' ? '界面设置' : 'Interface Settings'}
+                  {t('settings.interfaceSettings')}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {language === 'zh' ? '自定义外观和语言偏好' : 'Customize appearance and language preferences'}
+                  {t('settings.customizeAppearance')}
                 </p>
               </div>
             </div>
@@ -72,13 +72,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-foreground">
-                    {language === 'zh' ? '主题模式' : 'Theme Mode'}
+                    {t('settings.themeMode')}
                   </label>
                   <div className="flex p-1 bg-muted rounded-lg ring-1 ring-border/50">
                     {[
-                      { id: 'light', icon: Sun, label: language === 'zh' ? '亮色' : 'Light' },
-                      { id: 'dark', icon: Moon, label: language === 'zh' ? '暗色' : 'Dark' },
-                      { id: 'system', icon: Monitor, label: language === 'zh' ? '系统' : 'System' }
+                      { id: 'light', icon: Sun, label: t('settings.light') },
+                      { id: 'dark', icon: Moon, label: t('settings.dark') },
+                      { id: 'system', icon: Monitor, label: t('settings.system') }
                     ].map((item) => (
                       <button
                         key={item.id}
@@ -99,7 +99,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-foreground">
-                    {language === 'zh' ? '语言' : 'Language'}
+                    {t('settings.language')}
                   </label>
                   <Select
                     value={language}
@@ -116,7 +116,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
               <div className="space-y-3">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Palette size={16} />
-                  {language === 'zh' ? '主题配色' : 'Theme Color'}
+                  {t('settings.themeMode')}
                 </label>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   {[

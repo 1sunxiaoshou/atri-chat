@@ -30,15 +30,15 @@ export const CharacterLibrary: React.FC<CharacterLibraryProps> = ({
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                                {t('admin.characterList') || '角色管理'}
+                                {t('admin.characterList')}
                             </h2>
                             <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-medium border border-gray-200 dark:border-gray-700">
-                                {characters.length} 个角色
+                                {characters.length} {t('admin.characterCount')}
                             </span>
                         </div>
                         <Button onClick={onCreate} size="default">
                             <Plus size={16} />
-                            {t('admin.createCharacter') || '新建角色'}
+                            {t('admin.createCharacter')}
                         </Button>
                     </div>
                 )}

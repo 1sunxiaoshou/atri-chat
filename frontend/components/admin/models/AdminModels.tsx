@@ -53,10 +53,10 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   });
 
   const categories = [
-    { id: 'all', label: t('admin.allCategories') || '全部' },
-    { id: 'chat', label: t('admin.chat') || '聊天' },
-    { id: 'embedding', label: t('admin.embedding') || '嵌入' },
-    { id: 'rerank', label: t('admin.rerank') || '重排' },
+    { id: 'all', label: t('admin.allCategories') },
+    { id: 'chat', label: t('admin.chat') },
+    { id: 'embedding', label: t('admin.embedding') },
+    { id: 'rerank', label: t('admin.rerank') },
   ];
 
   const filteredModels = models.filter(m => {
@@ -177,19 +177,21 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     try {
       const response = await modelsApi.syncProviderModels(selectedProvider, false);
       if (response.code !== 200) {
-        setToast({ success: false, message: response.message || '同步失败' });
+        setToast({ success: false, message: response.message || t('admin.syncFailed') });
         setTimeout(() => setToast(null), 3000);
         return;
       }
       const { added, updated, failed, total } = response.data;
       const isSuccess = total > 0 && failed === 0;
-      let resultMessage = total === 0 ? '未获取到任何模型' : `新增 ${added} 个` + (updated > 0 ? `，更新 ${updated} 个` : '');
-      if (failed > 0) resultMessage += `，失败 ${failed} 个`;
+      let resultMessage = total === 0
+        ? t('admin.noModelsFound')
+        : t('admin.syncResult', { added, updated: updated > 0 ? t('admin.updated', { count: updated }) : '' });
+      if (failed > 0) resultMessage += t('admin.failed', { count: failed });
       setToast({ success: isSuccess, message: resultMessage });
       setTimeout(() => setToast(null), 3000);
       if (isSuccess || added > 0) await onRefresh();
     } catch (error: any) {
-      setToast({ success: false, message: error.message || '未知错误' });
+      setToast({ success: false, message: error.message || t('admin.unknownError') });
       setTimeout(() => setToast(null), 3000);
     } finally {
       setIsSyncing(false);
@@ -276,7 +278,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
 
       <Toast
         message={toast}
-        title={{ success: '同步成功', error: '同步失败' }}
+        title={{ success: t('admin.syncSuccess'), error: t('admin.syncFailed') }}
       />
     </div>
   );

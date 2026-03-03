@@ -34,13 +34,13 @@ const ProviderList: React.FC<ProviderListProps> = ({
     onAddProvider,
     getVoiceCount,
 }) => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
 
     return (
         <aside className="w-full h-full flex flex-col border-r border-border bg-muted/20">
             <div className="h-16 px-4 border-b border-border flex justify-between items-center bg-background">
                 <h3 className="text-sm font-bold text-foreground">
-                    {language === 'zh' ? 'TTS 供应商' : 'TTS Providers'}
+                    {t('admin.ttsProviders')}
                 </h3>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                     {providers.length}
@@ -131,7 +131,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             <div className="p-4 border-t border-border bg-background">
                 <Button onClick={onAddProvider} className="w-full" size="sm">
                     <Plus size={16} className="mr-2" />
-                    {language === 'zh' ? '添加供应商' : 'Add Provider'}
+                    {t('admin.addProvider')}
                 </Button>
             </div>
         </aside>

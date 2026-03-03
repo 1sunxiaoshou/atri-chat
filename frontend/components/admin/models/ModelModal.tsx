@@ -2,6 +2,7 @@ import React from 'react';
 import { Model } from '../../../types';
 import { Modal, Button, Input, Select } from '../../ui';
 import { cn } from '../../../utils/cn';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface ModelModalProps {
     isOpen: boolean;
@@ -28,6 +29,8 @@ export const ModelModal: React.FC<ModelModalProps> = ({
     onSave,
     onChange,
 }) => {
+    const { t } = useLanguage();
+
     if (!model) return null;
 
     const toggleCapability = (capability: string) => {
@@ -46,29 +49,29 @@ export const ModelModal: React.FC<ModelModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={model.model_id ? '编辑模型' : '添加模型'}
+            title={model.model_id ? t('admin.editModel') : t('admin.addModel')}
         >
             <div className="p-6 space-y-6">
                 {/* 基本信息 */}
                 <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-                        基本信息
+                        {t('admin.basicInfo')}
                     </h4>
                     <Input
-                        label="模型 ID"
+                        label={t('admin.modelId')}
                         value={model.model_id || ''}
                         onChange={(e) => onChange({ ...model, model_id: e.target.value })}
                         placeholder="e.g. gpt-4"
                     />
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium">模型类型</label>
+                        <label className="text-sm font-medium">{t('admin.modelType')}</label>
                         <Select
                             value={model.model_type || 'chat'}
                             onChange={(val) => onChange({ ...model, model_type: val as any })}
                             options={[
-                                { label: '聊天模型', value: 'chat' },
-                                { label: '嵌入模型', value: 'embedding' },
-                                { label: '重排模型', value: 'rerank' },
+                                { label: t('admin.chatModel'), value: 'chat' },
+                                { label: t('admin.embeddingModel'), value: 'embedding' },
+                                { label: t('admin.rerankModel'), value: 'rerank' },
                             ]}
                         />
                     </div>
@@ -77,7 +80,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
                 {/* 模型能力 */}
                 <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-                        模型能力
+                        {t('admin.modelCapabilities')}
                     </h4>
                     <div className="flex flex-wrap gap-2">
                         {allCapabilities.map((cap) => (
@@ -100,10 +103,10 @@ export const ModelModal: React.FC<ModelModalProps> = ({
                 {/* 操作按钮 */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-border">
                     <Button variant="outline" onClick={onClose}>
-                        取消
+                        {t('admin.cancel')}
                     </Button>
                     <Button onClick={onSave} disabled={!model.model_id}>
-                        保存
+                        {t('admin.save')}
                     </Button>
                 </div>
             </div>

@@ -46,7 +46,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   // 处理 ASR 错误
   React.useEffect(() => {
     if (asrError) {
-      Logger.error('ASR 错误', undefined, { error: asrError });
+      Logger.error(t('chat.asrError'), undefined, { error: asrError });
       setToastMessage({
         success: false,
         message: asrError
@@ -66,7 +66,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const toggleRecording = () => {
-    Logger.debug('切换录音状态', { isRecording, isProcessing });
+    Logger.debug(t('chat.toggleRecording'), { isRecording, isProcessing });
 
     if (isRecording) {
       stopRecording();
@@ -106,7 +106,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 isRecording
                   ? t('chat.recordingPlaceholder')
                   : isProcessing
-                    ? "正在转换语音..."
+                    ? t('chat.convertingAudio')
                     : t('chat.placeholder')
               }
               disabled={isRecording}
@@ -138,10 +138,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 )}
                 title={
                   isRecording
-                    ? "点击停止录音"
+                    ? t('chat.stopRecording')
                     : isProcessing
-                      ? "正在处理..."
-                      : "点击开始录音"
+                      ? t('chat.processing')
+                      : t('chat.startRecording')
                 }
               >
                 {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
