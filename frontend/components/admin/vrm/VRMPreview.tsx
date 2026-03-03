@@ -5,6 +5,7 @@ import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { RotateCcw, Play, Pause, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface VRMPreviewProps {
     modelUrl: string;
@@ -17,6 +18,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
     className,
     autoRotate = false,
 }) => {
+    const { t } = useLanguage();
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -66,20 +68,59 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
 
     useEffect(() => {
         if (!canvasRef.current || !containerRef.current) return;
-        initScene();
-        loadVRM();
-        return () => cleanup();
+
+        let cleanupFn: (() => void) | undefined;
+
+        // 检查容器是否可见（宽度大于0）
+        const checkVisibility = () => {
+            if (containerRef.current && containerRef.current.clientWidth > 0) {
+                initScene();
+                loadVRM();
+            } else {
+                // 如果容器不可见，使用 ResizeObserver 等待它变为可见
+                const observer = new ResizeObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.contentRect.width > 0) {
+                            observer.disconnect();
+                            initScene();
+                            loadVRM();
+                        }
+                    }
+                });
+                if (containerRef.current) {
+                    observer.observe(containerRef.current);
+                }
+                cleanupFn = () => observer.disconnect();
+            }
+        };
+
+        checkVisibility();
+
+        return () => {
+            if (cleanupFn) cleanupFn();
+            cleanup();
+        };
     }, [modelUrl]);
 
     const initScene = () => {
+        if (!canvasRef.current || !containerRef.current) return;
+
+        // 确保容器有有效的尺寸
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+
+        if (width === 0 || height === 0) {
+            console.warn('Container has zero dimensions, skipping scene initialization');
+            return;
+        }
+
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1e293b); // 与 VRMMotionPreviewOptimized 一致
+        scene.background = new THREE.Color(0x1e293b);
         sceneRef.current = scene;
 
-        // 与 VRMMotionPreviewOptimized 一致的相机设置
         const camera = new THREE.PerspectiveCamera(
-            40, // 从 35 增加到 40，视野更广
-            containerRef.current!.clientWidth / containerRef.current!.clientHeight,
+            40,
+            width / height,
             0.1,
             20
         );
@@ -88,16 +129,15 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
         cameraRef.current = camera;
 
         const renderer = new THREE.WebGLRenderer({
-            canvas: canvasRef.current!,
+            canvas: canvasRef.current,
             antialias: true,
             alpha: true
         });
 
-        renderer.setSize(containerRef.current!.clientWidth, containerRef.current!.clientHeight);
+        renderer.setSize(width, height);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-        // 禁用开发环境的 shader 错误检查
         if (import.meta.env.DEV) {
             renderer.debug.checkShaderErrors = false;
         }

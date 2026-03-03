@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '../../ui';
 import { VRMPreview } from './VRMPreview';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const VRMEditPreview: React.FC<{
     avatar: { id: string; name: string; model_path: string };
     onSave: (id: string, name: string) => Promise<void>;
     onClose: () => void;
 }> = ({ avatar, onSave, onClose }) => {
+    const { t } = useLanguage();
     const [name, setName] = useState(avatar.name);
     const [isSaving, setIsSaving] = useState(false);
     const hasChanges = name.trim() !== avatar.name && name.trim() !== '';

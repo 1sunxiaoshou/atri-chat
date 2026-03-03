@@ -17,6 +17,7 @@ class GoogleProvider(BaseProvider):
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Google API密钥"),
             ],
+            common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={
                 "thinking_config": {
                     "type": "object",
@@ -97,66 +98,6 @@ class GoogleProvider(BaseProvider):
         return GoogleGenerativeAIEmbeddings(**params)
     
     def get_model_info(self, model_id: str, provider_config: ProviderConfig) -> ProviderModelInfo:
-        """获取 Google 模型信息 - 从 API 获取"""
-        from google import genai
-        from ...logger import get_logger
-        
-        logger = get_logger(__name__)
-        config = provider_config.config_json
-        
-        try:
-            # 使用 Google GenAI API 获取模型信息
-            client = genai.Client(api_key=config.get("api_key"))
-            
-            # 处理模型名称格式（可能需要添加 "models/" 前缀）
-            model_name = model_id if model_id.startswith("models/") else f"models/{model_id}"
-            model = client.models.get(model=model_name)
-            
-            logger.debug(f"从 API 获取模型信息: {model_id}, "
-                        f"input_limit: {model.input_token_limit}, "
-                        f"output_limit: {model.output_token_limit}")
-            
-            # 根据模型 ID 推断类型和能力
-            model_id_lower = model_id.lower()
-            
-            # 嵌入模型
-            if "embed" in model_id_lower or "embedding" in model_id_lower:
-                return ProviderModelInfo(
-                    model_id=model_id,
-                    type=ModelType.EMBEDDING,
-                    capabilities=[],
-                    context_window=model.input_token_limit,
-                    max_output=model.output_token_limit,
-                )
-            
-            # 聊天模型
-            capabilities = []
-            
-            # Gemini 系列支持多模态
-            if "gemini" in model_id_lower:
-                capabilities.extend([
-                    ModelCapability.VISION,
-                    ModelCapability.DOCUMENT,
-                    ModelCapability.VIDEO,
-                    ModelCapability.AUDIO,
-                    ModelCapability.TOOL_USE
-                ])
-            
-            # 推理能力（从 API 返回的 thinking 字段判断）
-            if hasattr(model, 'thinking') and model.thinking:
-                capabilities.append(ModelCapability.REASONING)
-            elif "thinking" in model_id_lower or "2.5" in model_id_lower or "3" in model_id_lower:
-                capabilities.append(ModelCapability.REASONING)
-            
-            return ProviderModelInfo(
-                model_id=model_id,
-                type=ModelType.CHAT,
-                capabilities=capabilities,
-                context_window=model.input_token_limit,
-                max_output=model.output_token_limit,
-            )
-            
-        except Exception as e:
-            logger.warning(f"无法从 API 获取模型信息 {model_id}: {e}，使用默认推断")
-            # 降级到基于名称的推断
-            return super().get_model_info(model_id, provider_config)
+        """获取 Google 模型信息 - 使用 LangChain profile"""
+        # 直接使用 BaseProvider 的 profile 功能
+        return super().get_model_info(model_id, provider_config)

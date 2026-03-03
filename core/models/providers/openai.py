@@ -18,10 +18,11 @@ class OpenAIProvider(BaseProvider):
                 ConfigField(field_name="api_key", field_type="string", required=True, description="OpenAI API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.openai.com/v1", description="API基础URL"),
             ],
+            common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={
                 "reasoning_effort": {
-                    "type": "select",
-                    "label": "推理强度",
+                    "type": "segmented",  # 使用 segmented 类型
+                    "label": "深度思考",
                     "description": "控制 o1/o3 系列模型的推理强度",
                     "options": [
                         {"value": "low", "label": "低"},
@@ -29,7 +30,8 @@ class OpenAIProvider(BaseProvider):
                         {"value": "high", "label": "高"}
                     ],
                     "default": "medium",
-                    "applicable_capabilities": ["reasoning"]  # 只对有 reasoning 能力的模型显示
+                    "applicable_capabilities": ["reasoning"],
+                    "order": 1  # 排在最前面
                 }
             }
         )
@@ -90,61 +92,6 @@ class OpenAIProvider(BaseProvider):
         return OpenAIEmbeddings(**params)
     
     def get_model_info(self, model_id: str, provider_config: ProviderConfig) -> ProviderModelInfo:
-        """获取 OpenAI 模型信息 - 从 API 获取"""
-        from openai import OpenAI
-        from ...logger import get_logger
-        
-        logger = get_logger(__name__)
-        config = provider_config.config_json
-        
-        try:
-            # 使用 OpenAI API 获取模型信息
-            client = OpenAI(
-                api_key=config.get("api_key"),
-                base_url=config.get("base_url", "https://api.openai.com/v1")
-            )
-            
-            model = client.models.retrieve(model_id)
-            logger.debug(f"从 API 获取模型信息: {model_id}")
-            
-            # 根据模型 ID 推断类型和能力
-            model_id_lower = model_id.lower()
-            
-            # 嵌入模型
-            if "embed" in model_id_lower:
-                return ProviderModelInfo(
-                    model_id=model.id,
-                    type=ModelType.EMBEDDING,
-                    capabilities=[],
-                )
-            
-            # 聊天模型
-            capabilities = []
-            
-            # GPT-4 系列支持多模态
-            if "gpt-4" in model_id_lower:
-                capabilities.extend([
-                    ModelCapability.VISION,
-                    ModelCapability.DOCUMENT,
-                    ModelCapability.TOOL_USE
-                ])
-            
-            # o1/o3 系列推理模型
-            if "o1" in model_id_lower or "o3" in model_id_lower:
-                capabilities.extend([
-                    ModelCapability.VISION,
-                    ModelCapability.DOCUMENT,
-                    ModelCapability.REASONING,
-                    ModelCapability.TOOL_USE
-                ])
-            
-            return ProviderModelInfo(
-                model_id=model.id,
-                type=ModelType.CHAT,
-                capabilities=capabilities,
-            )
-            
-        except Exception as e:
-            logger.warning(f"无法从 API 获取模型信息 {model_id}: {e}，使用默认推断")
-            # 降级到基于名称的推断
-            return super().get_model_info(model_id, provider_config)
+        """获取 OpenAI 模型信息 - 使用 LangChain profile"""
+        # 直接使用 BaseProvider 的 profile 功能
+        return super().get_model_info(model_id, provider_config)

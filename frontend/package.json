@@ -12,6 +12,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "check-i18n": "tsx scripts/check-i18n.ts",
+    "clean-i18n": "tsx scripts/check-i18n.ts -- --remove-unused",
     "check-imports": "tsx scripts/fix-missing-imports.ts"
   },
   "dependencies": {

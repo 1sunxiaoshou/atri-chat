@@ -17,7 +17,18 @@ class TongyiProvider(BaseProvider):
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="通义千问API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, description="API基础URL"),
-            ]
+            ],
+            common_parameters_schema=self.get_common_parameters_schema(),
+            provider_options_schema={
+                "enable_thinking": {
+                    "type": "boolean",
+                    "label": "深度思考",
+                    "description": "启用 QwQ 系列模型的深度思考能力",
+                    "default": False,
+                    "applicable_capabilities": ["reasoning"],
+                    "order": 1  # 排在最前面
+                }
+            }
         )
     
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
@@ -122,7 +133,16 @@ class TongyiProvider(BaseProvider):
         return results
     
     def _infer_model_info(self, model_id: str, context_window: int = None, max_output: int = None) -> ProviderModelInfo:
-        """根据模型 ID 推断模型信息"""
+        """根据模型 ID 推断模型信息
+        
+        注意：通义千问的 OpenAI 兼容接口不提供模型能力信息，
+        因此需要根据模型名称进行推断。这是目前唯一可行的方案。
+        
+        思考模式分类：
+        1. 仅思考模式：qwq-*, deepseek-r1*, kimi-k2-thinking, *-thinking
+        2. 混合思考模式（默认开启）：qwen3.5-*, qwen3-[0-9], glm-*
+        3. 混合思考模式（默认不开启）：qwen-plus, qwen-max, qwen-flash, qwen-turbo, deepseek-v3.*
+        """
         model_id_lower = model_id.lower()
         
         # 嵌入模型
@@ -138,20 +158,59 @@ class TongyiProvider(BaseProvider):
         # 聊天模型
         capabilities = []
         
-        # VL 系列支持多模态
-        if "vl" in model_id_lower or "vision" in model_id_lower:
+        # 深度思考模型（reasoning）
+        # 注意：专用模型（vl, asr, tts, omni）不算思考模型
+        is_specialized = any(keyword in model_id_lower for keyword in [
+            "-vl-", "-asr-", "-tts-", "-omni-", "-s2s-", "livetranslate"
+        ])
+        
+        if not is_specialized:
+            # 1. 仅思考模式：qwq-*, qvq-*, deepseek-r1*, kimi-k2-thinking, *-thinking
+            # 2. 混合思考模式（默认开启）：qwen3.5-*, qwen3-[数字], glm-*
+            # 3. 混合思考模式（默认不开启）：qwen-plus, qwen-max, qwen-flash, qwen-turbo, deepseek-v3.*
+            if any(keyword in model_id_lower for keyword in [
+                # 仅思考模式
+                "qwq-", "qvq-", "deepseek-r1", "k2-thinking", "-thinking",
+                # 混合思考模式（默认开启）
+                "qwen3.5-", "glm-",
+                # 混合思考模式（默认不开启）
+                "qwen-plus", "qwen-max", "qwen-flash", "qwen-turbo", "deepseek-v3"
+            ]):
+                capabilities.append(ModelCapability.REASONING)
+            # qwen3-[数字] 系列（如 qwen3-32b, qwen3-8b）
+            elif "qwen3-" in model_id_lower:
+                # 检查是否是数字开头的模型（如 qwen3-32b, qwen3-8b）
+                import re
+                if re.search(r'qwen3-\d+', model_id_lower):
+                    capabilities.append(ModelCapability.REASONING)
+        
+        # 视觉模型（vision + document）
+        # 包括：*-vl-*, qvq-*（视觉推理）
+        if "-vl-" in model_id_lower or "vision" in model_id_lower or "qvq-" in model_id_lower:
             capabilities.extend([
                 ModelCapability.VISION,
                 ModelCapability.DOCUMENT
             ])
         
-        # Audio 系列
-        if "audio" in model_id_lower:
+        # 音频模型
+        # 包括：*-asr-*, *-tts-*, *-omni-*, *-s2s-*
+        if any(keyword in model_id_lower for keyword in [
+            "audio", "-asr-", "-tts-", "-omni-", "-s2s-", "livetranslate"
+        ]):
             capabilities.append(ModelCapability.AUDIO)
         
-        # 工具调用能力
-        if "plus" in model_id_lower or "max" in model_id_lower or "turbo" in model_id_lower:
-            capabilities.append(ModelCapability.TOOL_USE)
+        # 工具调用能力（大部分主流模型都支持，但开源版本除外）
+        # 排除：开源版本（如 qwen3.5-397b-a17b）
+        is_opensource = any(keyword in model_id_lower for keyword in [
+            "-a17b", "-a22b", "-a10b", "-a3b", "-instruct"
+        ])
+        
+        if not is_opensource:
+            # 包括：*-plus, *-max, *-turbo, *-flash, qwen3-*, qwen2.5-*, qwen-coder
+            if any(keyword in model_id_lower for keyword in [
+                "-plus", "-max", "-turbo", "-flash", "qwen3-", "qwen2.5-", "qwen-coder"
+            ]):
+                capabilities.append(ModelCapability.TOOL_USE)
         
         return ProviderModelInfo(
             model_id=model_id,

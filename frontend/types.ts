@@ -143,6 +143,7 @@ export interface ModelParameters {
   display_mode?: string;
   enable_thinking?: boolean;
   thinking_config?: ThinkingConfig;
+  [key: string]: any; // 支持动态参数
 }
 
 // 思考配置（模型特定参数）
@@ -150,6 +151,30 @@ export interface ThinkingConfig {
   budget?: number;  // OpenAI: thinking tokens 预算
   effort?: 'low' | 'medium' | 'high';  // Anthropic: thinking effort level
   [key: string]: any;  // 其他供应商的特定参数
+}
+
+// 参数 Schema 定义
+export interface ParameterSchema {
+  type: 'slider' | 'number' | 'boolean' | 'select' | 'text' | 'segmented';
+  label: string;
+  description?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  default?: any;
+  options?: Array<{ value: string | number; label: string }>;
+  applicable_model_types?: string[];
+  applicable_capabilities?: string[];
+  order?: number;
+}
+
+export interface ModelParameterSchemaResponse {
+  model_id: string;
+  provider_id: string;
+  model_type: string;
+  capabilities: string[];
+  common_parameters: Record<string, ParameterSchema>;
+  provider_parameters: Record<string, ParameterSchema>;
 }
 
 export interface AudioMessageData {

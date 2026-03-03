@@ -38,6 +38,11 @@ class ModelFactory:
         self.register_provider_template(providers.GoogleProvider())
         self.register_provider_template(providers.TongyiProvider())
         self.register_provider_template(providers.LocalProvider())
+        self.register_provider_template(providers.MistralProvider())
+        self.register_provider_template(providers.DeepSeekProvider())
+        self.register_provider_template(providers.CohereProvider())
+        self.register_provider_template(providers.GroqProvider())
+        self.register_provider_template(providers.XAIProvider())
     
     def get_available_templates(self) -> List[str]:
         """获取所有可用的供应商模板类型"""

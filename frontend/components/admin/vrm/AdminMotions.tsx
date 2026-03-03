@@ -260,21 +260,10 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
             <Toast message={toastMessage} title={{ success: t('admin.operationSuccess'), error: t('admin.operationFailed') }} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                        <Film size={28} className="text-primary" />
-                        动作库
-                        <span className="text-base font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                            {motions.length}
-                        </span>
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        管理VRMA格式的动画资产
-                    </p>
-                </div>
+                <h2 className="text-2xl font-bold text-foreground">{t('admin.animations')}</h2>
                 <Button onClick={openUploadModal} className="gap-2">
                     <Plus size={18} />
-                    上传动作
+                    {t('admin.uploadMotion')}
                 </Button>
             </div>
 

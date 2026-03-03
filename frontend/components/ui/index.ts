@@ -7,3 +7,5 @@ export * from './ConfirmDialog';
 export * from './Card';
 export { default as Toast } from './Toast';
 export type { ToastMessage } from './Toast';
+export { default as HierarchicalSelector } from './HierarchicalSelector';
+export type { HierarchicalItem } from './HierarchicalSelector';

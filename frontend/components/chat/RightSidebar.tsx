@@ -1,9 +1,11 @@
-import React from 'react';
-import { X, RotateCcw, Brain, Thermometer } from 'lucide-react';
-import { Model, ModelParameters } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, RotateCcw, ChevronDown } from 'lucide-react';
+import { Model, ModelParameters, ModelParameterSchemaResponse } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Select, Button } from '../ui';
+import { Button } from '../ui';
 import { cn } from '../../utils/cn';
+import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelector';
+import ParameterField from './ParameterField';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -25,14 +27,49 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   onModelParametersChange
 }) => {
   const { t } = useLanguage();
+  const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
+  const [parameterSchema, setParameterSchema] = useState<ModelParameterSchemaResponse | null>(null);
+  const [isLoadingSchema, setIsLoadingSchema] = useState(false);
 
-  const modelOptions = availableModels.map(m => ({
-    label: m.model_id,
-    value: m.id, // 使用 UUID 作为 value
-    group: m.provider_id
-  }));
+  // 获取模型参数 schema
+  useEffect(() => {
+    if (!activeModel?.id) {
+      setParameterSchema(null);
+      return;
+    }
 
-  const handleChange = (key: keyof ModelParameters, value: any) => {
+    setIsLoadingSchema(true);
+    fetch(`/api/v1/models/${activeModel.id}/parameter-schema`)
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch parameter schema');
+        return response.json();
+      })
+      .then(result => {
+        setParameterSchema(result.data);
+        setIsLoadingSchema(false);
+      })
+      .catch(error => {
+        console.error('Error fetching parameter schema:', error);
+        setIsLoadingSchema(false);
+      });
+  }, [activeModel?.id]);
+
+  // 转换模型列表为 HierarchicalItem 格式
+  const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
+    return availableModels.map(model => ({
+      id: model.id,
+      label: model.model_id,
+      category: model.provider_id,
+      tags: model.capabilities
+    }));
+  }, [availableModels]);
+
+  const handleModelSelect = (item: HierarchicalItem) => {
+    onUpdateModel(item.id);
+    setIsModelSelectorOpen(false);
+  };
+
+  const handleParameterChange = (key: string, value: any) => {
     onModelParametersChange({
       ...modelParameters,
       [key]: value
@@ -40,10 +77,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   };
 
   const resetToDefaults = () => {
-    onModelParametersChange({
-      temperature: undefined,
-      enable_thinking: undefined
-    });
+    onModelParametersChange({});
   };
 
   return (
@@ -83,80 +117,63 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         {/* Content */}
         <div className="p-6 space-y-8 overflow-y-auto h-[calc(100%-150px)] custom-scrollbar">
           {/* Model Selection */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <div className="space-y-2">
+            <label className="text-sm text-foreground">
               {t('chat.settings.modelSelection')}
             </label>
-            <Select
-              value={activeModel?.id || ''}
-              onChange={onUpdateModel}
-              options={modelOptions}
-              placeholder="选择模型..."
-              className="h-11"
-            />
+
+            <button
+              onClick={() => setIsModelSelectorOpen(true)}
+              className="w-full h-11 px-4 bg-muted/30 border border-border/50 rounded-xl text-sm text-foreground hover:bg-muted/50 hover:border-primary/30 transition-all flex items-center justify-between group"
+            >
+              <span className="truncate">{activeModel?.model_id || t('chat.settings.selectModel')}</span>
+              <ChevronDown
+                size={16}
+                className={cn(
+                  "text-muted-foreground group-hover:text-primary transition-all",
+                  isModelSelectorOpen && "rotate-180"
+                )}
+              />
+            </button>
           </div>
 
           <div className="h-px bg-border/50" />
 
-          {/* Enable Thinking */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-border/50 group hover:border-primary/30 transition-all duration-300">
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <Brain size={16} className="text-primary" />
-                  <label className="text-sm font-bold text-foreground">
-                    {t('chat.settings.enableThinking')}
-                  </label>
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {t('chat.settings.enableThinkingDesc')}
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer ml-4">
-                <input
-                  type="checkbox"
-                  checked={modelParameters.enable_thinking ?? false}
-                  onChange={(e) => handleChange('enable_thinking', e.target.checked)}
-                  className="sr-only peer"
+          {/* Dynamic Parameters */}
+          {isLoadingSchema ? (
+            <div className="text-center text-sm text-muted-foreground py-8">
+              {t('chat.settings.loadingSchema')}
+            </div>
+          ) : parameterSchema ? (
+            <div className="space-y-4">
+              {/* Provider Parameters (思考类参数) - 显示在最前面 */}
+              {Object.entries(parameterSchema.provider_parameters).map(([key, schema]) => (
+                <ParameterField
+                  key={key}
+                  name={key}
+                  schema={schema}
+                  value={modelParameters[key]}
+                  onChange={handleParameterChange}
                 />
-                <div className="w-11 h-6 bg-muted border border-border rounded-full peer peer-checked:bg-primary peer-checked:border-primary transition-all duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full after:shadow-sm"></div>
-              </label>
-            </div>
-          </div>
+              ))}
 
-          {/* Temperature */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                <Thermometer size={14} className="text-primary" />
-                {t('chat.settings.temperature')}
-              </label>
-              <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg">
-                {modelParameters.temperature?.toFixed(1) ?? '1.0'}
-              </span>
-            </div>
+              {/* 分隔线（如果有供应商参数） */}
+              {Object.keys(parameterSchema.provider_parameters).length > 0 && (
+                <div className="h-px bg-border/50" />
+              )}
 
-            <div className="px-1">
-              <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                value={modelParameters.temperature ?? 1}
-                onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
-                className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary/80 transition-all"
-              />
-              <div className="flex justify-between mt-3">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{t('chat.settings.precise')}</span>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{t('chat.settings.creative')}</span>
-              </div>
+              {/* Common Parameters (通用参数) */}
+              {Object.entries(parameterSchema.common_parameters).map(([key, schema]) => (
+                <ParameterField
+                  key={key}
+                  name={key}
+                  schema={schema}
+                  value={modelParameters[key]}
+                  onChange={handleParameterChange}
+                />
+              ))}
             </div>
-
-            <p className="text-[11px] text-muted-foreground leading-relaxed bg-muted/20 p-3 rounded-xl border border-border/30">
-              {t('chat.settings.temperatureDesc')}
-            </p>
-          </div>
+          ) : null}
         </div>
 
         {/* Footer */}
@@ -171,6 +188,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Model Selector Modal */}
+      <HierarchicalSelector
+        isOpen={isModelSelectorOpen}
+        onClose={() => setIsModelSelectorOpen(false)}
+        items={hierarchicalModels}
+        selectedId={activeModel?.id}
+        onSelect={handleModelSelect}
+        title={t('chat.settings.selectModel')}
+        placeholder={t('chat.settings.searchModel')}
+      />
     </>
   );
 };
