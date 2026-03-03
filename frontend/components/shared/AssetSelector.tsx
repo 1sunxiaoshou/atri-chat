@@ -4,6 +4,7 @@ import { Avatar, VoiceAsset } from '../../types';
 import { avatarsApi, voiceAssetsApi } from '../../services/api';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface AssetSelectorProps {
     type: 'avatar' | 'voice';
@@ -20,6 +21,7 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
     label,
     onClose
 }) => {
+    const { t } = useLanguage();
     const [assets, setAssets] = useState<(Avatar | VoiceAsset)[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
                 }
             }
         } catch (err) {
-            setError('加载资产失败');
+            setError(t('app.loadAssetsFailed'));
         } finally {
             setLoading(false);
         }
@@ -92,7 +94,7 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
 
                     {!loading && !error && assets.length === 0 && (
                         <div className="text-center py-12 text-muted-foreground">
-                            暂无{type === 'avatar' ? '形象' : '音色'}资产
+                            {t('app.noAssets', { type: type === 'avatar' ? t('admin.avatar') : t('admin.voiceAsset') })}
                         </div>
                     )}
 

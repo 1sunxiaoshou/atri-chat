@@ -95,8 +95,8 @@ const AdminVoice: React.FC = () => {
                 setProviderTypes(typesRes.data);
             }
         } catch (error) {
-            console.error('加载数据失败:', error);
-            showToast(false, '加载数据失败');
+            console.error('Failed to load data:', error);
+            showToast(false, t('admin.loadDataFailed'));
         } finally {
             setLoading(false);
         }
@@ -131,25 +131,23 @@ const AdminVoice: React.FC = () => {
         setConfirmDialog({
             isOpen: true,
             title: t('admin.delete'),
-            description: language === 'zh'
-                ? '确定要删除此供应商吗？这将同时删除其下的所有音色。'
-                : 'Delete this provider? All voices will be deleted.',
+            description: t('admin.confirmDeleteProviderWithVoices'),
             type: 'danger',
             onConfirm: async () => {
                 try {
                     const res = await httpClient.delete(`/tts-providers/${providerId}`);
                     if (res.code === 200) {
-                        showToast(true, language === 'zh' ? '删除成功' : 'Deleted');
+                        showToast(true, t('admin.deleteSuccess'));
                         if (selectedProviderId === providerId) {
                             setSelectedProviderId(null);
                         }
                         loadData();
                     } else {
-                        showToast(false, res.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                        showToast(false, res.message || t('admin.deleteFailed'));
                     }
                 } catch (error: any) {
-                    console.error('删除供应商失败:', error);
-                    showToast(false, error?.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                    console.error('Failed to delete provider:', error);
+                    showToast(false, error?.message || t('admin.deleteFailed'));
                 }
             }
         });
@@ -161,13 +159,13 @@ const AdminVoice: React.FC = () => {
         } else {
             // 新建模式：使用当前选中的供应商
             if (!selectedProviderId) {
-                showToast(false, language === 'zh' ? '请先选择供应商' : 'Please select a provider first');
+                showToast(false, t('admin.pleaseSelectProvider'));
                 return;
             }
 
             const selectedProvider = providers.find(p => p.id === selectedProviderId);
             if (!selectedProvider) {
-                showToast(false, language === 'zh' ? '供应商不存在' : 'Provider not found');
+                showToast(false, t('admin.providerNotFound'));
                 return;
             }
 
@@ -197,20 +195,20 @@ const AdminVoice: React.FC = () => {
         setConfirmDialog({
             isOpen: true,
             title: t('admin.delete'),
-            description: language === 'zh' ? '确定要删除此音色吗？' : 'Delete this voice?',
+            description: t('admin.confirmDeleteVoice'),
             type: 'danger',
             onConfirm: async () => {
                 try {
                     const res = await httpClient.delete(`/voice-assets/${voiceId}`);
                     if (res.code === 200) {
-                        showToast(true, language === 'zh' ? '删除成功' : 'Deleted');
+                        showToast(true, t('admin.deleteSuccess'));
                         loadData();
                     } else {
-                        showToast(false, res.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                        showToast(false, res.message || t('admin.deleteFailed'));
                     }
                 } catch (error: any) {
-                    console.error('删除音色失败:', error);
-                    showToast(false, error?.message || (language === 'zh' ? '删除失败' : 'Delete failed'));
+                    console.error('Failed to delete voice:', error);
+                    showToast(false, error?.message || t('admin.deleteFailed'));
                 }
             }
         });
@@ -278,12 +276,10 @@ const AdminVoice: React.FC = () => {
                             <Volume2 size={40} className="text-primary" />
                         </div>
                         <h3 className="text-xl font-bold text-foreground mb-2">
-                            {language === 'zh' ? '选择 TTS 供应商' : 'Select TTS Provider'}
+                            {t('admin.selectTTSProvider')}
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-md">
-                            {language === 'zh'
-                                ? '从左侧列表选择一个 TTS 供应商以查看和管理其音色资产'
-                                : 'Select a TTS provider from the left to view and manage voice assets'}
+                            {t('admin.selectTTSProviderDesc')}
                         </p>
                     </div>
                 )}

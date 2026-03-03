@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Check, Upload, Link, Image as ImageIcon } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { cn } from '../../utils/cn';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface AvatarEditorProps {
   currentAvatar: string;
@@ -10,6 +11,7 @@ interface AvatarEditorProps {
 }
 
 export const AvatarEditor: React.FC<AvatarEditorProps> = ({ currentAvatar, onSave, onCancel }) => {
+  const { t } = useLanguage();
   const [avatarUrl, setAvatarUrl] = useState(currentAvatar || '');
   const [previewUrl, setPreviewUrl] = useState(currentAvatar || '');
   const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url');
@@ -46,7 +48,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({ currentAvatar, onSav
     <Modal
       isOpen={true}
       onClose={onCancel}
-      title="设置头像"
+      title={t('app.setAvatar')}
       size="md"
     >
       <div className="flex flex-col h-full overflow-hidden">
@@ -109,7 +111,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({ currentAvatar, onSav
         <div className="p-6 flex-1 min-h-[120px]">
           {uploadMode === 'url' ? (
             <Input
-              label="图片地址"
+              label={t('app.imageUrl')}
               type="text"
               value={avatarUrl}
               onChange={handleUrlChange}
@@ -125,8 +127,8 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({ currentAvatar, onSav
                 className="w-full border-2 border-dashed border-border rounded-xl p-6 text-sm text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex flex-col items-center gap-2"
               >
                 <Upload size={24} className="opacity-50" />
-                <span className="font-medium">{isUploading ? '正在处理...' : '点击或拖拽上传图片'}</span>
-                <span className="text-[10px] opacity-60">支持 JPG、PNG、GIF 格式</span>
+                <span className="font-medium">{isUploading ? t('app.processing') : t('app.uploadImage')}</span>
+                <span className="text-[10px] opacity-60">{t('app.supportedFormats')}</span>
               </button>
               <input
                 ref={fileInputRef}

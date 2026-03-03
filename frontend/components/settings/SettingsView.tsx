@@ -19,18 +19,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     isSidebarHidden,
     onShowSidebar
 }) => {
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'general' | 'asr'>('general');
 
     const tabs = [
         {
             id: 'general',
-            label: language === 'zh' ? '常规设置' : 'General',
+            label: t('settings.generalSettings'),
             icon: Settings
         },
         {
             id: 'asr',
-            label: language === 'zh' ? '语音识别' : 'ASR',
+            label: t('settings.asr'),
             icon: Mic
         },
     ];
@@ -62,7 +62,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             size="icon"
                             onClick={onShowSidebar}
                             className="h-9 w-9 gap-0 text-muted-foreground hover:text-primary hover:bg-transparent rounded-lg [&_svg]:size-5"
-                            title={language === 'zh' ? '显示侧边栏' : 'Show sidebar'}
+                            title={t('settings.showSidebar')}
                         >
                             <PanelLeftOpen size={20} />
                         </Button>
@@ -72,7 +72,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         "text-2xl font-bold tracking-tight text-foreground transition-all duration-300",
                         !isSidebarHidden && "lg:ml-2"
                     )}>
-                        {language === 'zh' ? '系统设置' : 'Settings'}
+                        {t('settings.title')}
                     </h2>
                 </div>
 

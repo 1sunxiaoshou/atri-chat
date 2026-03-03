@@ -16,7 +16,7 @@ const VoiceToolbar: React.FC<VoiceToolbarProps> = ({
     onAddVoice,
     hasSelectedProvider,
 }) => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
 
     return (
         <div className="h-16 px-6 border-b border-border flex items-center justify-between gap-4 bg-background">
@@ -25,7 +25,7 @@ const VoiceToolbar: React.FC<VoiceToolbarProps> = ({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                 <Input
                     type="text"
-                    placeholder={language === 'zh' ? '搜索音色...' : 'Search voices...'}
+                    placeholder={t('admin.searchVoices')}
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
                     className="pl-9 h-9"
@@ -38,10 +38,10 @@ const VoiceToolbar: React.FC<VoiceToolbarProps> = ({
                     onClick={onAddVoice}
                     size="sm"
                     disabled={!hasSelectedProvider}
-                    title={!hasSelectedProvider ? (language === 'zh' ? '请先选择供应商' : 'Please select a provider first') : ''}
+                    title={!hasSelectedProvider ? t('admin.pleaseSelectProvider') : ''}
                 >
                     <Plus size={16} className="mr-2" />
-                    {language === 'zh' ? '添加音色' : 'Add Voice'}
+                    {t('admin.addVoice')}
                 </Button>
             </div>
         </div>

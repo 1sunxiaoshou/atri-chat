@@ -32,7 +32,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
     providerTypes,
     onClose
 }) => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
     const [providerType, setProviderType] = useState(provider?.provider_type || '');
     const [name, setName] = useState(provider?.name || '');
     const [enabled, setEnabled] = useState(provider?.enabled ?? true);
@@ -94,7 +94,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                 }
             }
         } catch (error) {
-            console.error('加载配置模板失败:', error);
+            console.error('Failed to load template:', error);
         }
     };
 
@@ -108,7 +108,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
 
     const handleTest = async () => {
         if (!provider) {
-            alert(language === 'zh' ? '请先保存供应商后再测试' : 'Please save provider first');
+            alert(t('admin.saveProviderFirst'));
             return;
         }
 
@@ -118,12 +118,12 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
         try {
             const res = await httpClient.post(`/tts-providers/${provider.id}/test`, {});
             if (res.code === 200) {
-                setTestResult({ success: true, message: (res.data as any)?.message || '连接成功' });
+                setTestResult({ success: true, message: (res.data as any)?.message || t('admin.connectionSuccess') });
             } else {
-                setTestResult({ success: false, message: (res.data as any)?.message || '连接失败' });
+                setTestResult({ success: false, message: (res.data as any)?.message || t('admin.connectionFailed') });
             }
         } catch (error: any) {
-            setTestResult({ success: false, message: error?.message || '测试失败' });
+            setTestResult({ success: false, message: error?.message || t('admin.testFailed') });
         } finally {
             setTesting(false);
         }
@@ -131,7 +131,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
 
     const handleSave = async () => {
         if (!providerType || !name.trim()) {
-            alert(language === 'zh' ? '请填写必填项' : 'Please fill required fields');
+            alert(t('admin.fillRequiredFields'));
             return;
         }
 
@@ -158,11 +158,11 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
             if (res.code === 200) {
                 onClose(true);
             } else {
-                alert(res.message || (language === 'zh' ? '保存失败' : 'Save failed'));
+                alert(res.message || t('admin.saveFailed'));
             }
         } catch (error: any) {
-            console.error('保存供应商失败:', error);
-            alert(error?.message || (language === 'zh' ? '保存失败' : 'Save failed'));
+            console.error('Failed to save provider:', error);
+            alert(error?.message || t('admin.saveFailed'));
         } finally {
             setLoading(false);
         }
@@ -176,7 +176,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
         if (providerFields.length === 0) {
             return (
                 <div className="text-muted-foreground italic text-center py-8">
-                    {language === 'zh' ? '该供应商暂无配置项' : 'No configuration required'}
+                    {t('admin.noConfigRequired')}
                 </div>
             );
         }
@@ -253,26 +253,26 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={() => onClose(false)}
-            title={provider ? (language === 'zh' ? '编辑供应商' : 'Edit Provider') : (language === 'zh' ? '添加供应商' : 'Add Provider')}
+            title={provider ? t('admin.editProvider') : t('admin.addProvider')}
             size="lg"
         >
             <div className="p-6 space-y-6">
                 {/* 基本信息 */}
                 <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-                        {language === 'zh' ? '基本信息' : 'Basic Information'}
+                        {t('admin.basicInfo')}
                     </h4>
                     <Input
-                        label={language === 'zh' ? '供应商名称' : 'Provider Name'}
+                        label={t('admin.providerName')}
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder={language === 'zh' ? '例如：我的 GPT-SoVITS' : 'e.g., My GPT-SoVITS'}
+                        placeholder="e.g., My GPT-SoVITS"
                     />
 
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium">
-                            {language === 'zh' ? '供应商类型' : 'Provider Type'}
+                            {t('admin.providerType')}
                             <span className="text-destructive ml-1">*</span>
                         </label>
                         <Select
@@ -293,7 +293,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                             className="rounded"
                         />
                         <label htmlFor="enabled" className="text-sm">
-                            {language === 'zh' ? '启用此供应商' : 'Enable this provider'}
+                            {t('admin.enableProvider')}
                         </label>
                     </div>
                 </div>
@@ -302,7 +302,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                 {providerType && (
                     <div className="space-y-4">
                         <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-                            {language === 'zh' ? '供应商配置' : 'Provider Configuration'}
+                            {t('admin.providerConfiguration')}
                         </h4>
                         {renderFormFields()}
                     </div>
@@ -318,7 +318,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                 {/* 操作按钮 */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                     <Button variant="outline" onClick={() => onClose(false)}>
-                        {language === 'zh' ? '取消' : 'Cancel'}
+                        {t('admin.cancel')}
                     </Button>
                     {provider && (
                         <Button
@@ -328,12 +328,12 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                             loading={testing}
                         >
                             <Activity size={16} className="mr-2" />
-                            {language === 'zh' ? '测试连接' : 'Test'}
+                            {t('admin.testConnection')}
                         </Button>
                     )}
                     <Button onClick={handleSave} disabled={loading} loading={loading}>
                         <Save size={16} className="mr-2" />
-                        {language === 'zh' ? '保存' : 'Save'}
+                        {t('admin.save')}
                     </Button>
                 </div>
             </div>

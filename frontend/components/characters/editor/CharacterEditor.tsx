@@ -67,7 +67,7 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                     setMotions(motionsRes.data || []);
                 }
             } catch (error) {
-                console.error('加载资产失败:', error);
+                console.error(t('character.loadAssetsFailed'), error);
             } finally {
                 setIsLoadingAssets(false);
             }
@@ -86,7 +86,7 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                     // 更新角色的 portrait_url
                     character.portrait_url = uploadRes.data.url;
                 } else {
-                    throw new Error('立绘上传失败');
+                    throw new Error(t('character.portraitUploadFailed'));
                 }
             }
 
@@ -105,9 +105,9 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
     };
 
     const tabs = [
-        { id: 'persona' as TabType, icon: Sparkle, label: t('admin.persona') || '人设' },
-        { id: 'assets' as TabType, icon: User, label: t('admin.assetsAndVoice') || '形象/音色' },
-        { id: 'motion' as TabType, icon: Activity, label: t('admin.motion') || '动作' },
+        { id: 'persona' as TabType, icon: Sparkle, label: t('admin.persona') },
+        { id: 'assets' as TabType, icon: User, label: t('admin.assetsAndVoice') },
+        { id: 'motion' as TabType, icon: Activity, label: t('admin.motion') },
     ];
 
     // 获取显示的头像 URL（优先使用 portrait_url，其次使用 avatar thumbnail）
@@ -145,19 +145,20 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                         {displayImageUrl ? (
                             <img
                                 src={displayImageUrl}
-                                alt={character.name || '角色头像'}
+                                alt={character.name || t('character.characterAvatar')}
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                <User size={20} />
+                            <div className="flex flex-col items-center justify-center text-muted-foreground p-8">
+                                <User size={64} className="opacity-20 mb-4" />
+                                <p className="text-sm text-center">{t('admin.avatar')}</p>
                             </div>
                         )}
                     </div>
 
                     {/* 角色名称 */}
                     <h2 className="text-base font-bold text-foreground truncate flex-1">
-                        {character.name || '新建角色'}
+                        {character.name || t('admin.createCharacter')}
                     </h2>
 
                     {/* 保存按钮 */}
@@ -167,7 +168,7 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                         className="shrink-0"
                     >
                         <Save size={16} className="mr-2" />
-                        {isSaving ? '保存中...' : (t('admin.save') || '保存')}
+                        {isSaving ? t('admin.saving') : t('admin.save')}
                     </Button>
                 </div>
 

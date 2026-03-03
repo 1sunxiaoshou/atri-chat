@@ -37,7 +37,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     providers,
     onClose
 }) => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
     const providerId = voice?.provider_id || '';
     const [name, setName] = useState(voice?.name || '');
     const [formData, setFormData] = useState<Record<string, any>>({});
@@ -100,7 +100,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                 }
             }
         } catch (error) {
-            console.error('加载配置模板失败:', error);
+            console.error('Failed to load template:', error);
         }
     };
 
@@ -121,7 +121,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
 
     const handleSave = async () => {
         if (!providerId || !name.trim()) {
-            alert(language === 'zh' ? '请填写必填项' : 'Please fill required fields');
+            alert(t('admin.fillRequiredFields'));
             return;
         }
 
@@ -151,11 +151,11 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
             if (res.code === 200) {
                 onClose(true);
             } else {
-                alert(res.message || (language === 'zh' ? '保存失败' : 'Save failed'));
+                alert(res.message || t('admin.saveFailed'));
             }
         } catch (error: any) {
-            console.error('保存音色失败:', error);
-            alert(error?.message || (language === 'zh' ? '保存失败' : 'Save failed'));
+            console.error('Failed to save voice:', error);
+            alert(error?.message || t('admin.saveFailed'));
         } finally {
             setLoading(false);
         }
@@ -169,7 +169,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         if (voiceFields.length === 0) {
             return (
                 <div className="text-muted-foreground italic text-center py-8">
-                    {language === 'zh' ? '该供应商暂无音色配置项' : 'No voice configuration required'}
+                    {t('admin.noVoiceConfigRequired')}
                 </div>
             );
         }
@@ -272,21 +272,21 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={() => onClose(false)}
-            title={voice ? (language === 'zh' ? '编辑音色' : 'Edit Voice') : (language === 'zh' ? '添加音色' : 'Add Voice')}
+            title={voice ? t('admin.editVoice') : t('admin.addVoice')}
             size="lg"
         >
             <div className="p-4 space-y-4">
                 {/* 基本信息 */}
                 <div className="space-y-3">
                     <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        {language === 'zh' ? '基本信息' : 'Basic Information'}
+                        {t('admin.basicInfo')}
                     </h4>
                     <Input
-                        label={language === 'zh' ? '音色名称' : 'Voice Name'}
+                        label={t('admin.voiceName')}
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder={language === 'zh' ? '例如：甜美女声' : 'e.g., Sweet Female'}
+                        placeholder={t('character.motion')}
                     />
                 </div>
 
@@ -294,7 +294,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                 {providerId && (
                     <div className="space-y-3">
                         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            {language === 'zh' ? '音色配置' : 'Voice Configuration'}
+                            {t('admin.voiceConfiguration')}
                         </h4>
                         {renderFormFields()}
                     </div>
@@ -303,11 +303,11 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                 {/* 操作按钮 */}
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                     <Button variant="outline" size="sm" onClick={() => onClose(false)}>
-                        {language === 'zh' ? '取消' : 'Cancel'}
+                        {t('admin.cancel')}
                     </Button>
                     <Button size="sm" onClick={handleSave} disabled={loading || !providerId} loading={loading}>
                         <Save size={14} />
-                        {language === 'zh' ? '保存' : 'Save'}
+                        {t('admin.save')}
                     </Button>
                 </div>
             </div>

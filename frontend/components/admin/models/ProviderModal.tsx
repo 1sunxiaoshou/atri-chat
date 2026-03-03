@@ -1,6 +1,7 @@
 import React from 'react';
 import { Provider } from '../../../types';
 import { Modal, Button, Input, Select } from '../../ui';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface ProviderModalProps {
     isOpen: boolean;
@@ -21,6 +22,8 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
     onSave,
     onChange,
 }) => {
+    const { t } = useLanguage();
+
     if (!provider) return null;
 
     const isEditing = existingProviders.some(p => p.provider_id === provider.provider_id);
@@ -29,24 +32,24 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={isEditing ? '编辑供应商' : '添加供应商'}
+            title={isEditing ? t('admin.editProvider') : t('admin.addProvider')}
         >
             <div className="p-6 space-y-6">
                 {/* 基本信息 */}
                 <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-                        基本信息
+                        {t('admin.basicInfo')}
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="供应商 ID"
+                            label={t('admin.providerId')}
                             value={provider.provider_id || ''}
                             onChange={(e) => onChange({ ...provider, provider_id: e.target.value })}
                             disabled={isEditing}
                             placeholder="e.g. openai"
                         />
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium">供应商模板</label>
+                            <label className="text-sm font-medium">{t('admin.providerTemplate')}</label>
                             <Select
                                 value={provider.template_type || providerTemplates[0]?.template_type || 'openai'}
                                 onChange={(val) => {
@@ -73,10 +76,10 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
                 {/* API 配置 */}
                 <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-                        API 配置
+                        {t('admin.apiConfig')}
                     </h4>
                     <Input
-                        label="API Key"
+                        label={t('admin.apiKey')}
                         type="password"
                         value={provider.config_json?.api_key || ''}
                         onChange={(e) =>
@@ -88,7 +91,7 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
                         showPasswordToggle
                     />
                     <Input
-                        label="Base URL"
+                        label={t('admin.baseUrl')}
                         value={provider.config_json?.base_url || ''}
                         onChange={(e) =>
                             onChange({
@@ -103,10 +106,10 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
                 {/* 操作按钮 */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-border">
                     <Button variant="outline" onClick={onClose}>
-                        取消
+                        {t('admin.cancel')}
                     </Button>
                     <Button onClick={onSave} disabled={!provider.provider_id}>
-                        保存
+                        {t('admin.save')}
                     </Button>
                 </div>
             </div>

@@ -28,7 +28,7 @@ const VoiceTable: React.FC<VoiceTableProps> = ({
     onEditVoice,
     onDeleteVoice,
 }) => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
 
     return (
         <div className="flex-1 overflow-auto custom-scrollbar">
@@ -36,10 +36,10 @@ const VoiceTable: React.FC<VoiceTableProps> = ({
                 <thead className="bg-muted/50 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                     <tr>
                         <th className="pl-6 pr-4 py-3 font-medium text-muted-foreground">
-                            {language === 'zh' ? '音色名称' : 'Voice Name'}
+                            {t('admin.voiceName')}
                         </th>
                         <th className="px-4 py-3 font-medium text-muted-foreground">
-                            {language === 'zh' ? '创建时间' : 'Created'}
+                            {t('admin.created')}
                         </th>
                         <th className="pl-4 pr-6 py-3 w-20"></th>
                     </tr>
@@ -90,12 +90,10 @@ const VoiceTable: React.FC<VoiceTableProps> = ({
                                         <PackageSearch size={32} className="text-muted-foreground" />
                                     </div>
                                     <p className="font-medium text-foreground mb-1">
-                                        {language === 'zh' ? '未找到音色' : 'No voices found'}
+                                        {t('admin.voicesNotFound')}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {language === 'zh'
-                                            ? '尝试调整搜索条件或添加新音色'
-                                            : 'Try adjusting search or add a new voice'}
+                                        {t('admin.adjustSearchOrAdd')}
                                     </p>
                                 </div>
                             </td>

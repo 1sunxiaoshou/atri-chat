@@ -6,6 +6,7 @@ import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
 import { MotionController } from '../../../libs/vrm-emote/motionController';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface VRMMotionPreviewOptimizedProps {
     motionUrl: string;
@@ -20,6 +21,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
     className,
     autoPlay = false
 }) => {
+    const { t } = useLanguage();
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -161,16 +163,16 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
             const loader = new GLTFLoader();
             loader.register((parser) => new VRMLoaderPlugin(parser));
 
-            console.log('开始加载 VRM 模型...');
+            console.log(t('character.importingVRM'));
             const modelPath = '/static/defaults/mox.vrm';
             const gltf = await loader.loadAsync(modelPath);
             const vrm = gltf.userData.vrm as VRM;
 
             if (!vrm) {
-                throw new Error('无效的VRM文件');
+                throw new Error(t('admin.loadDataFailed'));
             }
 
-            console.log('VRM 模型加载成功');
+            console.log(t('admin.syncSuccess'));
 
             VRMUtils.rotateVRM0(vrm);
             sceneRef.current.add(vrm.scene);
@@ -208,20 +210,20 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                 await loadMotion();
             }
         } catch (err) {
-            console.error('加载模型失败:', err);
-            setError('加载模型失败: ' + (err as Error).message);
+            console.error(t('admin.loadDataFailed'), err);
+            setError(t('admin.loadDataFailed') + ': ' + (err as Error).message);
             setIsLoading(false);
         }
     };
 
     const loadMotion = async () => {
         if (!motionControllerRef.current) {
-            console.warn('MotionController 未初始化');
+            console.warn(t('admin.noConfigRequired'));
             return;
         }
 
         try {
-            console.log('加载动作:', motionUrl);
+            console.log(t('admin.syncSuccess'), motionUrl);
 
             // 使用 MotionController 播放动作（不会重新加载模型）
             await motionControllerRef.current.playAnimationUrl(motionUrl, true);
@@ -229,10 +231,10 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
             // 根据 autoPlay 决定是否自动播放
             setIsPlaying(autoPlay);
 
-            console.log('动作加载成功');
+            console.log(t('admin.syncSuccess'));
         } catch (err) {
-            console.error('加载动作失败:', err);
-            setError('加载动作失败: ' + (err as Error).message);
+            console.error(t('admin.loadDataFailed'), err);
+            setError(t('admin.loadDataFailed') + ': ' + (err as Error).message);
         }
     };
 
@@ -349,7 +351,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
                         <p className="text-white text-sm">
-                            {vrmRef.current ? '加载动作中...' : '加载模型中...'}
+                            {vrmRef.current ? t('admin.processing') : t('admin.loading')}
                         </p>
                     </div>
                 </div>
@@ -376,7 +378,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                             "h-8 w-8 hover:bg-slate-700 hover:text-white",
                             isPlaying ? "text-blue-400" : "text-white"
                         )}
-                        title={isPlaying ? "暂停" : "播放"}
+                        title={isPlaying ? t('character.pause') : t('character.play')}
                     >
                         {isPlaying ? <Pause size={16} /> : <Play size={16} />}
                     </Button>
@@ -386,7 +388,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                         size="icon"
                         onClick={handleZoomOut}
                         className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title="缩小"
+                        title={t('admin.cancel')}
                     >
                         <ZoomOut size={16} />
                     </Button>
@@ -395,7 +397,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                         size="icon"
                         onClick={handleZoomIn}
                         className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title="放大"
+                        title={t('admin.save')}
                     >
                         <ZoomIn size={16} />
                     </Button>
@@ -404,7 +406,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                         size="icon"
                         onClick={handleReset}
                         className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title="重置视角"
+                        title={t('admin.reset')}
                     >
                         <RotateCcw size={16} />
                     </Button>
@@ -419,7 +421,7 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
 
             {!isLoading && !error && (
                 <div className="absolute top-4 right-4 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-300">
-                    <p>拖拽旋转 • 滚轮缩放</p>
+                    <p>{t('admin.tip')}</p>
                 </div>
             )}
         </div>

@@ -70,7 +70,7 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
             const vrm = gltf.userData.vrm as VRM;
 
             if (!vrm) {
-                throw new Error('无效的VRM文件');
+                throw new Error(t('admin.loadDataFailed'));
             }
 
             // 添加模型到场景
@@ -104,7 +104,7 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
                 if (blob) {
                     onThumbnailGenerated(blob);
                 } else {
-                    onError?.('生成缩略图失败');
+                    onError?.(t('admin.loadDataFailed'));
                 }
 
                 // 清理资源
@@ -114,8 +114,8 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
             }, 'image/jpeg', 0.9);
 
         } catch (err) {
-            console.error('生成缩略图失败:', err);
-            onError?.(err instanceof Error ? err.message : '生成缩略图失败');
+            console.error(t('admin.loadDataFailed'), err);
+            onError?.(err instanceof Error ? err.message : t('admin.loadDataFailed'));
         }
     };
 

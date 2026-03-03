@@ -4,6 +4,7 @@ import { api } from '../../../services/api/index';
 import { Modal, Button, Input, ConfirmDialog, Card } from '../../ui';
 import Toast, { ToastMessage } from '../../ui/Toast';
 import { VRMMotionPreviewOptimized } from './VRMMotionPreviewOptimized';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Motion {
     id: string;
@@ -30,6 +31,7 @@ interface ModalState {
 }
 
 export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) => {
+    const { t } = useLanguage();
     const [motions, setMotions] = useState<Motion[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +72,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 }
             }
         } catch (error) {
-            console.error('获取动作失败:', error);
+            console.error(t('vrm.motion.fetchFailed'), error);
         } finally {
             setIsLoading(false);
         }
@@ -127,12 +129,12 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                     const duration = vrmAnimations[0].duration;
                     const durationMs = Math.round(duration * 1000);
                     setFormDurationMs(durationMs);
-                    console.log('自动检测到动作时长:', durationMs, 'ms');
+                    console.log(t('vrm.motion.autoDetectedDuration'), durationMs, 'ms');
                 }
 
                 URL.revokeObjectURL(url);
             } catch (error) {
-                console.error('无法读取动作时长:', error);
+                console.error(t('vrm.motion.cannotReadDuration'), error);
                 // 保持默认值 2500ms
             }
         }
@@ -145,7 +147,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
         try {
             if (modal.type === 'upload') {
                 if (!formFile) {
-                    alert('请选择动作文件');
+                    alert(t('admin.pleaseSelectFile'));
                     return;
                 }
 
@@ -174,8 +176,8 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 closeModal();
             }
         } catch (error) {
-            console.error('操作失败:', error);
-            alert('操作失败');
+            console.error(t('vrm.motion.operationFailed'), error);
+            alert(t('admin.operationFailed'));
         } finally {
             setIsSubmitting(false);
         }
@@ -184,8 +186,8 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
     const handleDelete = async (id: string, name: string) => {
         setConfirmDialog({
             isOpen: true,
-            title: '确认删除',
-            description: `确定要删除动作 "${name}" 吗？`,
+            title: t('admin.confirmDeleteTitle'),
+            description: t('admin.confirmDeleteMotion', { name }),
             type: 'danger',
             onConfirm: async () => {
                 // 清除之前的 Toast
@@ -201,7 +203,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                     }
                     await fetchMotions();
                     onMotionsChange?.();
-                    setToastMessage({ success: true, message: '动作删除成功' });
+                    setToastMessage({ success: true, message: t('admin.motionDeleteSuccess') });
                     setTimeout(() => setToastMessage(null), 3000);
                 } else if (response.code === 409) {
                     // 409 冲突错误（资源正在使用）
@@ -215,14 +217,14 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
                         setToastMessage({
                             success: false,
-                            message: `该动作正在被以下角色使用：${characterNames}。请先解除角色绑定后再删除`
+                            message: t('vrm.motion.inUseByCharacters', { characterNames })
                         });
                         setTimeout(() => setToastMessage(null), 5000);
                     } else {
                         // 提取错误消息
                         const errorMsg = typeof detail === 'object' && detail.message
                             ? detail.message
-                            : (typeof response.message === 'string' ? response.message : '该动作正在被角色使用，请先解除绑定');
+                            : (typeof response.message === 'string' ? response.message : t('vrm.motion.inUse'));
 
                         setToastMessage({
                             success: false,
@@ -232,7 +234,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                     }
                 } else {
                     // 其他错误 - 安全地提取错误消息
-                    let errorMsg = '未知错误';
+                    let errorMsg = t('admin.unknownError');
                     if (typeof response.message === 'string') {
                         errorMsg = response.message;
                     } else if (typeof response.message === 'object' && response.message !== null) {
@@ -241,7 +243,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
                     setToastMessage({
                         success: false,
-                        message: `删除失败：${errorMsg}`
+                        message: t('vrm.motion.deleteFailed', { errorMsg })
                     });
                     setTimeout(() => setToastMessage(null), 3000);
                 }
@@ -255,7 +257,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
     return (
         <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Toast message={toastMessage} title={{ success: '操作成功', error: '操作失败' }} />
+            <Toast message={toastMessage} title={{ success: t('admin.operationSuccess'), error: t('admin.operationFailed') }} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -295,7 +297,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                                     <div className="h-full flex items-center justify-center text-muted-foreground">
                                         <div className="text-center">
                                             <Film size={48} className="mx-auto mb-4 opacity-50" />
-                                            <p>选择一个动作查看预览</p>
+                                            <p>{t('vrm.motion.selectToPreview')}</p>
                                         </div>
                                     </div>
                                 )}
@@ -320,9 +322,9 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                                 ) : motions.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-full px-6 text-center">
                                         <Film size={48} className="text-muted-foreground mb-4 opacity-50" />
-                                        <h3 className="text-lg font-semibold text-foreground mb-2">还没有动作</h3>
+                                        <h3 className="text-lg font-semibold text-foreground mb-2">{t('admin.noMotionsYet')}</h3>
                                         <p className="text-sm text-muted-foreground mb-6">
-                                            上传第一个动作文件，为你的角色添加生动的动画
+                                            {t('vrm.motion.uploadFirst')}
                                         </p>
                                         <Button onClick={openUploadModal} className="gap-2">
                                             <Upload size={18} />
@@ -355,7 +357,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                                                             {motion.duration_ms && (
                                                                 <span className="flex items-center gap-1">
                                                                     <Clock size={12} />
-                                                                    {(motion.duration_ms / 1000).toFixed(2)}s
+                                                                    {t('vrm.motion.duration', { duration: (motion.duration_ms / 1000).toFixed(2) })}
                                                                 </span>
                                                             )}
                                                             {motion.tags && motion.tags.length > 0 && (
@@ -402,9 +404,9 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                                         </div>
                                     )}
                                     <div>
-                                        <label className="text-xs font-medium text-muted-foreground">时长</label>
+                                        <label className="text-xs font-medium text-muted-foreground">{t('admin.durationMs')}</label>
                                         <p className="text-sm text-foreground mt-1">
-                                            {selectedMotion.duration_ms ? `${(selectedMotion.duration_ms / 1000).toFixed(2)}秒` : '-'}
+                                            {t('vrm.motion.duration', { duration: (selectedMotion.duration_ms / 1000).toFixed(2) })}
                                         </p>
                                     </div>
                                     {selectedMotion.tags && selectedMotion.tags.length > 0 && (
@@ -433,7 +435,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                                             className="flex-1 gap-2"
                                         >
                                             <Edit2 size={14} />
-                                            编辑
+                                            {t('admin.edit')}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -442,13 +444,13 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                                             className="flex-1 gap-2 text-destructive hover:text-destructive"
                                         >
                                             <Trash size={14} />
-                                            删除
+                                            {t('admin.delete')}
                                         </Button>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="text-center py-8 text-muted-foreground">
-                                    <p className="text-sm">选择一个动作查看详细信息</p>
+                                    <p className="text-sm">{t('vrm.motion.selectForInfo')}</p>
                                 </div>
                             )}
                         </div>
@@ -460,17 +462,17 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
             <Modal
                 isOpen={modal.isOpen}
                 onClose={closeModal}
-                title={modal.type === 'upload' ? '上传动作' : '编辑动作'}
+                title={modal.type === 'upload' ? t('admin.uploadMotion') : t('admin.editMotion')}
             >
                 <div className="p-6 space-y-5">
                     {modal.type === 'upload' && (
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">动作文件</label>
+                            <label className="text-sm font-medium">{t('admin.motionFile')}</label>
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50">
                                 <div className="flex flex-col items-center justify-center p-4 text-center">
                                     <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                    <p className="text-sm font-semibold">{formFile ? formFile.name : "点击上传VRMA文件"}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">仅支持 .vrma 格式</p>
+                                    <p className="text-sm font-semibold">{formFile ? formFile.name : t('vrm.motion.clickUpload')}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('admin.onlyVRMAFormat')}</p>
                                 </div>
                                 <input
                                     ref={fileInputRef}
@@ -485,22 +487,22 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
                     <div className="space-y-4">
                         <Input
-                            label="动作名称"
+                            label={t('admin.motionName')}
                             value={formName}
                             onChange={(e) => setFormName(e.target.value)}
-                            placeholder="输入动作名称"
+                            placeholder={t('admin.enterMotionName')}
                             required
                         />
 
                         <Input
-                            label="描述"
+                            label={t('admin.description')}
                             value={formDescription}
                             onChange={(e) => setFormDescription(e.target.value)}
-                            placeholder="描述这个动作的用途"
+                            placeholder={t('admin.describeMotion')}
                         />
 
                         <Input
-                            label="时长（毫秒）"
+                            label={t('vrm.motion.durationMs')}
                             type="number"
                             value={formDurationMs}
                             onChange={(e) => setFormDurationMs(parseInt(e.target.value) || 0)}
@@ -508,23 +510,23 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                         />
 
                         <Input
-                            label="标签"
+                            label={t('admin.tags')}
                             value={formTags}
                             onChange={(e) => setFormTags(e.target.value)}
-                            placeholder="用逗号分隔，例如：idle, happy, wave"
+                            placeholder={t('admin.tagsPlaceholder')}
                         />
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-border">
                         <Button variant="outline" onClick={closeModal} disabled={isSubmitting}>
-                            取消
+                            {t('admin.cancel')}
                         </Button>
                         <Button
                             onClick={handleModalSubmit}
                             disabled={isSubmitting || (modal.type === 'upload' && !formFile) || !formName}
                             loading={isSubmitting}
                         >
-                            {isSubmitting ? '处理中...' : '保存'}
+                            {isSubmitting ? t('admin.processing') : t('admin.save')}
                         </Button>
                     </div>
                 </div>
@@ -538,8 +540,8 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 title={confirmDialog.title}
                 description={confirmDialog.description}
                 type={confirmDialog.type}
-                confirmText="删除"
-                cancelText="取消"
+                confirmText={t('admin.delete')}
+                cancelText={t('admin.cancel')}
             />
         </div>
     );

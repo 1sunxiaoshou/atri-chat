@@ -7,7 +7,7 @@ import { SUCCESS_MESSAGES } from '../../utils/constants';
 import { cn } from '../../utils/cn';
 
 const ASRSettings: React.FC = () => {
-    const { language } = useLanguage();
+    const { t } = useLanguage();
     const { settings, saveSettings } = useSettings();
     const [saveMessage, setSaveMessage] = React.useState<string>('');
     const [localLanguage, setLocalLanguage] = React.useState(settings.asrLanguage || 'auto');
@@ -41,10 +41,10 @@ const ASRSettings: React.FC = () => {
             {/* 头部标题 */}
             <div className="mb-8">
                 <h2 className="text-2xl font-bold text-foreground">
-                    {language === 'zh' ? '语音识别设置' : 'ASR Settings'}
+                    {t('settings.asrTitle')}
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                    {language === 'zh' ? '配置语音识别的语言和模型精度' : 'Configure speech recognition language and model precision'}
+                    {t('settings.asrDescription')}
                 </p>
             </div>
 
@@ -58,18 +58,16 @@ const ASRSettings: React.FC = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-base font-bold text-foreground mb-1">
-                                    {language === 'zh' ? '语音识别状态' : 'ASR Status'}
+                                    {t('settings.asrStatus')}
                                 </h3>
                                 <div className="flex items-center gap-2 mb-2">
                                     <CheckCircle2 size={16} className="text-green-500" />
                                     <span className="text-sm text-green-500 font-medium">
-                                        {language === 'zh' ? '已启用（本地模型）' : 'Enabled (Local Model)'}
+                                        {t('settings.asrEnabled')}
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {language === 'zh'
-                                        ? '系统使用本地 SenseVoice-Small ONNX 模型进行语音识别，无需额外配置。'
-                                        : 'The system uses local SenseVoice-Small ONNX model for speech recognition.'}
+                                    {t('settings.asrStatusDesc')}
                                 </p>
                             </div>
                         </div>
@@ -85,12 +83,10 @@ const ASRSettings: React.FC = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-base font-bold text-foreground mb-1">
-                                    {language === 'zh' ? '识别语言' : 'Recognition Language'}
+                                    {t('settings.recognitionLanguage')}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
-                                    {language === 'zh'
-                                        ? '选择语音识别的目标语言，或使用自动检测'
-                                        : 'Select target language for speech recognition or use auto-detection'}
+                                    {t('settings.recognitionLanguageDesc')}
                                 </p>
                             </div>
                         </div>
@@ -100,19 +96,17 @@ const ASRSettings: React.FC = () => {
                                 value={localLanguage}
                                 onChange={handleLanguageChange}
                                 options={[
-                                    { label: language === 'zh' ? '自动检测' : 'Auto Detect', value: 'auto' },
-                                    { label: language === 'zh' ? '中文（普通话）' : 'Chinese (Mandarin)', value: 'zh' },
-                                    { label: language === 'zh' ? '英语' : 'English', value: 'en' },
-                                    { label: language === 'zh' ? '日语' : 'Japanese', value: 'ja' },
-                                    { label: language === 'zh' ? '韩语' : 'Korean', value: 'ko' },
-                                    { label: language === 'zh' ? '粤语' : 'Cantonese', value: 'yue' }
+                                    { label: t('settings.autoDetect'), value: 'auto' },
+                                    { label: t('settings.chineseMandarin'), value: 'zh' },
+                                    { label: t('settings.english'), value: 'en' },
+                                    { label: t('settings.japanese'), value: 'ja' },
+                                    { label: t('settings.korean'), value: 'ko' },
+                                    { label: t('settings.cantonese'), value: 'yue' }
                                 ]}
                                 className="w-full max-w-md"
                             />
                             <p className="text-[10px] text-muted-foreground italic">
-                                {language === 'zh'
-                                    ? '提示：自动检测适用于大多数场景，指定语言可能提高识别准确度'
-                                    : 'Tip: Auto-detect works for most scenarios, specifying language may improve accuracy'}
+                                {t('settings.languageTip')}
                             </p>
                         </div>
                     </CardContent>
@@ -127,12 +121,10 @@ const ASRSettings: React.FC = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-base font-bold text-foreground mb-1">
-                                    {language === 'zh' ? '模型精度' : 'Model Precision'}
+                                    {t('settings.modelPrecision')}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
-                                    {language === 'zh'
-                                        ? '选择模型精度，平衡识别速度和准确度'
-                                        : 'Choose model precision to balance speed and accuracy'}
+                                    {t('settings.modelPrecisionDesc')}
                                 </p>
                             </div>
                         </div>
@@ -150,7 +142,7 @@ const ASRSettings: React.FC = () => {
                                 >
                                     <span className="font-bold">FP32</span>
                                     <span className="text-[10px] opacity-70">
-                                        {language === 'zh' ? '全精度' : 'Full Precision'}
+                                        {t('settings.fullPrecision')}
                                     </span>
                                 </button>
                                 <button
@@ -164,34 +156,32 @@ const ASRSettings: React.FC = () => {
                                 >
                                     <span className="font-bold">INT8</span>
                                     <span className="text-[10px] opacity-70">
-                                        {language === 'zh' ? '量化' : 'Quantized'}
+                                        {t('settings.quantized')}
                                     </span>
                                 </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                                 <div className="p-3 rounded-lg bg-muted/50 border border-border/30">
-                                    <div className="font-semibold text-foreground mb-1">FP32 {language === 'zh' ? '全精度' : 'Full Precision'}</div>
+                                    <div className="font-semibold text-foreground mb-1">FP32 {t('settings.fullPrecision')}</div>
                                     <ul className="text-muted-foreground space-y-1 text-[11px]">
-                                        <li>• {language === 'zh' ? '精度更高' : 'Higher accuracy'}</li>
-                                        <li>• {language === 'zh' ? '速度较慢（~150ms/10s）' : 'Slower (~150ms/10s)'}</li>
-                                        <li>• {language === 'zh' ? '模型大小 ~900MB' : 'Model size ~900MB'}</li>
+                                        <li>• {t('settings.higherAccuracy')}</li>
+                                        <li>• {t('settings.slowerSpeed')}</li>
+                                        <li>• {t('settings.largerModel')}</li>
                                     </ul>
                                 </div>
                                 <div className="p-3 rounded-lg bg-muted/50 border border-border/30">
-                                    <div className="font-semibold text-foreground mb-1">INT8 {language === 'zh' ? '量化' : 'Quantized'}</div>
+                                    <div className="font-semibold text-foreground mb-1">INT8 {t('settings.quantized')}</div>
                                     <ul className="text-muted-foreground space-y-1 text-[11px]">
-                                        <li>• {language === 'zh' ? '速度更快（~70ms/10s）' : 'Faster (~70ms/10s)'}</li>
-                                        <li>• {language === 'zh' ? '精度略低' : 'Slightly lower accuracy'}</li>
-                                        <li>• {language === 'zh' ? '模型大小 ~200MB' : 'Model size ~200MB'}</li>
+                                        <li>• {t('settings.fasterSpeed')}</li>
+                                        <li>• {t('settings.slightlyLowerAccuracy')}</li>
+                                        <li>• {t('settings.smallerModel')}</li>
                                     </ul>
                                 </div>
                             </div>
 
                             <p className="text-[10px] text-muted-foreground italic">
-                                {language === 'zh'
-                                    ? '提示：切换精度时会自动重新加载模型，首次加载需要 4-5 秒'
-                                    : 'Tip: Switching precision will reload the model, first load takes 4-5 seconds'}
+                                {t('settings.precisionTip')}
                             </p>
                         </div>
                     </CardContent>
@@ -202,29 +192,13 @@ const ASRSettings: React.FC = () => {
                     <CardContent className="p-6">
                         <div className="space-y-3">
                             <h4 className="text-sm font-medium">
-                                {language === 'zh' ? '使用说明' : 'Usage Instructions'}
+                                {t('settings.usageInstructions')}
                             </h4>
                             <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                                <li>
-                                    {language === 'zh'
-                                        ? '在聊天界面点击麦克风图标开始语音输入'
-                                        : 'Click the microphone icon in the chat interface to start voice input'}
-                                </li>
-                                <li>
-                                    {language === 'zh'
-                                        ? '支持中文、英文、日文、韩文、粤语等多语言识别'
-                                        : 'Supports Chinese, English, Japanese, Korean, and Cantonese'}
-                                </li>
-                                <li>
-                                    {language === 'zh'
-                                        ? '首次使用时会自动下载模型文件（约 1GB）'
-                                        : 'Model files will be downloaded automatically on first use (~1GB)'}
-                                </li>
-                                <li>
-                                    {language === 'zh'
-                                        ? '语言和精度设置会在下次录音时生效'
-                                        : 'Language and precision settings take effect on next recording'}
-                                </li>
+                                <li>{t('settings.usageInstruction1')}</li>
+                                <li>{t('settings.usageInstruction2')}</li>
+                                <li>{t('settings.usageInstruction3')}</li>
+                                <li>{t('settings.usageInstruction4')}</li>
                             </ul>
                         </div>
                     </CardContent>
@@ -242,7 +216,7 @@ const ASRSettings: React.FC = () => {
                         className="min-w-[120px]"
                     >
                         <Save size={18} className="mr-2" />
-                        {language === 'zh' ? '保存设置' : 'Save Settings'}
+                        {t('settings.saveSettings')}
                     </Button>
                 </div>
             </div>
