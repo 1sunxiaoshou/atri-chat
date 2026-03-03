@@ -55,8 +55,7 @@ try:
     r1 = client.post('/api/v1/character-motion-bindings', json={
         "character_id": character.id,
         "motion_id": motion1.id,
-        "category": "idle",
-        "weight": 1.0
+        "category": "idle"
     })
     print(f"   状态码: {r1.status_code}")
     if r1.status_code == 200:
@@ -71,8 +70,7 @@ try:
     r2 = client.post('/api/v1/character-motion-bindings/batch', json={
         "character_id": character.id,
         "motion_ids": [motion2.id, motion3.id],
-        "category": "idle",
-        "weight": 0.8
+        "category": "idle"
     })
     print(f"   状态码: {r2.status_code}")
     if r2.status_code == 200:
@@ -92,7 +90,7 @@ try:
         for cat, bindings in data['bindings_by_category'].items():
             print(f"   ✓ 分类 '{cat}': {len(bindings)} 个动作")
             for b in bindings:
-                print(f"     - {b['motion_name']} (权重: {b['weight']})")
+                print(f"     - {b['motion_name']}")
     else:
         print(f"   ✗ 失败: {r3.json()}")
     
@@ -109,7 +107,6 @@ try:
     # 9. 更新绑定
     print("\n5. 更新绑定...")
     r5 = client.put(f'/api/v1/character-motion-bindings/{binding_id}', json={
-        "weight": 2.0,
         "category": "thinking"
     })
     print(f"   状态码: {r5.status_code}")

@@ -59,8 +59,6 @@ export class ModelManager {
         throw new Error('文件不是有效的VRM模型');
       }
 
-      Logger.info('✅ VRM 模型文件加载成功，开始初始化...');
-
       // 优化VRM
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
       VRMUtils.combineSkeletons(gltf.scene);
@@ -79,23 +77,19 @@ export class ModelManager {
 
       // 初始化动画混合器
       this.mixer = new THREE.AnimationMixer(vrm.scene);
-      Logger.info('✅ 动画混合器已初始化');
 
       // 初始化情感控制器
       this.emoteController = new EmoteController(vrm);
-      Logger.info('✅ 情感控制器已初始化');
 
       // 初始化自动眨眼（独立于表情控制器）
       if (vrm.expressionManager) {
         this.autoBlink = new AutoBlink(vrm.expressionManager);
-        Logger.debug('自动眨眼已初始化');
       } else {
         Logger.warn('⚠️ VRM 没有 expressionManager，无法初始化眨眼');
       }
 
       // 初始化自动视线跟踪
       this.autoLookAt = new AutoLookAt(vrm, this.sceneManager.getCamera());
-      Logger.debug('自动视线跟踪已初始化');
 
       // 注册更新回调 - 完全按照 Airi 的顺序
       this.updateCallback = (delta: number) => {
@@ -154,14 +148,12 @@ export class ModelManager {
       };
       this.sceneManager.registerUpdateCallback(this.updateCallback);
 
-      Logger.debug('更新回调已注册', {
-        hasMixer: !!this.mixer,
-        hasEmoteController: !!this.emoteController,
-        hasAutoBlink: !!this.autoBlink,
-        hasAutoLookAt: !!this.autoLookAt
+      Logger.info('✅ VRM模型初始化完成', {
+        mixer: true,
+        emote: true,
+        blink: !!this.autoBlink,
+        lookAt: true
       });
-
-      Logger.info('🎉 ModelManager: VRM模型加载完成');
 
       return vrm;
     } catch (error) {
@@ -171,20 +163,21 @@ export class ModelManager {
   }
 
   /**
-   * 加载闲置动画
+   * 加载初始动画
+   * 初始动作：AI加载时的默认姿态，循环播放
    */
-  async loadIdleAnimation(url: string): Promise<void> {
+  async loadInitialAnimation(url: string): Promise<void> {
     if (!this.emoteController) {
-      Logger.warn('情感控制器未初始化，无法加载闲置动画');
+      Logger.warn('情感控制器未初始化，无法加载初始动画');
       return;
     }
 
     try {
-      this.emoteController.setIdleAnimationUrl(url);
-      await this.emoteController.loadIdleAnimation();
-      Logger.debug('ModelManager: 闲置动画加载完成', { url });
+      this.emoteController.setInitialAnimationUrl(url);
+      await this.emoteController.loadInitialAnimation();
+      Logger.debug('ModelManager: 初始动画加载完成', { url });
     } catch (error) {
-      Logger.error('闲置动画加载失败', error instanceof Error ? error : undefined);
+      Logger.error('初始动画加载失败', error instanceof Error ? error : undefined);
       throw error;
     }
   }
@@ -221,7 +214,6 @@ export class ModelManager {
 
     try {
       await this.emoteController.preloadAnimations(animationMap, onProgress);
-      Logger.info(`预加载 ${animations.length} 个动画完成`);
     } catch (error) {
       Logger.warn('部分动画加载失败，但不影响使用', error instanceof Error ? error : undefined);
     }
@@ -279,7 +271,7 @@ export class ModelManager {
 
     // 音量映射：使用平方根让小音量更敏感
     const normalizedVolume = Math.sqrt(volume);
-    
+
     // 限制最大值为 0.7（参考 airi）
     const CAP = 0.7;
     const lipValue = Math.min(normalizedVolume * 0.9, CAP);
@@ -287,7 +279,7 @@ export class ModelManager {
     // 简化版：主要使用 'aa' 口型，配合少量其他音素
     // 完整版需要音素分析库（如 wlipsync）
     this.emoteController.lipSync('aa', lipValue);
-    
+
     // 添加一些变化，避免只张嘴不动
     const variation = Math.sin(Date.now() / 100) * 0.1;
     this.emoteController.lipSync('ih', lipValue * 0.3 + variation);
@@ -299,18 +291,18 @@ export class ModelManager {
   }
 
   /**
-   * 重置到闲置状态
+   * 重置到初始状态
    */
-  async resetToIdle(): Promise<void> {
+  async resetToInitial(): Promise<void> {
     if (!this.emoteController) {
       return;
     }
 
     try {
-      await this.emoteController.resetToIdle();
-      Logger.info('已重置到闲置状态');
+      await this.emoteController.resetToInitial();
+      Logger.info('已重置到初始状态');
     } catch (error) {
-      Logger.error('重置到闲置状态失败', error instanceof Error ? error : undefined);
+      Logger.error('重置到初始状态失败', error instanceof Error ? error : undefined);
     }
   }
 

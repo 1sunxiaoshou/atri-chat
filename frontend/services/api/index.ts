@@ -67,7 +67,7 @@ export const api = {
   createCharacter: charactersApi.createCharacter,
   updateCharacter: charactersApi.updateCharacter,
   deleteCharacter: charactersApi.deleteCharacter,
-  uploadAvatar: charactersApi.uploadAvatar,
+  uploadPortrait: charactersApi.uploadPortrait,
 
   // Conversation API
   getConversations: conversationsApi.getConversations,
@@ -83,9 +83,6 @@ export const api = {
   transcribeAudio: asrApi.transcribeAudio,
 
   // TTS API
-  getTTSProviders: ttsApi.getTTSProviders,
-  testTTSConnection: ttsApi.testTTSConnection,
-  saveTTSConfig: ttsApi.saveTTSConfig,
   synthesizeSpeechStream: ttsApi.synthesizeSpeechStream,
 
   // Avatar API
@@ -94,7 +91,7 @@ export const api = {
   uploadAvatarAsset: avatarsApi.uploadAvatar,
   deleteAvatar: avatarsApi.deleteAvatar,
 
-  // Voice Asset API
+  // Voice Asset API (TTS 供应商和音色管理)
   getVoiceAssets: voiceAssetsApi.getVoiceAssets,
   getVoiceProviders: voiceAssetsApi.getProviders,
   createVoiceAsset: voiceAssetsApi.createVoiceAsset,

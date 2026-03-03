@@ -2,7 +2,7 @@
 import json
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
-from core.db import Character, Motion
+from core.db import Character, Motion, CharacterMotionBinding
 from .base import BaseRepository
 
 
@@ -21,13 +21,13 @@ class CharacterRepository(BaseRepository[Character]):
         return self.db.query(Character).filter(Character.id == id).first()
     
     def get_with_relations(self, id: str) -> Optional[Character]:
-        """获取角色及其关联数据（avatar, voice_asset, model, motion_bindings）"""
+        """获取角色及其关联数据（avatar, voice_asset, primary_model, motion_bindings）"""
         return self.db.query(Character)\
             .options(
                 joinedload(Character.avatar),
                 joinedload(Character.voice_asset),
-                joinedload(Character.model),
-                joinedload(Character.motion_bindings).joinedload('motion')
+                joinedload(Character.primary_model),
+                joinedload(Character.motion_bindings).joinedload(CharacterMotionBinding.motion)
             )\
             .filter(Character.id == id)\
             .first()
@@ -69,7 +69,7 @@ class CharacterRepository(BaseRepository[Character]):
             动作列表（按权重降序）
         """
         character = self.db.query(Character)\
-            .options(joinedload(Character.motion_bindings).joinedload('motion'))\
+            .options(joinedload(Character.motion_bindings).joinedload(CharacterMotionBinding.motion))\
             .filter(Character.id == character_id)\
             .first()
         
@@ -80,9 +80,6 @@ class CharacterRepository(BaseRepository[Character]):
         bindings = character.motion_bindings
         if category:
             bindings = [b for b in bindings if b.category == category]
-        
-        # 按权重排序
-        bindings.sort(key=lambda b: b.weight, reverse=True)
         
         return [b.motion for b in bindings]
     

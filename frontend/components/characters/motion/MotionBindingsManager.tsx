@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Trash, Film, ArrowRight } from 'lucide-react';
+import { Film, ArrowRight } from 'lucide-react';
 import { Motion } from '../../../types';
 import { api } from '../../../services/api/index';
-import { Button, Input, ConfirmDialog } from '../../ui';
-import { cn } from '../../../utils/cn';
+import { Button, RadioGroup } from '../../ui';
+import { VRMMotionPreviewOptimized } from '../../admin/vrm/VRMMotionPreviewOptimized';
 
 interface LocalMotionBinding {
     motion_id: string;
-    category: 'idle' | 'thinking' | 'reply';
-    weight: number;
+    category: 'initial' | 'idle' | 'thinking' | 'reply';
 }
 
 interface Binding {
@@ -17,11 +16,11 @@ interface Binding {
     motion_name: string;
     motion_file_url: string;
     motion_duration_ms: number;
-    weight: number;
     created_at: string;
 }
 
 interface BindingsByCategory {
+    initial?: Binding[];
     idle?: Binding[];
     thinking?: Binding[];
     reply?: Binding[];
@@ -38,9 +37,10 @@ interface MotionBindingsManagerProps {
 }
 
 const CATEGORIES = [
-    { value: 'idle', label: '待机动作', icon: '🧘', color: 'border-blue-500 bg-blue-500/5 text-blue-600', activeColor: 'border-blue-500 bg-blue-500/10 text-blue-700' },
-    { value: 'thinking', label: '思考动作', icon: '🤔', color: 'border-purple-500 bg-purple-500/5 text-purple-600', activeColor: 'border-purple-500 bg-purple-500/10 text-purple-700' },
-    { value: 'reply', label: '回复动作', icon: '💬', color: 'border-green-500 bg-green-500/5 text-green-600', activeColor: 'border-green-500 bg-green-500/10 text-green-700' }
+    { value: 'initial', label: '初始', icon: '🎬', description: 'VRM加载时的默认姿态' },
+    { value: 'idle', label: '待机', icon: '🧘', description: '15秒无交互时触发' },
+    { value: 'thinking', label: '思考', icon: '🤔', description: '等待AI响应时播放' },
+    { value: 'reply', label: '回复', icon: '💬', description: '由AI通过标记控制' }
 ];
 
 export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
@@ -56,22 +56,48 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
     const [bindingsByCategory, setBindingsByCategory] = useState<BindingsByCategory>({});
     const [allMotions, setAllMotions] = useState<Motion[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 共享状态
-    const [activeCategory, setActiveCategory] = useState<'idle' | 'thinking' | 'reply'>('idle');
-    const [weight, setWeight] = useState<number>(1.0);
+    const [activeCategory, setActiveCategory] = useState<'initial' | 'idle' | 'thinking' | 'reply'>('initial');
+    const [previewMotionUrl, setPreviewMotionUrl] = useState<string | null>(null);
+    const [previewMotionName, setPreviewMotionName] = useState<string | null>(null);
 
-    // Confirm Dialog
-    const [confirmDialog, setConfirmDialog] = useState<{
-        isOpen: boolean;
-        description: string;
-        onConfirm: () => void;
-    }>({
-        isOpen: false,
-        description: '',
-        onConfirm: () => { }
-    });
+    // 获取当前分类的第一个动作用于预览
+    const getPreviewMotion = (): Motion | null => {
+        if (isApiMode) {
+            const bindings = getCurrentBindingsApi();
+            if (bindings.length > 0) {
+                const binding = bindings[0];
+                if (binding) {
+                    const motion = allMotions.find(m => m.id === binding.motion_id);
+                    return motion || null;
+                }
+            }
+        } else {
+            const bindings = getCurrentBindingsLocal();
+            if (bindings.length > 0) {
+                const binding = bindings[0];
+                if (binding) {
+                    const motionId = binding.motion_id;
+                    const motion = getMotions().find(m => m.id === motionId);
+                    return motion || null;
+                }
+            }
+        }
+        return null;
+    };
+
+    // 更新预览动作
+    useEffect(() => {
+        const motion = getPreviewMotion();
+        if (motion) {
+            setPreviewMotionUrl(motion.file_url);
+            setPreviewMotionName(motion.name);
+        } else {
+            setPreviewMotionUrl(null);
+            setPreviewMotionName(null);
+        }
+    }, [activeCategory, bindingsByCategory, localBindings, allMotions, propMotions, isApiMode]);
 
     // API 模式：加载数据
     useEffect(() => {
@@ -109,24 +135,49 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
         }
     };
 
-    // API 模式：添加绑定
+    // API 模式：添加绑定（乐观更新）
     const handleAddBindingApi = async (motionId: string) => {
         if (!characterId) return;
 
-        setIsSubmitting(true);
+        // 找到要添加的动作
+        const motion = allMotions.find(m => m.id === motionId);
+        if (!motion) return;
+
+        // 乐观更新：立即更新本地状态
+        const newBinding: Binding = {
+            binding_id: `temp-${Date.now()}`, // 临时 ID
+            motion_id: motionId,
+            motion_name: motion.name,
+            motion_file_url: motion.file_url,
+            motion_duration_ms: motion.duration_ms,
+            created_at: new Date().toISOString()
+        };
+
+        setBindingsByCategory(prev => ({
+            ...prev,
+            [activeCategory]: [...(prev[activeCategory] || []), newBinding]
+        }));
+
         try {
-            await api.batchAddModelAnimations(
+            // 后台发送请求
+            const response = await api.batchAddModelAnimations(
                 characterId,
                 [motionId],
-                activeCategory,
-                weight
+                activeCategory
             );
-            await fetchData();
+
+            // 请求成功，但不重新获取数据，保持当前状态
+            if (response.code !== 200) {
+                throw new Error('添加失败');
+            }
         } catch (error) {
             console.error('添加绑定失败:', error);
+            // 失败时回滚
+            setBindingsByCategory(prev => ({
+                ...prev,
+                [activeCategory]: (prev[activeCategory] || []).filter(b => b.binding_id !== newBinding.binding_id)
+            }));
             alert('添加失败');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -148,8 +199,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
             ...localBindings,
             {
                 motion_id: motionId,
-                category: activeCategory,
-                weight
+                category: activeCategory
             }
         ]);
     };
@@ -163,38 +213,37 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
         }
     };
 
-    // API 模式：删除绑定
-    const handleRemoveBindingApi = (bindingId: string, motionName: string) => {
+    // API 模式：删除绑定（乐观更新）
+    const handleRemoveBindingApi = async (bindingId: string) => {
         if (!characterId) return;
 
-        setConfirmDialog({
-            isOpen: true,
-            description: `确定要移除动作 "${motionName}" 吗？`,
-            onConfirm: async () => {
-                try {
-                    await api.removeModelAnimation(characterId, bindingId);
-                    await fetchData();
-                } catch (error) {
-                    console.error('移除绑定失败:', error);
-                    alert('移除失败');
-                }
-            }
-        });
+        // 乐观更新：立即从本地状态移除
+        const previousBindings = bindingsByCategory[activeCategory] || [];
+        setBindingsByCategory(prev => ({
+            ...prev,
+            [activeCategory]: (prev[activeCategory] || []).filter(b => b.binding_id !== bindingId)
+        }));
+
+        try {
+            // 后台发送请求
+            await api.removeModelAnimation(characterId, bindingId);
+        } catch (error) {
+            console.error('移除绑定失败:', error);
+            // 失败时回滚
+            setBindingsByCategory(prev => ({
+                ...prev,
+                [activeCategory]: previousBindings
+            }));
+            alert('移除失败');
+        }
     };
 
     // 本地模式：删除绑定
-    const handleRemoveBindingLocal = (motionId: string, motionName: string) => {
+    const handleRemoveBindingLocal = (motionId: string) => {
         if (!onLocalBindingsChange) return;
-
-        setConfirmDialog({
-            isOpen: true,
-            description: `确定要移除动作 "${motionName}" 吗？`,
-            onConfirm: () => {
-                onLocalBindingsChange(
-                    localBindings.filter(b => !(b.motion_id === motionId && b.category === activeCategory))
-                );
-            }
-        });
+        onLocalBindingsChange(
+            localBindings.filter(b => !(b.motion_id === motionId && b.category === activeCategory))
+        );
     };
 
     // 获取当前分类的绑定（API 模式）
@@ -227,15 +276,6 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
         return getMotions().filter(m => !boundIds.includes(m.id));
     };
 
-    // 获取动作信息
-    const getMotionInfo = (motionId: string) => {
-        const motion = getMotions().find(m => m.id === motionId);
-        return {
-            name: motion?.name || '未知动作',
-            duration_ms: motion?.duration_ms || 0
-        };
-    };
-
     // 获取所有分类的绑定数量
     const getCategoryCount = (category: string): number => {
         if (isApiMode) {
@@ -245,250 +285,133 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
         }
     };
 
-    const activeCategoryData = CATEGORIES.find(c => c.value === activeCategory)!;
+    // 点击动作加载到预览
+    const handlePreviewMotion = (motion: Motion) => {
+        setPreviewMotionUrl(motion.file_url);
+        setPreviewMotionName(motion.name);
+    };
+
     const availableMotions = getAvailableMotions();
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col gap-4">
             {isLoading ? (
-                <div className="flex items-center justify-center h-64">
+                <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>
                 </div>
             ) : (
-                <>
-                    {/* 新建角色提示 */}
-                    {!isApiMode && (
-                        <div className="mb-4 p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                            <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
-                                <strong>⚠️ 注意:</strong> 您正在创建新角色。动作绑定将在保存角色时一起创建。如果暂时不配置动作，可以保存后再编辑。
-                            </p>
-                        </div>
-                    )}
-
-                    <div className="flex-1 flex gap-4 min-h-0">
-                        {/* 左侧：分类标签 */}
-                        <div className="w-48 flex-shrink-0 space-y-2">
-                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                                动作分类
-                            </h4>
-                            {CATEGORIES.map(category => {
-                                const isActive = activeCategory === category.value;
-                                const count = getCategoryCount(category.value);
-
-                                return (
-                                    <button
-                                        key={category.value}
-                                        onClick={() => setActiveCategory(category.value as 'idle' | 'thinking' | 'reply')}
-                                        className={cn(
-                                            "w-full text-left p-4 rounded-xl border-2 transition-all",
-                                            isActive ? category.activeColor : category.color,
-                                            "hover:scale-[1.02]"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-2xl">{category.icon}</span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-sm truncate">{category.label}</p>
-                                                <p className="text-xs opacity-70">
-                                                    {count} 个动作
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-
-                            {/* 权重设置 */}
-                            <div className="pt-4 border-t border-border">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                                    默认权重
-                                </label>
-                                <Input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    value={weight}
-                                    onChange={(e) => setWeight(parseFloat(e.target.value) || 1.0)}
-                                    className="h-9"
+                <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
+                    {/* 1. 预览区 - 移动端顶部，桌面端左侧 */}
+                    <div className="w-full lg:w-[280px] xl:w-[320px] flex flex-col shrink-0">
+                        {/* 3D 预览 */}
+                        <div className="relative rounded-2xl border border-border bg-slate-900 overflow-hidden shadow-inner aspect-[9/16] lg:flex-1">
+                            {previewMotionUrl ? (
+                                <VRMMotionPreviewOptimized
+                                    motionUrl={previewMotionUrl}
+                                    motionName={previewMotionName || undefined}
+                                    className="w-full h-full"
+                                    autoPlay={true}
                                 />
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                    添加动作时的默认权重
-                                </p>
-                            </div>
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                                    <Film size={48} className="opacity-20 mb-4" />
+                                    <p className="text-xs">选择动作以预览</p>
+                                </div>
+                            )}
                         </div>
 
-                        {/* 中间：已绑定的动作 */}
-                        <div className="flex-1 border-2 border-border rounded-xl overflow-hidden flex flex-col">
-                            <div className={cn(
-                                "p-4 border-b-2 border-border flex items-center justify-between",
-                                activeCategoryData.color
-                            )}>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xl">{activeCategoryData.icon}</span>
-                                    <div>
-                                        <h4 className="font-bold text-sm">{activeCategoryData.label}</h4>
-                                        <p className="text-xs opacity-70">
-                                            已绑定 {isApiMode ? getCurrentBindingsApi().length : getCurrentBindingsLocal().length} 个动作
-                                        </p>
-                                    </div>
+                    </div>
+
+                    {/* 2. 动作管理区 */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-muted/30 rounded-2xl p-3 md:p-4 border border-border">
+                        {/* 分类切换 */}
+                        <div className="mb-4">
+                            <RadioGroup
+                                value={activeCategory}
+                                onChange={(value: string) => setActiveCategory(value as any)}
+                                options={CATEGORIES.map(cat => ({
+                                    value: cat.value,
+                                    label: `${cat.icon} ${cat.label} (${getCategoryCount(cat.value)})`
+                                }))}
+                                variant="segmented"
+                            />
+                        </div>
+
+                        {/* 动作网格区 - 内部可滚动 */}
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 min-h-0">
+                            {/* 2.1 可选动作 (资源池) */}
+                            <div className="flex flex-col min-h-0">
+                                <h4 className="px-2 mb-2 md:mb-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex justify-between shrink-0">
+                                    动作资源池 <span>{availableMotions.length}</span>
+                                </h4>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                                    {availableMotions.map(motion => (
+                                        <div
+                                            key={motion.id}
+                                            onClick={() => handlePreviewMotion(motion)}
+                                            className={`group flex items-center justify-between p-2.5 md:p-3 rounded-xl border transition-all cursor-pointer
+                                                ${previewMotionUrl === motion.file_url ? 'bg-primary/10 border-primary/30 shadow-sm' : 'bg-background border-transparent hover:border-border'}`}
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium truncate">{motion.name}</p>
+                                                <p className="text-[10px] text-muted-foreground">{(motion.duration_ms / 1000).toFixed(1)}s</p>
+                                            </div>
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                onClick={(e) => { e.stopPropagation(); handleAddBinding(motion.id); }}
+                                                className="h-7 w-7 md:h-8 md:w-8 rounded-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0"
+                                            >
+                                                <ArrowRight size={14} className="text-primary" />
+                                            </Button>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-4">
-                                {isApiMode ? (
-                                    // API 模式：显示 Binding 对象
-                                    getCurrentBindingsApi().length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                                            <Film size={48} className="mb-3 opacity-20" />
-                                            <p className="text-sm">暂无绑定的动作</p>
-                                            <p className="text-xs mt-1">从右侧列表添加动作</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {getCurrentBindingsApi().map(binding => (
-                                                <div
-                                                    key={binding.binding_id}
-                                                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg group hover:bg-muted/50 transition-all border border-transparent hover:border-border"
-                                                >
-                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                        <div className="p-2 bg-primary/10 rounded text-primary shrink-0">
-                                                            <Film size={18} />
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-sm font-medium text-foreground truncate">
-                                                                {binding.motion_name}
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {(binding.motion_duration_ms / 1000).toFixed(2)}s · 权重 {binding.weight}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleRemoveBindingApi(binding.binding_id, binding.motion_name)}
-                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                                                    >
-                                                        <Trash size={16} />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )
-                                ) : (
-                                    // 本地模式：显示 LocalMotionBinding 对象
-                                    getCurrentBindingsLocal().length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                                            <Film size={48} className="mb-3 opacity-20" />
-                                            <p className="text-sm">暂无绑定的动作</p>
-                                            <p className="text-xs mt-1">从右侧列表添加动作</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {getCurrentBindingsLocal().map(binding => {
-                                                const motionInfo = getMotionInfo(binding.motion_id);
-                                                return (
-                                                    <div
-                                                        key={`${binding.motion_id}-${binding.category}`}
-                                                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg group hover:bg-muted/50 transition-all border border-transparent hover:border-border"
-                                                    >
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            <div className="p-2 bg-primary/10 rounded text-primary shrink-0">
-                                                                <Film size={18} />
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="text-sm font-medium text-foreground truncate">
-                                                                    {motionInfo.name}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {(motionInfo.duration_ms / 1000).toFixed(2)}s · 权重 {binding.weight}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleRemoveBindingLocal(binding.motion_id, motionInfo.name)}
-                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                                                        >
-                                                            <Trash size={16} />
-                                                        </Button>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        </div>
+                            {/* 2.2 已绑定动作 (决策结果) */}
+                            <div className="flex flex-col min-h-0">
+                                <h4 className="px-2 mb-2 md:mb-3 text-[11px] font-bold text-primary uppercase tracking-wider flex justify-between shrink-0">
+                                    已配置到当前分类 <span>{isApiMode ? getCurrentBindingsApi().length : getCurrentBindingsLocal().length}</span>
+                                </h4>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                                    {(isApiMode ? getCurrentBindingsApi() : getCurrentBindingsLocal()).map((binding: any) => {
+                                        const motion = getMotions().find(m => m.id === (binding.motion_id || binding.id));
+                                        const bId = isApiMode ? binding.binding_id : binding.motion_id;
 
-                        {/* 右侧：未绑定的动作列表 */}
-                        <div className="w-80 flex-shrink-0 border-2 border-border rounded-xl overflow-hidden flex flex-col">
-                            <div className="p-4 bg-muted/30 border-b-2 border-border">
-                                <h4 className="font-bold text-sm text-foreground">可用动作</h4>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {availableMotions.length} 个未绑定
-                                </p>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto">
-                                {availableMotions.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-                                        <Film size={48} className="mb-3 opacity-20" />
-                                        <p className="text-sm text-center">所有动作已绑定到此分类</p>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y divide-border">
-                                        {availableMotions.map(motion => (
+                                        return (
                                             <div
-                                                key={motion.id}
-                                                className="p-3 hover:bg-muted/30 transition-colors group"
+                                                key={bId}
+                                                onClick={() => motion && handlePreviewMotion(motion)}
+                                                className={`group flex items-center justify-between p-2.5 md:p-3 rounded-xl border bg-background transition-all cursor-pointer
+                                                    ${previewMotionUrl === motion?.file_url ? 'ring-2 ring-primary/20 border-primary' : 'border-border'}`}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-muted rounded text-muted-foreground shrink-0">
-                                                        <Film size={16} />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-bold truncate">{binding.motion_name || motion?.name}</p>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-foreground truncate">
-                                                            {motion.name}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {(motion.duration_ms / 1000).toFixed(2)}s
-                                                            {motion.description && ` · ${motion.description}`}
-                                                        </p>
-                                                    </div>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        onClick={() => handleAddBinding(motion.id)}
-                                                        disabled={isSubmitting}
-                                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-all shrink-0 text-primary hover:bg-primary/10"
-                                                        title="添加到当前分类"
-                                                    >
-                                                        <ArrowRight size={16} />
-                                                    </Button>
+                                                    <p className="text-[10px] text-muted-foreground italic">已激活</p>
                                                 </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        isApiMode ? handleRemoveBindingApi(bId) : handleRemoveBindingLocal(bId);
+                                                    }}
+                                                    className="h-7 w-7 md:h-8 md:w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive text-muted-foreground shrink-0"
+                                                >
+                                                    <ArrowRight size={14} className="rotate-180" />
+                                                </Button>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </>
+                </div>
             )}
-
-            {/* Confirm Dialog */}
-            <ConfirmDialog
-                isOpen={confirmDialog.isOpen}
-                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-                onConfirm={confirmDialog.onConfirm}
-                title="确认移除"
-                description={confirmDialog.description}
-                type="danger"
-                confirmText="移除"
-                cancelText="取消"
-            />
         </div>
     );
 };

@@ -5,8 +5,7 @@ import { MotionBindingsManager } from '../../motion/MotionBindingsManager';
 
 interface LocalMotionBinding {
     motion_id: string;
-    category: 'idle' | 'thinking' | 'reply';
-    weight: number;
+    category: 'initial' | 'idle' | 'thinking' | 'reply';
 }
 
 interface MotionTabProps {
@@ -23,7 +22,7 @@ export const MotionTab: React.FC<MotionTabProps> = ({
     onLocalBindingsChange
 }) => {
     return (
-        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 h-full">
+        <div className="animate-in slide-in-from-right-4 duration-300 h-full">
             {motions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                     <Activity size={40} className="mx-auto mb-3 opacity-30" />

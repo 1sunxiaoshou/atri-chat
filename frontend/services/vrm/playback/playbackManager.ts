@@ -88,6 +88,16 @@ export class PlaybackManager {
   }
 
   /**
+   * 停止思考状态（收到响应时调用）
+   */
+  stopThinking(): void {
+    // 停止思考动作
+    this.thinkingMotionManager.stopThinking();
+    // 重置闲置计时器
+    this.idleMotionManager.resetIdleTimer();
+  }
+
+  /**
    * 根据分类和权重随机选择动作（用于标记触发）
    */
   private selectRandomMotion(_category: string): string | null {
@@ -188,6 +198,9 @@ export class PlaybackManager {
 
     this.isPlaying = true;
 
+    // 停止思考状态，开始回复
+    this.stopThinking();
+
     // 保存当前表情并切换到默认表情
     this.savedExpression = this.modelManager.getCurrentExpression();
     if (this.savedExpression && this.savedExpression !== 'neutral') {
@@ -247,6 +260,9 @@ export class PlaybackManager {
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
+
+    // 重置闲置计时器
+    this.idleMotionManager.resetIdleTimer();
 
     Logger.debug('PlaybackManager: VRM音频播放完成');
   }
@@ -501,6 +517,9 @@ export class PlaybackManager {
     if (this.onTextUpdate) {
       this.onTextUpdate('');
     }
+
+    // 重置闲置计时器
+    this.idleMotionManager.resetIdleTimer();
   }
 
   /**

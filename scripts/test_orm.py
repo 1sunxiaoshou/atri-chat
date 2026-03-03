@@ -76,8 +76,7 @@ def test_create_assets():
         binding = CharacterMotionBinding(
             character_id=character.id,
             motion_id=motion.id,
-            category="idle",
-            weight=1.0
+            category="idle"
         )
         db.add(binding)
         db.commit()
@@ -95,7 +94,7 @@ def test_create_assets():
         logger.info(f"  动作绑定数: {len(char.motion_bindings)}")
         
         for binding in char.motion_bindings:
-            logger.info(f"    - {binding.motion.name} ({binding.category}, 权重: {binding.weight})")
+            logger.info(f"    - {binding.motion.name} ({binding.category})")
         
         logger.success("\n✓ 所有测试通过！")
         

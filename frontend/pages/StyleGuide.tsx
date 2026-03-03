@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Input, Select, Modal, ConfirmDialog, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui';
-import { Bot, Send, Trash, Settings, Plus, Info, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Brain, Thermometer, Mic, Volume2, Monitor, Moon, Sun } from 'lucide-react';
+import { Button, Input, Select, Modal, ConfirmDialog, Card, CardContent } from '../components/ui';
+import { Bot, Plus, Info, CheckCircle2, Sparkles, Brain, Thermometer, Mic, Volume2, Monitor, Moon, Sun, Settings } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 const StyleGuide: React.FC = () => {

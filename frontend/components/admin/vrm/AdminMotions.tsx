@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash, Upload, Edit2, Film, Clock } from 'lucide-react';
 import { api } from '../../../services/api/index';
 import { Modal, Button, Input, ConfirmDialog, Card } from '../../ui';
-import { VRMMotionPreview } from './VRMMotionPreview';
+import Toast, { ToastMessage } from '../../ui/Toast';
+import { VRMMotionPreviewOptimized } from './VRMMotionPreviewOptimized';
 
 interface Motion {
     id: string;
@@ -34,6 +35,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedMotion, setSelectedMotion] = useState<Motion | null>(null);
     const [modal, setModal] = useState<ModalState>({ isOpen: false, type: null });
+    const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
         title?: string;
@@ -186,16 +188,62 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
             description: `确定要删除动作 "${name}" 吗？`,
             type: 'danger',
             onConfirm: async () => {
-                try {
-                    await api.deleteVRMAnimation(id);
+                // 清除之前的 Toast
+                setToastMessage(null);
+
+                const response = await api.deleteVRMAnimation(id);
+
+                // 检查响应状态码
+                if (response.code === 204 || response.code === 200) {
+                    // 删除成功
                     if (selectedMotion?.id === id) {
                         setSelectedMotion(null);
                     }
                     await fetchMotions();
                     onMotionsChange?.();
-                } catch (error) {
-                    console.error('删除失败:', error);
-                    alert('删除失败，该动作可能正在被角色使用');
+                    setToastMessage({ success: true, message: '动作删除成功' });
+                    setTimeout(() => setToastMessage(null), 3000);
+                } else if (response.code === 409) {
+                    // 409 冲突错误（资源正在使用）
+                    const detail = response.data as any;
+
+                    if (detail && typeof detail === 'object' && detail.referenced_by) {
+                        const referencedBy = detail.referenced_by || [];
+                        const characterNames = referencedBy
+                            .map((ref: any) => ref.name)
+                            .join('、');
+
+                        setToastMessage({
+                            success: false,
+                            message: `该动作正在被以下角色使用：${characterNames}。请先解除角色绑定后再删除`
+                        });
+                        setTimeout(() => setToastMessage(null), 5000);
+                    } else {
+                        // 提取错误消息
+                        const errorMsg = typeof detail === 'object' && detail.message
+                            ? detail.message
+                            : (typeof response.message === 'string' ? response.message : '该动作正在被角色使用，请先解除绑定');
+
+                        setToastMessage({
+                            success: false,
+                            message: errorMsg
+                        });
+                        setTimeout(() => setToastMessage(null), 3000);
+                    }
+                } else {
+                    // 其他错误 - 安全地提取错误消息
+                    let errorMsg = '未知错误';
+                    if (typeof response.message === 'string') {
+                        errorMsg = response.message;
+                    } else if (typeof response.message === 'object' && response.message !== null) {
+                        errorMsg = (response.message as any).message || JSON.stringify(response.message);
+                    }
+
+                    setToastMessage({
+                        success: false,
+                        message: `删除失败：${errorMsg}`
+                    });
+                    setTimeout(() => setToastMessage(null), 3000);
                 }
             }
         });
@@ -207,6 +255,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
     return (
         <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Toast message={toastMessage} title={{ success: '操作成功', error: '操作失败' }} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -238,7 +287,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                             </div>
                             <div className="flex-1 p-4">
                                 {selectedMotion ? (
-                                    <VRMMotionPreview
+                                    <VRMMotionPreviewOptimized
                                         motionUrl={selectedMotion.animation_path}
                                         motionName={selectedMotion.name}
                                     />

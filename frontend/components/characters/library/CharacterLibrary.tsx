@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, ArrowRight, Mic2 } from 'lucide-react';
+import { Plus, Trash2, ArrowRight } from 'lucide-react';
 import { Character } from '../../../types';
 import { buildAvatarUrl } from '../../../utils/url';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -57,7 +57,7 @@ export const CharacterLibrary: React.FC<CharacterLibraryProps> = ({
                             {/* 3. 立绘区域 - 3/4 比例和内切圆角 */}
                             <div className="relative w-full rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 will-change-transform" style={{ paddingBottom: '133.33%' }}>
                                 <img
-                                    src={buildAvatarUrl(char.avatar?.thumbnail_url || char.portrait_url || `/uploads/vrm_thumbnails/${char.avatar_id}.jpg`)}
+                                    src={buildAvatarUrl(char.portrait_url || char.avatar?.thumbnail_url || `/uploads/vrm_thumbnails/${char.avatar_id}.jpg`)}
                                     alt={char.name}
                                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 />
@@ -87,12 +87,6 @@ export const CharacterLibrary: React.FC<CharacterLibraryProps> = ({
 
                                     {/* 标签组 - 10px 字体和特定的颜色系 */}
                                     <div className="flex flex-wrap gap-1.5">
-                                        {/* 语音标签 (紫色系) - 仅在有音色资产时显示 */}
-                                        {char.voice_asset_id && (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800">
-                                                <Mic2 size={10} strokeWidth={3} /> {char.voice_asset?.name || 'Voice'}
-                                            </span>
-                                        )}
                                         {/* 模型标签 (灰色系) */}
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                                             {char.primary_model?.model_id || 'AI'}

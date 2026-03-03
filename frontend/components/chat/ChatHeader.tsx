@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bot, Menu, Settings, Circle, PanelLeftOpen } from 'lucide-react';
 import { Character, Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Select, Button } from '../ui';
+import { Select, Button, RadioGroup } from '../ui';
 import { buildAvatarUrl } from '../../utils/url';
 import { cn } from '../../utils/cn';
 
@@ -91,8 +91,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         >
           <div className="relative shrink-0">
             <div className="w-10 md:w-12 h-10 md:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary ring-2 ring-background shadow-md overflow-hidden transition-transform duration-300 group-hover:scale-105">
-              {activeCharacter?.avatar?.file_url ? (
-                <img src={buildAvatarUrl(activeCharacter.avatar.file_url)} alt={activeCharacter.name} className="w-full h-full object-cover" />
+              {activeCharacter?.portrait_url ? (
+                <img src={buildAvatarUrl(activeCharacter.portrait_url)} alt={activeCharacter.name} className="w-full h-full object-cover" />
+              ) : activeCharacter?.avatar?.thumbnail_url ? (
+                <img src={buildAvatarUrl(activeCharacter.avatar.thumbnail_url)} alt={activeCharacter.name} className="w-full h-full object-cover" />
               ) : (
                 <Bot size={24} />
               )}
@@ -124,16 +126,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
 
         {/* Display Mode Toggle - Hidden on small mobile */}
-        <div className="hidden sm:flex relative bg-muted p-1 rounded-xl items-center h-10 w-[180px] lg:w-[220px] shadow-inner ring-1 ring-border/50">
-          {/* Slider Background Animation */}
-          <div
-            className="absolute top-1 bottom-1 left-1 bg-background rounded-lg shadow-sm transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)"
-            style={{
-              width: 'calc((100% - 8px) / 3)',
-              transform: `translateX(${['normal', 'vrm', 'live2d'].indexOf(vrmDisplayMode) * 100}%)`
-            }}
-          />
-
+        <div className="hidden sm:block relative">
           {/* Error Popup for VRM */}
           {showVrmError && (
             <div className="absolute top-14 right-0 bg-destructive text-destructive-foreground text-[10px] md:text-xs px-4 py-2 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-4 flex items-center gap-2 whitespace-nowrap border border-destructive/20 font-bold uppercase tracking-wider">
@@ -142,27 +135,17 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-3 w-full h-full relative">
-            {[
-              { id: 'normal', label: '正常' },
-              { id: 'vrm', label: 'VRM' },
-              { id: 'live2d', label: 'Live2D' }
-            ].map((mode) => {
-              const isActive = vrmDisplayMode === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  onClick={() => handleDisplayModeChange(mode.id as any)}
-                  className={cn(
-                    "relative z-10 flex items-center justify-center text-[10px] lg:text-xs font-bold transition-all duration-300 rounded-lg tracking-wider",
-                    isActive ? "text-primary scale-105" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {mode.label}
-                </button>
-              );
-            })}
-          </div>
+          <RadioGroup
+            value={vrmDisplayMode}
+            onChange={(mode) => handleDisplayModeChange(mode as 'normal' | 'vrm' | 'live2d')}
+            options={[
+              { label: '正常', value: 'normal' },
+              { label: 'VRM', value: 'vrm' },
+              { label: 'Live2D', value: 'live2d' }
+            ]}
+            variant="segmented"
+            className="w-[180px] lg:w-[220px]"
+          />
         </div>
 
         {/* Settings Button */}

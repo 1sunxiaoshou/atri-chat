@@ -11,7 +11,6 @@ import { SceneManager } from './scene/sceneManager';
 import { ModelManager } from './model/modelManager';
 import { PlaybackManager } from './playback/playbackManager';
 import { AudioSegment, VRMCallbacks } from '../../types/vrm';
-import { CharacterMotionBindings } from '../../types/motion';
 import { api } from '../api/index';
 import { HTTP_STATUS, UI_TIMING, DEV_SERVER } from '../../utils/constants';
 import { Logger } from '../../utils/logger';
@@ -66,11 +65,7 @@ export class VRMManager {
       // 4. 添加到场景
       this.sceneManager.addToScene(vrm.scene);
 
-      // 5. 加载闲置动画
-      const idleAnimationUrl = '/static/animations/idle.vrma';
-      await this.modelManager.loadIdleAnimation(idleAnimationUrl);
-
-      // 6. 加载角色动作绑定（如果提供了角色ID）
+      // 5. 加载角色动作绑定（如果提供了角色ID）
       if (characterId) {
         try {
           const bindingsResponse = await api.getCharacterMotionBindings(characterId);
@@ -81,17 +76,63 @@ export class VRMManager {
           });
 
           if (bindingsResponse.code === HTTP_STATUS.OK && bindingsResponse.data) {
-            this.playbackManager.setMotionBindings(bindingsResponse.data);
-            Logger.info('✅ 角色动作绑定加载完成', {
-              total_bindings: bindingsResponse.data.total_bindings,
-              has_bindings_by_category: !!bindingsResponse.data.bindings_by_category
-            });
+            const bindings = bindingsResponse.data;
+
+            // 设置动作绑定到播放管理器
+            this.playbackManager.setMotionBindings(bindings);
+
+            // 6. 预加载所有动画（使用 motion_id 作为 key）
+            const allAnimations: Array<{ name: string; animation_path: string }> = [];
+            const baseUrl = import.meta.env.PROD ? '' : DEV_SERVER.BACKEND_URL;
+
+            if (bindings.bindings_by_category) {
+              for (const category of Object.keys(bindings.bindings_by_category)) {
+                const categoryBindings = (bindings.bindings_by_category as Record<string, any>)[category];
+                if (categoryBindings) {
+                  for (const binding of categoryBindings) {
+                    allAnimations.push({
+                      name: binding.motion_id, // 使用 motion_id 作为 key
+                      animation_path: `${baseUrl}${binding.motion_file_url}`
+                    });
+                  }
+                }
+              }
+            }
+
+            if (allAnimations.length > 0) {
+              Logger.info(`✅ 加载动作绑定: ${bindings.total_bindings} 个动作，预加载 ${allAnimations.length} 个动画`);
+              await this.modelManager.preloadAnimations(allAnimations);
+            }
+
+            // 7. 加载初始动画（从 initial 分类中选择第一个）
+            const initialBindings = (bindings.bindings_by_category as Record<string, any>)?.initial;
+            if (initialBindings && initialBindings.length > 0) {
+              const initialMotion = initialBindings[0];
+              const initialAnimationUrl = `${baseUrl}${initialMotion.motion_file_url}`;
+
+              await this.modelManager.loadInitialAnimation(initialAnimationUrl);
+              Logger.debug('初始动作已加载', { motion: initialMotion.motion_name });
+            } else {
+              // 降级：使用默认初始动画
+              Logger.warn('未找到 initial 分类的动作，使用默认初始动画');
+              const initialAnimationUrl = '/static/animations/idle.vrma';
+              await this.modelManager.loadInitialAnimation(initialAnimationUrl);
+            }
           } else {
-            Logger.warn('动作绑定API返回数据为空');
+            Logger.warn('动作绑定API返回数据为空，使用默认初始动画');
+            const initialAnimationUrl = '/static/animations/idle.vrma';
+            await this.modelManager.loadInitialAnimation(initialAnimationUrl);
           }
         } catch (error) {
-          Logger.warn('加载角色动作绑定失败，将无法使用随机动作', error instanceof Error ? error : undefined);
+          Logger.warn('加载角色动作绑定失败，使用默认初始动画', error instanceof Error ? error : undefined);
+          const initialAnimationUrl = '/static/animations/idle.vrma';
+          await this.modelManager.loadInitialAnimation(initialAnimationUrl);
         }
+      } else {
+        // 没有角色ID，使用默认初始动画
+        Logger.warn('未提供角色ID，使用默认初始动画');
+        const initialAnimationUrl = '/static/animations/idle.vrma';
+        await this.modelManager.loadInitialAnimation(initialAnimationUrl);
       }
 
       this.callbacks.onSubtitleChange?.('VRM模型加载完成');

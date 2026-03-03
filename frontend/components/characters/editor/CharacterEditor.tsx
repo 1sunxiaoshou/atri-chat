@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Save, ChevronLeft, Sparkle, Headphones, Activity, User, Upload, Camera } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, ChevronLeft, Sparkle, Activity, User } from 'lucide-react';
 import { Character, Model, Avatar, VoiceAsset, Motion } from '../../../types';
 import { buildAvatarUrl } from '../../../utils/url';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cn } from '../../../utils/cn';
 import { Button } from '../../ui';
-import { avatarsApi, voiceAssetsApi, motionsApi } from '../../../services/api/index';
-import { PersonaTab, AppearanceTab, VoiceTab, MotionTab } from './tabs';
+import { avatarsApi, voiceAssetsApi, motionsApi, api } from '../../../services/api/index';
+import { PersonaTab, AssetsTab, MotionTab } from './tabs';
 
 interface LocalMotionBinding {
     motion_id: string;
-    category: 'idle' | 'thinking' | 'reply';
-    weight: number;
+    category: 'initial' | 'idle' | 'thinking' | 'reply';
 }
 
 interface CharacterEditorProps {
@@ -21,7 +20,7 @@ interface CharacterEditorProps {
     onBack: () => void;
 }
 
-type TabType = 'persona' | 'voice' | 'motion' | 'appearance';
+type TabType = 'persona' | 'assets' | 'motion';
 
 export const CharacterEditor: React.FC<CharacterEditorProps> = ({
     character: initialCharacter,
@@ -33,7 +32,7 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
     const [activeTab, setActiveTab] = useState<TabType>('persona');
     const [character, setCharacter] = useState<Character>(initialCharacter);
     const [isSaving, setIsSaving] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [pendingPortraitFile, setPendingPortraitFile] = useState<File | null>(null);
 
     // 本地动作绑定状态（仅用于新建角色）
     const [localMotionBindings, setLocalMotionBindings] = useState<LocalMotionBinding[]>([]);
@@ -46,7 +45,6 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
 
     // 获取当前选中的资产
     const selectedAvatar = avatars.find(a => a.id === character.avatar_id);
-    const selectedVoice = voiceAssets.find(v => v.id === character.voice_asset_id);
 
     // 加载资产数据
     useEffect(() => {
@@ -81,52 +79,34 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            // 如果有待上传的立绘文件，先上传
+            if (pendingPortraitFile) {
+                const uploadRes = await api.uploadPortrait(pendingPortraitFile);
+                if (uploadRes.code === 200 && uploadRes.data?.url) {
+                    // 更新角色的 portrait_url
+                    character.portrait_url = uploadRes.data.url;
+                } else {
+                    throw new Error('立绘上传失败');
+                }
+            }
+
             // 如果是新建角色，传递动作绑定
             if (!character.id && localMotionBindings.length > 0) {
                 await onSave(character, localMotionBindings);
             } else {
                 await onSave(character);
             }
+
+            // 清除待上传文件
+            setPendingPortraitFile(null);
         } finally {
             setIsSaving(false);
         }
     };
 
-    // 处理立绘上传
-    const handlePortraitClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        // 验证文件类型
-        if (!file.type.startsWith('image/')) {
-            alert('请选择图片文件');
-            return;
-        }
-
-        // 验证文件大小（最大 5MB）
-        if (file.size > 5 * 1024 * 1024) {
-            alert('图片大小不能超过 5MB');
-            return;
-        }
-
-        // TODO: 这里应该上传到服务器，获取 URL
-        // 暂时使用本地预览
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const url = event.target?.result as string;
-            setCharacter({ ...character, portrait_url: url });
-        };
-        reader.readAsDataURL(file);
-    };
-
     const tabs = [
         { id: 'persona' as TabType, icon: Sparkle, label: t('admin.persona') || '人设' },
-        { id: 'appearance' as TabType, icon: User, label: t('admin.appearance') || '外观' },
-        { id: 'voice' as TabType, icon: Headphones, label: t('admin.voice') || '声音' },
+        { id: 'assets' as TabType, icon: User, label: t('admin.assetsAndVoice') || '形象/音色' },
         { id: 'motion' as TabType, icon: Activity, label: t('admin.motion') || '动作' },
     ];
 
@@ -147,9 +127,9 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
 
     return (
         <div className="flex flex-col h-full bg-background overflow-hidden">
-            {/* Header with Avatar and Actions */}
+            {/* Simplified Header */}
             <div className="flex-shrink-0 border-b border-border bg-card">
-                <div className="flex items-center gap-4 p-4">
+                <div className="flex items-center gap-4 px-4 py-3">
                     {/* 返回按钮 */}
                     <Button
                         variant="ghost"
@@ -160,60 +140,25 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                         <ChevronLeft size={20} />
                     </Button>
 
-                    {/* 角色头像/立绘 */}
-                    <div className="relative group shrink-0">
-                        <div
-                            onClick={handlePortraitClick}
-                            className="w-16 h-16 rounded-xl overflow-hidden border-2 border-border bg-muted cursor-pointer transition-all group-hover:border-primary group-hover:shadow-lg"
-                        >
-                            {displayImageUrl ? (
-                                <img
-                                    src={displayImageUrl}
-                                    alt={character.name || '角色头像'}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                    <User size={32} />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 上传提示 */}
-                        <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                            <div className="text-white text-center">
-                                <Camera size={20} className="mx-auto mb-1" />
-                                <p className="text-[10px] font-medium">上传立绘</p>
+                    {/* 圆形头像 */}
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border bg-muted shrink-0">
+                        {displayImageUrl ? (
+                            <img
+                                src={displayImageUrl}
+                                alt={character.name || '角色头像'}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                <User size={20} />
                             </div>
-                        </div>
-
-                        {/* 隐藏的文件输入 */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="hidden"
-                        />
+                        )}
                     </div>
 
-                    {/* 角色信息 */}
-                    <div className="flex-1 min-w-0">
-                        <h2 className="text-lg font-bold text-foreground truncate">
-                            {character.name || '新建角色'}
-                        </h2>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {selectedAvatar && (
-                                <span className="truncate">形象: {selectedAvatar.name}</span>
-                            )}
-                            {selectedVoice && (
-                                <>
-                                    <span>·</span>
-                                    <span className="truncate">音色: {selectedVoice.name}</span>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                    {/* 角色名称 */}
+                    <h2 className="text-base font-bold text-foreground truncate flex-1">
+                        {character.name || '新建角色'}
+                    </h2>
 
                     {/* 保存按钮 */}
                     <Button
@@ -250,42 +195,42 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar" style={{ minHeight: 0 }}>
-                <div className="max-w-5xl mx-auto">
-                    {activeTab === 'persona' && (
-                        <PersonaTab
-                            character={character}
-                            models={models}
-                            onChange={setCharacter}
-                        />
-                    )}
+            <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+                <div className={cn("h-full p-6", activeTab !== 'persona' && "hidden")}>
+                    <PersonaTab
+                        character={character}
+                        models={models}
+                        onChange={setCharacter}
+                        onPortraitUpload={(file) => {
+                            // 保存文件对象，稍后上传
+                            setPendingPortraitFile(file);
 
-                    {activeTab === 'appearance' && (
-                        <AppearanceTab
-                            character={character}
-                            avatars={avatars}
-                            isLoadingAssets={isLoadingAssets}
-                            onChange={setCharacter}
-                        />
-                    )}
-
-                    {activeTab === 'voice' && (
-                        <VoiceTab
-                            character={character}
-                            voiceAssets={voiceAssets}
-                            isLoadingAssets={isLoadingAssets}
-                            onChange={setCharacter}
-                        />
-                    )}
-
-                    {activeTab === 'motion' && (
-                        <MotionTab
-                            character={character}
-                            motions={motions}
-                            localMotionBindings={localMotionBindings}
-                            onLocalBindingsChange={setLocalMotionBindings}
-                        />
-                    )}
+                            // 本地预览
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const url = event.target?.result as string;
+                                setCharacter({ ...character, portrait_url: url });
+                            };
+                            reader.readAsDataURL(file);
+                        }}
+                    />
+                </div>
+                <div className={cn("h-full p-6", activeTab !== 'assets' && "hidden")}>
+                    <AssetsTab
+                        character={character}
+                        avatars={avatars}
+                        voiceAssets={voiceAssets}
+                        isLoadingAssets={isLoadingAssets}
+                        onChange={setCharacter}
+                    />
+                </div>
+                <div className={cn("h-full p-6", activeTab !== 'motion' && "hidden")}>
+                    <MotionTab
+                        character={character}
+                        motions={motions}
+                        localMotionBindings={localMotionBindings}
+                        onLocalBindingsChange={setLocalMotionBindings}
+                    />
                 </div>
             </div>
         </div>

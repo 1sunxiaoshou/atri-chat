@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -60,8 +60,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
         {isUser ? (
           <User size={18} />
         ) : (
-          activeCharacter?.avatar?.file_url ? (
-            <img src={buildAvatarUrl(activeCharacter.avatar.file_url)} alt="AI" className="w-full h-full object-cover" />
+          activeCharacter?.portrait_url ? (
+            <img src={buildAvatarUrl(activeCharacter.portrait_url)} alt="AI" className="w-full h-full object-cover" />
+          ) : activeCharacter?.avatar?.thumbnail_url ? (
+            <img src={buildAvatarUrl(activeCharacter.avatar.thumbnail_url)} alt="AI" className="w-full h-full object-cover" />
           ) : (
             <Bot size={18} />
           )

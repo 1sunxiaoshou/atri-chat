@@ -37,11 +37,10 @@ export interface Model {
 export interface Character {
   id: string; // UUID (primary key from backend)
   name: string;
-  description?: string;
   portrait_url?: string; // 2D立绘URL
   avatar?: Avatar; // Avatar object (from API with relationships)
   avatar_id?: string; // Avatar asset ID (可选)
-  avatar_position?: 'left' | 'center' | 'right'; // Avatar display position
+  avatar_position?: 'left' | 'center' | 'right'; // Avatar display position (前端使用)
   system_prompt: string;
   primary_model_id?: string; // UUID of the model (references models.id, 可选)
   primary_provider_id?: string;
@@ -51,6 +50,7 @@ export interface Character {
     provider_id: string;
   };
   voice_asset_id?: string; // Voice asset ID (可选)
+  voice_speaker_id?: string; // Voice speaker ID (可选)
   voice_asset?: VoiceAsset; // Voice asset object (from API with relationships)
   enabled: boolean;
   created_at?: string;
@@ -100,8 +100,7 @@ export interface MotionBinding {
   id: string;
   character_id: string;
   motion_id: string;
-  category: 'idle' | 'thinking' | 'reply';
-  weight: number;
+  category: 'initial' | 'idle' | 'thinking' | 'reply';
   motion?: Motion;
   created_at: string;
 }
@@ -120,7 +119,7 @@ export interface Conversation {
 
 // 6. Messages
 export interface Message {
-  message_id: number;
+  message_id: number | string; // 支持数字 ID 和临时字符串 ID
   conversation_id: number | string; // 支持两种类型
   message_type: 'user' | 'assistant';
   content: string;

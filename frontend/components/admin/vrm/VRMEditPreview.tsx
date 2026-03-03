@@ -1,124 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { Save, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '../../ui';
 import { VRMPreview } from './VRMPreview';
 
-interface Avatar {
-    id: string;
-    name: string;
-    model_path: string;
-    thumbnail_path?: string;
-}
-
-interface VRMEditPreviewProps {
-    avatar: Avatar;
+export const VRMEditPreview: React.FC<{
+    avatar: { id: string; name: string; model_path: string };
     onSave: (id: string, name: string) => Promise<void>;
     onClose: () => void;
-}
-
-/**
- * VRM编辑和预览组件
- * 点击模型卡片后显示，支持预览和编辑名称
- */
-export const VRMEditPreview: React.FC<VRMEditPreviewProps> = ({
-    avatar,
-    onSave,
-    onClose
-}) => {
+}> = ({ avatar, onSave, onClose }) => {
     const [name, setName] = useState(avatar.name);
     const [isSaving, setIsSaving] = useState(false);
-    const [hasChanges, setHasChanges] = useState(false);
-
-    useEffect(() => {
-        setHasChanges(name.trim() !== avatar.name && name.trim() !== '');
-    }, [name, avatar.name]);
+    const hasChanges = name.trim() !== avatar.name && name.trim() !== '';
 
     const handleSave = async () => {
-        if (!hasChanges) {
-            onClose();
-            return;
-        }
-
+        if (!hasChanges) return onClose();
         setIsSaving(true);
-        try {
-            await onSave(avatar.id, name.trim());
-            onClose();
-        } catch (error) {
-            console.error('保存失败:', error);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleClose = () => {
-        // 如果有未保存的更改，恢复原名称
-        if (hasChanges) {
-            setName(avatar.name);
-        }
-        onClose();
+        try { await onSave(avatar.id, name.trim()); onClose(); } finally { setIsSaving(false); }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-border">
-                    <h2 className="text-xl font-bold text-foreground">模型预览</h2>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleClose}
-                        disabled={isSaving}
-                    >
-                        <X size={20} />
-                    </Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-6" style={{ pointerEvents: 'auto' }}>
+            <div className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] overflow-hidden flex">
+
+                {/* 左侧：3D 预览区 */}
+                <div className="flex-1 relative bg-slate-900 rounded-l-2xl overflow-hidden">
+                    <VRMPreview modelUrl={avatar.model_path} className="w-full h-full" autoRotate />
                 </div>
 
-                {/* Content - 3D Preview only - Fixed height */}
-                <div className="flex-1 overflow-hidden p-6 min-h-0">
-                    <div className="w-full h-full bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-                        <VRMPreview
-                            modelUrl={avatar.model_path}
-                            className="w-full h-full"
-                            autoRotate={true}
-                        />
+                {/* 右侧：编辑面板 */}
+                <div className="w-96 flex flex-col bg-card border-l border-border">
+                    {/* 头部 */}
+                    <div className="flex items-center justify-between p-6 border-b border-border">
+                        <h2 className="text-2xl font-semibold text-foreground">编辑角色档案</h2>
+                        <button
+                            onClick={onClose}
+                            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
-                </div>
 
-                {/* Footer - Inline label + Input + Actions */}
-                <div className="border-t border-border">
-                    <div className="p-6">
-                        <div className="flex items-center gap-4">
-                            <label className="text-sm font-medium text-foreground whitespace-nowrap">
-                                模型名称
-                            </label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="输入模型名称"
-                                disabled={isSaving}
-                                className="flex-1 max-w-md h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                            <div className="flex items-center gap-3 ml-auto">
-                                <Button
-                                    variant="outline"
-                                    onClick={handleClose}
-                                    disabled={isSaving}
-                                >
-                                    {hasChanges ? '取消' : '关闭'}
-                                </Button>
-                                {hasChanges && (
-                                    <Button
-                                        onClick={handleSave}
-                                        loading={isSaving}
-                                        className="gap-2"
-                                    >
-                                        <Save size={18} />
-                                        {isSaving ? '保存中...' : '保存'}
-                                    </Button>
-                                )}
+                    {/* 编辑表单 */}
+                    <div className="flex-1 p-6 overflow-y-auto">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">角色名称</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full bg-background border border-border text-foreground text-base focus:ring-2 focus:ring-primary focus:border-primary rounded-lg px-4 py-2.5 outline-none transition-all placeholder:text-muted-foreground"
+                                    placeholder="输入角色名称..."
+                                />
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">模型路径</label>
+                                <div className="text-xs text-muted-foreground font-mono bg-muted/50 rounded-lg px-3 py-2 break-all">
+                                    {avatar.model_path}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">角色 ID</label>
+                                <div className="text-xs text-muted-foreground font-mono bg-muted/50 rounded-lg px-3 py-2 break-all">
+                                    {avatar.id}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 底部操作按钮 */}
+                    <div className="p-6 border-t border-border bg-muted/30">
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={onClose}
+                                className="flex-1"
+                                disabled={isSaving}
+                            >
+                                取消
+                            </Button>
+                            <Button
+                                onClick={handleSave}
+                                disabled={!hasChanges || isSaving}
+                                className="flex-1"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="animate-spin mr-2" size={16} />
+                                        保存中...
+                                    </>
+                                ) : (
+                                    "保存修改"
+                                )}
+                            </Button>
                         </div>
                     </div>
                 </div>

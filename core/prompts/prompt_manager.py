@@ -131,29 +131,35 @@ class PromptManager:
     ) -> str:
         """获取角色动作的详细列表（格式化为字符串）
         
+        只返回 reply 分类的动作，因为其他分类由系统自动控制：
+        - initial: 由 VRMManager 自动播放
+        - idle: 由 IdleMotionManager 自动触发
+        - thinking: 由 ThinkingMotionManager 自动触发
+        - reply: 由 AI 通过标记控制（应该暴露给AI）
+        
         Args:
             character_id: 角色 ID
             character_repo: 角色仓储实例
             
         Returns:
-            格式化的动作列表字符串
+            格式化的动作列表字符串（格式：ID | 文件名 | 描述）
         """
         try:
-            motions = character_repo.get_character_motions(character_id)
+            # 只获取 reply 分类的动作
+            motions = character_repo.get_character_motions(character_id, category='reply')
             
             if not motions:
                 return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
             
             action_lines = []
             for motion in motions:
-                name = motion.name
-                description = motion.description or ""
+                motion_id = motion.id  # 短链 ID（文件名无扩展名）
+                name = motion.name  # 显示名称
+                description = motion.description or "无描述"
                 duration_sec = motion.duration_ms / 1000.0
                 
-                # 格式: name (时长): 描述
-                info = f"{name} ({duration_sec:.1f}s)"
-                if description:
-                    info += f": {description}"
+                # 格式: ID | 文件名 (时长) | 描述
+                info = f"{motion_id} | {name} ({duration_sec:.1f}s) | {description}"
                 action_lines.append(info)
                 
             return "\n  - " + "\n  - ".join(action_lines)

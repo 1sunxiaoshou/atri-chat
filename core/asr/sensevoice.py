@@ -21,7 +21,7 @@ try:
     import soxr
 except ImportError:
     raise ImportError(
-        "soundfile 和 soxr 未安装。请运行: pip install soundfile soxr"
+        "soundfile 和 soxr 未安装。请运行: uv pip install soundfile soxr"
     )
 
 from core.logger import get_logger
@@ -43,10 +43,9 @@ class SenseVoiceASR:
     - 纯 CPU 推理，无需 GPU
     """
     
-    # 模型配置（固定）
+    # 模型配置
     MODEL_CONFIG = {
         "model": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17",
-        "use_int8": True,  # 使用 INT8 量化版本
         "num_threads": 4,  # CPU 线程数
     }
     
@@ -60,19 +59,23 @@ class SenseVoiceASR:
         "auto": "自动检测"
     }
     
-    def __init__(self, model_dir: Optional[str] = None, num_threads: int = 4, auto_download: bool = True):
+    def __init__(self, model_dir: Optional[str] = None, num_threads: int = 4, auto_download: bool = True, use_int8: bool = False, language: str = "auto"):
         """初始化 SenseVoice ASR
         
         Args:
             model_dir: 模型目录路径（可选，默认 data/models/sensevoice）
             num_threads: CPU 线程数
             auto_download: 是否在模型不存在时后台下载
+            use_int8: 默认使用 INT8 量化模型（False 表示使用 FP32 全精度）
+            language: 默认语言（zh, en, ja, ko, yue, auto）
             
         Raises:
             FileNotFoundError: 模型文件不存在且 auto_download=False
         """
         self.num_threads = num_threads
         self.auto_download = auto_download
+        self._current_use_int8 = use_int8  # 当前加载的模型类型
+        self._current_language = language  # 当前语言设置
         
         # 设置模型目录
         if model_dir:
@@ -86,7 +89,7 @@ class SenseVoiceASR:
         self._download_error = None
         
         # 启动时检查模型文件
-        if not self._check_model_files():
+        if not self._check_model_files(use_int8):
             if auto_download:
                 logger.warning(
                     f"SenseVoice 模型未找到，将在后台下载",
@@ -117,10 +120,7 @@ class SenseVoiceASR:
                 from .model_downloader import download_sensevoice_model
                 
                 logger.info("开始后台下载 SenseVoice 模型...")
-                download_sensevoice_model(
-                    model_type="int8",
-                    target_dir=self.model_dir
-                )
+                download_sensevoice_model(target_dir=self.model_dir)
                 logger.info("✓ 模型下载完成，ASR 功能现已可用")
                 
             except Exception as e:
@@ -132,8 +132,30 @@ class SenseVoiceASR:
         thread = threading.Thread(target=_download, daemon=True, name="ASR-ModelDownloader")
         thread.start()
     
-    def _ensure_initialized(self):
-        """确保识别器已初始化（延迟初始化）"""
+    def _ensure_initialized(self, use_int8: bool = False, language: str = "auto"):
+        """确保识别器已初始化（延迟初始化）
+        
+        Args:
+            use_int8: 是否使用 INT8 量化模型
+            language: 语言代码
+        """
+        # 检查是否需要重新加载模型
+        need_reload = False
+        
+        if self._recognizer is not None:
+            if self._current_use_int8 != use_int8:
+                logger.info(f"模型精度切换: {'INT8' if self._current_use_int8 else 'FP32'} -> {'INT8' if use_int8 else 'FP32'}")
+                need_reload = True
+            
+            if self._current_language != language:
+                logger.info(f"语言切换: {self._current_language} -> {language}")
+                need_reload = True
+            
+            if need_reload:
+                self._recognizer = None
+                self._current_use_int8 = use_int8
+                self._current_language = language
+        
         if self._recognizer is None:
             # 检查是否正在下载
             if self._downloading:
@@ -150,22 +172,29 @@ class SenseVoiceASR:
                 )
             
             # 再次检查模型文件
-            if not self._check_model_files():
+            if not self._check_model_files(use_int8):
                 raise FileNotFoundError(
                     f"ASR 模型文件不存在: {self.model_dir}\n"
                     "请运行: python -m core.asr.model_downloader"
                 )
             
-            self._init_recognizer()
+            self._init_recognizer(use_int8, language)
     
-    def _init_recognizer(self):
-        """初始化识别器"""
+    def _init_recognizer(self, use_int8: bool = False, language: str = "auto"):
+        """初始化识别器
+        
+        Args:
+            use_int8: 是否使用 INT8 量化模型
+            language: 语言代码（zh, en, ja, ko, yue, auto）
+        """
         try:
             # 构建模型文件路径
-            if self.MODEL_CONFIG["use_int8"]:
+            if use_int8:
                 model_file = str(self.model_dir / "model_q8.onnx")
+                model_type_name = "INT8 量化"
             else:
                 model_file = str(self.model_dir / "model.onnx")
+                model_type_name = "FP32 全精度"
             
             tokens_file = str(self.model_dir / "tokens.txt")
             
@@ -177,7 +206,7 @@ class SenseVoiceASR:
                 sample_rate=16000,
                 use_itn=True,  # 使用逆文本归一化
                 debug=False,
-                language="auto",  # 自动检测语言
+                language=language,  # 使用指定语言
                 provider="cpu",
             )
             
@@ -185,7 +214,8 @@ class SenseVoiceASR:
                 "SenseVoice ASR 初始化成功",
                 extra={
                     "model_dir": str(self.model_dir),
-                    "use_int8": self.MODEL_CONFIG["use_int8"],
+                    "model_type": model_type_name,
+                    "language": language,
                     "num_threads": self.num_threads
                 }
             )
@@ -194,9 +224,12 @@ class SenseVoiceASR:
             logger.error(f"SenseVoice ASR 初始化失败: {e}", exc_info=True)
             raise
     
-    def _check_model_files(self) -> bool:
+    def _check_model_files(self, use_int8: bool = False) -> bool:
         """检查模型文件是否存在
         
+        Args:
+            use_int8: 是否检查 INT8 模型
+            
         Returns:
             是否存在必需的模型文件
         """
@@ -206,7 +239,8 @@ class SenseVoiceASR:
         # 检查必需文件
         required_files = ["tokens.txt"]
         
-        if self.MODEL_CONFIG["use_int8"]:
+        # 根据参数检查对应的模型文件
+        if use_int8:
             required_files.append("model_q8.onnx")
         else:
             required_files.append("model.onnx")
@@ -222,7 +256,7 @@ class SenseVoiceASR:
         """加载音频数据并重采样到 16kHz
         
         Args:
-            audio: 音频数据（bytes）或音频文件路径
+            audio: 音频数据（bytes，必须是 WAV 格式）或音频文件路径
             
         Returns:
             (samples, sample_rate) 元组
@@ -248,7 +282,7 @@ class SenseVoiceASR:
         if len(audio_data.shape) > 1:
             audio_data = audio_data[:, 0]
         
-        # 重采样到 16kHz
+        # 重采样到 16kHz（如果需要）
         if sample_rate != 16000:
             audio_data = soxr.resample(audio_data, sample_rate, 16000)
             sample_rate = 16000
@@ -274,7 +308,8 @@ class SenseVoiceASR:
     def transcribe(
         self,
         audio: Union[bytes, str, Path],
-        language: Optional[str] = None
+        language: Optional[str] = None,
+        use_int8: bool = False
     ) -> str:
         """语音转文字（同步）
         
@@ -282,12 +317,17 @@ class SenseVoiceASR:
             audio: 音频数据（bytes）或音频文件路径
             language: 语言代码（可选，默认自动检测）
                      支持: zh, en, ja, ko, yue, auto
+            use_int8: 是否使用 INT8 量化模型（默认 False，使用 FP32）
             
         Returns:
             识别出的文本
         """
-        # 延迟初始化识别器
-        self._ensure_initialized()
+        # 使用默认语言（如果未指定）
+        if language is None:
+            language = "auto"
+        
+        # 延迟初始化识别器（如果精度或语言变化会自动重新加载）
+        self._ensure_initialized(use_int8, language)
         
         try:
             # 加载音频并重采样
@@ -326,13 +366,15 @@ class SenseVoiceASR:
     async def transcribe_async(
         self,
         audio: Union[bytes, str, Path],
-        language: Optional[str] = None
+        language: Optional[str] = None,
+        use_int8: bool = False
     ) -> str:
         """语音转文字（异步）
         
         Args:
             audio: 音频数据（bytes）或音频文件路径
             language: 语言代码（可选，默认自动检测）
+            use_int8: 是否使用 INT8 量化模型（默认 False，使用 FP32）
             
         Returns:
             识别出的文本
@@ -341,9 +383,7 @@ class SenseVoiceASR:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             None,
-            self.transcribe,
-            audio,
-            language
+            lambda: self.transcribe(audio, language, use_int8)
         )
     
     async def test_connection(self) -> Dict[str, Any]:
@@ -353,8 +393,8 @@ class SenseVoiceASR:
             {"success": bool, "message": str, "info": dict}
         """
         try:
-            # 延迟初始化识别器
-            self._ensure_initialized()
+            # 延迟初始化识别器（使用默认配置）
+            self._ensure_initialized(use_int8=False, language="auto")
             
             # 创建一个测试音频流
             stream = self._recognizer.create_stream()
@@ -364,7 +404,8 @@ class SenseVoiceASR:
                 "message": "SenseVoice ASR 可用",
                 "info": {
                     "model": self.MODEL_CONFIG["model"],
-                    "use_int8": self.MODEL_CONFIG["use_int8"],
+                    "current_precision": "INT8" if self._current_use_int8 else "FP32",
+                    "current_language": self._current_language,
                     "num_threads": self.num_threads,
                     "supported_languages": list(self.SUPPORTED_LANGUAGES.keys())
                 }
@@ -395,7 +436,7 @@ class SenseVoiceASR:
                 "声学事件检测 (AED)"
             ],
             "supported_languages": cls.SUPPORTED_LANGUAGES,
-            "inference_speed": "70ms / 10s audio",
-            "model_size": "~200MB (INT8)",
+            "inference_speed": "70ms / 10s audio (INT8) / 150ms / 10s audio (FP32)",
+            "model_size": "~200MB (INT8) / ~900MB (FP32)",
             "device": "CPU"
         }

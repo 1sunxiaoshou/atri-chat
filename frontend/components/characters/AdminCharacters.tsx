@@ -44,7 +44,6 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
     setEditingCharacter({
       id: '', // 空字符串表示新建
       name: '',
-      description: '',
       system_prompt: '你是一个友好、乐于助人的AI助手。', // 提供默认系统提示词
       primary_model_id: defaultModel?.id || '', // 使用 UUID 而不是 model_id
       primary_provider_id: defaultModel?.provider_id || '',
@@ -78,9 +77,6 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
       if (!cleanedData.primary_provider_id) {
         delete cleanedData.primary_provider_id;
       }
-      if (!cleanedData.description) {
-        delete cleanedData.description;
-      }
       if (!cleanedData.portrait_url) {
         delete cleanedData.portrait_url;
       }
@@ -98,12 +94,12 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
 
       const updateData: Partial<Character> = {};
       if (character.name !== originalChar.name) updateData.name = character.name;
-      if (character.description !== originalChar.description) updateData.description = character.description;
       if (character.system_prompt !== originalChar.system_prompt) updateData.system_prompt = character.system_prompt;
       if (character.primary_model_id !== originalChar.primary_model_id) updateData.primary_model_id = character.primary_model_id;
       if (character.primary_provider_id !== originalChar.primary_provider_id) updateData.primary_provider_id = character.primary_provider_id;
       if (character.avatar_id !== originalChar.avatar_id) updateData.avatar_id = character.avatar_id;
       if (character.voice_asset_id !== originalChar.voice_asset_id) updateData.voice_asset_id = character.voice_asset_id;
+      if (character.portrait_url !== originalChar.portrait_url) updateData.portrait_url = character.portrait_url;
       if (character.enabled !== originalChar.enabled) updateData.enabled = character.enabled;
 
       if (Object.keys(updateData).length > 0) {

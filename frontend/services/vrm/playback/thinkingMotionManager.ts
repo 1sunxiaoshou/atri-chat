@@ -106,7 +106,7 @@ export class ThinkingMotionManager {
             return null;
         }
 
-        const categoryKey = category.toLowerCase() as 'idle' | 'thinking' | 'reply';
+        const categoryKey = category.toLowerCase() as 'initial' | 'idle' | 'thinking' | 'reply';
         const bindings = this.motionBindings.bindings_by_category[categoryKey];
 
         if (!bindings || bindings.length === 0) {
@@ -114,20 +114,9 @@ export class ThinkingMotionManager {
             return null;
         }
 
-        // 计算总权重
-        const totalWeight = bindings.reduce((sum, binding) => sum + binding.weight, 0);
-
-        // 随机选择
-        let random = Math.random() * totalWeight;
-        for (const binding of bindings) {
-            random -= binding.weight;
-            if (random <= 0) {
-                return binding.motion_name;
-            }
-        }
-
-        // 降级：返回第一个
-        return bindings[0]?.motion_name || null;
+        // 均等概率随机选择
+        const randomIndex = Math.floor(Math.random() * bindings.length);
+        return bindings[randomIndex]?.motion_name || null;
     }
 
     /**

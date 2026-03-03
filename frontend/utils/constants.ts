@@ -14,12 +14,12 @@ const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  
+
   // 2. 生产环境使用相对路径（前后端同域）
   if (import.meta.env.PROD) {
     return window.location.origin;
   }
-  
+
   // 3. 开发环境默认值
   return 'http://localhost:8000';
 };
@@ -40,7 +40,7 @@ export const API_CONFIG = {
  */
 export const buildResourceUrl = (path: string | undefined): string => {
   if (!path) return '';
-  
+
   // 已经是完整 URL
   if (path.startsWith('http://') || path.startsWith('https://')) {
     // 如果是 localhost URL，替换为当前配置的 base URL
@@ -51,7 +51,7 @@ export const buildResourceUrl = (path: string | undefined): string => {
     }
     return path;
   }
-  
+
   // 拼接基础 URL
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_CONFIG.STATIC_URL}${cleanPath}`;
@@ -260,6 +260,8 @@ export const SUCCESS_MESSAGES = {
 export const STORAGE_KEYS = {
   AUDIO_VOLUME: 'audioVolume',
   AUDIO_CACHE_LIMIT: 'audioCacheLimit',
+  ASR_LANGUAGE: 'asrLanguage',
+  ASR_USE_INT8: 'asrUseInt8',
   THEME: 'theme',
   LANGUAGE: 'language',
 } as const;

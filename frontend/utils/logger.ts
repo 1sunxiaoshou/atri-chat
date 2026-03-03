@@ -50,7 +50,7 @@ class LoggerClass {
     // 根据环境变量配置
     const isDev = import.meta.env.DEV;
     const logLevel = (import.meta.env.VITE_LOG_LEVEL || (isDev ? 'DEBUG' : 'WARN')) as LogLevel;
-    
+
     this.config = {
       enabled: true,
       minLevel: logLevel,
@@ -111,17 +111,17 @@ class LoggerClass {
    */
   private formatMessage(level: LogLevel, category: LogCategory, message: string): string {
     const parts: string[] = [];
-    
+
     if (this.config.enableTimestamp) {
       const now = new Date();
       const time = now.toTimeString().split(' ')[0]; // HH:mm:ss
       parts.push(`[${time}]`);
     }
-    
+
     parts.push(`[${level}]`);
     parts.push(`[${category}]`);
     parts.push(message);
-    
+
     return parts.join(' ');
   }
 
@@ -158,7 +158,7 @@ class LoggerClass {
   /**
    * 上报日志到后端
    */
-  private async reportLog(level: LogLevel, category: LogCategory, message: string, data?: any): Promise<void> {
+  private async reportLog(_level: LogLevel, _category: LogCategory, _message: string, _data?: any): Promise<void> {
     try {
       // TODO: 实现日志上报接口
       // await fetch('/api/v1/logs', {

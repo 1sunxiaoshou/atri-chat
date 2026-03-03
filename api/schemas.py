@@ -91,20 +91,6 @@ class TTSUpdateRequest(BaseModel):
     enabled: bool = Field(True, description="是否启用")
 
 
-# ==================== 角色相关 ====================
-
-class CharacterRequest(BaseModel):
-    """角色请求 (已废弃,请使用 CharacterCreate)"""
-    name: str = Field(..., description="角色名称")
-    description: str = Field(..., description="角色描述")
-    system_prompt: str = Field(..., description="系统提示词")
-    primary_model_id: Optional[str] = Field(None, description="主模型ID（可选）")
-    primary_provider_id: Optional[str] = Field(None, description="主供应商ID（可选）")
-    tts_id: Optional[str] = Field("default", description="TTS ID (已废弃)")
-    avatar: Optional[str] = Field(None, description="角色头像URL (已废弃)")
-    avatar_position: Optional[str] = Field("center", description="头像显示位置 (已废弃)")
-    vrm_model_id: Optional[str] = Field(None, description="VRM模型ID")
-    enabled: bool = Field(True, description="是否启用")
 
 
 class CharacterCreate(BaseModel):
@@ -133,32 +119,8 @@ class CharacterUpdate(BaseModel):
     enabled: Optional[bool] = Field(None, description="是否启用")
 
 
-class CharacterResponse(BaseModel):
-    """角色响应"""
-    character_id: int
-    name: str
-    description: str
-    system_prompt: str
-    primary_model_id: str
-    primary_provider_id: str
-    tts_id: str
-    avatar: Optional[str]
-    avatar_position: Optional[str]
-    enabled: bool
 
 
-class CharacterUpdateRequest(BaseModel):
-    """角色更新请求 (已废弃,请使用 CharacterUpdate)"""
-    name: Optional[str] = None
-    description: Optional[str] = None
-    system_prompt: Optional[str] = None
-    primary_model_id: Optional[str] = None
-    primary_provider_id: Optional[str] = None
-    tts_id: Optional[str] = None
-    avatar: Optional[str] = None
-    avatar_position: Optional[str] = None
-    vrm_model_id: Optional[str] = None
-    enabled: Optional[bool] = None
 
 
 # ==================== 会话相关 ====================

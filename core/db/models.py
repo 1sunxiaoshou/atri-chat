@@ -83,11 +83,12 @@ class Motion(Base):
     
     存储可重用的动画文件（.vrma, .vmd, .fbx 等），可被多个角色绑定
     文件路径由 ID 动态构建：/uploads/vrm_animations/{id}.vrma
+    ID 使用 5 位短 UUID，避免文件名过长
     """
     __tablename__ = "assets_motions"
     
-    # 主键（同时也是文件名）
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    # 主键（同时也是文件名，5位短UUID）
+    id: Mapped[str] = mapped_column(String(10), primary_key=True)
     
     # 基本信息
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -345,51 +346,52 @@ class Character(Base):
 
 class CharacterMotionBinding(Base):
     """角色-动作绑定表
-    
-    多对多关系，支持分类和权重
+
+    多对多关系，支持分类
     """
     __tablename__ = "character_motion_bindings"
-    
+
     # 主键
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    
+
     # 外键
     character_id: Mapped[str] = mapped_column(
-        String(36), 
+        String(36),
         ForeignKey("characters.id", ondelete="CASCADE"),  # 删除角色时级联删除
         nullable=False,
         index=True
     )
     motion_id: Mapped[str] = mapped_column(
-        String(36), 
+        String(36),
         ForeignKey("assets_motions.id", ondelete="RESTRICT"),  # 防止删除被绑定的动作
         nullable=False,
         index=True
     )
-    
-    # 分类和权重
+
+    # 分类
     category: Mapped[str] = mapped_column(
-        String(50), 
-        nullable=False, 
+        String(50),
+        nullable=False,
         index=True
     )  # 'idle', 'thinking', 'reply'
-    weight: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
-    
+
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    
+
     # 关系
     character: Mapped["Character"] = relationship("Character", back_populates="motion_bindings")
     motion: Mapped["Motion"] = relationship("Motion", back_populates="bindings")
-    
+
     # 唯一约束：同一角色不能在同一分类下重复绑定同一动作
     __table_args__ = (
         UniqueConstraint("character_id", "motion_id", "category", name="uq_character_motion_category"),
         Index("idx_bindings_character_category", "character_id", "category"),
     )
-    
+
     def __repr__(self):
         return f"<CharacterMotionBinding(character_id={self.character_id}, motion_id={self.motion_id}, category={self.category})>"
+
+
 
 
 # ==================== 会话表 ====================

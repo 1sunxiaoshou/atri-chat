@@ -1,5 +1,6 @@
 import { httpClient } from './base';
 import { ApiResponse, Motion, MotionBinding } from '../../types';
+import { CharacterMotionBindings } from '../../types/motion';
 
 /**
  * 动作资产相关 API
@@ -44,14 +45,14 @@ export const motionsApi = {
  */
 export const motionBindingsApi = {
     /**
-     * 获取角色的动作绑定
+     * 获取角色的动作绑定（按分类分组）
      * @param characterId - 角色 ID
      */
     getCharacterBindings: async (
         characterId: string
-    ): Promise<ApiResponse<MotionBinding[]>> => {
-        return httpClient.get<MotionBinding[]>(
-            `/character-motion-bindings?character_id=${characterId}`
+    ): Promise<ApiResponse<CharacterMotionBindings>> => {
+        return httpClient.get<CharacterMotionBindings>(
+            `/characters/${characterId}/motions`
         );
     },
 
@@ -62,8 +63,7 @@ export const motionBindingsApi = {
     createBinding: async (data: {
         character_id: string;
         motion_id: string;
-        category: 'idle' | 'thinking' | 'reply';
-        weight: number;
+        category: 'initial' | 'idle' | 'thinking' | 'reply';
     }): Promise<ApiResponse<MotionBinding>> => {
         return httpClient.post<MotionBinding>('/character-motion-bindings', data);
     },

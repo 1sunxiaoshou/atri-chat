@@ -19,7 +19,7 @@ export const useChat = () => {
   /**
    * 加载对话消息
    */
-  const loadMessages = useCallback(async (conversationId: number) => {
+  const loadMessages = useCallback(async (conversationId: string | number) => {
     try {
       setError(null);
       const response = await api.getMessages(conversationId);
@@ -46,7 +46,7 @@ export const useChat = () => {
    * 发送消息
    */
   const sendMessage = useCallback(async (
-    conversationId: number,
+    conversationId: string | number,
     content: string,
     character: Character,
     model: Model,

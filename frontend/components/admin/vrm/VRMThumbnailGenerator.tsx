@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
 interface VRMThumbnailGeneratorProps {
@@ -29,15 +29,15 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
 
         const canvas = canvasRef.current;
         const width = 512;
-        const height = 512;
+        const height = 683; // 3:4 ratio (512 * 4/3)
 
         try {
             // 创建场景
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1e293b);
 
-            // 创建相机
-            const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 20);
+            // 创建相机 - 3:4 aspect ratio
+            const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 20);
             camera.position.set(0, 1, 2.5);
             camera.lookAt(0, 0.8, 0);
 
@@ -87,9 +87,9 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
             vrm.scene.position.y = -box.min.y;
             vrm.scene.position.z = -center.z;
 
-            // 调整相机以适应模型
+            // 调整相机以适应模型 
             const modelHeight = size.y;
-            const distance = modelHeight * 1.5;
+            const distance = modelHeight * 1.7;
             camera.position.set(0, modelHeight * 0.5, distance);
             camera.lookAt(0, modelHeight * 0.5, 0);
 
@@ -124,7 +124,7 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
         <canvas
             ref={canvasRef}
             width={512}
-            height={512}
+            height={683}
             style={{ display: 'none' }}
         />
     );

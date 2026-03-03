@@ -6,12 +6,15 @@ import { Button, Card, CardContent } from '../../ui';
 interface VoiceAsset {
     id: string;
     provider_id: string;
-    provider_name: string;
-    provider_type: string;
     name: string;
     voice_config: Record<string, any>;
     created_at: string;
     updated_at: string;
+    provider?: {
+        id: string;
+        name: string;
+        provider_type: string;
+    };
 }
 
 interface VoiceListProps {
@@ -51,7 +54,7 @@ const VoiceList: React.FC<VoiceListProps> = ({
                                     <h4 className="font-medium">{voice.name}</h4>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {voice.provider_name} ({voice.provider_type})
+                                    {voice.provider?.name || '未知'} ({voice.provider?.provider_type || '未知'})
                                 </p>
                                 <div className="mt-2 text-xs text-muted-foreground">
                                     {language === 'zh' ? '创建于' : 'Created'}: {new Date(voice.created_at).toLocaleDateString()}
