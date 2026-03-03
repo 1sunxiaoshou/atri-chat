@@ -13,6 +13,49 @@ class BaseProvider(ABC):
         """供应商元数据"""
         pass
     
+    @classmethod
+    def get_common_parameters_schema(cls) -> Dict[str, Any]:
+        """获取通用模型参数 Schema（所有 Provider 共享）
+        
+        子类可以覆盖此方法来自定义参数范围
+        """
+        return {
+            "max_tokens": {
+                "type": "slider",  # 改为 slider
+                "label": "最大输出",
+                "description": "生成的最大 token 数量",
+                "min": 1,
+                "max": 4096,
+                "step": 1,
+                "default": 4096,  # 默认使用最大值
+                "use_max_as_default": True,  # 标记使用最大值作为默认值
+                "applicable_model_types": ["chat"],
+                "order": 3
+            },
+            "temperature": {
+                "type": "slider",
+                "label": "温度",
+                "description": "控制输出的随机性。较低的值使输出更确定，较高的值使输出更有创造性",
+                "min": 0,
+                "max": 2,
+                "step": 0.1,
+                "default": 1.0,
+                "applicable_model_types": ["chat"],
+                "order": 4
+            },
+            "top_p": {
+                "type": "slider",
+                "label": "Top P",
+                "description": "核采样参数，控制输出的多样性",
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "default": 1.0,
+                "applicable_model_types": ["chat"],
+                "order": 5
+            }
+        }
+    
     @abstractmethod
     def create_text_model(
         self, 
@@ -161,8 +204,8 @@ class BaseProvider(ABC):
     def get_model_info(self, model_id: str, provider_config: ProviderConfig) -> ProviderModelInfo:
         """获取模型信息
         
-        子类应该重写此方法以提供准确的模型类型和能力信息。
-        默认实现根据模型ID的命名规则推断。
+        优先使用 LangChain 的 model.profile 功能获取能力信息，
+        如果不可用则根据模型ID的命名规则推断。
         
         Args:
             model_id: 模型ID
@@ -172,8 +215,53 @@ class BaseProvider(ABC):
             ProviderModelInfo 对象
         """
         from ..config import ModelCapability
+        from ...logger import get_logger
         
-        # 默认实现：根据模型名称推断
+        logger = get_logger(__name__)
+        
+        # 尝试使用 LangChain profile 获取能力信息
+        try:
+            model_instance = self.create_text_model(model_id, provider_config)
+            
+            if hasattr(model_instance, 'profile') and model_instance.profile:
+                profile = model_instance.profile
+                logger.debug(f"从 LangChain profile 获取模型信息: {model_id}")
+                
+                # 从 profile 提取能力信息
+                capabilities = []
+                
+                # 视觉能力
+                if profile.get('image_inputs'):
+                    capabilities.append(ModelCapability.VISION)
+                    capabilities.append(ModelCapability.DOCUMENT)
+                
+                # 音频能力
+                if profile.get('audio_inputs') or profile.get('audio_outputs'):
+                    capabilities.append(ModelCapability.AUDIO)
+                
+                # 视频能力
+                if profile.get('video_inputs'):
+                    capabilities.append(ModelCapability.VIDEO)
+                
+                # 工具调用能力
+                if profile.get('tool_calling'):
+                    capabilities.append(ModelCapability.TOOL_USE)
+                
+                # 推理能力
+                if profile.get('reasoning_output'):
+                    capabilities.append(ModelCapability.REASONING)
+                
+                return ProviderModelInfo(
+                    model_id=model_id,
+                    type=ModelType.CHAT,
+                    capabilities=capabilities,
+                    context_window=profile.get('max_input_tokens'),
+                    max_output=profile.get('max_output_tokens'),
+                )
+        except Exception as e:
+            logger.debug(f"无法从 LangChain profile 获取模型信息 {model_id}: {e}")
+        
+        # 降级到基于名称的推断
         model_id_lower = model_id.lower()
         
         if "embed" in model_id_lower:

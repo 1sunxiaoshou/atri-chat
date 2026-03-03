@@ -115,7 +115,6 @@
         "noVoiceAssets": "No voice assets",
         "createdAt": "Created",
         "avatar3DLibrary": "3D Avatar Library",
-        "manageVRMAssets": "Manage VRM format 3D model assets",
         "uploadVRMModel": "Upload VRM Model",
         "noAvatarsYet": "No avatars yet",
         "uploadFirstVRM": "Upload your first VRM model to start creating virtual characters",
@@ -215,20 +214,16 @@
         "startRecording": "Click to start recording",
         "sendMessageFailed": "Failed to send message:",
         "copyFailed": "Copy failed:",
-        "selectModel": "Select model...",
         "normal": "Normal",
         "modelSettings": "Model Settings",
         "configureVRMFirst": "Please configure VRM model in character settings first",
         "settings": {
             "title": "Chat Settings",
             "modelSelection": "Model Selection",
-            "temperature": "Temperature",
-            "temperatureDesc": "Control randomness and creativity",
-            "precise": "Precise",
-            "creative": "Creative",
-            "enableThinking": "Deep Thinking",
-            "enableThinkingDesc": "Enable deeper reasoning (supported models)",
-            "reset": "Reset to Defaults"
+            "selectModel": "Select Model",
+            "searchModel": "Search models...",
+            "reset": "Reset to Defaults",
+            "loadingSchema": "Loading parameters..."
         }
     },
     "app": {
@@ -238,9 +233,14 @@
         "uploadImage": "Click or drag to upload image",
         "supportedFormats": "Supports JPG, PNG, GIF formats",
         "loadAssetsFailed": "Failed to load assets",
-        "noAssets": "No {type} assets available"
+        "noAssets": "No {type} assets available",
+        "startChatting": "Start chatting with",
+        "selectConversation": "Select a conversation to start chatting",
+        "selectCharHelp": "Select a character from the left, then click the button below to start a new conversation",
+        "startNewChat": "Start New Chat",
+        "noCharacterAvailable": "No character available",
+        "createConversationFailed": "Failed to create conversation"
     },
-    "voice": {},
     "vrm": {
         "avatar": {
             "deleteSuccess": "Avatar deleted successfully",
@@ -266,6 +266,12 @@
             "selectForInfo": "Select a motion to view details",
             "uploadFirst": "Upload your first motion file to add animations to your characters"
         }
+    },
+    "hierarchicalSelector": {
+        "search": "Search...",
+        "noResults": "No results found",
+        "selectItem": "Select item",
+        "filterByTags": "Filter by tags"
     },
     "character": {
         "defaultSystemPrompt": "You are a friendly and helpful AI assistant.",

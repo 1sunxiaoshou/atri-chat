@@ -154,15 +154,10 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
             <Toast message={toastMessage} title={{ success: t('vrm.avatar.operationSuccess'), error: t('vrm.avatar.operationFailed') }} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-foreground">{t('admin.avatar3DLibrary')}</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        {t('admin.manageVRMAssets')}
-                    </p>
-                </div>
+                <h2 className="text-2xl font-bold text-foreground">{t('admin.avatar3DLibrary')}</h2>
                 <Button onClick={() => setShowUploadPreview(true)} className="gap-2">
                     <Plus size={18} />
-                    上传VRM模型
+                    {t('admin.uploadVRMModel')}
                 </Button>
             </div>
 

@@ -5,6 +5,11 @@ from .anthropic import AnthropicProvider
 from .google import GoogleProvider
 from .tongyi import TongyiProvider
 from .local import LocalProvider
+from .mistral import MistralProvider
+from .deepseek import DeepSeekProvider
+from .cohere import CohereProvider
+from .groq import GroqProvider
+from .xai import XAIProvider
 
 __all__ = [
     "BaseProvider",
@@ -13,4 +18,9 @@ __all__ = [
     "GoogleProvider",
     "TongyiProvider",
     "LocalProvider",
+    "MistralProvider",
+    "DeepSeekProvider",
+    "CohereProvider",
+    "GroqProvider",
+    "XAIProvider",
 ]

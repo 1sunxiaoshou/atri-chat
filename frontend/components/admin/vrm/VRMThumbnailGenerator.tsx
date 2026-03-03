@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface VRMThumbnailGeneratorProps {
     file: File;
@@ -18,6 +19,7 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
     onThumbnailGenerated,
     onError
 }) => {
+    const { t } = useLanguage();
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {

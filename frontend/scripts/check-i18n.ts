@@ -7,6 +7,11 @@
  * 2. 检测是否有 t('key') || '默认值' 的错误用法
  * 3. 检测是否有硬编码的中文文本
  * 4. 检测 JSON 文件中未使用的翻译键
+ * 5. 支持删除未使用的翻译键（使用 --remove-unused 参数）
+ * 
+ * 使用方法：
+ * - 检查翻译键：npm run check-i18n
+ * - 删除未使用的键：npm run check-i18n -- --remove-unused
  */
 
 import * as fs from 'fs';
@@ -16,13 +21,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 解析命令行参数
+const args = process.argv.slice(2);
+const shouldRemoveUnused = args.includes('--remove-unused');
+
 // 配置
 const CONFIG = {
     localesDir: path.join(__dirname, '../locales'),
     componentsDir: path.join(__dirname, '../components'),
     pagesDir: path.join(__dirname, '../pages'),
+    rootDir: path.join(__dirname, '..'),
     extensions: ['.tsx', '.ts', '.jsx', '.js'],
-    excludeDirs: ['node_modules', 'dist', '.git'],
+    excludeDirs: ['node_modules', 'dist', '.git', 'locales', 'scripts'],
 };
 
 // 颜色输出
@@ -88,11 +98,12 @@ function getAllFiles(dir: string, fileList: string[] = []): string[] {
 function extractUsedKeys(content: string): Set<string> {
     const keys = new Set<string>();
 
-    // 匹配 t('key') 或 t("key")
-    const regex = /\bt\s*\(\s*['"]([^'"]+)['"]/g;
+    // 1. 匹配所有 t('key') 或 t("key") 的调用
+    // 匹配 t() 后面可能跟着 , ) } 或其他字符
+    const tCallRegex = /\bt\s*\(\s*['"]([^'"]+)['"]\s*[,)}\]]/g;
     let match;
 
-    while ((match = regex.exec(content)) !== null) {
+    while ((match = tCallRegex.exec(content)) !== null) {
         keys.add(match[1]);
     }
 
@@ -142,6 +153,50 @@ function checkHardcodedChinese(filePath: string, content: string): string[] {
     return errors;
 }
 
+// 从嵌套对象中删除指定的键
+function removeKeysFromObject(obj: Record<string, any>, keysToRemove: Set<string>, prefix = ''): Record<string, any> {
+    const result: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // 递归处理嵌套对象
+            const nested = removeKeysFromObject(value, keysToRemove, fullKey);
+            // 只有当嵌套对象不为空时才保留
+            if (Object.keys(nested).length > 0) {
+                result[key] = nested;
+            }
+        } else {
+            // 如果键不在删除列表中，则保留
+            if (!keysToRemove.has(fullKey)) {
+                result[key] = value;
+            }
+        }
+    }
+
+    return result;
+}
+
+// 删除未使用的翻译键
+function removeUnusedKeys(locale: string, keysToRemove: string[]): boolean {
+    try {
+        const filePath = path.join(CONFIG.localesDir, `${locale}.json`);
+        const translations = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+        const keysSet = new Set(keysToRemove);
+        const cleaned = removeKeysFromObject(translations, keysSet);
+
+        // 写回文件，保持格式化
+        fs.writeFileSync(filePath, JSON.stringify(cleaned, null, 4) + '\n', 'utf-8');
+
+        return true;
+    } catch (error) {
+        log(`删除 ${locale}.json 中的未使用键失败: ${error}`, 'red');
+        return false;
+    }
+}
+
 // 主函数
 async function main() {
     log('\n🔍 开始检测国际化翻译键...\n', 'cyan');
@@ -184,6 +239,13 @@ async function main() {
         ...getAllFiles(CONFIG.componentsDir),
         ...getAllFiles(CONFIG.pagesDir),
     ];
+
+    // 添加根目录的 .tsx 和 .ts 文件（如 App.tsx）
+    const rootFiles = fs.readdirSync(CONFIG.rootDir)
+        .filter(file => CONFIG.extensions.some(ext => file.endsWith(ext)))
+        .map(file => path.join(CONFIG.rootDir, file));
+    files.push(...rootFiles);
+
     log(`  ✓ 找到 ${files.length} 个文件\n`, 'green');
 
     // 4. 提取使用的翻译键
@@ -227,6 +289,24 @@ async function main() {
         log(`  ℹ️  未使用的翻译键 (${unusedKeys.length} 个):`, 'cyan');
         unusedKeys.forEach(key => log(`    - ${key}`, 'cyan'));
         log('');
+
+        // 如果指定了 --remove-unused 参数，则删除未使用的键
+        if (shouldRemoveUnused) {
+            log('🧹 开始删除未使用的翻译键...', 'yellow');
+
+            const zhSuccess = removeUnusedKeys('zh', unusedKeys);
+            const enSuccess = removeUnusedKeys('en', unusedKeys);
+
+            if (zhSuccess && enSuccess) {
+                log(`  ✅ 成功删除 ${unusedKeys.length} 个未使用的翻译键`, 'green');
+                log('  📝 已更新文件:', 'green');
+                log('    - frontend/locales/zh.json', 'green');
+                log('    - frontend/locales/en.json', 'green');
+            } else {
+                log('  ❌ 删除未使用的翻译键时出错', 'red');
+            }
+            log('');
+        }
     } else {
         log('  ✓ 所有翻译键都在使用中\n', 'green');
     }

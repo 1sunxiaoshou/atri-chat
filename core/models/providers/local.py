@@ -16,7 +16,9 @@ class LocalProvider(BaseProvider):
             logo="/static/logos/local.png",
             config_fields=[
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="http://localhost:11434", description="Ollama服务地址"),
-            ]
+            ],
+            common_parameters_schema=self.get_common_parameters_schema(),
+            provider_options_schema={}
         )
     
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:

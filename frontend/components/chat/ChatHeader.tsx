@@ -2,17 +2,15 @@ import React, { useState } from 'react';
 import { Bot, Menu, Settings, Circle, PanelLeftOpen } from 'lucide-react';
 import { Character, Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Select, Button, RadioGroup } from '../ui';
+import { Button, RadioGroup } from '../ui';
 import { buildAvatarUrl } from '../../utils/url';
 import { cn } from '../../utils/cn';
 
 interface ChatHeaderProps {
   activeCharacter: Character | null;
   activeModel: Model | null;
-  availableModels: Model[];
   vrmDisplayMode: 'normal' | 'vrm' | 'live2d';
   modelParameters: ModelParameters;
-  onUpdateModel: (modelId: string) => void;
   onVrmDisplayModeChange: (mode: 'normal' | 'vrm' | 'live2d') => void;
   onModelParametersChange: (params: ModelParameters) => void;
   onOpenMobileSidebar?: () => void;
@@ -24,9 +22,7 @@ interface ChatHeaderProps {
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   activeCharacter,
   activeModel,
-  availableModels,
   vrmDisplayMode,
-  onUpdateModel,
   onVrmDisplayModeChange,
   onOpenMobileSidebar,
   onOpenRightSidebar,
@@ -35,12 +31,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { t } = useLanguage();
   const [showVrmError, setShowVrmError] = useState(false);
-
-  const modelOptions = availableModels.map(m => ({
-    label: m.model_id,
-    value: m.id, // 使用 UUID 作为 value
-    group: m.provider_id
-  }));
 
   const handleDisplayModeChange = (mode: 'normal' | 'vrm' | 'live2d') => {
     if (mode === 'vrm' && !activeCharacter?.avatar_id) {
@@ -114,17 +104,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       {/* Controls */}
       <div className="flex items-center gap-2 md:gap-4">
-        {/* Model Selector - Hidden on mobile */}
-        <div className="hidden md:block w-48 lg:w-64">
-          <Select
-            value={activeModel?.id || ''}
-            onChange={onUpdateModel}
-            options={modelOptions}
-            placeholder={t('chat.selectModel')}
-            className="h-9 md:h-10"
-          />
-        </div>
-
         {/* Display Mode Toggle - Hidden on small mobile */}
         <div className="hidden sm:block relative">
           {/* Error Popup for VRM */}
