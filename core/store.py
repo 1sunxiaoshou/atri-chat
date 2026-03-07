@@ -184,7 +184,7 @@ class SqliteStore(BaseStore):
             value: 要存储的字典值
         """
         namespace_str = self._namespace_to_str(namespace)
-        value_json = json.dumps(value)
+        value_json = json.dumps(value, ensure_ascii=False)
         now = datetime.now().isoformat()
         
         with sqlite3.connect(self.db_path) as conn:

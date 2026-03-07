@@ -13,9 +13,10 @@ class MistralProvider(BaseProvider):
             provider_id="mistral",
             name="Mistral AI",
             description="Mistral AI - 欧洲领先的开源 AI 模型提供商",
-            logo="/static/logos/mistral.png",
+
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Mistral API密钥"),
+                ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.mistral.ai", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={}
@@ -30,6 +31,7 @@ class MistralProvider(BaseProvider):
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
+            "base_url": config.get("base_url"),
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "top_p": merged.get("top_p"),

@@ -98,7 +98,6 @@ class ModelService:
                 logger.error(f"模型创建失败: {provider_id}/{model_id}")
                 raise ValueError(f"模型 {provider_id}/{model_id} 创建失败，请检查配置")
             
-            logger.info(f"模型创建成功: {provider_id}/{model_id}")
             return model
             
         except Exception as e:

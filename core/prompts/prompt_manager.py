@@ -3,24 +3,16 @@
 负责提示词的组装、缓存和动态生成
 
 架构改进：
-- 完全移除对 AppStorage 的依赖 ✅
 - 使用 CharacterRepository 获取角色信息和 VRM 资源
+- 从 Markdown 文件加载模板（易于编辑和维护）
 """
 
 from typing import Dict, List, Optional, Any
+from pathlib import Path
 import logging
 from sqlalchemy.orm import Session
 
 from ..repositories import CharacterRepository
-
-# 导入新的模板
-from .templates import (
-    META_IDENTITY_BASE,
-    NORMAL_RENDER_PROTOCOL,
-    VRM_RENDER_PROTOCOL,
-    SAFETY_GUIDELINES,
-    PromptTemplate
-)
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +20,49 @@ logger = logging.getLogger(__name__)
 DEFAULT_EXPRESSIONS = ["neutral", "happy", "angry", "sad", "relaxed"]
 DEFAULT_ACTIONS = ["neutral"]
 
+
 class PromptManager:
     """提示词管理器"""
     
     def __init__(self):
         """初始化提示词管理器"""
         self._cache = {}
+        self._templates_dir = Path(__file__).parent / "templates"
+    
+    def _load_template(self, template_path: str) -> str:
+        """从文件加载模板
+        
+        Args:
+            template_path: 相对于 templates/ 的路径，如 "base/identity.md"
+        
+        Returns:
+            模板内容
+        """
+        cache_key = f"template:{template_path}"
+        
+        # 检查缓存
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
+        # 加载文件
+        full_path = self._templates_dir / template_path
+        if not full_path.exists():
+            logger.error(f"模板文件不存在: {full_path}")
+            return ""
+        
+        content = full_path.read_text(encoding="utf-8")
+        
+        # 缓存
+        self._cache[cache_key] = content
+        
+        return content
     
     def build_character_prompt(
         self, 
         character_id: str,
         include_vrm: bool = False,
         include_safety: bool = False,
+        include_memory: bool = True,
         additional_instructions: Optional[List[str]] = None,
         db_session: Session = None
     ) -> str:
@@ -49,6 +72,7 @@ class PromptManager:
             character_id: 角色ID (UUID)
             include_vrm: True=使用VRM渲染协议, False=使用常规文本协议
             include_safety: 是否包含安全准则
+            include_memory: 是否包含记忆系统说明（默认 True）
             additional_instructions: 额外的指令列表
             db_session: 数据库会话（必需）
         """
@@ -71,7 +95,8 @@ class PromptManager:
         # -----------------------------------------------------
         profile_text = character.system_prompt or "你是一个友好的虚拟伴侣。"
         
-        identity_prompt = META_IDENTITY_BASE.template.format(
+        identity_template = self._load_template("base/identity.md")
+        identity_prompt = identity_template.format(
             character_name=character.name,
             character_profile=profile_text
         )
@@ -86,13 +111,29 @@ class PromptManager:
             prompt_parts.append(vrm_prompt)
         else:
             # === 常规模式 ===
-            prompt_parts.append(NORMAL_RENDER_PROTOCOL.template)
+            normal_template = self._load_template("modes/normal.md")
+            prompt_parts.append(normal_template)
             
         # -----------------------------------------------------
-        # 组件 3: 安全与额外指令
+        # 组件 3: 记忆系统说明
+        # -----------------------------------------------------
+        if include_memory:
+            memory_template = self._load_template("base/memory.md")
+            prompt_parts.append(memory_template)
+            
+        # -----------------------------------------------------
+        # 组件 4: 用户画像（自动加载）
+        # -----------------------------------------------------
+        user_profile = self._load_user_profile(character_id)
+        if user_profile:
+            prompt_parts.append(user_profile)
+            
+        # -----------------------------------------------------
+        # 组件 5: 安全与额外指令
         # -----------------------------------------------------
         if include_safety:
-            prompt_parts.append(SAFETY_GUIDELINES.template)
+            safety_template = self._load_template("base/safety.md")
+            prompt_parts.append(safety_template)
             
         if additional_instructions:
             prompt_parts.extend(additional_instructions)
@@ -118,8 +159,9 @@ class PromptManager:
         # 2. 获取动作列表（带详细描述）
         actions_str = self._get_character_actions_detailed(character_id, character_repo)
         
-        # 3. 填充模板
-        return VRM_RENDER_PROTOCOL.template.format(
+        # 3. 加载并填充模板
+        vrm_template = self._load_template("modes/vrm.md")
+        return vrm_template.format(
             expressions=expressions_str,
             actions=actions_str
         )
@@ -166,3 +208,42 @@ class PromptManager:
         except Exception as e:
             logger.error(f"获取角色动作失败: {e}", exc_info=True)
             return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+
+    
+    def _load_user_profile(self, character_id: str) -> Optional[str]:
+        """加载用户画像到上下文
+        
+        Args:
+            character_id: 角色 ID
+            
+        Returns:
+            格式化的用户画像内容，如果为空则返回 None
+        """
+        try:
+            from ..tools.memory_tools_v3 import _resolve_path, _ensure_file_exists
+            
+            # 读取 user_profile
+            profile_path = _resolve_path(character_id, "user_profile")
+            _ensure_file_exists(profile_path)
+            
+            profile_content = profile_path.read_text(encoding="utf-8")
+            
+            # 检查是否有实际内容（不只是模板）
+            if self._has_meaningful_content(profile_content):
+                return f"## 用户画像\n\n{profile_content}"
+            else:
+                # 档案为空或只有模板，不添加
+                return None
+        
+        except Exception as e:
+            logger.warning(f"加载用户画像失败: {e}")
+            return None
+    
+    def _has_meaningful_content(self, content: str) -> bool:
+        """检查档案是否有实际内容（不只是模板）
+        
+        如果所有字段都是 "(未知)"，则认为没有实际内容。
+        """
+        # 简单检查：如果包含 "(未知)" 的行数超过 5 行，认为是空档案
+        unknown_count = content.count("(未知)")
+        return unknown_count < 5

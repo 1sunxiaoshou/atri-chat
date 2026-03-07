@@ -22,6 +22,12 @@ class Config:
         
         # 日志配置
         self._log_level = os.getenv("LOG_LEVEL", self._default_log_level()).upper()
+        
+        # LLM 调用日志配置
+        self._enable_llm_call_logger = os.getenv("ENABLE_LLM_CALL_LOGGER", "false").lower() == "true"
+        
+        # HTTP 请求日志配置
+        self._enable_http_logging = os.getenv("ENABLE_HTTP_LOGGING", "true").lower() == "true"
     
     @property
     def env(self) -> str:
@@ -47,6 +53,16 @@ class Config:
     def log_level(self) -> str:
         """获取日志级别"""
         return self._log_level
+    
+    @property
+    def enable_llm_call_logger(self) -> bool:
+        """是否启用 LLM 调用日志记录器"""
+        return self._enable_llm_call_logger
+    
+    @property
+    def enable_http_logging(self) -> bool:
+        """是否启用 HTTP 请求日志中间件"""
+        return self._enable_http_logging
     
     def _default_log_level(self) -> str:
         """根据环境返回默认日志级别"""

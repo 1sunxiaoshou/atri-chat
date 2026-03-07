@@ -275,7 +275,7 @@ export const buildURL = (endpoint: string): string => {
 
 /**
  * 构建完整的上传 URL
- * @param endpoint - 上传端点（如 'avatar', 'provider-logo'）
+ * @param endpoint - 上传端点（如 'avatar', 'vrm-model'）
  * @returns 完整的上传 URL
  */
 export const buildUploadURL = (endpoint: string): string => {

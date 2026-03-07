@@ -89,7 +89,6 @@ class ProviderMetadata(BaseModel):
     provider_id: str = Field(..., description="供应商ID")
     name: str = Field(..., description="供应商名称")
     description: str = Field(..., description="供应商描述")
-    logo: str = Field(..., description="Logo 路径或 URL")
     config_fields: List[ConfigField] = Field(default_factory=list, description="可配置字段列表")
     provider_options_schema: Optional[Dict[str, Any]] = Field(default=None, description="供应商特定参数的 Schema")
     common_parameters_schema: Optional[Dict[str, Any]] = Field(default=None, description="通用模型参数的 Schema")

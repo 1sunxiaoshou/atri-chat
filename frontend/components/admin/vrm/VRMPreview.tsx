@@ -114,6 +114,12 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
             return;
         }
 
+        // 如果已经有 renderer，先清理
+        if (rendererRef.current) {
+            rendererRef.current.dispose();
+            rendererRef.current = null;
+        }
+
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1e293b);
         sceneRef.current = scene;
@@ -128,21 +134,26 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
         camera.lookAt(0, 0.8, 0);
         cameraRef.current = camera;
 
-        const renderer = new THREE.WebGLRenderer({
-            canvas: canvasRef.current,
-            antialias: true,
-            alpha: true
-        });
+        try {
+            const renderer = new THREE.WebGLRenderer({
+                canvas: canvasRef.current,
+                antialias: true,
+                alpha: true
+            });
 
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-        if (import.meta.env.DEV) {
-            renderer.debug.checkShaderErrors = false;
+            if (import.meta.env.DEV) {
+                renderer.debug.checkShaderErrors = false;
+            }
+
+            rendererRef.current = renderer;
+        } catch (error) {
+            console.error('Failed to create WebGLRenderer:', error);
+            return;
         }
-
-        rendererRef.current = renderer;
 
         // 与 VRMMotionPreviewOptimized 一致的光照设置
         const light = new THREE.DirectionalLight(0xffffff, Math.PI);
@@ -158,6 +169,8 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
         scene.add(gridHelper);
 
         const animate = () => {
+            if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+
             if (isAutoRotatingRef.current) rotationRef.current.y += 0.006;
             if (vrmRef.current) {
                 vrmRef.current.scene.rotation.y = rotationRef.current.y;
@@ -167,7 +180,7 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
                 const targetZ = initialCameraDistanceRef.current / zoomRef.current;
                 cameraRef.current.position.z = targetZ;
             }
-            renderer.render(scene, camera);
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
             animationFrameRef.current = requestAnimationFrame(animate);
         };
         animate();
@@ -219,13 +232,13 @@ export const VRMPreview: React.FC<VRMPreviewProps> = memo(({
             cancelAnimationFrame(animationFrameRef.current);
             animationFrameRef.current = null;
         }
-        if (vrmRef.current) {
+        if (vrmRef.current && sceneRef.current) {
+            sceneRef.current.remove(vrmRef.current.scene);
             VRMUtils.deepDispose(vrmRef.current.scene);
             vrmRef.current = null;
         }
         if (rendererRef.current) {
             rendererRef.current.dispose();
-            rendererRef.current.forceContextLoss();
             rendererRef.current = null;
         }
         sceneRef.current = null;

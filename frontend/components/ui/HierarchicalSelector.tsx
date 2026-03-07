@@ -23,6 +23,7 @@ interface HierarchicalSelectorProps {
     title?: string;
     placeholder?: string;
     showTags?: boolean;
+    variant?: 'list' | 'card';
     className?: string;
 }
 
@@ -35,6 +36,7 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
     title,
     placeholder,
     showTags = true,
+    variant = 'list',
     className
 }) => {
     const { t } = useLanguage();
@@ -161,14 +163,92 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
                     </div>
                 )}
 
-                {/* 3. 列表区域 */}
+                {/* 3. 列表/卡片区域 */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar pb-6">
                     {Object.keys(filteredGroupedItems).length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50">
                             <Search size={40} className="mb-4 opacity-20" />
                             <p className="text-sm">{t('hierarchicalSelector.noResults')}</p>
                         </div>
+                    ) : variant === 'card' ? (
+                        // 卡片变体
+                        <div className="py-4">
+                            {Object.entries(filteredGroupedItems).map(([category, categoryItems]) => (
+                                <div key={category} className="mb-6 last:mb-0">
+                                    {/* 分类标题 */}
+                                    <div className="px-5 mb-3 text-[13px] font-medium text-muted-foreground/70">
+                                        {category}
+                                    </div>
+
+                                    {/* 卡片网格 */}
+                                    <div className="px-5 grid grid-cols-2 gap-3">
+                                        {categoryItems.map(item => {
+                                            const isSelected = selectedId === item.id;
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    onClick={() => handleSelect(item)}
+                                                    className={cn(
+                                                        "relative p-4 rounded-xl border-2 cursor-pointer transition-all",
+                                                        isSelected
+                                                            ? "bg-primary/5 border-primary shadow-sm"
+                                                            : "bg-background border-border hover:border-primary/50 hover:shadow-sm"
+                                                    )}
+                                                >
+                                                    {/* 选中指示器 */}
+                                                    {isSelected && (
+                                                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 图标 */}
+                                                    {item.icon && (
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-lg flex items-center justify-center mb-3",
+                                                            isSelected ? "bg-primary/10" : "bg-muted"
+                                                        )}>
+                                                            {item.icon}
+                                                        </div>
+                                                    )}
+
+                                                    {/* 名称 */}
+                                                    <div className={cn(
+                                                        "text-sm font-medium mb-1 line-clamp-2",
+                                                        isSelected ? "text-primary" : "text-foreground"
+                                                    )}>
+                                                        {item.label}
+                                                    </div>
+
+                                                    {/* 标签 */}
+                                                    {item.tags && item.tags.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-2">
+                                                            {item.tags.slice(0, 2).map(tag => (
+                                                                <span
+                                                                    key={tag}
+                                                                    className="px-2 py-0.5 rounded-full text-[10px] bg-muted text-muted-foreground"
+                                                                >
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                            {item.tags.length > 2 && (
+                                                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted text-muted-foreground">
+                                                                    +{item.tags.length - 2}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
+                        // 列表变体（原有实现）
                         <div className="py-2">
                             {Object.entries(filteredGroupedItems).map(([category, categoryItems]) => (
                                 <div key={category} className="mb-4 last:mb-0">

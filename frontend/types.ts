@@ -17,7 +17,6 @@ export interface Provider {
   provider_id: string;
   description?: string;
   config_json: ProviderConfig;
-  logo?: string;
   template_type: string;  // 动态模板类型，不再硬编码
 }
 

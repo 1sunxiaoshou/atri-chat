@@ -54,7 +54,6 @@ export const api = {
   updateProvider: providersApi.updateProvider,
   deleteProvider: providersApi.deleteProvider,
   getProviderTemplates: providersApi.getProviderTemplates,
-  uploadProviderLogo: providersApi.uploadProviderLogo,
 
   // Model API
   getModels: modelsApi.getModels,

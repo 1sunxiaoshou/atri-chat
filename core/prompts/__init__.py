@@ -8,19 +8,7 @@
 """
 
 from .prompt_manager import PromptManager
-from .templates import (
-    PromptTemplate,
-    META_IDENTITY_BASE,
-    NORMAL_RENDER_PROTOCOL,
-    VRM_RENDER_PROTOCOL,
-    SAFETY_GUIDELINES,
-)
 
 __all__ = [
     "PromptManager",
-    "PromptTemplate",
-    "META_IDENTITY_BASE",
-    "NORMAL_RENDER_PROTOCOL",
-    "VRM_RENDER_PROTOCOL",
-    "SAFETY_GUIDELINES",
 ]

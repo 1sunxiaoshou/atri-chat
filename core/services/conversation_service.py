@@ -54,7 +54,6 @@ class ConversationService:
             )
             self.db.add(message)
             self.db.commit()
-            logger.debug(f"消息已保存: conversation_id={conversation_id}, role={role}")
         except Exception as e:
             self.db.rollback()
             logger.error(f"保存消息失败: {e}", exc_info=True)

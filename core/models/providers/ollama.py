@@ -1,19 +1,18 @@
-"""本地模型供应商（Ollama）"""
+"""Ollama 供应商"""
 from typing import Any, Dict
 from .base import BaseProvider
 from ..config import ProviderConfig, ProviderMetadata, ConfigField, ProviderModelInfo, ModelType, ModelCapability
 
 
-class LocalProvider(BaseProvider):
-    """本地模型供应商（Ollama）"""
+class OllamaProvider(BaseProvider):
+    """Ollama 供应商"""
     
     @property
     def metadata(self) -> ProviderMetadata:
         return ProviderMetadata(
-            provider_id="local",
-            name="Local Model",
-            description="Local model provider (Ollama, vLLM, etc.)",
-            logo="/static/logos/local.png",
+            provider_id="ollama",
+            name="Ollama",
+            description="Ollama - 本地运行大语言模型",
             config_fields=[
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="http://localhost:11434", description="Ollama服务地址"),
             ],
@@ -44,18 +43,18 @@ class LocalProvider(BaseProvider):
         provider_opts = self.get_provider_options(**kwargs)
         if provider_opts.get("enable_thinking"):
             params["enable_thinking"] = True
-            logger.info(f"启用深度思考 (Local/Ollama): model={model_id}")
+            logger.info(f"启用深度思考 (Ollama): model={model_id}")
         
         return ChatOllama(**params)
     
     def get_provider_options(self, **kwargs) -> Dict[str, Any]:
-        """获取本地模型特定参数"""
+        """获取 Ollama 特定参数"""
         provider_options = kwargs.get("provider_options", {})
-        local_options = provider_options.get("local", {})
+        local_options = provider_options.get("ollama", {})
         
         result = {}
         
-        # 本地模型的 enable_thinking（用于 Qwen 等模型）
+        # Ollama 的 enable_thinking（用于 Qwen 等模型）
         if "enable_thinking" in local_options:
             result["enable_thinking"] = local_options["enable_thinking"]
         
@@ -73,7 +72,7 @@ class LocalProvider(BaseProvider):
         return OllamaEmbeddings(**params)
     
     def get_model_info(self, model_id: str, provider_config: ProviderConfig) -> ProviderModelInfo:
-        """获取本地模型信息 - 从 Ollama API 获取"""
+        """获取 Ollama 模型信息 - 从 Ollama API 获取"""
         import requests
         from ...logger import get_logger
         

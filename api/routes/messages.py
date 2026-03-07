@@ -32,18 +32,7 @@ async def send_message(
             if req.thinking_config is not None:
                 model_kwargs["thinking_config"] = req.thinking_config
             
-            from core.logger import get_logger
-            logger = get_logger(__name__)
-            logger.info(
-                "接收到消息请求",
-                extra={
-                    "conversation_id": req.conversation_id,
-                    "character_id": req.character_id,
-                    "display_mode": req.display_mode,
-                    "model_params": model_kwargs,
-                    "content_length": len(req.content)
-                }
-            )
+
             
             # 统一调用 send_message，通过 output_mode 区分模式
             output_mode = "vrm" if req.display_mode == "vrm" else "text"

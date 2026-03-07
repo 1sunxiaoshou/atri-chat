@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash, Upload, Edit2, Film, Clock } from 'lucide-react';
+import { Plus, Trash, Upload, Edit2, Film, Clock, Search } from 'lucide-react';
 import { api } from '../../../services/api/index';
-import { Modal, Button, Input, ConfirmDialog, Card } from '../../ui';
+import { Modal, Button, Input, ConfirmDialog } from '../../ui';
 import Toast, { ToastMessage } from '../../ui/Toast';
 import { VRMMotionPreviewOptimized } from './VRMMotionPreviewOptimized';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { cn } from '../../../utils/cn';
 
 interface Motion {
     id: string;
@@ -38,6 +39,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
     const [selectedMotion, setSelectedMotion] = useState<Motion | null>(null);
     const [modal, setModal] = useState<ModalState>({ isOpen: false, type: null });
     const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
         title?: string;
@@ -255,197 +257,201 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
         setSelectedMotion(motion);
     };
 
-    return (
-        <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Toast message={toastMessage} title={{ success: t('admin.operationSuccess'), error: t('admin.operationFailed') }} />
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground">{t('admin.animations')}</h2>
-                <Button onClick={openUploadModal} className="gap-2">
-                    <Plus size={18} />
-                    {t('admin.uploadMotion')}
-                </Button>
-            </div>
+    // 过滤动作列表
+    const filteredMotions = motions.filter(motion => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            motion.name.toLowerCase().includes(query) ||
+            motion.description?.toLowerCase().includes(query) ||
+            motion.tags?.some(tag => tag.toLowerCase().includes(query))
+        );
+    });
 
-            {/* Main Content - Split Layout */}
-            <div className="flex-1 flex gap-6 overflow-hidden">
-                {/* Left: Motion Preview */}
-                <div className="w-1/2 flex flex-col">
-                    <Card className="flex-1 overflow-hidden border-border shadow-sm">
-                        <div className="h-full flex flex-col">
-                            <div className="px-4 py-3 border-b border-border bg-muted/30">
-                                <h3 className="font-semibold text-foreground">动作预览</h3>
-                            </div>
-                            <div className="flex-1 p-4">
-                                {selectedMotion ? (
-                                    <VRMMotionPreviewOptimized
-                                        motionUrl={selectedMotion.animation_path}
-                                        motionName={selectedMotion.name}
-                                    />
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                                        <div className="text-center">
-                                            <Film size={48} className="mx-auto mb-4 opacity-50" />
-                                            <p>{t('vrm.motion.selectToPreview')}</p>
-                                        </div>
-                                    </div>
-                                )}
+    return (
+        <div className="h-full flex bg-background overflow-hidden animate-in fade-in duration-500">
+            <Toast message={toastMessage} title={{ success: t('admin.operationSuccess'), error: t('admin.operationFailed') }} />
+
+            {/* Left: Motion Preview - 25% */}
+            <div className="w-[25%] min-w-[240px] max-w-[400px] flex flex-col border-r border-border">
+                <div className="h-16 px-6 flex items-center justify-between border-b border-border bg-background">
+                    <h3 className="font-semibold text-foreground">{t('character.selectMotionToPreview')}</h3>
+                </div>
+                <div className="flex-1">
+                    {selectedMotion ? (
+                        <VRMMotionPreviewOptimized
+                            motionUrl={selectedMotion.animation_path}
+                            motionName={selectedMotion.name}
+                            autoPlay={true}
+                        />
+                    ) : (
+                        <div className="h-full flex items-center justify-center">
+                            <div className="text-center">
+                                <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 mx-auto">
+                                    <Film size={32} className="text-muted-foreground" />
+                                </div>
+                                <p className="font-medium text-foreground mb-1">{t('vrm.motion.selectToPreview')}</p>
+                                <p className="text-xs text-muted-foreground">{t('hierarchicalSelector.selectItem')}</p>
                             </div>
                         </div>
-                    </Card>
+                    )}
+                </div>
+            </div>
+
+            {/* Right: Motion List - flex-1 */}
+            <main className="flex-1 flex flex-col min-w-0 bg-background relative">
+                {/* Toolbar */}
+                <div className="h-16 px-6 border-b border-border flex items-center justify-between gap-4 bg-background">
+                    {/* 搜索框 */}
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                        <Input
+                            type="text"
+                            placeholder={t('admin.searchMotions')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 h-9"
+                        />
+                    </div>
+
+                    {/* 上传按钮 */}
+                    <div className="flex items-center gap-2">
+                        <Button onClick={openUploadModal} size="sm" title={t('admin.uploadMotion')}>
+                            <Plus size={16} className="mr-2" />
+                            {t('admin.uploadMotion')}
+                        </Button>
+                    </div>
                 </div>
 
-                {/* Right: Motion List and Info */}
-                <div className="w-1/2 flex flex-col gap-6">
-                    {/* Motion List */}
-                    <Card className="flex-1 overflow-hidden border-border shadow-sm">
-                        <div className="h-full flex flex-col">
-                            <div className="px-4 py-3 border-b border-border bg-muted/30">
-                                <h3 className="font-semibold text-foreground">动作列表</h3>
-                            </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                {isLoading ? (
-                                    <div className="flex items-center justify-center h-full">
-                                        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>
-                                    </div>
-                                ) : motions.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-                                        <Film size={48} className="text-muted-foreground mb-4 opacity-50" />
-                                        <h3 className="text-lg font-semibold text-foreground mb-2">{t('admin.noMotionsYet')}</h3>
-                                        <p className="text-sm text-muted-foreground mb-6">
-                                            {t('vrm.motion.uploadFirst')}
-                                        </p>
-                                        <Button onClick={openUploadModal} className="gap-2">
-                                            <Upload size={18} />
-                                            上传动作
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y divide-border">
-                                        {motions.map((motion) => (
-                                            <div
-                                                key={motion.id}
-                                                onClick={() => handleMotionSelect(motion)}
-                                                className={`p-4 cursor-pointer transition-colors hover:bg-muted/50 ${selectedMotion?.id === motion.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                                                    }`}
-                                            >
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <Film size={16} className="text-primary flex-shrink-0" />
-                                                            <h4 className="font-medium text-foreground truncate">
-                                                                {motion.name}
-                                                            </h4>
-                                                        </div>
-                                                        {motion.description && (
-                                                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                                                                {motion.description}
-                                                            </p>
-                                                        )}
-                                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                            {motion.duration_ms && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <Clock size={12} />
-                                                                    {t('vrm.motion.duration', { duration: (motion.duration_ms / 1000).toFixed(2) })}
-                                                                </span>
-                                                            )}
-                                                            {motion.tags && motion.tags.length > 0 && (
-                                                                <div className="flex gap-1 flex-wrap">
-                                                                    {motion.tags.slice(0, 2).map((tag, idx) => (
-                                                                        <span key={idx} className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                                                            {tag}
-                                                                        </span>
-                                                                    ))}
-                                                                    {motion.tags.length > 2 && (
-                                                                        <span className="text-muted-foreground">
-                                                                            +{motion.tags.length - 2}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                {/* Motion List Table */}
+                <div className="flex-1 overflow-auto custom-scrollbar">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-muted/50 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
+                            <tr>
+                                <th className="pl-6 pr-4 py-3 font-medium text-muted-foreground">{t('admin.motionName')}</th>
+                                <th className="px-4 py-3 font-medium text-muted-foreground">{t('admin.tags')}</th>
+                                <th className="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('admin.duration')}</th>
+                                <th className="pl-4 pr-6 py-3 w-20"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-20 text-center">
+                                        <div className="flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredMotions.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+                                                <Film size={32} className="text-muted-foreground" />
+                                            </div>
+                                            <p className="font-medium text-foreground mb-1">
+                                                {motions.length === 0 ? t('admin.noMotionsYet') : t('admin.noMatchingVoices')}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mb-4">
+                                                {motions.length === 0 ? t('vrm.motion.uploadFirst') : t('admin.adjustSearchOrAdd')}
+                                            </p>
+                                            {motions.length === 0 && (
+                                                <Button onClick={openUploadModal} className="gap-2">
+                                                    <Upload size={18} />
+                                                    {t('admin.uploadMotion')}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredMotions.map((motion) => (
+                                    <tr
+                                        key={motion.id}
+                                        onClick={() => handleMotionSelect(motion)}
+                                        className={cn(
+                                            "group cursor-pointer transition-colors",
+                                            selectedMotion?.id === motion.id
+                                                ? "bg-primary/10"
+                                                : "hover:bg-muted/20"
+                                        )}
+                                    >
+                                        <td className="pl-6 pr-4 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <Film size={16} className="text-primary flex-shrink-0" />
+                                                <div className="min-w-0">
+                                                    <p className="font-medium text-foreground truncate">{motion.name}</p>
+                                                    {motion.description && (
+                                                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                                            {motion.description}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </Card>
-
-                    {/* Motion Info */}
-                    <Card className="border-border shadow-sm">
-                        <div className="px-4 py-3 border-b border-border bg-muted/30">
-                            <h3 className="font-semibold text-foreground">动作信息</h3>
-                        </div>
-                        <div className="p-4">
-                            {selectedMotion ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-xs font-medium text-muted-foreground">名称</label>
-                                        <p className="text-sm text-foreground mt-1">{selectedMotion.name}</p>
-                                    </div>
-                                    {selectedMotion.description && (
-                                        <div>
-                                            <label className="text-xs font-medium text-muted-foreground">描述</label>
-                                            <p className="text-sm text-foreground mt-1">{selectedMotion.description}</p>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label className="text-xs font-medium text-muted-foreground">{t('admin.durationMs')}</label>
-                                        <p className="text-sm text-foreground mt-1">
-                                            {t('vrm.motion.duration', { duration: (selectedMotion.duration_ms / 1000).toFixed(2) })}
-                                        </p>
-                                    </div>
-                                    {selectedMotion.tags && selectedMotion.tags.length > 0 && (
-                                        <div>
-                                            <label className="text-xs font-medium text-muted-foreground">标签</label>
-                                            <div className="flex gap-1 flex-wrap mt-1">
-                                                {selectedMotion.tags.map((tag, idx) => (
-                                                    <span key={idx} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                                                        {tag}
-                                                    </span>
-                                                ))}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex gap-1 flex-wrap">
+                                                {motion.tags && motion.tags.length > 0 ? (
+                                                    <>
+                                                        {motion.tags.slice(0, 2).map((tag, idx) => (
+                                                            <span
+                                                                key={idx}
+                                                                className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold border border-primary/20"
+                                                            >
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                        {motion.tags.length > 2 && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                +{motion.tags.length - 2}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">-</span>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label className="text-xs font-medium text-muted-foreground">ID</label>
-                                        <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
-                                            {selectedMotion.id}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2 pt-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => openEditModal(selectedMotion)}
-                                            className="flex-1 gap-2"
-                                        >
-                                            <Edit2 size={14} />
-                                            {t('admin.edit')}
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleDelete(selectedMotion.id, selectedMotion.name)}
-                                            className="flex-1 gap-2 text-destructive hover:text-destructive"
-                                        >
-                                            <Trash size={14} />
-                                            {t('admin.delete')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    <p className="text-sm">{t('vrm.motion.selectForInfo')}</p>
-                                </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <Clock size={12} />
+                                                <span>{(motion.duration_ms / 1000).toFixed(1)}s</span>
+                                            </div>
+                                        </td>
+                                        <td className="pl-4 pr-6 py-4">
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openEditModal(motion);
+                                                    }}
+                                                >
+                                                    <Edit2 size={14} />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(motion.id, motion.name);
+                                                    }}
+                                                >
+                                                    <Trash size={14} />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
                             )}
-                        </div>
-                    </Card>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
+            </main>
 
             {/* Upload/Edit Modal */}
             <Modal
@@ -532,6 +538,6 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 confirmText={t('admin.delete')}
                 cancelText={t('admin.cancel')}
             />
-        </div>
+        </div >
     );
 };

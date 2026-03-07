@@ -1,7 +1,7 @@
 """动态提示词生成中间件"""
 from dataclasses import dataclass, field
 from langchain.agents.middleware import dynamic_prompt, ModelRequest
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Dict, Any, TYPE_CHECKING, Optional
 from ..logger import get_logger
 
 if TYPE_CHECKING:
@@ -25,9 +25,10 @@ class AgentContext:
     model_kwargs: Dict[str, Any] = field(default_factory=dict)
     
     # 服务依赖（请求级别）
-    db_session: "Session" = None
-    model_service: "ModelService" = None
-    prompt_manager: "PromptManager" = None
+    # 使用 Any 避免 Pydantic 前向引用问题
+    db_session: Optional[Any] = None
+    model_service: Optional[Any] = None
+    prompt_manager: Optional[Any] = None
 
 
 @dynamic_prompt
@@ -41,13 +42,7 @@ def build_character_prompt(request: ModelRequest) -> str:
     prompt = context.prompt_manager.build_character_prompt(
         character_id=context.character_id,
         include_vrm=context.enable_vrm,
-        include_safety=True,
         db_session=context.db_session  # 传递数据库会话
-    )
-    
-    logger.debug(
-        f"动态提示词: character_id={context.character_id}, vrm={context.enable_vrm}",
-        extra={"prompt_length": len(prompt)}
     )
     
     return prompt

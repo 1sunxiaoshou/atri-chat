@@ -33,12 +33,4 @@ async def filter_tools_by_mode(
         else:
             filtered_tools.append(tool)
     
-    logger.debug(
-        f"工具过滤: {len(request.tools)} -> {len(filtered_tools)}",
-        extra={
-            "enable_vrm": enable_vrm,
-            "filtered_tools": [t.name for t in filtered_tools]
-        }
-    )
-    
     return await handler(request.override(tools=filtered_tools))

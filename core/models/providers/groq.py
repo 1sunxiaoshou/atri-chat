@@ -13,9 +13,10 @@ class GroqProvider(BaseProvider):
             provider_id="groq",
             name="Groq",
             description="Groq - 超高速 AI 推理引擎",
-            logo="/static/logos/groq.png",
+
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Groq API密钥"),
+                ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.groq.com/openai/v1", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={}
@@ -30,6 +31,7 @@ class GroqProvider(BaseProvider):
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
+            "base_url": config.get("base_url"),
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "streaming": merged.get("streaming"),

@@ -77,7 +77,11 @@ app = FastAPI(
 )
 
 # 日志中间件（需要在CORS之前添加）
-app.add_middleware(LoggingMiddleware)
+from core.config import get_config
+config = get_config()
+if config.enable_http_logging:
+    app.add_middleware(LoggingMiddleware)
+    logger.debug("HTTP 请求日志中间件已启用")
 
 # CORS 中间件
 app.add_middleware(

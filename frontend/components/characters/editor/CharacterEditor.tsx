@@ -43,6 +43,9 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
     const [motions, setMotions] = useState<Motion[]>([]);
     const [isLoadingAssets, setIsLoadingAssets] = useState(true);
 
+    // 过滤已启用的模型
+    const enabledModels = models.filter(m => m.enabled);
+
     // 获取当前选中的资产
     const selectedAvatar = avatars.find(a => a.id === character.avatar_id);
 
@@ -200,7 +203,8 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                 <div className={cn("h-full p-6", activeTab !== 'persona' && "hidden")}>
                     <PersonaTab
                         character={character}
-                        models={models}
+                        models={enabledModels}
+                        voiceAssets={voiceAssets}
                         onChange={setCharacter}
                         onPortraitUpload={(file) => {
                             // 保存文件对象，稍后上传

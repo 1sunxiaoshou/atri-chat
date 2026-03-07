@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, RefreshCw, Plus } from 'lucide-react';
-import { Button } from '../../ui';
+import { Button, Input } from '../../ui';
 import { cn } from '../../../utils/cn';
 
 interface Category {
@@ -30,16 +30,16 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
     isSyncing,
 }) => {
     return (
-        <div className="h-16 px-6 flex items-center gap-4 border-b border-border sticky top-0 z-20 bg-background/80 backdrop-blur-sm">
+        <div className="h-16 px-6 flex items-center gap-4 border-b border-border sticky top-0 z-20 bg-background">
             {/* 搜索框 */}
-            <div className="relative w-64 group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <input
+            <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input
                     type="text"
+                    placeholder="Search models..."
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder="Search models..."
-                    className="w-full pl-9 pr-4 py-1.5 bg-muted/50 border border-input rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all"
+                    className="pl-9 h-9"
                 />
             </div>
 

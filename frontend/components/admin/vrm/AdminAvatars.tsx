@@ -161,8 +161,8 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                 </Button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* Content - 添加 p-2 给卡片悬浮留出空间 */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>
@@ -188,7 +188,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                                 key={avatar.id}
                                 onClick={() => setEditingAvatar(avatar)}
                                 className="group relative bg-card border border-border rounded-xl p-3 
-                                       transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/50 cursor-pointer"
+                                       transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/50 cursor-pointer hover:z-10"
                             >
                                 {/* Thumbnail - 3:4 ratio */}
                                 <div className="relative w-full rounded-md overflow-hidden bg-muted/30 will-change-transform" style={{ paddingBottom: '133.33%' }}>

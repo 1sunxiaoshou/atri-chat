@@ -16,15 +16,5 @@ export const buildAvatarUrl = (avatarPath: string | undefined): string => {
   return buildResourceUrl(avatarPath);
 };
 
-/**
- * 构建 Logo URL
- */
-export const buildLogoUrl = (logoPath: string | undefined): string => {
-  if (!logoPath) {
-    return '/default-logo.png'; // 返回默认 logo
-  }
-  return buildResourceUrl(logoPath);
-};
-
 // 重新导出
 export { buildResourceUrl } from './constants';

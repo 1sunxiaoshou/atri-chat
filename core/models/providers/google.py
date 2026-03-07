@@ -13,9 +13,10 @@ class GoogleProvider(BaseProvider):
             provider_id="google",
             name="Google",
             description="Google Gemini - 多模态 AI 模型,支持文本、代码、图像、音频和视频",
-            logo="/static/logos/google.png",
+
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Google API密钥"),
+                ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://generativelanguage.googleapis.com", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={
@@ -67,6 +68,7 @@ class GoogleProvider(BaseProvider):
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
+            "base_url": config.get("base_url"),
             "temperature": merged.get("temperature"),
             "max_output_tokens": merged.get("max_tokens"),  # Google 使用 max_output_tokens
         }

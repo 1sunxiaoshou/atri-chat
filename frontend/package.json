@@ -16,6 +16,7 @@
     "check-imports": "tsx scripts/fix-missing-imports.ts"
   },
   "dependencies": {
+    "@lobehub/icons": "^5.0.1",
     "@pixiv/three-vrm": "^3.4.4",
     "@pixiv/three-vrm-animation": "^3.4.4",
     "@radix-ui/react-slot": "^1.2.4",

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, RotateCcw, ChevronDown } from 'lucide-react';
+import { X, RotateCcw } from 'lucide-react';
 import { Model, ModelParameters, ModelParameterSchemaResponse } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Button } from '../ui';
@@ -122,19 +122,19 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               {t('chat.settings.modelSelection')}
             </label>
 
-            <button
+            <Button
+              variant="outline"
               onClick={() => setIsModelSelectorOpen(true)}
-              className="w-full h-11 px-4 bg-muted/30 border border-border/50 rounded-xl text-sm text-foreground hover:bg-muted/50 hover:border-primary/30 transition-all flex items-center justify-between group"
+              className="w-full h-11 px-4 justify-start bg-muted/30 border-border/50 rounded-xl hover:bg-muted/50 hover:border-primary/30"
             >
-              <span className="truncate">{activeModel?.model_id || t('chat.settings.selectModel')}</span>
-              <ChevronDown
-                size={16}
-                className={cn(
-                  "text-muted-foreground group-hover:text-primary transition-all",
-                  isModelSelectorOpen && "rotate-180"
-                )}
-              />
-            </button>
+              {activeModel ? (
+                <span className="truncate">
+                  {activeModel.provider_id} / {activeModel.model_id}
+                </span>
+              ) : (
+                <span>{t('chat.settings.selectModel')}</span>
+              )}
+            </Button>
           </div>
 
           <div className="h-px bg-border/50" />
