@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, ArrowRight } from 'lucide-react';
+import { Film, ArrowRight, Play, Pause, Brain, MessageCircle } from 'lucide-react';
 import { Motion } from '../../../types';
 import { api } from '../../../services/api/index';
 import { Button, RadioGroup } from '../../ui';
@@ -38,10 +38,10 @@ interface MotionBindingsManagerProps {
 }
 
 const CATEGORIES = [
-    { value: 'initial', labelKey: 'character.motionCategories.idle', icon: '🎬', descriptionKey: 'character.motionCategories.idleDesc' },
-    { value: 'idle', labelKey: 'character.motionCategories.standby', icon: '🧘', descriptionKey: 'character.motionCategories.standbyDesc' },
-    { value: 'thinking', labelKey: 'character.motionCategories.thinking', icon: '🤔', descriptionKey: 'character.motionCategories.thinkingDesc' },
-    { value: 'reply', labelKey: 'character.motionCategories.reply', icon: '💬', descriptionKey: 'character.motionCategories.replyDesc' }
+    { value: 'initial', labelKey: 'character.motionCategories.idle', Icon: Play, descriptionKey: 'character.motionCategories.idleDesc' },
+    { value: 'idle', labelKey: 'character.motionCategories.standby', Icon: Pause, descriptionKey: 'character.motionCategories.standbyDesc' },
+    { value: 'thinking', labelKey: 'character.motionCategories.thinking', Icon: Brain, descriptionKey: 'character.motionCategories.thinkingDesc' },
+    { value: 'reply', labelKey: 'character.motionCategories.reply', Icon: MessageCircle, descriptionKey: 'character.motionCategories.replyDesc' }
 ];
 
 export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
@@ -332,10 +332,19 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                             <RadioGroup
                                 value={activeCategory}
                                 onChange={(value: string) => setActiveCategory(value as any)}
-                                options={CATEGORIES.map(cat => ({
-                                    value: cat.value,
-                                    label: `${cat.icon} ${t(cat.labelKey)} (${getCategoryCount(cat.value)})`
-                                }))}
+                                options={CATEGORIES.map(cat => {
+                                    const IconComponent = cat.Icon;
+                                    return {
+                                        value: cat.value,
+                                        label: (
+                                            <span className="flex items-center gap-1.5">
+                                                <IconComponent size={14} />
+                                                <span>{t(cat.labelKey)}</span>
+                                                <span className="text-muted-foreground">({getCategoryCount(cat.value)})</span>
+                                            </span>
+                                        )
+                                    };
+                                })}
                                 variant="segmented"
                             />
                         </div>
@@ -393,7 +402,7 @@ export const MotionBindingsManager: React.FC<MotionBindingsManagerProps> = ({
                                                     <div className="flex items-center gap-2">
                                                         <p className="text-sm font-bold truncate">{binding.motion_name || motion?.name}</p>
                                                     </div>
-                                                    <p className="text-[10px] text-muted-foreground italic">已激活</p>
+                                                    <p className="text-[10px] text-muted-foreground italic">{t('character.motionActive')}</p>
                                                 </div>
                                                 <Button
                                                     variant="ghost"

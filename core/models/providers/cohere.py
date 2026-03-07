@@ -13,9 +13,10 @@ class CohereProvider(BaseProvider):
             provider_id="cohere",
             name="Cohere",
             description="Cohere - 企业级 AI 平台",
-            logo="/static/logos/cohere.png",
+
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Cohere API密钥"),
+                ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.cohere.ai", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={}
@@ -30,6 +31,7 @@ class CohereProvider(BaseProvider):
         params = {
             "model": model_id,
             "cohere_api_key": config.get("api_key"),
+            "base_url": config.get("base_url"),
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "streaming": merged.get("streaming"),

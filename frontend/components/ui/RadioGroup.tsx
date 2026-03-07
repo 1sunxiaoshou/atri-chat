@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 
 export interface RadioOption {
-    label: string;
+    label: string | React.ReactNode;
     value: string;
 }
 

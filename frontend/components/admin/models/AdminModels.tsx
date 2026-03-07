@@ -89,7 +89,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
         });
       }
       setEditingProvider({
-        provider_id: '',
+        provider_id: defaultTemplate?.template_type || 'openai',
         template_type: defaultTemplate?.template_type || 'openai',
         description: '',
         config_json: defaultConfigJson
@@ -100,16 +100,41 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
 
   const handleSaveProvider = async () => {
     if (!editingProvider || !editingProvider.provider_id) return;
-    const existing = providers.find(p => p.provider_id === editingProvider.provider_id);
-    if (existing) {
-      await providersApi.updateProvider(editingProvider.provider_id, {
-        config_json: editingProvider.config_json
-      });
-    } else {
-      await providersApi.createProvider(editingProvider as Provider);
+
+    try {
+      const existing = providers.find(p => p.provider_id === editingProvider.provider_id);
+      if (existing) {
+        // 更新现有供应商
+        await providersApi.updateProvider(editingProvider.provider_id, {
+          config_json: editingProvider.config_json
+        });
+        setToast({ success: true, message: t('admin.providerUpdated') });
+      } else {
+        // 创建新供应商 - 后端会检查重复
+        await providersApi.createProvider(editingProvider as Provider);
+        setToast({ success: true, message: t('admin.providerCreated') });
+      }
+      setIsProviderModalOpen(false);
+      await onRefresh();
+    } catch (error: any) {
+      // 处理后端返回的错误
+      const errorMessage = error.response?.data?.detail || error.message || t('admin.operationFailed');
+
+      // 如果是重复ID错误，显示特定提示
+      if (errorMessage.includes('已存在') || errorMessage.includes('already exists')) {
+        setToast({
+          success: false,
+          message: t('admin.providerIdExists')
+        });
+      } else {
+        setToast({
+          success: false,
+          message: errorMessage
+        });
+      }
+    } finally {
+      setTimeout(() => setToast(null), 3000);
     }
-    setIsProviderModalOpen(false);
-    await onRefresh();
   };
 
   const handleDeleteProvider = async (providerId: string) => {

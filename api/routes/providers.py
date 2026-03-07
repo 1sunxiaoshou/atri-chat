@@ -26,7 +26,7 @@ async def create_provider(
     """创建供应商配置
     
     所有供应商通过 template_type 指定使用哪个 Provider 实现类。
-    可用的模板类型: openai, anthropic, google, tongyi, local
+    可用的模板类型: openai, anthropic, google, qwen, local
     
     请求体示例:
     {
@@ -54,14 +54,10 @@ async def create_provider(
                 detail=f"无效的 template_type: {template_type}，可用模板: {', '.join(available)}"
             )
         
-        # Logo 从模板元数据中获取
-        logo = template.metadata.logo
-        
         # 创建供应商配置
         provider = ProviderConfigORM(
             provider_id=req.provider_id,
             config_json=req.config_json,
-            logo=logo,
             template_type=template_type
         )
         
@@ -75,8 +71,7 @@ async def create_provider(
             data={
                 "id": provider.id,
                 "provider_id": req.provider_id,
-                "template_type": template_type,
-                "logo": logo
+                "template_type": template_type
             }
         )
     except IntegrityError:
@@ -117,7 +112,6 @@ async def get_provider(
                 "template_type": provider.template_type,
                 "description": template.metadata.description if template else "",
                 "config_json": provider.config_json,
-                "logo": provider.logo,
                 "created_at": provider.created_at.isoformat(),
                 "updated_at": provider.updated_at.isoformat()
             }
@@ -153,7 +147,6 @@ async def list_providers(
                 "template_type": p.template_type,
                 "description": template.metadata.description if template else "",
                 "config_json": p.config_json,
-                "logo": p.logo,
                 "model_count": len(p.models),
                 "created_at": p.created_at.isoformat(),
                 "updated_at": p.updated_at.isoformat()
@@ -197,7 +190,7 @@ async def update_provider(
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
         
-        # 如果更新了 template_type，验证并自动更新 logo
+        # 如果更新了 template_type，验证
         if req.template_type:
             agent_manager = get_agent_coordinator()
             template = agent_manager.model_factory.get_provider_template(req.template_type)
@@ -208,7 +201,6 @@ async def update_provider(
                     detail=f"无效的 template_type: {req.template_type}，可用模板: {', '.join(available)}"
                 )
             provider.template_type = req.template_type
-            provider.logo = template.metadata.logo
         
         # 更新配置
         if req.config_json is not None:
@@ -222,8 +214,7 @@ async def update_provider(
             message="更新成功",
             data={
                 "id": provider.id,
-                "provider_id": provider.provider_id,
-                "logo": provider.logo
+                "provider_id": provider.provider_id
             }
         )
     except HTTPException:
@@ -294,7 +285,6 @@ async def list_provider_templates():
                 "template_type": metadata.provider_id,
                 "name": metadata.name,
                 "description": metadata.description,
-                "logo": metadata.logo,
                 "config_fields": [
                     {
                         "field_name": field.field_name,

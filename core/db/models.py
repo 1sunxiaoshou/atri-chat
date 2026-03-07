@@ -210,7 +210,6 @@ class ProviderConfig(Base):
     
     # 配置信息
     config_json: Mapped[dict] = mapped_column(JSON, nullable=False)
-    logo: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     template_type: Mapped[str] = mapped_column(String(50), default="openai")
     
     # 时间戳

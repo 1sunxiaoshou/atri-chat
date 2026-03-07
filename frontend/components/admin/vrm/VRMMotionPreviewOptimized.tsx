@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
 import { MotionController } from '../../../libs/vrm-emote/motionController';
@@ -63,13 +63,11 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
 
         let cleanupFn: (() => void) | undefined;
 
-        // 检查容器是否可见（宽度大于0）
         const checkVisibility = () => {
             if (containerRef.current && containerRef.current.clientWidth > 0) {
                 initScene();
                 loadVRMModel();
             } else {
-                // 如果容器不可见，使用 ResizeObserver 等待它变为可见
                 const observer = new ResizeObserver((entries) => {
                     for (const entry of entries) {
                         if (entry.contentRect.width > 0) {
@@ -121,63 +119,63 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
     const initScene = () => {
         if (!canvasRef.current || !containerRef.current) return;
 
-        // 确保容器有有效的尺寸
         const width = containerRef.current.clientWidth;
         const height = containerRef.current.clientHeight;
 
-        if (width === 0 || height === 0) {
-            console.warn('Container has zero dimensions, skipping scene initialization');
-            return;
+        if (width === 0 || height === 0) return;
+
+        // 如果已经有 renderer，先清理
+        if (rendererRef.current) {
+            rendererRef.current.dispose();
+            rendererRef.current = null;
         }
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1e293b);
         sceneRef.current = scene;
 
-        const camera = new THREE.PerspectiveCamera(
-            35,
-            width / height,
-            0.1,
-            20
-        );
+        const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 20);
         camera.position.set(0, 1, 2.5);
         camera.lookAt(0, 0.8, 0);
         cameraRef.current = camera;
 
-        const renderer = new THREE.WebGLRenderer({
-            canvas: canvasRef.current,
-            antialias: true,
-            alpha: true
-        });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-        if (import.meta.env.DEV) {
-            renderer.debug.checkShaderErrors = false;
+        try {
+            const renderer = new THREE.WebGLRenderer({
+                canvas: canvasRef.current,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            rendererRef.current = renderer;
+        } catch (error) {
+            console.error('Failed to create WebGLRenderer:', error);
+            setError(t('admin.loadDataFailed'));
+            return;
         }
-
-        rendererRef.current = renderer;
 
         const light = new THREE.DirectionalLight(0xffffff, Math.PI);
         light.position.set(1, 1, 1).normalize();
         scene.add(light);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
 
-        const gridHelper = new THREE.GridHelper(10, 10, 0x3b82f6, 0x334155);
+        // 极淡的网格，几乎看不见，或者完全移除
+        const gridHelper = new THREE.GridHelper(10, 10, 0xe2e8f0, 0xf1f5f9);
         gridHelper.position.y = 0;
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
         scene.add(gridHelper);
 
         const handleResize = () => {
-            if (!containerRef.current || !camera || !renderer) return;
+            if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
             const width = containerRef.current.clientWidth;
             const height = containerRef.current.clientHeight;
-            if (width === 0 || height === 0) return; // 防止除以零
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
+            if (width === 0 || height === 0) return;
+            cameraRef.current.aspect = width / height;
+            cameraRef.current.updateProjectionMatrix();
+            rendererRef.current.setSize(width, height);
         };
         window.addEventListener('resize', handleResize);
 
@@ -198,7 +196,6 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
             const loader = new GLTFLoader();
             loader.register((parser) => new VRMLoaderPlugin(parser));
 
-            console.log(t('character.importingVRM'));
             const modelPath = '/static/defaults/mox.vrm';
             const gltf = await loader.loadAsync(modelPath);
             const vrm = gltf.userData.vrm as VRM;
@@ -207,19 +204,15 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
                 throw new Error(t('admin.loadDataFailed'));
             }
 
-            console.log(t('admin.syncSuccess'));
-
             VRMUtils.rotateVRM0(vrm);
             sceneRef.current.add(vrm.scene);
             vrmRef.current = vrm;
 
-            // 初始化 MotionController
             motionControllerRef.current = new MotionController(vrm, {
                 maxSize: 20,
                 enableAutoEvict: true
             });
 
-            // 计算模型边界和位置
             const box = new THREE.Box3().setFromObject(vrm.scene);
             const size = box.getSize(new THREE.Vector3());
             const center = box.getCenter(new THREE.Vector3());
@@ -228,11 +221,10 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
             vrm.scene.position.y = -box.min.y;
             vrm.scene.position.z = -center.z;
 
-            // 调整相机距离
             if (cameraRef.current) {
                 const modelHeight = size.y;
                 modelHeightRef.current = modelHeight;
-                const distance = modelHeight * 1.5;
+                const distance = modelHeight * 1.7;
                 initialCameraDistanceRef.current = distance;
                 cameraRef.current.position.set(0, modelHeight * 0.5, distance);
                 cameraRef.current.lookAt(0, modelHeight * 0.5, 0);
@@ -240,36 +232,25 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
 
             setIsLoading(false);
 
-            // 加载初始动作
             if (motionUrl) {
                 await loadMotion();
             }
         } catch (err) {
-            console.error(t('admin.loadDataFailed'), err);
-            setError(t('admin.loadDataFailed') + ': ' + (err as Error).message);
+            console.error(err);
+            setError(t('admin.loadDataFailed'));
             setIsLoading(false);
         }
     };
 
     const loadMotion = async () => {
-        if (!motionControllerRef.current) {
-            console.warn(t('admin.noConfigRequired'));
-            return;
-        }
+        if (!motionControllerRef.current) return;
 
         try {
-            console.log(t('admin.syncSuccess'), motionUrl);
-
-            // 使用 MotionController 播放动作（不会重新加载模型）
             await motionControllerRef.current.playAnimationUrl(motionUrl, true);
-
-            // 根据 autoPlay 决定是否自动播放
             setIsPlaying(autoPlay);
-
-            console.log(t('admin.syncSuccess'));
         } catch (err) {
-            console.error(t('admin.loadDataFailed'), err);
-            setError(t('admin.loadDataFailed') + ': ' + (err as Error).message);
+            console.error(err);
+            setError(t('admin.loadDataFailed'));
         }
     };
 
@@ -278,23 +259,19 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
 
         const delta = clockRef.current.getDelta();
 
-        // 使用 MotionController 更新动画
         if (motionControllerRef.current && isPlayingRef.current) {
             motionControllerRef.current.update(delta);
         }
 
-        // 更新 VRM
         if (vrmRef.current) {
             vrmRef.current.update(delta);
         }
 
-        // 应用旋转
         if (vrmRef.current) {
             vrmRef.current.scene.rotation.y = rotationRef.current.y;
             vrmRef.current.scene.rotation.x = rotationRef.current.x;
         }
 
-        // 应用缩放
         if (cameraRef.current) {
             cameraRef.current.position.z = initialCameraDistanceRef.current / zoomRef.current;
         }
@@ -326,15 +303,11 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDraggingRef.current) return;
-
         const deltaX = e.clientX - previousMouseRef.current.x;
         const deltaY = e.clientY - previousMouseRef.current.y;
-
         rotationRef.current.y += deltaX * 0.01;
         rotationRef.current.x += deltaY * 0.01;
-
         rotationRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationRef.current.x));
-
         previousMouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
@@ -345,20 +318,6 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
     const handleReset = () => {
         rotationRef.current = { x: 0, y: Math.PI };
         setZoom(1);
-
-        if (cameraRef.current) {
-            const modelHeight = modelHeightRef.current;
-            cameraRef.current.position.set(0, modelHeight * 0.5, initialCameraDistanceRef.current);
-            cameraRef.current.lookAt(0, modelHeight * 0.5, 0);
-        }
-    };
-
-    const handleZoomIn = () => {
-        setZoom(prev => Math.min(3, prev + 0.2));
-    };
-
-    const handleZoomOut = () => {
-        setZoom(prev => Math.max(0.5, prev - 0.2));
     };
 
     const handlePlayPause = () => {
@@ -367,96 +326,103 @@ export const VRMMotionPreviewOptimized: React.FC<VRMMotionPreviewOptimizedProps>
 
     return (
         <div className={cn(
-            "relative bg-slate-900 rounded-lg overflow-hidden h-full",
+            "relative bg-muted/30 rounded-lg overflow-hidden h-full",
             className
         )}>
             <div
                 ref={containerRef}
-                className="w-full h-full cursor-grab active:cursor-grabbing"
+                className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
             >
-                <canvas ref={canvasRef} className="w-full h-full" />
+                <canvas ref={canvasRef} className="w-full h-full block" />
             </div>
 
+            {/* Loading Overlay */}
             {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-                        <p className="text-white text-sm">
-                            {vrmRef.current ? t('admin.processing') : t('admin.loading')}
-                        </p>
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
+                    <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">{t('admin.loading')}</span>
                     </div>
                 </div>
             )}
 
+            {/* Error Overlay */}
             {error && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-                    <div className="text-center px-6">
-                        <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-                            <X size={32} className="text-red-500" />
-                        </div>
-                        <p className="text-white text-sm">{error}</p>
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
+                    <div className="flex flex-col items-center gap-2 text-destructive">
+                        <AlertCircle className="w-8 h-8" />
+                        <span className="text-sm font-medium">{error}</span>
                     </div>
                 </div>
             )}
 
+            {/* Controls Bar - 亮色毛玻璃风格 */}
             {!isLoading && !error && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handlePlayPause}
-                        className={cn(
-                            "h-8 w-8 hover:bg-slate-700 hover:text-white",
-                            isPlaying ? "text-blue-400" : "text-white"
-                        )}
-                        title={isPlaying ? t('character.pause') : t('character.play')}
-                    >
-                        {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-                    </Button>
-                    <div className="w-px h-6 bg-slate-600" />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleZoomOut}
-                        className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title={t('admin.cancel')}
-                    >
-                        <ZoomOut size={16} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleZoomIn}
-                        className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title={t('admin.save')}
-                    >
-                        <ZoomIn size={16} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleReset}
-                        className="h-8 w-8 text-white hover:bg-slate-700 hover:text-white"
-                        title={t('admin.reset')}
-                    >
-                        <RotateCcw size={16} />
-                    </Button>
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+                    <div className="flex items-center gap-1 p-1.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handlePlayPause}
+                            className={cn(
+                                "h-9 w-9 rounded-full transition-all hover:scale-105",
+                                isPlaying
+                                    ? "text-primary bg-primary/10 hover:bg-primary/20"
+                                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                            )}
+                            title={isPlaying ? t('character.pause') : t('character.play')}
+                        >
+                            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                        </Button>
+
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-600 mx-1" />
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setZoom(prev => Math.max(0.5, prev - 0.2))}
+                            className="h-9 w-9 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-105"
+                            title={t('admin.cancel')}
+                        >
+                            <ZoomOut size={18} />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setZoom(prev => Math.min(3, prev + 0.2))}
+                            className="h-9 w-9 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-105"
+                            title={t('admin.save')}
+                        >
+                            <ZoomIn size={18} />
+                        </Button>
+
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-600 mx-1" />
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleReset}
+                            className="h-9 w-9 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-105"
+                            title={t('admin.reset')}
+                        >
+                            <RotateCcw size={18} />
+                        </Button>
+                    </div>
                 </div>
             )}
 
+            {/* Motion Name - 亮色标签 */}
             {motionName && !isLoading && !error && (
-                <div className="absolute top-4 left-4 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-white">
-                    {motionName}
-                </div>
-            )}
-
-            {!isLoading && !error && (
-                <div className="absolute top-4 right-4 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-300">
-                    <p>{t('admin.tip')}</p>
+                <div className="absolute top-4 left-4 z-10 pointer-events-none">
+                    <div className="px-3 py-1.5 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-full border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300 tracking-wide">
+                            {motionName}
+                        </span>
+                    </div>
                 </div>
             )}
         </div>

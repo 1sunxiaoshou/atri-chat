@@ -58,8 +58,13 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
                                     template?.config_fields?.forEach((f: any) => {
                                         config[f.field_name] = f.default_value || '';
                                     });
+
+                                    // 只有当 provider_id 等于当前 template_type 时才同步更新（说明用户没有自定义）
+                                    const shouldSyncProviderId = !isEditing && provider.provider_id === provider.template_type;
+
                                     onChange({
                                         ...provider,
+                                        provider_id: shouldSyncProviderId ? val : provider.provider_id,
                                         template_type: val as any,
                                         config_json: config,
                                     });
@@ -108,7 +113,10 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
                     <Button variant="outline" onClick={onClose}>
                         {t('admin.cancel')}
                     </Button>
-                    <Button onClick={onSave} disabled={!provider.provider_id}>
+                    <Button
+                        onClick={onSave}
+                        disabled={!provider.provider_id}
+                    >
                         {t('admin.save')}
                     </Button>
                 </div>

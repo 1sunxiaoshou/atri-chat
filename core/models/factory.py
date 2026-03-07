@@ -36,8 +36,8 @@ class ModelFactory:
         self.register_provider_template(providers.OpenAIProvider())
         self.register_provider_template(providers.AnthropicProvider())
         self.register_provider_template(providers.GoogleProvider())
-        self.register_provider_template(providers.TongyiProvider())
-        self.register_provider_template(providers.LocalProvider())
+        self.register_provider_template(providers.QwenProvider())
+        self.register_provider_template(providers.OllamaProvider())
         self.register_provider_template(providers.MistralProvider())
         self.register_provider_template(providers.DeepSeekProvider())
         self.register_provider_template(providers.CohereProvider())
@@ -60,7 +60,7 @@ class ModelFactory:
         """根据模板类型获取 Provider 实现类
         
         Args:
-            template_type: 模板类型 (openai, anthropic, google, tongyi, local)
+            template_type: 模板类型 (openai, anthropic, google, qwen, ollama)
         
         Returns:
             Provider 实例，如果模板不存在则返回 None
@@ -110,7 +110,6 @@ class ModelFactory:
                 logger.error(f"模型创建失败: {model_config.provider_id}/{model_config.model_id}")
                 raise ValueError(f"模型创建失败，请检查配置")
             
-            logger.info(f"模型创建: {model_config.provider_id}/{model_config.model_id}")
             return model
         except Exception as e:
             logger.error(

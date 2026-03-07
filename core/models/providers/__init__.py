@@ -3,8 +3,8 @@ from .base import BaseProvider
 from .openai import OpenAIProvider
 from .anthropic import AnthropicProvider
 from .google import GoogleProvider
-from .tongyi import TongyiProvider
-from .local import LocalProvider
+from .qwen import QwenProvider
+from .ollama import OllamaProvider
 from .mistral import MistralProvider
 from .deepseek import DeepSeekProvider
 from .cohere import CohereProvider
@@ -16,8 +16,8 @@ __all__ = [
     "OpenAIProvider",
     "AnthropicProvider",
     "GoogleProvider",
-    "TongyiProvider",
-    "LocalProvider",
+    "QwenProvider",
+    "OllamaProvider",
     "MistralProvider",
     "DeepSeekProvider",
     "CohereProvider",

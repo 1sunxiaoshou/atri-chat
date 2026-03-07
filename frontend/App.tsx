@@ -59,21 +59,33 @@ const App: React.FC = () => {
   }, [viewMode]);
 
   const loadGlobalData = async (force = false) => {
-    // Load characters if empty or forced
-    if (force || characters.length === 0) {
+    // Load characters - 总是重新加载当 force=true
+    if (force) {
+      const charRes = await api.getCharacters();
+      if (charRes.code === 200) {
+        setCharacters(charRes.data);
+      }
+    } else if (characters.length === 0) {
+      // 只在初始化时加载
       const charRes = await api.getCharacters();
       if (charRes.code === 200) {
         setCharacters(charRes.data);
       }
     }
-    // Load models if empty or forced
-    if (force || models.length === 0) {
+
+    // Load models - 总是重新加载当 force=true
+    if (force) {
+      const modelRes = await api.getModels();
+      if (modelRes.code === 200) {
+        setModels(modelRes.data);
+      }
+    } else if (models.length === 0) {
+      // 只在初始化时加载
       const modelRes = await api.getModels();
       if (modelRes.code === 200) {
         setModels(modelRes.data);
       }
     }
-    // 不再需要加载VRM models，已整合到Avatar资产中
   };
 
   const loadConversations = async (charId: string | null) => {
@@ -294,7 +306,7 @@ const App: React.FC = () => {
           <AdminCharacters
             characters={characters}
             models={models}
-            onRefresh={loadGlobalData}
+            onRefresh={() => loadGlobalData(true)}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
             isSidebarHidden={isLeftSidebarHidden}
             onShowSidebar={() => setIsLeftSidebarHidden(false)}

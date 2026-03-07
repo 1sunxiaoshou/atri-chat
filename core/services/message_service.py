@@ -48,11 +48,37 @@ class MessageService:
                 # 工具调用开始
                 if event_type == "on_tool_start":
                     tool_name = event.get("name", "未知工具")
+                    tool_input = event.get("data", {}).get("input", {})
+                    run_id = event.get("run_id", "")
                     tool_call_count += 1
-                    logger.info(f"工具调用: {tool_name}")
+                    
+                    # 使用 run_id 的前8位作为标识
+                    call_id = str(run_id)[-8:] if run_id else "unknown"
+                    
+                    # 格式化参数
+                    params_str = self._format_tool_params(tool_input)
+                    logger.info(f"[{call_id}] 工具: {tool_name}\n{params_str}")
+                    
                     yield json.dumps({
                         "type": "status",
                         "content": f"正在使用工具: {tool_name}..."
+                    }, ensure_ascii=False)
+                
+                # 工具调用结束
+                elif event_type == "on_tool_end":
+                    tool_name = event.get("name", "未知工具")
+                    output = event.get("data", {}).get("output", "")
+                    run_id = event.get("run_id", "")
+                    
+                    call_id = str(run_id)[-8:] if run_id else "unknown"
+                    output_str = str(output)
+                    output_preview = output_str[:80] + "..." if len(output_str) > 80 else output_str
+                    logger.info(f"[{call_id}] 完成: {tool_name} → {output_preview}")
+                    
+                    yield json.dumps({
+                        "type": "tool_result",
+                        "tool": tool_name,
+                        "content": str(output)[:200]  # 只显示前200字符
                     }, ensure_ascii=False)
                 
                 # 模型流式输出
@@ -82,8 +108,11 @@ class MessageService:
             
             # 发送完成统计
             full_response = full_message.content if full_message else ""
+            token_info = self._get_token_info(full_message)
+            
             logger.info(
-                f"流式处理完成: chunks={chunk_count}, tools={tool_call_count}, length={len(full_response)}"
+                f"完成: {chunk_count} chunks, {tool_call_count} tools, "
+                f"{len(full_response)} chars{token_info}"
             )
             
             yield json.dumps({
@@ -135,3 +164,62 @@ class MessageService:
             text_content = str(chunk.content) if chunk.content else ""
         
         return text_content, reasoning_content
+    
+    def _format_tool_params(self, params: Dict[str, Any]) -> str:
+        """格式化工具参数为易读格式
+        
+        Args:
+            params: 工具参数字典
+            
+        Returns:
+            格式化后的字符串
+        """
+        if not params:
+            return "  (无参数)"
+        
+        lines = []
+        for key, value in params.items():
+            # 处理长字符串
+            if isinstance(value, str):
+                if len(value) > 60:
+                    value_str = f"{value[:60]}... ({len(value)} chars)"
+                else:
+                    value_str = value
+            else:
+                value_str = str(value)
+            
+            lines.append(f"  {key}: {value_str}")
+        
+        return "\n".join(lines)
+    
+    def _get_token_info(self, message) -> str:
+        """获取 token 使用信息
+        
+        Args:
+            message: AI 消息对象
+            
+        Returns:
+            格式化的 token 信息字符串,如 ", tokens=100+20=120"
+        """
+        if not message:
+            return ""
+        
+        usage = None
+        
+        # 尝试标准方式
+        if hasattr(message, 'usage_metadata') and message.usage_metadata:
+            usage = message.usage_metadata
+        # 尝试 response_metadata
+        elif hasattr(message, 'response_metadata') and message.response_metadata:
+            metadata = message.response_metadata
+            usage = metadata.get('token_usage') or metadata.get('usage')
+        
+        if not usage:
+            return ""
+        
+        # 统一提取 token 数量 (兼容不同字段名)
+        input_tokens = usage.get('input_tokens') or usage.get('prompt_tokens', 0)
+        output_tokens = usage.get('output_tokens') or usage.get('completion_tokens', 0)
+        total_tokens = usage.get('total_tokens', input_tokens + output_tokens)
+        
+        return f", tokens={input_tokens}+{output_tokens}={total_tokens}"

@@ -294,7 +294,7 @@ async def get_model_parameter_schema(
     - model_uuid: 模型的 UUID
     """
     try:
-        from core.dependencies import get_agent_coordinator
+        from core.dependencies import get_model_factory
         
         # 获取模型
         model = db.query(ModelORM).filter(ModelORM.id == model_uuid).first()
@@ -302,7 +302,7 @@ async def get_model_parameter_schema(
             raise HTTPException(status_code=404, detail="模型不存在")
         
         # 获取 Provider 模板
-        agent_manager = get_agent_coordinator()
+        model_factory = get_model_factory()
         provider = db.query(ProviderConfigORM).filter(
             ProviderConfigORM.provider_id == model.provider_id
         ).first()
@@ -310,7 +310,7 @@ async def get_model_parameter_schema(
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
         
-        template = agent_manager.model_factory.get_provider_template(provider.template_type)
+        template = model_factory.get_provider_template(provider.template_type)
         if not template:
             raise HTTPException(status_code=400, detail=f"不支持的供应商模板: {provider.template_type}")
         

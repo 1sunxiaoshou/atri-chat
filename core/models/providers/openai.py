@@ -13,7 +13,6 @@ class OpenAIProvider(BaseProvider):
             provider_id="openai",
             name="OpenAI",
             description="OpenAI API provider for GPT models",
-            logo="/static/logos/openai.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="OpenAI API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.openai.com/v1", description="API基础URL"),

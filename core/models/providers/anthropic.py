@@ -13,9 +13,9 @@ class AnthropicProvider(BaseProvider):
             provider_id="anthropic",
             name="Anthropic",
             description="Anthropic Claude API provider",
-            logo="/static/logos/anthropic.png",
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="Anthropic API密钥"),
+                ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.anthropic.com", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={
@@ -71,6 +71,7 @@ class AnthropicProvider(BaseProvider):
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
+            "base_url": config.get("base_url"),
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "top_p": merged.get("top_p"),

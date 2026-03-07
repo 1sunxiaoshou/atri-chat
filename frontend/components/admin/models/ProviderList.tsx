@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Edit2, Trash } from 'lucide-react';
 import { Provider } from '../../../types';
-import { buildLogoUrl } from '../../../utils/url';
+import { ProviderIcon } from '@/src/components/ProviderIcon';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
 
@@ -59,29 +59,10 @@ export const ProviderList: React.FC<ProviderListProps> = ({
                                     : "bg-muted/50 border-border"
                             )}
                         >
-                            {provider.logo ? (
-                                <img
-                                    src={buildLogoUrl(provider.logo)}
-                                    alt=""
-                                    className="w-6 h-6 object-contain"
-                                    onError={(e) => {
-                                        // 图片加载失败时显示首字母
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const parent = target.parentElement;
-                                        if (parent && !parent.querySelector('.fallback-text')) {
-                                            const fallback = document.createElement('span');
-                                            fallback.className = 'fallback-text text-xs font-bold text-muted-foreground';
-                                            fallback.textContent = provider.provider_id.charAt(0).toUpperCase();
-                                            parent.appendChild(fallback);
-                                        }
-                                    }}
-                                />
-                            ) : (
-                                <span className="text-xs font-bold text-muted-foreground">
-                                    {provider.provider_id.charAt(0).toUpperCase()}
-                                </span>
-                            )}
+                            <ProviderIcon
+                                templateType={provider.template_type}
+                                size={24}
+                            />
                         </div>
 
                         {/* Info */}

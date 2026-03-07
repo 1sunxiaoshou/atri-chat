@@ -26,10 +26,5 @@ async def select_model_and_params(
         **{k: v for k, v in context.model_kwargs.items() if k != "streaming"}
     )
     
-    logger.debug(
-        f"动态模型: {context.provider_id}/{context.model_id}",
-        extra={"model_kwargs": context.model_kwargs}
-    )
-    
     return await handler(request.override(model=model))
 

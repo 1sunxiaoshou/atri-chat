@@ -132,6 +132,7 @@
         "name": "名称",
         "defaultModel": "默认模型",
         "selectModel": "选择模型",
+        "searchModel": "搜索模型...",
         "systemPrompt": "系统提示词",
         "systemPromptHelp": "定义角色的性格、说话风格和行为方式",
         "characterList": "角色列表",
@@ -139,6 +140,9 @@
         "confirmDelete": "确定要删除该角色吗？这将同时删除所有关联的会话。",
         "confirmDeleteProvider": "确定要删除该供应商吗？",
         "confirmDeleteModel": "确定要删除该模型吗？",
+        "providerIdExists": "供应商 ID 已存在",
+        "providerCreated": "供应商创建成功",
+        "providerUpdated": "供应商更新成功",
         "selectProvider": "选择供应商",
         "selectProviderDesc": "从左侧选择一个供应商以查看和管理其模型",
         "syncSuccess": "同步成功",
@@ -186,7 +190,9 @@
         "animations": "动作",
         "voice": "语音",
         "showSidebar": "显示侧边栏",
-        "noMotionsYet": "还没有动作"
+        "noMotionsYet": "还没有动作",
+        "searchMotions": "搜索动作名称、描述或标签...",
+        "duration": "时长"
     },
     "chat": {
         "placeholder": "发送消息...",
@@ -286,6 +292,9 @@
         "portraitUploadFailed": "立绘上传失败",
         "characterAvatar": "角色头像",
         "motion": "动作",
+        "voice": "音色",
+        "selectVoice": "选择音色",
+        "searchVoice": "搜索音色...",
         "noMotionsAvailable": "暂无可用动作，请先在管理面板的\"动作\"标签页中上传动作文件",
         "motionAlreadyBound": "该动作已在此分类中绑定",
         "selectMotionToPreview": "选择动作以预览",
@@ -307,6 +316,17 @@
         "fetchDataFailed": "获取数据失败:",
         "addBindingFailed": "添加失败",
         "addBindingError": "添加绑定失败:",
-        "removeBindingFailed": "移除绑定失败:"
+        "removeBindingFailed": "移除绑定失败:",
+        "motionCategories": {
+            "idle": "初始动作",
+            "idleDesc": "角色首次出现时的动作",
+            "standby": "待机动作",
+            "standbyDesc": "等待用户输入时的循环动作",
+            "thinking": "思考动作",
+            "thinkingDesc": "AI 处理消息时的动作",
+            "reply": "回复动作",
+            "replyDesc": "AI 回复消息时的动作"
+        },
+        "motionActive": "已激活"
     }
 }

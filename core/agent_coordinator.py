@@ -22,10 +22,12 @@ from .middleware import (
     filter_tools_by_mode,
     AgentContext
 )
+from .callbacks import LLMCallLogger
+from .config import get_config
 from .services import ConversationService, MessageService, get_output_strategy
 from .services.model_service import ModelService
 from .repositories import CharacterRepository
-from .tools.memory_tools import get_memory_tools
+from .tools.memory_tools_v3 import get_memory_tools_v3
 from .models.factory import ModelFactory
 from .prompts import PromptManager
 from .vrm import VRMService
@@ -69,9 +71,11 @@ class AgentCoordinator:
     def _create_agent(self):
         """创建 Agent（使用动态中间件）
         
-        注意：这里使用占位模型，实际模型会在运行时通过中间件动态替换
+        注意：
+        1. 使用占位模型，实际模型会在运行时通过中间件动态替换
+        2. callbacks 在运行时通过 config 传递，而不是在创建时固定
         """
-        all_tools = get_memory_tools()
+        all_tools = get_memory_tools_v3()
         
         # 使用占位模型，实际模型由 select_model_and_params 中间件动态提供
         # 这样可以避免启动时依赖特定模型配置
@@ -144,6 +148,18 @@ class AgentCoordinator:
             prompt_manager=self.prompt_manager
         )
         
+        # 统一日志输出：模型、模式、工具数量
+        all_tools = get_memory_tools_v3()
+        tool_count = len([t for t in all_tools if not t.name.startswith("vrm_") or enable_vrm])
+        logger.info(
+            f"Agent配置: 模型={provider_id}/{model_id}, 模式={'VRM' if enable_vrm else '文本'}, 工具数={tool_count}",
+            extra={
+                "character_id": character_id,
+                "conversation_id": conversation_id,
+                "model_kwargs": model_kwargs
+            }
+        )
+        
         # 3. 获取输出策略
         strategy = get_output_strategy(
             mode=output_mode,
@@ -153,6 +169,14 @@ class AgentCoordinator:
         
         # 4. 执行处理
         config = {"configurable": {"thread_id": str(conversation_id)}}
+        
+        # 根据配置决定是否启用 LLM 调用日志记录器
+        app_config = get_config()
+        if app_config.enable_llm_call_logger:
+            llm_logger = LLMCallLogger()
+            config["callbacks"] = [llm_logger]
+            logger.debug("LLM 调用日志记录器已启用")
+        
         full_response = ""
         
         try:

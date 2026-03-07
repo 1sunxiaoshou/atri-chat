@@ -13,9 +13,10 @@ class DeepSeekProvider(BaseProvider):
             provider_id="deepseek",
             name="DeepSeek",
             description="DeepSeek - 高性能开源 AI 模型",
-            logo="/static/logos/deepseek.png",
+
             config_fields=[
                 ConfigField(field_name="api_key", field_type="string", required=True, description="DeepSeek API密钥"),
+                ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.deepseek.com", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={}
@@ -30,7 +31,7 @@ class DeepSeekProvider(BaseProvider):
         params = {
             "model": model_id,
             "api_key": config.get("api_key"),
-            "base_url": "https://api.deepseek.com/v1",
+            "base_url": config.get("base_url", "https://api.deepseek.com"),
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "top_p": merged.get("top_p"),

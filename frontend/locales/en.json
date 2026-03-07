@@ -132,6 +132,7 @@
         "name": "Name",
         "defaultModel": "Default Model",
         "selectModel": "Select Model",
+        "searchModel": "Search models...",
         "systemPrompt": "System Prompt",
         "systemPromptHelp": "This prompt defines the AI's personality and behavior.",
         "characterList": "Character List",
@@ -139,6 +140,9 @@
         "confirmDelete": "Are you sure you want to delete this character? This will also delete all associated sessions.",
         "confirmDeleteProvider": "Are you sure you want to delete this provider?",
         "confirmDeleteModel": "Are you sure you want to delete this model?",
+        "providerIdExists": "Provider ID already exists",
+        "providerCreated": "Provider created successfully",
+        "providerUpdated": "Provider updated successfully",
         "selectProvider": "Select a Provider",
         "selectProviderDesc": "Choose a provider from the left to view and manage its models",
         "syncSuccess": "Sync Successful",
@@ -186,7 +190,9 @@
         "animations": "Animations",
         "voice": "Voice",
         "showSidebar": "Show Sidebar",
-        "noMotionsYet": "No motions yet"
+        "noMotionsYet": "No motions yet",
+        "searchMotions": "Search motion name, description or tags...",
+        "duration": "Duration"
     },
     "chat": {
         "placeholder": "Send a message...",
@@ -286,6 +292,9 @@
         "portraitUploadFailed": "Portrait upload failed",
         "characterAvatar": "Character Avatar",
         "motion": "Motion",
+        "voice": "Voice",
+        "selectVoice": "Select Voice",
+        "searchVoice": "Search voices...",
         "noMotionsAvailable": "No motions available. Please upload motion files in the \"Motion\" tab of the admin panel first",
         "motionAlreadyBound": "This motion is already bound to this category",
         "selectMotionToPreview": "Select a motion to preview",
@@ -307,6 +316,17 @@
         "fetchDataFailed": "Failed to get data:",
         "addBindingFailed": "Add failed",
         "addBindingError": "Failed to add binding:",
-        "removeBindingFailed": "Failed to remove binding:"
+        "removeBindingFailed": "Failed to remove binding:",
+        "motionCategories": {
+            "idle": "Initial",
+            "idleDesc": "Motion when character first appears",
+            "standby": "Standby",
+            "standbyDesc": "Looping motion while waiting for input",
+            "thinking": "Thinking",
+            "thinkingDesc": "Motion while AI processes messages",
+            "reply": "Reply",
+            "replyDesc": "Motion when AI replies to messages"
+        },
+        "motionActive": "Active"
     }
 }
