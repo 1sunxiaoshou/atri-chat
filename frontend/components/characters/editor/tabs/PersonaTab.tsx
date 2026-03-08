@@ -111,7 +111,6 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
 
     return (
         <div className="h-full flex gap-6 animate-in slide-in-from-right-4 duration-300">
-            {/* 左侧：立绘上传卡片保持不变，修复了重复上传Bug */}
             <div className="w-80 shrink-0">
                 <div className="relative group h-full">
                     <div

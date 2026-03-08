@@ -274,8 +274,11 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
             {/* Left: Motion Preview - 25% */}
             <div className="w-[25%] min-w-[240px] max-w-[400px] flex flex-col border-r border-border">
-                <div className="h-16 px-6 flex items-center justify-between border-b border-border bg-background">
-                    <h3 className="font-semibold text-foreground">{t('character.selectMotionToPreview')}</h3>
+                <div className="h-16 px-4 border-b border-border flex justify-between items-center bg-background">
+                    <h3 className="text-sm font-bold text-foreground">{t('character.motionList')}</h3>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {filteredMotions.length}
+                    </span>
                 </div>
                 <div className="flex-1">
                     {selectedMotion ? (

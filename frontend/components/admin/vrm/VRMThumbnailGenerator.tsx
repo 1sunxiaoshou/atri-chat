@@ -7,6 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 interface VRMThumbnailGeneratorProps {
     file: File;
     onThumbnailGenerated: (blob: Blob) => void;
+    onExpressionsExtracted?: (expressions: string[]) => void;
     onError?: (error: string) => void;
 }
 
@@ -17,6 +18,7 @@ interface VRMThumbnailGeneratorProps {
 export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
     file,
     onThumbnailGenerated,
+    onExpressionsExtracted,
     onError
 }) => {
     const { t } = useLanguage();
@@ -73,6 +75,13 @@ export const VRMThumbnailGenerator: React.FC<VRMThumbnailGeneratorProps> = ({
 
             if (!vrm) {
                 throw new Error(t('admin.loadDataFailed'));
+            }
+
+            // 提取表情列表
+            if (onExpressionsExtracted && vrm.expressionManager) {
+                const expressions = Object.keys(vrm.expressionManager.expressionMap);
+                console.log('提取到的表情列表:', expressions);
+                onExpressionsExtracted(expressions);
             }
 
             // 添加模型到场景

@@ -65,11 +65,12 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
         }
     };
 
-    const handleUploadSave = async (data: { file: File; name: string; thumbnail: Blob }) => {
+    const handleUploadSave = async (data: { file: File; name: string; thumbnail: Blob; expressions: string[] }) => {
         const formData = new FormData();
         formData.append('file', data.file);
         formData.append('name', data.name);
         formData.append('thumbnail', data.thumbnail, 'thumbnail.jpg');
+        formData.append('expressions', JSON.stringify(data.expressions));
 
         await api.uploadVRMModel(formData);
         await fetchAvatars();
@@ -150,19 +151,24 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
     };
 
     return (
-        <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Toast message={toastMessage} title={{ success: t('vrm.avatar.operationSuccess'), error: t('vrm.avatar.operationFailed') }} />
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground">{t('admin.avatar3DLibrary')}</h2>
-                <Button onClick={() => setShowUploadPreview(true)} className="gap-2">
-                    <Plus size={18} />
+            <div className="h-16 px-4 flex items-center justify-between bg-background border-b border-border">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-sm font-bold text-foreground">{t('admin.avatar3DLibrary')}</h2>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {avatars.length}
+                    </span>
+                </div>
+                <Button onClick={() => setShowUploadPreview(true)} size="sm" className="gap-2">
+                    <Plus size={16} />
                     {t('admin.uploadVRMModel')}
                 </Button>
             </div>
 
-            {/* Content - 添加 p-2 给卡片悬浮留出空间 */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>

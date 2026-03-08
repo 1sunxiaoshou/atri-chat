@@ -6,7 +6,7 @@ import { VRMThumbnailGenerator } from './VRMThumbnailGenerator';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const VRMUploadPreview: React.FC<{
-    onSave: (data: { file: File; name: string; thumbnail: Blob }) => Promise<void>;
+    onSave: (data: { file: File; name: string; thumbnail: Blob; expressions: string[] }) => Promise<void>;
     onCancel: () => void;
 }> = ({ onSave, onCancel }) => {
     const { t } = useLanguage();
@@ -14,6 +14,7 @@ export const VRMUploadPreview: React.FC<{
     const [name, setName] = useState('');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [thumbnail, setThumbnail] = useState<Blob | null>(null);
+    const [expressions, setExpressions] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +29,11 @@ export const VRMUploadPreview: React.FC<{
     const handleSave = async () => {
         if (!file || !name.trim() || !thumbnail) return;
         setIsSaving(true);
-        try { await onSave({ file, name: name.trim(), thumbnail }); } finally { setIsSaving(false); }
+        try {
+            await onSave({ file, name: name.trim(), thumbnail, expressions });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -155,6 +160,7 @@ export const VRMUploadPreview: React.FC<{
                 <VRMThumbnailGenerator
                     file={file}
                     onThumbnailGenerated={(blob) => setThumbnail(blob)}
+                    onExpressionsExtracted={(exps) => setExpressions(exps)}
                     onError={() => { }}
                 />
             )}
