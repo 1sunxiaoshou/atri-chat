@@ -52,6 +52,8 @@ async def list_avatars(
     支持分页和搜索
     """
     try:
+        import json
+        
         query = db.query(Avatar)
         
         # 搜索过滤
@@ -72,6 +74,7 @@ async def list_avatars(
                 "thumbnail_url": avatar.thumbnail_url,
                 "model_path": path_manager.build_url(avatar.file_url),
                 "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+                "available_expressions": json.loads(avatar.available_expressions) if avatar.available_expressions else [],
                 "created_at": avatar.created_at.isoformat(),
                 "updated_at": avatar.updated_at.isoformat(),
             }
@@ -96,6 +99,8 @@ async def get_avatar(
 ) -> Dict[str, Any]:
     """获取形象详情"""
     try:
+        import json
+        
         avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
         
         if not avatar:
@@ -111,6 +116,7 @@ async def get_avatar(
             "thumbnail_url": avatar.thumbnail_url,
             "model_path": path_manager.build_url(avatar.file_url),
             "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+            "available_expressions": json.loads(avatar.available_expressions) if avatar.available_expressions else [],
             "created_at": avatar.created_at.isoformat(),
             "updated_at": avatar.updated_at.isoformat(),
             # 获取引用该形象的角色
@@ -190,16 +196,30 @@ async def upload_avatar(
     file: UploadFile = File(..., description="VRM文件"),
     name: str = Form(..., description="形象名称"),
     thumbnail: Optional[UploadFile] = File(None, description="缩略图文件（可选）"),
+    expressions: Optional[str] = Form(None, description="表情列表（JSON数组字符串）"),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """上传形象文件（支持可选的缩略图上传）"""
+    """上传形象文件（支持可选的缩略图上传和表情列表）"""
     try:
+        import json
+        
         # 验证文件类型
         if not file.filename.endswith('.vrm'):
             raise HTTPException(status_code=400, detail="只支持.vrm文件")
         
         # 生成唯一ID
         avatar_id = str(uuid.uuid4())
+        
+        # 解析表情列表
+        available_expressions = None
+        if expressions:
+            try:
+                expressions_list = json.loads(expressions)
+                if isinstance(expressions_list, list) and len(expressions_list) > 0:
+                    available_expressions = expressions
+                    logger.info(f"接收到表情列表: {expressions_list}")
+            except json.JSONDecodeError:
+                logger.warning(f"表情列表解析失败: {expressions}")
         
         # 保存VRM文件
         path_manager = get_path_manager()
@@ -233,12 +253,16 @@ async def upload_avatar(
         avatar = Avatar(
             id=avatar_id,
             name=name,
-            has_thumbnail=has_thumbnail
+            has_thumbnail=has_thumbnail,
+            available_expressions=available_expressions
         )
         
         db.add(avatar)
         db.commit()
         db.refresh(avatar)
+        
+        # 构建响应
+        expressions_list = json.loads(available_expressions) if available_expressions else []
         
         return {
             "code": 200,
@@ -250,6 +274,7 @@ async def upload_avatar(
                 "thumbnail_url": avatar.thumbnail_url,
                 "model_path": path_manager.build_url(avatar.file_url),
                 "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+                "available_expressions": expressions_list,
                 "created_at": avatar.created_at.isoformat(),
             }
         }

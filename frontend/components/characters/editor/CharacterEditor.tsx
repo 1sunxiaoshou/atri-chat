@@ -224,9 +224,11 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                     <AssetsTab
                         character={character}
                         avatars={avatars}
-                        voiceAssets={voiceAssets}
+                        motions={motions}
                         isLoadingAssets={isLoadingAssets}
+                        localMotionBindings={localMotionBindings}
                         onChange={setCharacter}
+                        onLocalBindingsChange={setLocalMotionBindings}
                     />
                 </div>
                 <div className={cn("h-full p-6", activeTab !== 'motion' && "hidden")}>
