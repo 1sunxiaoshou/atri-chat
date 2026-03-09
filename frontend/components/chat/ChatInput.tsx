@@ -14,7 +14,7 @@ interface ChatInputProps {
   isTyping: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({
+const ChatInput: React.FC<ChatInputProps> = React.memo(({
   inputValue,
   onInputChange,
   onSend,
@@ -33,6 +33,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
   } = useAudioRecorder();
 
   const [toastMessage, setToastMessage] = React.useState<ToastMessage | null>(null);
+
+  // 直接处理输入，不使用 transition（避免中文输入法问题）
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onInputChange(e.target.value);
+  }, [onInputChange]);
 
   // 当转录文本更新时，添加到输入框
   React.useEffect(() => {
@@ -100,7 +105,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           )}>
             <textarea
               value={inputValue}
-              onChange={(e) => onInputChange(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder={
                 isRecording
@@ -166,6 +171,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
       </div>
     </>
   );
-};
+});
+
+ChatInput.displayName = 'ChatInput';
 
 export default ChatInput;

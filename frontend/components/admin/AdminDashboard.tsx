@@ -14,13 +14,15 @@ interface AdminDashboardProps {
   onOpenMobileSidebar?: () => void;
   isSidebarHidden?: boolean;
   onShowSidebar?: () => void;
+  onDataUpdated?: () => Promise<void>;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBack: _onBack,
   onOpenMobileSidebar,
   isSidebarHidden,
-  onShowSidebar
+  onShowSidebar,
+  onDataUpdated
 }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<AdminTab>('models');
@@ -42,6 +44,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     setProviders(providersRes.data);
     setModels(modelsRes.data);
+
+    // 通知父组件数据已更新
+    if (onDataUpdated) {
+      await onDataUpdated();
+    }
   };
 
   const fetchVRMModels = async () => {

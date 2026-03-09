@@ -1,105 +1,44 @@
-# 3D形象管理系统使用指南
+# VRM 使用指南
 
-## 概述
+## 核心概念
 
-本系统采用新的资产管理架构，将3D形象（Avatar）、动作（Motion）和角色（Character）分离管理。
+系统采用资产分离架构：Avatar（3D形象）、Motion（动作）、Character（角色）独立管理。
 
-## 数据架构
+- **Avatar** - VRM 模型文件，可被多个角色引用
+- **Motion** - VRMA 动画文件，可被多个角色绑定
+- **Character** - 引用 Avatar + VoiceAsset，通过绑定关联 Motion
+- **CharacterMotionBinding** - 角色-动作绑定，支持分类（idle/thinking/reply）
 
-### 核心概念
+## API 端点
 
-1. **Avatar（3D形象资产）**
-   - VRM格式的3D模型文件
-   - 可被多个角色引用
-   - 支持缩略图
-   - 存储路径：`/uploads/vrm_models/{id}.vrm`
-
-2. **Motion（动作资产）**
-   - VRMA格式的动画文件
-   - 可被多个角色绑定
-   - 支持分类和权重
-   - 存储路径：`/uploads/vrm_animations/{id}.vrma`
-
-3. **Character（角色）**
-   - 引用一个Avatar（3D形象）
-   - 引用一个VoiceAsset（音色）
-   - 通过CharacterMotionBinding绑定多个Motion
-
-4. **CharacterMotionBinding（角色-动作绑定）**
-   - 连接角色和动作
-   - 支持分类：idle（待机）、thinking（思考）、reply（回复）
-   - 支持权重：用于随机选择动作
-
-## API端点
-
-### Avatar管理
-
+### Avatar
 ```
-GET    /api/v1/avatars              # 获取所有3D形象
-GET    /api/v1/avatars/{id}         # 获取3D形象详情
-POST   /api/v1/avatars/upload       # 上传3D形象（支持缩略图）
-PUT    /api/v1/avatars/{id}         # 更新3D形象
-DELETE /api/v1/avatars/{id}         # 删除3D形象
+GET/POST/PUT/DELETE  /api/v1/avatars[/{id}]
+POST                 /api/v1/avatars/upload  # 支持缩略图
 ```
 
-### Motion管理
-
+### Motion
 ```
-GET    /api/v1/motions              # 获取所有动作
-GET    /api/v1/motions/{id}         # 获取动作详情
-POST   /api/v1/motions/upload       # 上传动作
-PUT    /api/v1/motions/{id}         # 更新动作
-DELETE /api/v1/motions/{id}         # 删除动作
+GET/POST/PUT/DELETE  /api/v1/motions[/{id}]
+POST                 /api/v1/motions/upload
 ```
 
 ### 角色-动作绑定
-
 ```
-GET    /api/v1/characters/{id}/motions                    # 获取角色的所有动作
-POST   /api/v1/character-motion-bindings                  # 创建绑定
-POST   /api/v1/character-motion-bindings/batch            # 批量创建绑定
-PUT    /api/v1/character-motion-bindings/{id}             # 更新绑定
-DELETE /api/v1/character-motion-bindings/{id}             # 删除绑定
-POST   /api/v1/characters/{id}/motions/batch-delete       # 批量删除绑定
+GET     /api/v1/characters/{id}/motions
+POST    /api/v1/character-motion-bindings[/batch]
+PUT     /api/v1/character-motion-bindings/{id}
+DELETE  /api/v1/character-motion-bindings/{id}
+POST    /api/v1/characters/{id}/motions/batch-delete
 ```
 
 ## 前端组件
 
-### 1. AdminVRM组件（资产管理）
+**AdminVRM** - `frontend/components/admin/vrm/AdminVRM.tsx`
+- 管理 Avatar 和 Motion 资产（上传、编辑、删除）
 
-位置：`frontend/components/admin/vrm/AdminVRM.tsx`
-
-功能：
-- 管理Avatar资产（上传、编辑、删除）
-- 管理Motion资产（上传、编辑、删除）
-- 不包含绑定功能
-
-使用方式：
-```tsx
-import { AdminVRM } from '../components/admin/vrm/AdminVRM';
-
-<AdminVRM onModelsChange={() => console.log('模型列表已更新')} />
-```
-
-### 2. CharacterMotionBindings组件（动作绑定）
-
-位置：`frontend/components/characters/CharacterMotionBindings.tsx`
-
-功能：
-- 为角色绑定动作
-- 按分类管理（idle/thinking/reply）
-- 设置权重
-- 批量添加/删除
-
-使用方式：
-```tsx
-import { CharacterMotionBindings } from '../components/characters';
-
-<CharacterMotionBindings 
-  characterId="character-uuid"
-  characterName="角色名称"
-/>
-```
+**CharacterMotionBindings** - 角色动作绑定组件（待实现）
+- 为角色绑定动作，按分类管理（idle/thinking/reply）
 
 ## 使用流程
 
@@ -131,8 +70,7 @@ import { CharacterMotionBindings } from '../components/characters';
 2. 打开"动作绑定"面板
 3. 选择分类（idle/thinking/reply）
 4. 选择要绑定的动作
-5. 设置权重（可选）
-6. 保存
+5. 保存
 
 ## 数据库表结构
 
@@ -167,7 +105,6 @@ import { CharacterMotionBindings } from '../components/characters';
 | character_id | String(36) | 角色ID                      |
 | motion_id    | String(36) | 动作ID                      |
 | category     | String(50) | 分类（idle/thinking/reply） |
-| weight       | Float      | 权重                        |
 | created_at   | DateTime   | 创建时间                    |
 
 ## 注意事项
@@ -182,12 +119,7 @@ import { CharacterMotionBindings } from '../components/characters';
    - Motion只支持`.vrma`格式
    - 缩略图支持`.png`、`.jpg`、`.jpeg`格式
 
-3. **权重系统**：
-   - 权重用于随机选择动作
-   - 权重越高，被选中的概率越大
-   - 默认权重为1.0
-
-4. **分类说明**：
+3. **分类说明**：
    - `idle`：待机动作，角色空闲时播放
    - `thinking`：思考动作，AI思考时播放
    - `reply`：回复动作，AI回复时播放

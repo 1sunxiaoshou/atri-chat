@@ -1,39 +1,46 @@
 import { httpClient } from './base';
 import { ApiResponse } from '../../types';
+import { avatarsApi } from './avatars';
+import { motionsApi, motionBindingsApi } from './motions';
 
 /**
- * VRM 相关 API（更新为新架构：Avatar + Motion）
+ * VRM 相关 API（适配器层 - 已废弃）
+ * 
+ * @deprecated 此文件已废弃，请使用新的模块化 API：
+ * - Avatar 管理：使用 `avatarsApi` 替代 getVRMModels/uploadVRMModel/deleteVRMModel
+ * - 动作管理：使用 `motionsApi` 替代 getVRMAnimations/uploadVRMAnimation/deleteVRMAnimation
+ * - 绑定管理：使用 `motionBindingsApi` 替代 addModelAnimation/removeModelAnimation
+ * 
+ * 此适配器层仅用于向后兼容，将在未来版本中移除。
  */
 export const vrmApi = {
   // ==================== Avatar（3D形象） ====================
 
   /**
    * 获取所有 Avatar 列表
+   * @deprecated 使用 avatarsApi.getAvatars() 替代
    */
-  getVRMModels: async (): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>('/avatars');
-  },
+  getVRMModels: avatarsApi.getAvatars,
 
   /**
    * 获取 Avatar 详情
    * @param avatarId - Avatar ID
+   * @deprecated 使用 avatarsApi.getAvatar() 替代
    */
-  getVRMModel: async (avatarId: string): Promise<ApiResponse<any>> => {
-    return httpClient.get<any>(`/avatars/${encodeURIComponent(avatarId)}`);
-  },
+  getVRMModel: avatarsApi.getAvatar,
 
   /**
    * 上传 Avatar
    * @param formData - 包含VRM文件和缩略图的表单数据
+   * @deprecated 使用 avatarsApi.uploadAvatar() 替代
    */
-  uploadVRMModel: async (formData: FormData): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/avatars/upload', formData);
-  },
+  uploadVRMModel: avatarsApi.uploadAvatar,
 
   /**
    * 更新 Avatar
    * @param avatarId - Avatar ID
    * @param data - 更新的数据
+   * @deprecated 使用 avatarsApi.updateAvatar() 替代
    */
   updateVRMModel: async (
     avatarId: string,
@@ -45,23 +52,22 @@ export const vrmApi = {
   /**
    * 删除 Avatar
    * @param avatarId - Avatar ID
+   * @deprecated 使用 avatarsApi.deleteAvatar() 替代
    */
-  deleteVRMModel: async (avatarId: string): Promise<ApiResponse<any>> => {
-    return httpClient.delete<any>(`/avatars/${avatarId}`);
-  },
+  deleteVRMModel: avatarsApi.deleteAvatar,
 
   // ==================== Motion（动作） ====================
 
   /**
    * 获取所有动作列表
+   * @deprecated 使用 motionsApi.getMotions() 替代
    */
-  getVRMAnimations: async (): Promise<ApiResponse<any[]>> => {
-    return httpClient.get<any[]>('/motions');
-  },
+  getVRMAnimations: motionsApi.getMotions,
 
   /**
    * 获取动作详情
    * @param motionId - 动作 ID
+   * @deprecated 直接使用 motionsApi.getMotions() 并过滤结果
    */
   getVRMAnimation: async (motionId: string): Promise<ApiResponse<any>> => {
     return httpClient.get<any>(`/motions/${motionId}`);
@@ -70,15 +76,20 @@ export const vrmApi = {
   /**
    * 上传动作
    * @param formData - 包含动作文件的表单数据
+   * @deprecated 使用 motionsApi.uploadMotion() 替代
    */
   uploadVRMAnimation: async (formData: FormData): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/motions/upload', formData);
+    const name = formData.get('name') as string;
+    const duration_ms = parseInt(formData.get('duration_ms') as string);
+    const file = formData.get('file') as File;
+    return motionsApi.uploadMotion(file, name, duration_ms);
   },
 
   /**
    * 更新动作信息
    * @param motionId - 动作 ID
    * @param data - 更新的数据
+   * @deprecated 后端暂不支持更新动作，需要重新上传
    */
   updateVRMAnimation: async (
     motionId: string,
@@ -90,14 +101,14 @@ export const vrmApi = {
   /**
    * 删除动作
    * @param motionId - 动作 ID
+   * @deprecated 使用 motionsApi.deleteMotion() 替代
    */
-  deleteVRMAnimation: async (motionId: string): Promise<ApiResponse<any>> => {
-    return httpClient.delete<any>(`/motions/${motionId}`);
-  },
+  deleteVRMAnimation: motionsApi.deleteMotion,
 
   /**
    * 查询使用该动作的角色（通过绑定）
    * @param motionId - 动作 ID
+   * @deprecated 后端已移除此功能，请使用 motionBindingsApi 查询
    */
   getVRMAnimationModels: async (motionId: string): Promise<ApiResponse<any[]>> => {
     return httpClient.get<any>(`/motions/${motionId}`).then(res => {
@@ -111,107 +122,7 @@ export const vrmApi = {
   /**
    * 获取角色的所有动作绑定
    * @param characterId - 角色 ID
+   * @deprecated 使用 motionBindingsApi.getCharacterBindings() 替代
    */
-  getModelAnimations: async (characterId: string): Promise<ApiResponse<any>> => {
-    return httpClient.get<any>(`/characters/${characterId}/motions`);
-  },
-
-  /**
-   * 为角色添加动作绑定
-   * @param characterId - 角色 ID
-   * @param motionId - 动作 ID
-   * @param category - 分类（idle/thinking/reply）
-   */
-  addModelAnimation: async (
-    characterId: string,
-    motionId: string,
-    category: string = 'idle'
-  ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/character-motion-bindings', {
-      character_id: characterId,
-      motion_id: motionId,
-      category
-    });
-  },
-
-  /**
-   * 上传动作并绑定到角色（暂不支持，需要分两步）
-   * @param characterId - 角色 ID
-   * @param formData - 包含动作文件的表单数据
-   */
-  uploadAndBindModelAnimation: async (
-    characterId: string,
-    formData: FormData
-  ): Promise<ApiResponse<any>> => {
-    // 先上传动作
-    const uploadRes = await httpClient.post<any>('/motions/upload', formData);
-    if (uploadRes.code !== 200) {
-      return uploadRes;
-    }
-
-    // 再创建绑定
-    const motionId = uploadRes.data.id;
-    const category = formData.get('category') as string || 'idle';
-
-    return httpClient.post<any>('/character-motion-bindings', {
-      character_id: characterId,
-      motion_id: motionId,
-      category
-    });
-  },
-
-  /**
-   * 批量添加动作到角色
-   * @param characterId - 角色 ID
-   * @param motionIds - 动作 ID 列表
-   * @param category - 分类
-   */
-  batchAddModelAnimations: async (
-    characterId: string,
-    motionIds: string[],
-    category: string = 'idle'
-  ): Promise<ApiResponse<any>> => {
-    return httpClient.post<any>('/character-motion-bindings/batch', {
-      character_id: characterId,
-      motion_ids: motionIds,
-      category
-    });
-  },
-
-  /**
-   * 移除角色的动作绑定
-   * @param bindingId - 绑定 ID
-   */
-  removeModelAnimation: async (
-    _characterId: string,
-    bindingId: string
-  ): Promise<ApiResponse<any>> => {
-    return httpClient.delete<any>(`/character-motion-bindings/${bindingId}`);
-  },
-
-  /**
-   * 批量移除角色的动作绑定
-   * @param characterId - 角色 ID
-   * @param motionIds - 动作 ID 列表
-   * @param category - 分类（可选）
-   */
-  batchRemoveModelAnimations: async (
-    characterId: string,
-    motionIds: string[],
-    category?: string
-  ): Promise<ApiResponse<any>> => {
-    const params = new URLSearchParams();
-    if (category) {
-      params.append('category', category);
-    }
-
-    return httpClient.request<any>(
-      `/characters/${characterId}/motions/batch-delete?${params.toString()}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(motionIds)
-      }
-    );
-  }
+  getModelAnimations: motionBindingsApi.getCharacterBindings
 };

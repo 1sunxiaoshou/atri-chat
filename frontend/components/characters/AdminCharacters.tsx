@@ -4,8 +4,8 @@ import { Character, Model } from '../../types';
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ConfirmDialog, Button } from '../ui';
-import { CharacterLibrary } from './library';
-import { CharacterEditor } from './editor';
+import { CharacterLibrary } from './CharacterLibrary';
+import { CharacterEditor } from './CharacterEditor';
 import { cn } from '../../utils/cn';
 
 interface AdminCharactersProps {

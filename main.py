@@ -16,7 +16,7 @@ from core.paths import get_path_manager
 from api.routes import (
     characters, conversations, messages, models, providers, tts, health, upload, asr,
     # ORM 路由
-    avatars, motions, tts_providers, voice_assets, character_motion_bindings
+    avatars, motions, tts_providers, voice_assets, character_motion_bindings_v2
 )
 
 logger = get_logger(__name__)
@@ -58,6 +58,12 @@ async def lifespan(app: FastAPI):
     
     # 初始化 AsyncSqliteSaver
     await init_checkpointer()
+    
+    # 预热 agent_coordinator（避免首次请求慢）
+    logger.info("预热 agent_coordinator...")
+    from core.dependencies import get_agent_coordinator
+    get_agent_coordinator()
+    logger.success("✓ agent_coordinator 预热完成")
     
     logger.success("✓ 系统启动完成")   
 
@@ -117,7 +123,7 @@ app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
 
 # 角色管理路由
 app.include_router(characters.router, prefix="/api/v1", tags=["characters"])
-app.include_router(character_motion_bindings.router, prefix="/api/v1", tags=["characters"])
+app.include_router(character_motion_bindings_v2.router, prefix="/api/v1", tags=["characters"])
 
 # 会话和消息路由
 app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])

@@ -8,9 +8,11 @@ import { HTTP_STATUS } from '../../utils/constants';
 export const modelsApi = {
   /**
    * 获取所有模型列表
+   * @param enabledOnly - 是否仅获取已启用的模型
    */
-  getModels: async (): Promise<ApiResponse<Model[]>> => {
-    return httpClient.get<Model[]>('/models');
+  getModels: async (enabledOnly: boolean = false): Promise<ApiResponse<Model[]>> => {
+    const params = enabledOnly ? '?enabled_only=true' : '';
+    return httpClient.get<Model[]>(`/models${params}`);
   },
 
   /**

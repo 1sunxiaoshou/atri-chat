@@ -19,12 +19,15 @@ interface HierarchicalSelectorProps {
     onClose: () => void;
     items: HierarchicalItem[];
     selectedId?: string;
+    selectedIds?: string[];
     onSelect: (item: HierarchicalItem) => void;
+    onMultiSelect?: (items: HierarchicalItem[]) => void;
     title?: string;
     placeholder?: string;
     showTags?: boolean;
     variant?: 'list' | 'card';
     className?: string;
+    multiSelect?: boolean;
 }
 
 const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
@@ -32,16 +35,20 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
     onClose,
     items,
     selectedId,
+    selectedIds = [],
     onSelect,
+    onMultiSelect,
     title,
     placeholder,
     showTags = true,
     variant = 'list',
-    className
+    className,
+    multiSelect = false
 }) => {
     const { t } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [tempSelectedIds, setTempSelectedIds] = useState<Set<string>>(new Set(selectedIds));
 
     // 提取所有可用的标签
     const allTags = useMemo(() => {
@@ -86,9 +93,44 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
     }, [items, selectedTags, searchQuery]);
 
     const handleSelect = (item: HierarchicalItem) => {
-        onSelect(item);
+        if (multiSelect) {
+            // 多选模式：切换选中状态
+            const newSelected = new Set(tempSelectedIds);
+            if (newSelected.has(item.id)) {
+                newSelected.delete(item.id);
+            } else {
+                newSelected.add(item.id);
+            }
+            setTempSelectedIds(newSelected);
+        } else {
+            // 单选模式：立即选择并关闭
+            onSelect(item);
+            onClose();
+            // 延迟重置状态，避免弹窗关闭动画期间看到内容跳动
+            setTimeout(() => {
+                setSearchQuery('');
+                setSelectedTags(new Set());
+            }, 200);
+        }
+    };
+
+    const handleConfirm = () => {
+        if (multiSelect && onMultiSelect) {
+            const selectedItems = items.filter(item => tempSelectedIds.has(item.id));
+            onMultiSelect(selectedItems);
+        }
         onClose();
-        // 延迟重置状态，避免弹窗关闭动画期间看到内容跳动
+        // 延迟重置状态
+        setTimeout(() => {
+            setSearchQuery('');
+            setSelectedTags(new Set());
+            setTempSelectedIds(new Set(selectedIds));
+        }, 200);
+    };
+
+    const handleCancel = () => {
+        setTempSelectedIds(new Set(selectedIds));
+        onClose();
         setTimeout(() => {
             setSearchQuery('');
             setSelectedTags(new Set());
@@ -108,10 +150,10 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={multiSelect ? handleCancel : onClose}
             title={title || t('hierarchicalSelector.selectItem')}
-            size="2xl" // 根据你的 Modal 组件调整
-            className={cn("p-0 overflow-hidden", className)} // 移除默认 padding
+            size="2xl"
+            className={cn("p-0 overflow-hidden", className)}
         >
             <div className="flex flex-col h-[650px] bg-white">
 
@@ -183,7 +225,9 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
                                     {/* 卡片网格 */}
                                     <div className="px-5 grid grid-cols-2 gap-3">
                                         {categoryItems.map(item => {
-                                            const isSelected = selectedId === item.id;
+                                            const isSelected = multiSelect
+                                                ? tempSelectedIds.has(item.id)
+                                                : selectedId === item.id;
                                             return (
                                                 <div
                                                     key={item.id}
@@ -260,7 +304,9 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
                                     {/* 该分类下的项目列表 */}
                                     <div className="flex flex-col">
                                         {categoryItems.map(item => {
-                                            const isSelected = selectedId === item.id;
+                                            const isSelected = multiSelect
+                                                ? tempSelectedIds.has(item.id)
+                                                : selectedId === item.id;
                                             return (
                                                 <div
                                                     key={item.id}
@@ -268,7 +314,7 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
                                                     className={cn(
                                                         "relative flex items-center justify-between px-5 py-3 cursor-pointer group transition-colors",
                                                         isSelected
-                                                            ? "bg-[#f3f4f6]" // 图片中选中状态的浅灰背景
+                                                            ? "bg-[#f3f4f6]"
                                                             : "hover:bg-[#fafafa]"
                                                     )}
                                                 >
@@ -312,6 +358,35 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
                         </div>
                     )}
                 </div>
+
+                {/* 4. 底部按钮栏（仅多选模式） */}
+                {multiSelect && (
+                    <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-muted/30">
+                        <div className="text-sm text-muted-foreground">
+                            {t('hierarchicalSelector.selectedCount', { count: tempSelectedIds.size })}
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleCancel}
+                                className="px-4 py-2 text-sm rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+                            >
+                                {t('admin.cancel')}
+                            </button>
+                            <button
+                                onClick={handleConfirm}
+                                disabled={tempSelectedIds.size === 0}
+                                className={cn(
+                                    "px-4 py-2 text-sm rounded-lg transition-colors",
+                                    tempSelectedIds.size > 0
+                                        ? "bg-primary text-white hover:bg-primary/90"
+                                        : "bg-muted text-muted-foreground cursor-not-allowed"
+                                )}
+                            >
+                                {t('hierarchicalSelector.confirm')}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </Modal>
     );

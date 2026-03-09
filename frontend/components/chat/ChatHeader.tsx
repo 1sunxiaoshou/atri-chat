@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bot, Menu, Settings, Circle, PanelLeftOpen } from 'lucide-react';
+import React from 'react';
+import { Bot, Menu, Settings, PanelLeftOpen } from 'lucide-react';
 import { Character, Model, ModelParameters } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Button, RadioGroup } from '../ui';
@@ -30,14 +30,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   isSidebarHidden = false
 }) => {
   const { t } = useLanguage();
-  const [showVrmError, setShowVrmError] = useState(false);
 
   const handleDisplayModeChange = (mode: 'normal' | 'vrm' | 'live2d') => {
-    if (mode === 'vrm' && !activeCharacter?.avatar_id) {
-      setShowVrmError(true);
-      setTimeout(() => setShowVrmError(false), 3000);
-      return;
-    }
+    // 允许切换到 VRM 模式，即使角色没有配置模型
+    // 如果没有模型，会显示占位符提示用户配置
     onVrmDisplayModeChange(mode);
   };
 
@@ -106,14 +102,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex items-center gap-2 md:gap-4">
         {/* Display Mode Toggle - Hidden on small mobile */}
         <div className="hidden sm:block relative">
-          {/* Error Popup for VRM */}
-          {showVrmError && (
-            <div className="absolute top-14 right-0 bg-destructive text-destructive-foreground text-[10px] md:text-xs px-4 py-2 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-4 flex items-center gap-2 whitespace-nowrap border border-destructive/20 font-bold uppercase tracking-wider">
-              <Circle size={8} className="fill-current animate-pulse" />
-              {t('chat.configureVRMFirst')}
-            </div>
-          )}
-
           <RadioGroup
             value={vrmDisplayMode}
             onChange={(mode) => handleDisplayModeChange(mode as 'normal' | 'vrm' | 'live2d')}

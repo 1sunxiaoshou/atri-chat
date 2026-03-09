@@ -264,4 +264,6 @@ export const STORAGE_KEYS = {
   ASR_USE_INT8: 'asrUseInt8',
   THEME: 'theme',
   LANGUAGE: 'language',
+  VRM_PERFORMANCE_MONITOR: 'vrmPerformanceMonitor',
+  VRM_RENDER_CONFIG: 'vrmRenderConfig',
 } as const;

@@ -68,7 +68,14 @@ async def list_characters(
     支持分页、搜索和过滤
     """
     try:
-        query = db.query(Character)
+        from sqlalchemy.orm import joinedload
+        
+        # 使用 joinedload 预加载所有关联数据，避免 N+1 查询
+        query = db.query(Character).options(
+            joinedload(Character.avatar),
+            joinedload(Character.voice_asset).joinedload(VoiceAsset.provider),
+            joinedload(Character.primary_model)
+        )
         
         # 搜索过滤
         if search:

@@ -3,25 +3,17 @@ import { Plus, Trash, Upload, Edit2, Film, Clock, Search } from 'lucide-react';
 import { api } from '../../../services/api/index';
 import { Modal, Button, Input, ConfirmDialog } from '../../ui';
 import Toast, { ToastMessage } from '../../ui/Toast';
-import { VRMMotionPreviewOptimized } from './VRMMotionPreviewOptimized';
+import { VRMViewer } from '../../vrm/r3f';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cn } from '../../../utils/cn';
-
-interface Motion {
-    id: string;
-    name: string;
-    file_url: string;
-    animation_path: string;
-    duration_ms: number;
-    description?: string;
-    tags?: string[];
-    created_at?: string;
-    updated_at?: string;
-}
+import { Motion } from '../../../types/motion';
 
 interface AdminMotionsProps {
     onMotionsChange?: () => void;
 }
+
+// 默认 VRM 模型用于动作预览
+const DEFAULT_VRM_MODEL = '/static/defaults/mox.vrm';
 
 type ModalType = 'upload' | 'edit';
 
@@ -70,7 +62,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 const data = res.data || [];
                 setMotions(data);
                 if (data.length > 0 && !selectedMotion) {
-                    setSelectedMotion(data[0]);
+                    setSelectedMotion(data[0] || null);
                 }
             }
         } catch (error) {
@@ -280,15 +272,21 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                         {filteredMotions.length}
                     </span>
                 </div>
-                <div className="flex-1">
-                    {selectedMotion ? (
-                        <VRMMotionPreviewOptimized
-                            motionUrl={selectedMotion.animation_path}
-                            motionName={selectedMotion.name}
-                            autoPlay={true}
-                        />
-                    ) : (
-                        <div className="h-full flex items-center justify-center">
+                <div className="flex-1 relative">
+                    <VRMViewer
+                        modelUrl={DEFAULT_VRM_MODEL}
+                        motionUrl={selectedMotion?.animation_path || null}
+                        title={selectedMotion?.name}
+                        enableBlink={false}
+                        lookAtMode="none"
+                        loopMotion={true}
+                        showGrid={true}
+                        enableOrbitControls={true}
+                        enableCameraFit={true}
+                        className="h-full"
+                    />
+                    {!selectedMotion && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center">
                                 <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 mx-auto">
                                     <Film size={32} className="text-muted-foreground" />

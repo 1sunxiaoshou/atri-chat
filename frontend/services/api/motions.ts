@@ -41,7 +41,7 @@ export const motionsApi = {
 };
 
 /**
- * 角色动作绑定相关 API
+ * 角色动作绑定相关 API（简化版本）
  */
 export const motionBindingsApi = {
     /**
@@ -52,42 +52,39 @@ export const motionBindingsApi = {
         characterId: string
     ): Promise<ApiResponse<CharacterMotionBindings>> => {
         return httpClient.get<CharacterMotionBindings>(
-            `/characters/${characterId}/motions`
+            `characters/${characterId}/motions`
         );
     },
 
     /**
-     * 创建动作绑定
-     * @param data - 绑定数据
+     * 更新角色的所有动作绑定（替换式更新）
+     * @param characterId - 角色 ID
+     * @param bindings - 绑定列表
      */
-    createBinding: async (data: {
-        character_id: string;
-        motion_id: string;
-        category: 'initial' | 'idle' | 'thinking' | 'reply';
-    }): Promise<ApiResponse<MotionBinding>> => {
-        return httpClient.post<MotionBinding>('/character-motion-bindings', data);
-    },
-
-    /**
-     * 更新动作绑定
-     * @param id - 绑定 ID
-     * @param data - 更新数据
-     */
-    updateBinding: async (
-        id: string,
-        data: Partial<MotionBinding>
-    ): Promise<ApiResponse<MotionBinding>> => {
-        return httpClient.patch<MotionBinding>(
-            `/character-motion-bindings/${id}`,
-            data
+    updateCharacterBindings: async (
+        characterId: string,
+        bindings: Array<{
+            motion_id: string;
+            category: 'initial' | 'idle' | 'thinking' | 'reply';
+        }>
+    ): Promise<ApiResponse<{
+        deleted_count: number;
+        created_count: number;
+        total_bindings: number;
+    }>> => {
+        return httpClient.put(
+            `characters/${characterId}/motions`,
+            { bindings }
         );
     },
 
     /**
-     * 删除动作绑定
-     * @param id - 绑定 ID
+     * 删除角色的所有动作绑定
+     * @param characterId - 角色 ID
      */
-    deleteBinding: async (id: string): Promise<ApiResponse<void>> => {
-        return httpClient.delete<void>(`/character-motion-bindings/${id}`);
+    deleteCharacterBindings: async (
+        characterId: string
+    ): Promise<ApiResponse<{ deleted_count: number }>> => {
+        return httpClient.delete(`characters/${characterId}/motions`);
     },
 };

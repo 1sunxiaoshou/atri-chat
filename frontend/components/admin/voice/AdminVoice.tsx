@@ -41,7 +41,7 @@ interface ProviderType {
 }
 
 const AdminVoice: React.FC = () => {
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [providers, setProviders] = useState<TTSProvider[]>([]);
     const [voices, setVoices] = useState<VoiceAsset[]>([]);

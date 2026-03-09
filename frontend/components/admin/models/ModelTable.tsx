@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash, PackageSearch, Eye, FileText, Video, Mic, Brain, Wrench, Globe } from 'lucide-react';
+import { Edit2, Trash, PackageSearch, Eye, FileText, Video, Mic, Brain, Wrench, Globe, LucideIcon } from 'lucide-react';
 import { Model } from '../../../types';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
@@ -11,7 +11,7 @@ interface ModelTableProps {
     onToggleModel: (model: Model) => void;
 }
 
-const capabilityIcons: Record<string, React.ElementType> = {
+const capabilityIcons: Record<string, LucideIcon> = {
     vision: Eye,
     document: FileText,
     video: Video,

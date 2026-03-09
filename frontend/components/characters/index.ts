@@ -1,4 +1,6 @@
 export { AdminCharacters } from './AdminCharacters';
-export { CharacterEditor } from './editor';
-export { CharacterLibrary } from './library';
-export { MotionBindingsManager } from './motion';
+export { CharacterEditor } from './CharacterEditor';
+export { CharacterLibrary } from './CharacterLibrary';
+export { PersonaTab } from './PersonaTab';
+export { AssetsTab } from './AssetsTab';
+export type { LocalMotionBinding } from './types';
