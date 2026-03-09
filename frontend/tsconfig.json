@@ -9,7 +9,9 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "react",
+      "react-dom"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -23,7 +25,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-
     /* 严格类型检查选项 */
     "strict": true,
     "noUnusedLocals": true,

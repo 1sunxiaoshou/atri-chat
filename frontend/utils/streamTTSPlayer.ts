@@ -293,12 +293,7 @@ export class StreamTTSPlayer {
     }
   }
 
-  /**
-   * 获取音频分析器节点
-   */
-  getAnalyser(): AnalyserNode | null {
-    return this.pcmPlayer ? this.pcmPlayer.getAnalyser() : null;
-  }
+
 
   /**
    * 获取当前状态

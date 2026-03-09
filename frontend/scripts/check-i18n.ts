@@ -104,7 +104,9 @@ function extractUsedKeys(content: string): Set<string> {
     let match;
 
     while ((match = tCallRegex.exec(content)) !== null) {
-        keys.add(match[1]);
+        if (match[1]) {
+            keys.add(match[1]);
+        }
     }
 
     return keys;
@@ -144,7 +146,7 @@ function checkHardcodedChinese(filePath: string, content: string): string[] {
         while ((match = chineseInStringRegex.exec(line)) !== null) {
             const chineseText = match[2];
             // 排除一些特殊情况（如 placeholder 中的示例文本）
-            if (chineseText.length > 1 && !line.includes('placeholder=')) {
+            if (chineseText && chineseText.length > 1 && !line.includes('placeholder=')) {
                 errors.push(`${filePath}:${index + 1} - 硬编码中文: "${chineseText}"`);
             }
         }

@@ -87,6 +87,7 @@ export interface Motion {
   id: string;
   name: string;
   file_url: string;
+  animation_path: string; // 动画文件路径
   duration_ms: number;
   description?: string;
   tags?: string[];

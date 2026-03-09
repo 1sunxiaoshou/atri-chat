@@ -3,12 +3,13 @@ import { Character, Message, Model, ModelParameters } from '../../types';
 import { useChat } from '../../hooks/useChat';
 import { useVRM } from '../../hooks/useVRM';
 import { useTTS } from '../../hooks/useTTS';
+import { useLanguage } from '../../contexts/LanguageContext';
 import ChatHeader from './ChatHeader';
 import MessageList from './MessageList';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
-import VRMViewer from './VRMViewer';
-import RightSidebar from './RightSidebar';
+import { VRMViewerWrapper } from './VRMViewerWrapper';
+import RightSidebar from '../layout/RightSidebar';
 import Toast, { ToastMessage } from '../ui/Toast';
 import { cn } from '../../utils/cn';
 
@@ -17,7 +18,6 @@ interface ChatInterfaceProps {
   activeCharacter: Character | null;
   activeModel: Model | null;
   onUpdateModel: (modelId: string) => void;
-  availableModels: Model[];
   onConversationUpdated?: () => void;
   onOpenMobileSidebar?: () => void;
   onShowSidebar?: () => void;
@@ -29,14 +29,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   activeCharacter,
   activeModel,
   onUpdateModel,
-  availableModels,
   onConversationUpdated,
   onOpenMobileSidebar,
   onShowSidebar,
   isSidebarHidden = false
 }) => {
+  const { t } = useLanguage();
   const [inputValue, setInputValue] = useState('');
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
+
+  // 使用 useCallback 优化回调函数，避免不必要的重渲染
+  const handleInputChange = useCallback((value: string) => {
+    setInputValue(value);
+  }, []);
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
@@ -56,7 +61,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   } = useChat();
 
   const {
-    canvasRef,
+    modelUrl,
+    expression,
+    motionUrl,
+    audioElement,
     subtitle,
     error: vrmError,
     playSegments,
@@ -175,10 +183,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <ChatHeader
         activeCharacter={activeCharacter}
         activeModel={activeModel}
-        availableModels={availableModels}
         vrmDisplayMode={vrmDisplayMode}
         modelParameters={modelParameters}
-        onUpdateModel={onUpdateModel}
         onVrmDisplayModeChange={handleVrmDisplayModeChange}
         onModelParametersChange={setModelParameters}
         onOpenMobileSidebar={onOpenMobileSidebar}
@@ -191,7 +197,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         isOpen={isRightSidebarOpen}
         onClose={() => setIsRightSidebarOpen(false)}
         activeModel={activeModel}
-        availableModels={availableModels}
         modelParameters={modelParameters}
         onUpdateModel={onUpdateModel}
         onModelParametersChange={setModelParameters}
@@ -203,7 +208,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           vrmDisplayMode !== 'vrm' && "mx-auto"
         )}>
           {vrmDisplayMode === 'vrm' && (
-            <VRMViewer canvasRef={canvasRef} subtitle={subtitle} />
+            <VRMViewerWrapper
+              modelUrl={modelUrl}
+              audioElement={audioElement}
+              expression={expression}
+              motionUrl={motionUrl}
+              subtitle={subtitle}
+              activeCharacterId={activeCharacter?.id}
+            />
           )}
 
           <div className={cn(
@@ -244,7 +256,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       <ChatInput
         inputValue={inputValue}
-        onInputChange={setInputValue}
+        onInputChange={handleInputChange}
         onSend={handleSend}
         isTyping={isTyping}
       />

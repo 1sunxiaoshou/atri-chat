@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | string | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
+  const [models, setModels] = useState<Model[]>([]); // 仅在管理界面使用
 
   // Character Selection State
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
@@ -38,53 +38,53 @@ const App: React.FC = () => {
   const activeCharacter = characters.find(c => c.id === activeConversation?.character_id) || null;
 
   // Local state for temporary model override in chat
-  const [activeModelId, setActiveModelId] = useState<string | null>(null);
+  const [overrideModel, setOverrideModel] = useState<{ id: string; model_id: string; provider_id: string } | null>(null);
 
-  // 查找活动模型：activeModelId 和 primary_model_id 都是 UUID
-  const activeModel = models.find(m => m.id === (activeModelId || activeCharacter?.primary_model_id)) || null;
+  // 查找活动模型：优先使用临时覆盖的模型，否则使用角色的主模型
+  const activeModel = overrideModel
+    ? overrideModel as Model
+    : activeCharacter?.primary_model
+      ? {
+        id: activeCharacter.primary_model.id,
+        model_id: activeCharacter.primary_model.model_id,
+        provider_id: activeCharacter.primary_model.provider_id
+      } as Model
+      : null;
 
-  useEffect(() => {
-    loadGlobalData();
-    loadConversations(selectedCharacterId);
-  }, [selectedCharacterId]); // Reload conversations when character selection changes
-
-  // Reload data when returning from Admin view to ensure new characters/models appear
+  // 统一的数据加载逻辑
   useEffect(() => {
     if (viewMode === 'chat') {
-      loadGlobalData(true);
+      loadCharacters();
       loadConversations(selectedCharacterId);
-    } else if (viewMode === 'characters' || viewMode === 'admin') {
-      loadGlobalData(true);
+    } else if (viewMode === 'characters') {
+      // 角色管理页面需要 characters 和 models 数据
+      loadCharacters();
+      loadModels();
     }
-  }, [viewMode]);
+    // admin 视图的数据由 AdminDashboard 自己管理
+  }, [selectedCharacterId, viewMode]);
 
-  const loadGlobalData = async (force = false) => {
-    // Load characters - 总是重新加载当 force=true
-    if (force) {
-      const charRes = await api.getCharacters();
-      if (charRes.code === 200) {
-        setCharacters(charRes.data);
-      }
-    } else if (characters.length === 0) {
-      // 只在初始化时加载
-      const charRes = await api.getCharacters();
-      if (charRes.code === 200) {
-        setCharacters(charRes.data);
-      }
+  // 处理模型切换
+  const handleUpdateModel = (modelData: string) => {
+    try {
+      const model = JSON.parse(modelData);
+      setOverrideModel(model);
+    } catch (error) {
+      console.error('Failed to parse model data:', error);
     }
+  };
 
-    // Load models - 总是重新加载当 force=true
-    if (force) {
-      const modelRes = await api.getModels();
-      if (modelRes.code === 200) {
-        setModels(modelRes.data);
-      }
-    } else if (models.length === 0) {
-      // 只在初始化时加载
-      const modelRes = await api.getModels();
-      if (modelRes.code === 200) {
-        setModels(modelRes.data);
-      }
+  const loadCharacters = async () => {
+    const charRes = await api.getCharacters();
+    if (charRes.code === 200) {
+      setCharacters(charRes.data);
+    }
+  };
+
+  const loadModels = async () => {
+    const modelRes = await api.getModels(false); // 管理界面加载所有模型
+    if (modelRes.code === 200) {
+      setModels(modelRes.data);
     }
   };
 
@@ -215,8 +215,7 @@ const App: React.FC = () => {
               activeConversationId={activeConversationId}
               activeCharacter={activeCharacter}
               activeModel={activeModel}
-              availableModels={models.filter(m => m.enabled)}
-              onUpdateModel={setActiveModelId}
+              onUpdateModel={handleUpdateModel}
               onConversationUpdated={() => loadConversations(selectedCharacterId)}
               onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
               onShowSidebar={() => setIsLeftSidebarHidden(false)}
@@ -301,12 +300,21 @@ const App: React.FC = () => {
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
             isSidebarHidden={isLeftSidebarHidden}
             onShowSidebar={() => setIsLeftSidebarHidden(false)}
+            onDataUpdated={async () => {
+              // 当 AdminDashboard 更新数据后，刷新 App 层的数据
+              // 这样切换到其他视图时数据是最新的
+              await loadCharacters();
+              await loadModels();
+            }}
           />
         ) : viewMode === 'characters' ? (
           <AdminCharacters
             characters={characters}
             models={models}
-            onRefresh={() => loadGlobalData(true)}
+            onRefresh={async () => {
+              await loadCharacters();
+              await loadModels();
+            }}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
             isSidebarHidden={isLeftSidebarHidden}
             onShowSidebar={() => setIsLeftSidebarHidden(false)}

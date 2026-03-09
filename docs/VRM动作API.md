@@ -256,6 +256,127 @@ interface CharacterMotionBindings {
 }
 ```
 
+## 前端实现细节
+
+### 动作查找函数
+
+位置：`frontend/hooks/useVRM.ts`
+
+```typescript
+/**
+ * 根据动作名称从 reply 分类中查找动作 URL
+ * 只从 reply 分类搜索（不区分大小写，支持模糊匹配）
+ */
+async function findMotionByName(
+  bindingsRef: React.MutableRefObject<CharacterMotionBindings | null>,
+  motionName: string
+): Promise<string | null> {
+  if (!bindingsRef.current) {
+    return null;
+  }
+
+  const normalizedName = motionName.toLowerCase().trim();
+
+  // 只从 reply 分类中查找
+  const bindings = bindingsRef.current.reply;
+  if (!bindings || bindings.length === 0) {
+    console.warn(`[useVRM] No reply motions available for character`);
+    return null;
+  }
+
+  // 1. 精确匹配（优先级最高）
+  const exactMatch = bindings.find(
+    (b: any) => b.motion_name?.toLowerCase() === normalizedName
+  );
+  if (exactMatch?.motion_file_url) {
+    console.log(`[useVRM] Found exact match for motion: ${motionName}`);
+    return buildResourceUrl(exactMatch.motion_file_url);
+  }
+
+  // 2. 包含匹配（模糊匹配）
+  const partialMatch = bindings.find(
+    (b: any) => b.motion_name?.toLowerCase().includes(normalizedName)
+  );
+  if (partialMatch?.motion_file_url) {
+    console.log(`[useVRM] Found partial match for motion: ${motionName} -> ${partialMatch.motion_name}`);
+    return buildResourceUrl(partialMatch.motion_file_url);
+  }
+
+  // 找不到匹配的动作
+  console.warn(`[useVRM] Motion not found in reply category: ${motionName}`);
+  return null;
+}
+```
+
+### 动作标记处理逻辑
+
+```typescript
+// 在 playNextSegment 函数中
+for (const markup of markups) {
+  if (markup.type === 'state') {
+    // 情感 → 表情
+    setExpression(markup.value.toLowerCase());
+  } else if (markup.type === 'action') {
+    // 动作标记处理
+    if (character?.id) {
+      const actionValue = markup.value.toLowerCase();
+
+      // 检查是否是动作分类标记（idle/thinking/reply）
+      const actionCategories = ['idle', 'thinking', 'reply'];
+
+      if (actionCategories.includes(actionValue)) {
+        // 分类标记：从该分类中随机选择动作
+        const motionUrl = await getCharacterMotionUrl(
+          motionBindingsRef,
+          character.id,
+          actionValue as 'idle' | 'thinking' | 'reply',
+          true  // 随机选择
+        );
+        if (motionUrl) {
+          setMotionUrl(motionUrl);
+        }
+      } else {
+        // 具体动作名称：从 reply 分类中查找匹配的动作
+        const motionUrl = await findMotionByName(motionBindingsRef, actionValue);
+        if (motionUrl) {
+          setMotionUrl(motionUrl);
+        }
+        // 找不到时不播放，已在 findMotionByName 中打印日志
+      }
+    }
+  }
+}
+```
+
+### 缓存机制
+
+动作绑定在角色加载时一次性获取并缓存：
+
+```typescript
+// 在 loadModel 函数中
+if (characterId) {
+  const response = await motionBindingsApi.getCharacterBindings(characterId);
+  if (response.code === 200 && response.data) {
+    // 缓存所有分类的动作绑定
+    motionBindingsRef.current = response.data.bindings_by_category;
+    
+    // 加载初始动作
+    const initialMotionUrl = await getCharacterMotionUrl(
+      motionBindingsRef, 
+      characterId, 
+      'initial', 
+      true
+    );
+    setMotionUrl(initialMotionUrl);
+  }
+}
+```
+
+**优势**：
+- 避免每次播放都请求 API
+- 支持离线查找（从缓存中查找）
+- 提高响应速度
+
 ## 前端 API 服务
 
 ### 位置
@@ -294,6 +415,104 @@ await api.updateMotionBinding('binding_id', {
 await api.deleteMotionBinding('binding_id');
 ```
 
+## 动作标记系统
+
+AI 可以通过在文本中嵌入标记来控制 VRM 的动作和表情：
+
+### 标记语法
+
+```
+[state:表情名称]  - 控制表情
+[action:动作标识] - 控制动作
+```
+
+### 表情标记
+
+```typescript
+// 支持的表情
+[state:neutral]  // 中性
+[state:happy]    // 开心
+[state:sad]      // 悲伤
+[state:angry]    // 生气
+[state:surprised] // 惊讶
+```
+
+### 动作标记
+
+动作标记支持两种模式：
+
+#### 1. 分类标记（随机选择）
+
+从指定分类中随机选择一个动作：
+
+```typescript
+[action:idle]     // 从 idle 分类中随机选择
+[action:thinking] // 从 thinking 分类中随机选择
+[action:reply]    // 从 reply 分类中随机选择
+```
+
+#### 2. 具体动作标记（精确匹配）
+
+指定具体的动作名称，**仅从 reply 分类中查找**：
+
+```typescript
+[action:wave]     // 播放 reply 分类中名为 "wave" 的动作
+[action:nod]      // 播放 reply 分类中名为 "nod" 的动作
+[action:clap]     // 播放 reply 分类中名为 "clap" 的动作
+```
+
+**匹配规则**：
+1. **精确匹配**（优先）：动作名称完全匹配（不区分大小写）
+2. **模糊匹配**（降级）：动作名称包含指定文本
+3. **找不到时**：不播放动作，仅在控制台打印警告日志
+
+**搜索范围**：仅从 reply 分类中搜索
+
+**注意**：如果动作不存在或名称错误，不会有降级策略，直接跳过该动作标记。
+
+### 标记示例
+
+```typescript
+// AI 输出示例
+"你好[state:happy][action:wave]，很高兴见到你！"
+// 效果：显示开心表情 + 播放 reply 分类中的 wave 动作（如果存在）
+
+"让我想想[state:neutral][action:thinking]..."
+// 效果：显示中性表情 + 从 thinking 分类随机选择动作
+
+"没错[action:nod]，就是这样！"
+// 效果：播放 reply 分类中的 nod 动作（如果存在）
+
+"太棒了[state:happy][action:clap]！"
+// 效果：显示开心表情 + 播放 reply 分类中的 clap 动作（如果存在）
+
+"[action:dance]来跳个舞吧！"
+// 如果 reply 分类中没有 dance 动作，则不播放，仅显示字幕
+```
+
+### 最佳实践
+
+1. **动作命名规范**：使用简短、语义明确的英文名称
+   - ✅ 好的命名：`wave`, `nod`, `clap`, `bow`, `think`
+   - ❌ 不好的命名：`动作1`, `motion_v2_final`, `test123`
+
+2. **AI 提示词建议**：在系统提示词中告知 AI 可用的动作名称
+   ```
+   可用动作：wave（挥手）、nod（点头）、clap（鼓掌）、bow（鞠躬）
+   使用方式：[action:wave]
+   ```
+
+3. **容错处理**：即使动作不存在，也不会影响对话流程
+   - 字幕正常显示
+   - 音频正常播放
+   - 仅动作不播放
+
+4. **调试技巧**：查看浏览器控制台日志
+   ```javascript
+   // 过滤 VRM 相关日志
+   console.log 中搜索 "[useVRM]"
+   ```
+
 ## 动作播放流程
 
 ### 1. 初始化流程
@@ -303,11 +522,15 @@ await api.deleteMotionBinding('binding_id');
   ↓
 加载角色动作绑定（GET /characters/{id}/motions）
   ↓
-设置初始动作URL（从 initial 分类中选择）
+缓存所有分类的动作绑定
+  ↓
+设置初始动作URL（从 initial 分类中随机选择）
   ↓
 播放初始动作（循环）
   ↓
-启动闲置计时器（15秒）
+记录动作切换时间
+  ↓
+启动闲置计时器（12秒 ±3秒）
 ```
 
 ### 2. 用户交互流程
@@ -319,65 +542,175 @@ await api.deleteMotionBinding('binding_id');
   ↓
 播放思考动作（从 thinking 分类中随机选择）
   ↓
-收到AI响应
+记录动作切换时间
+  ↓
+收到AI响应（包含标记文本）
   ↓
 停止思考动作
   ↓
-播放回复动作（由AI标记控制，从 reply 分类中选择）
+解析标记文本
+  ├─ [state:happy] → 设置表情
+  ├─ [action:wave] → 查找并播放动作，记录切换时间
+  └─ 纯文本 → 显示字幕
+  ↓
+播放音频 + 同步口型
   ↓
 回复完成
   ↓
-回到初始动作
+回到初始动作（从 initial 分类中随机选择）
   ↓
-重置闲置计时器
+记录动作切换时间
+  ↓
+重新启动闲置计时器（12秒 ±3秒）
 ```
 
 ### 3. 闲置流程
 
 ```
-15秒无交互
+角色处于 initial 动作状态
   ↓
-触发闲置状态
+启动闲置计时器（12秒 ±3秒 = 9-15秒随机）
   ↓
-播放闲置动作（从 idle 分类中随机选择）
+计时器到期时检查条件：
+  1. 当前是否为 initial 动作？
+  2. 距离上次动作切换是否超过计时器时间？
   ↓
-动作播放完成
+条件满足 → 触发闲置动作
   ↓
-回到初始动作
+从 idle 分类中随机选择一个动作播放
   ↓
-重置闲置计时器
+动作播放完成（idle 动作不循环）
+  ↓
+保持在 idle 状态（不会自动回到 initial）
 ```
 
-## 权重系统
+**注意**：
+- 闲置计时器仅在 initial 状态下运行
+- 用户交互（发送消息）会停止计时器
+- AI 回复完成后回到 initial 状态，重新启动计时器
+- 每次计时器的延迟时间都是随机的（9-15秒）
 
-每个绑定都有一个 `weight` 字段，用于随机选择动作时的权重计算：
+### 4. 动作查找流程
+
+```
+解析到 [action:xxx]
+  ↓
+检查是否是分类标记（idle/thinking/reply）
+  ├─ 是 → 从该分类中随机选择动作
+  └─ 否 → 执行具体动作查找
+      ↓
+      仅从 reply 分类中查找
+      ↓
+      1. 精确匹配：motion_name == "xxx"（不区分大小写）
+         ├─ 找到 → 播放该动作
+         └─ 未找到 → 继续
+      ↓
+      2. 模糊匹配：motion_name.includes("xxx")
+         ├─ 找到 → 播放该动作
+         └─ 未找到 → 继续
+      ↓
+      3. 找不到 → 打印警告日志，不播放动作
+```
+
+**日志示例**：
 
 ```typescript
-// 权重随机选择算法
-function selectRandomMotion(bindings: CharacterMotionBinding[]): string {
-  const totalWeight = bindings.reduce((sum, b) => sum + b.weight, 0);
-  let random = Math.random() * totalWeight;
-  
-  for (const binding of bindings) {
-    random -= binding.weight;
-    if (random <= 0) {
-      return binding.motion_name;
-    }
-  }
-  
-  return bindings[0].motion_name; // 降级
+// 找到精确匹配
+[useVRM] Found exact match for motion: wave
+
+// 找到模糊匹配
+[useVRM] Found partial match for motion: wave -> wave_hello
+
+// 找不到动作
+[useVRM] Motion not found in reply category: dance
+
+// reply 分类为空
+[useVRM] No reply motions available for character
+
+// 闲置计时器触发
+[useVRM] Idle timer triggered, playing idle motion
+```
+
+## 闲置计时器机制
+
+### 触发条件
+
+闲置动作的触发需要同时满足两个条件：
+
+1. **当前动作状态为 initial**
+   - 只有在初始动作状态下才会触发闲置
+   - thinking、reply、idle 状态下不会触发
+
+2. **距离上次动作切换的时间超过计时器延迟**
+   - 防止动作刚切换就立即触发闲置
+   - 确保动作有足够的播放时间
+
+### 计时器参数
+
+- **基础延迟**：12秒
+- **随机波动**：±3秒
+- **实际延迟范围**：9-15秒
+- **每次重启都会重新随机**
+
+### 计时器生命周期
+
+```typescript
+// 启动时机
+1. VRM 模型加载完成，播放 initial 动作后
+2. AI 回复完成，回到 initial 动作后
+
+// 停止时机
+1. 用户发送消息（进入 thinking 状态）
+2. 开始播放 AI 回复（进入 reply 状态）
+3. 组件卸载
+
+// 重置时机
+每次启动时都会生成新的随机延迟
+```
+
+### 实现细节
+
+```typescript
+// 计算随机延迟
+const baseDelay = 12000; // 12秒
+const randomOffset = (Math.random() * 6000) - 3000; // ±3秒
+const delay = baseDelay + randomOffset; // 9000-15000ms
+
+// 检查触发条件
+if (
+  currentMotionCategoryRef.current === 'initial' &&
+  Date.now() - lastMotionChangeTimeRef.current >= delay
+) {
+  // 触发闲置动作
 }
 ```
 
-**示例**:
-- 动作A: weight = 1.0 (33.3% 概率)
-- 动作B: weight = 1.0 (33.3% 概率)
-- 动作C: weight = 1.0 (33.3% 概率)
+### 状态追踪
 
-或者：
-- 动作A: weight = 2.0 (50% 概率)
-- 动作B: weight = 1.0 (25% 概率)
-- 动作C: weight = 1.0 (25% 概率)
+系统使用以下 ref 追踪动作状态：
+
+- `currentMotionCategoryRef`：当前动作分类（initial/idle/thinking/reply）
+- `lastMotionChangeTimeRef`：上次动作切换的时间戳
+- `idleTimerRef`：计时器引用
+
+每次动作切换时都会更新这些状态。
+
+## 动作选择机制
+
+当一个分类中有多个动作时，系统会随机选择一个播放：
+
+```typescript
+// 随机选择算法
+function selectMotion(bindings: CharacterMotionBinding[]): CharacterMotionBinding {
+  const randomIndex = Math.floor(Math.random() * bindings.length);
+  return bindings[randomIndex];
+}
+```
+
+**示例**：
+- 如果 idle 分类有 3 个动作：stretch、yawn、look_around
+- 每次触发闲置状态时，会随机选择其中一个播放
+- 每个动作被选中的概率相等（33.3%）
 
 ## 约束和验证
 
@@ -390,13 +723,10 @@ function selectRandomMotion(bindings: CharacterMotionBinding[]): string {
    - `character_id` → `characters.id` (CASCADE DELETE)
    - `motion_id` → `assets_motions.id` (RESTRICT DELETE)
 
-3. **权重验证**: `weight >= 0.0`
-
 ### 前端验证
 
 1. 创建绑定前检查是否已存在
 2. 分类必须是 `'initial' | 'idle' | 'thinking' | 'reply'` 之一
-3. 权重必须为非负数
 
 ## 错误处理
 

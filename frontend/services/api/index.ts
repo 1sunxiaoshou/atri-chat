@@ -118,10 +118,5 @@ export const api = {
   updateVRMAnimation: vrmApi.updateVRMAnimation,
   deleteVRMAnimation: vrmApi.deleteVRMAnimation,
   getVRMAnimationModels: vrmApi.getVRMAnimationModels,
-  getModelAnimations: vrmApi.getModelAnimations,
-  addModelAnimation: vrmApi.addModelAnimation,
-  uploadAndBindModelAnimation: vrmApi.uploadAndBindModelAnimation,
-  batchAddModelAnimations: vrmApi.batchAddModelAnimations,
-  removeModelAnimation: vrmApi.removeModelAnimation,
-  batchRemoveModelAnimations: vrmApi.batchRemoveModelAnimations
+  getModelAnimations: vrmApi.getModelAnimations
 };

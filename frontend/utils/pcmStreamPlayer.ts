@@ -17,7 +17,6 @@ export class PCMStreamPlayer {
   private volume: number;
   private gainNode: GainNode;
   private activeSourceNodes: AudioBufferSourceNode[] = [];
-  private analyser: AnalyserNode;
   private pendingResolvers: Array<{ resolve: () => void; reject: (reason?: any) => void }> = [];
 
   constructor(
@@ -35,17 +34,8 @@ export class PCMStreamPlayer {
     this.gainNode = this.audioContext.createGain();
     this.gainNode.gain.value = volume;
 
-    // 创建分析器节点用于口型同步
-    this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 256; // 不需要太高的精度，256够了
-
-    // 连接: source -> gain -> analyser -> destination
-    this.gainNode.connect(this.analyser);
-    this.analyser.connect(this.audioContext.destination);
-  }
-
-  public getAnalyser(): AnalyserNode {
-    return this.analyser;
+    // 连接: source -> gain -> destination
+    this.gainNode.connect(this.audioContext.destination);
   }
 
   /**

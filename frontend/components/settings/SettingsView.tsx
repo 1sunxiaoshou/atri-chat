@@ -19,7 +19,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     isSidebarHidden,
     onShowSidebar
 }) => {
-    const { language, t } = useLanguage();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'general' | 'asr'>('general');
 
     const tabs = [

@@ -131,23 +131,30 @@ async def list_providers(
 ):
     """列出所有供应商"""
     try:
-        agent_manager = get_agent_coordinator()
+        from sqlalchemy.orm import joinedload
         
-        providers = db.query(ProviderConfigORM).order_by(
+        # 预加载 models 关系，避免 N+1 查询
+        providers = db.query(ProviderConfigORM).options(
+            joinedload(ProviderConfigORM.models)
+        ).order_by(
             ProviderConfigORM.created_at.desc()
         ).offset(skip).limit(limit).all()
         
+        # 一次性获取所有模板元数据（而不是在循环中逐个获取）
+        agent_manager = get_agent_coordinator()
+        all_templates = agent_manager.model_factory.get_all_template_metadata()
+        
         data = []
         for p in providers:
-            template = agent_manager.model_factory.get_provider_template(p.template_type)
+            template_metadata = all_templates.get(p.template_type)
             
             data.append({
                 "id": p.id,
                 "provider_id": p.provider_id,
                 "template_type": p.template_type,
-                "description": template.metadata.description if template else "",
+                "description": template_metadata.description if template_metadata else "",
                 "config_json": p.config_json,
-                "model_count": len(p.models),
+                "model_count": len(p.models),  # 已预加载，不会触发查询
                 "created_at": p.created_at.isoformat(),
                 "updated_at": p.updated_at.isoformat()
             })

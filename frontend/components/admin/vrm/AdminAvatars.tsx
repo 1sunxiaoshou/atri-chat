@@ -4,8 +4,8 @@ import { api } from '../../../services/api/index';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Button, ConfirmDialog } from '../../ui';
 import Toast, { ToastMessage } from '../../ui/Toast';
-import { VRMUploadPreview } from './VRMUploadPreview';
-import { VRMEditPreview } from './VRMEditPreview';
+import { VRMUploadPreview } from './UploadPreview';
+import { VRMEditPreview } from './EditPreview';
 
 interface Avatar {
     id: string;
