@@ -1,0 +1,16 @@
+ATRI Chat Portable Mode
+=======================
+
+This file marks the application as running in portable mode.
+
+In portable mode:
+- All data is stored in the application directory
+- No files are written to system directories (AppData, etc.)
+- The application can be run from a USB drive or moved freely
+
+Data locations:
+- Database: ./data/app.db
+- Uploads: ./data/uploads/
+- Logs: ./logs/
+
+To switch to standard mode, delete this file.

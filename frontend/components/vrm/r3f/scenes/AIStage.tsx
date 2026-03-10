@@ -1,6 +1,6 @@
-import { Environment, ContactShadows } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Bloom, Vignette } from '@react-three/postprocessing';
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { VRMRenderConfig } from '../../VRMRenderSettings';
 import { GenshinControls } from '../core/GenshinControls';
 
@@ -59,14 +59,6 @@ export function AIStage({
 
     return (
         <>
-            {/* HDRI 环境光 */}
-            <Environment
-                preset={finalConfig.environment}
-                background={finalConfig.showEnvironmentBackground}
-                backgroundBlurriness={finalConfig.backgroundBlurriness}
-                backgroundIntensity={finalConfig.backgroundIntensity}
-            />
-
             {/* 主光源 - 模拟自然光 */}
             {finalConfig.enableMainLight && (
                 <directionalLight

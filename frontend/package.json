@@ -1,7 +1,7 @@
 {
-  "name": "nexusai-chat",
+  "name": "atri-chat",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,7 +13,10 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "check-i18n": "tsx scripts/check-i18n.ts",
     "clean-i18n": "tsx scripts/check-i18n.ts -- --remove-unused",
-    "check-imports": "tsx scripts/fix-missing-imports.ts"
+    "check-imports": "tsx scripts/fix-missing-imports.ts",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@lobehub/icons": "^5.0.1",
@@ -23,6 +26,8 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "@types/three": "^0.182.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -39,6 +44,7 @@
     "three-stdlib": "^2.36.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

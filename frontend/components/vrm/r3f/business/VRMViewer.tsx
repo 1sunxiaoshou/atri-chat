@@ -98,6 +98,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
     lookAtMode = 'mouse',
     loopMotion = true,
     onMotionComplete,
+    onModelLoaded,
     showGrid = true,
     enableOrbitControls = true,
     enableCameraFit = true,
@@ -229,6 +230,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
                             lookAtMode={lookAtMode}
                             loopMotion={internalLoopMotion}
                             onMotionComplete={onMotionComplete}
+                            onModelLoaded={onModelLoaded}
                         />
                     </StudioScene>
                 </Suspense>

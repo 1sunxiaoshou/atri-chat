@@ -8,6 +8,47 @@ interface LipSyncController {
 }
 
 /**
+ * 全局 AudioContext 管理器
+ * 确保每个 audioElement 只创建一次 MediaElementSourceNode
+ */
+class GlobalAudioContextManager {
+    private static contexts = new WeakMap<HTMLAudioElement, {
+        context: AudioContext;
+        analyser: AnalyserNode;
+        source: MediaElementAudioSourceNode;
+    }>();
+
+    static getOrCreate(audioElement: HTMLAudioElement) {
+        // 如果已经存在，直接返回
+        if (this.contexts.has(audioElement)) {
+            return this.contexts.get(audioElement)!;
+        }
+
+        // 创建新的 AudioContext
+        const context = new AudioContext();
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 256;
+
+        const source = context.createMediaElementSource(audioElement);
+        source.connect(analyser);
+        analyser.connect(context.destination);
+
+        const result = { context, analyser, source };
+        this.contexts.set(audioElement, result);
+
+        return result;
+    }
+
+    static cleanup(audioElement: HTMLAudioElement) {
+        const entry = this.contexts.get(audioElement);
+        if (entry) {
+            entry.context.close();
+            this.contexts.delete(audioElement);
+        }
+    }
+}
+
+/**
  * 口型同步 Hook
  * 基于 Web Audio API 实时分析音频并驱动口型
  * 
@@ -22,50 +63,31 @@ export function useLipSync(
     enabled: boolean = true
 ) {
     const controllerRef = useRef<LipSyncController | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const audioDataRef = useRef<Uint8Array | null>(null);
     const smoothedVolumeRef = useRef(0);
-    const connectedAudioElementRef = useRef<HTMLAudioElement | null>(null); // 追踪已连接的 audio 元素
+    const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         if (!vrm || !enabled) {
-            // 清理现有的 AudioContext
-            if (audioContextRef.current) {
-                audioContextRef.current.close();
-                audioContextRef.current = null;
-            }
             analyserRef.current = null;
             audioDataRef.current = null;
-            connectedAudioElementRef.current = null;
+            currentAudioElementRef.current = null;
             controllerRef.current = null;
             return;
         }
 
         // 初始化 Web Audio API
-        // 只有当 audioElement 存在且与之前连接的不同时才创建新的连接
-        if (audioElement && audioElement !== connectedAudioElementRef.current) {
+        if (audioElement) {
             try {
-                // 清理旧的 AudioContext
-                if (audioContextRef.current) {
-                    audioContextRef.current.close();
-                    audioContextRef.current = null;
-                }
+                // 使用全局管理器获取或创建 AudioContext
+                const { analyser } = GlobalAudioContextManager.getOrCreate(audioElement);
 
-                const audioContext = new AudioContext();
-                const analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-
-                const source = audioContext.createMediaElementSource(audioElement);
-                source.connect(analyser);
-                analyser.connect(audioContext.destination);
-
-                audioContextRef.current = audioContext;
                 analyserRef.current = analyser;
                 audioDataRef.current = new Uint8Array(analyser.frequencyBinCount);
-                connectedAudioElementRef.current = audioElement; // 记录已连接的元素
+                currentAudioElementRef.current = audioElement;
             } catch (error) {
-                console.error('Failed to initialize audio context:', error);
+                console.error('[useLipSync] Failed to initialize audio context:', error);
             }
         }
 
@@ -102,25 +124,18 @@ export function useLipSync(
             },
 
             cleanup: () => {
-                if (audioContextRef.current) {
-                    audioContextRef.current.close();
-                    audioContextRef.current = null;
-                }
+                // 不在这里清理 AudioContext，因为它是全局共享的
                 analyserRef.current = null;
                 audioDataRef.current = null;
             },
         };
 
         return () => {
-            if (audioContextRef.current) {
-                console.log('[useLipSync] Cleaning up AudioContext');
-                audioContextRef.current.close();
-                audioContextRef.current = null;
-            }
             analyserRef.current = null;
             audioDataRef.current = null;
-            connectedAudioElementRef.current = null;
+            currentAudioElementRef.current = null;
             controllerRef.current?.cleanup();
+            // 注意：不清理 AudioContext，因为它可能被其他组件使用
         };
     }, [vrm, audioElement, enabled]);
 

@@ -6,10 +6,6 @@
 3. 协调各个服务层
 4. 统一消息处理入口
 
-架构改进：
-- 完全移除对 AppStorage 的依赖 ✅
-- 使用 Repository 模式进行数据访问
-- 通过请求级别的 Session 传递数据库连接
 """
 import json
 from typing import AsyncGenerator
@@ -59,11 +55,11 @@ class AgentCoordinator:
         # 无状态服务（可共享）
         self.message_service = MessageService()
         self.model_factory = ModelFactory()
-        self.prompt_manager = PromptManager()  # 已完全移除 AppStorage 依赖
+        self.prompt_manager = PromptManager() 
         
         # VRM 服务（复用 TTSFactory 单例）
         from .dependencies import get_tts_factory
-        self.vrm_service = VRMService(get_tts_factory())  # 移除 app_storage
+        self.vrm_service = VRMService(get_tts_factory())
         
         # 创建单个 Agent 实例
         self.agent = self._create_agent()

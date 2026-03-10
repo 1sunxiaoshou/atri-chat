@@ -20,6 +20,9 @@ class Config:
         if self._env not in [e.value for e in Environment]:
             self._env = Environment.DEVELOPMENT.value
         
+        # 端口配置
+        self._backend_port = int(os.getenv("BACKEND_PORT", "9099"))
+        
         # 日志配置
         self._log_level = os.getenv("LOG_LEVEL", self._default_log_level()).upper()
         
@@ -48,6 +51,11 @@ class Config:
     def is_staging(self) -> bool:
         """是否为测试环境"""
         return self._env == Environment.STAGING.value
+    
+    @property
+    def backend_port(self) -> int:
+        """获取后端服务器端口"""
+        return self._backend_port
     
     @property
     def log_level(self) -> str:

@@ -9,6 +9,8 @@ interface VRMViewerWrapperProps {
     motionUrl?: string | null;
     subtitle?: string;
     activeCharacterId?: string;
+    onModelLoaded?: () => void;
+    onMotionComplete?: () => void;
 }
 
 /**
@@ -22,6 +24,8 @@ export const VRMViewerWrapper = React.memo(function VRMViewerWrapper({
     motionUrl,
     subtitle,
     activeCharacterId,
+    onModelLoaded,
+    onMotionComplete,
 }: VRMViewerWrapperProps) {
     const { t } = useLanguage();
 
@@ -64,6 +68,8 @@ export const VRMViewerWrapper = React.memo(function VRMViewerWrapper({
             expression={expression}
             motionUrl={motionUrl}
             subtitle={subtitle}
+            onModelLoaded={onModelLoaded}
+            onMotionComplete={onMotionComplete}
         />
     );
 }, (prevProps, nextProps) => {
@@ -74,6 +80,8 @@ export const VRMViewerWrapper = React.memo(function VRMViewerWrapper({
         prevProps.expression === nextProps.expression &&
         prevProps.motionUrl === nextProps.motionUrl &&
         prevProps.subtitle === nextProps.subtitle &&
-        prevProps.activeCharacterId === nextProps.activeCharacterId
+        prevProps.activeCharacterId === nextProps.activeCharacterId &&
+        prevProps.onModelLoaded === nextProps.onModelLoaded &&
+        prevProps.onMotionComplete === nextProps.onMotionComplete
     );
 });

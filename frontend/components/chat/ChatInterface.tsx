@@ -69,7 +69,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     error: vrmError,
     playSegments,
     startThinking,
-    clearError: clearVrmError
+    clearError: clearVrmError,
+    onModelLoaded,
+    onMotionComplete
   } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
 
   const {
@@ -215,6 +217,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               motionUrl={motionUrl}
               subtitle={subtitle}
               activeCharacterId={activeCharacter?.id}
+              onModelLoaded={onModelLoaded}
+              onMotionComplete={onMotionComplete}
             />
           )}
 
