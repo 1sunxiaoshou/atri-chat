@@ -22,6 +22,10 @@ interface ChatVRMViewerR3FProps {
     subtitle?: string;
     /** 自定义类名 */
     className?: string;
+    /** 模型加载完成回调 */
+    onModelLoaded?: () => void;
+    /** 动作播放完成回调 */
+    onMotionComplete?: () => void;
 }
 
 /**
@@ -42,6 +46,8 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
     motionUrl,
     subtitle,
     className,
+    onModelLoaded,
+    onMotionComplete,
 }: ChatVRMViewerR3FProps) {
     const { t } = useLanguage();
     const { isDark } = useTheme();
@@ -107,6 +113,9 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
                         enableLipSync={true}
                         enableBlink={renderConfig.enableBlink}
                         lookAtMode={renderConfig.lookAtMode}
+                        loopMotion={false}
+                        onModelLoaded={onModelLoaded}
+                        onMotionComplete={onMotionComplete}
                     />
                 </AIStage>
             </Suspense>
@@ -114,7 +123,7 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
             {/* 性能监控（内部组件） */}
             {isPerformanceVisible && <PerformanceMonitorInternal onUpdate={setPerfStats} />}
         </>
-    ), [modelUrl, expression, motionUrl, audioElement, renderConfig, isPerformanceVisible]);
+    ), [modelUrl, expression, motionUrl, audioElement, renderConfig, isPerformanceVisible, onModelLoaded, onMotionComplete]);
 
     return (
         <div className={cn(

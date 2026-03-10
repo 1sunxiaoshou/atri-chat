@@ -285,18 +285,18 @@ app.include_router(example_router)
 # 测试 API：
 
 # 1. 创建形象
-curl -X POST http://localhost:8000/api/v1/avatars \
+curl -X POST http://localhost:9099/api/v1/avatars \
   -H "Content-Type: application/json" \
   -d '{"name": "Female Character", "file_url": "/uploads/avatars/female.vrm"}'
 
 # 2. 列出形象
-curl http://localhost:8000/api/v1/avatars
+curl http://localhost:9099/api/v1/avatars
 
 # 3. 搜索形象
-curl http://localhost:8000/api/v1/avatars?search=female
+curl http://localhost:9099/api/v1/avatars?search=female
 
 # 4. 创建角色
-curl -X POST http://localhost:8000/api/v1/characters \
+curl -X POST http://localhost:9099/api/v1/characters \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Alice",
@@ -306,12 +306,12 @@ curl -X POST http://localhost:8000/api/v1/characters \
   }'
 
 # 5. 列出角色（自动加载资产）
-curl http://localhost:8000/api/v1/characters
+curl http://localhost:9099/api/v1/characters
 
 # 6. 删除角色（级联删除绑定）
-curl -X DELETE http://localhost:8000/api/v1/characters/{id}
+curl -X DELETE http://localhost:9099/api/v1/characters/{id}
 
 # 7. 尝试删除被引用的形象（会失败）
-curl -X DELETE http://localhost:8000/api/v1/avatars/{id}
+curl -X DELETE http://localhost:9099/api/v1/avatars/{id}
 # 返回 409 Conflict，包含引用信息
 """

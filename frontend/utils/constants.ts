@@ -21,7 +21,8 @@ const getApiBaseUrl = (): string => {
   }
 
   // 3. 开发环境默认值
-  return 'http://localhost:8000';
+  const backendPort = import.meta.env.VITE_BACKEND_PORT || '9099';
+  return `http://localhost:${backendPort}`;
 };
 
 /**
@@ -44,8 +45,8 @@ export const buildResourceUrl = (path: string | undefined): string => {
   // 已经是完整 URL
   if (path.startsWith('http://') || path.startsWith('https://')) {
     // 如果是 localhost URL，替换为当前配置的 base URL
-    if (path.includes('localhost:8000') || path.includes('localhost:3000')) {
-      // 提取路径部分（/uploads/xxx 或 /static/xxx）
+    if (path.includes('localhost')) {
+      // 提取路径部分（/uploads/xxx）
       const urlObj = new URL(path);
       return `${API_CONFIG.STATIC_URL}${urlObj.pathname}`;
     }
@@ -155,9 +156,9 @@ export const UI_SIZE = {
  * 开发服务器配置
  */
 export const DEV_SERVER = {
-  PORT: 3000,
+  PORT: 9900,
   HOST: '0.0.0.0',
-  BACKEND_URL: 'http://localhost:8000',
+  BACKEND_URL: 'http://localhost:9099',
 } as const;
 
 // ==================== 模型相关 ====================

@@ -73,7 +73,7 @@ class LoggerClass {
     const appName = import.meta.env.VITE_APP_NAME || 'VRM Chat Assistant';
     const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
     const env = import.meta.env.MODE;
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || `http://localhost:${import.meta.env.VITE_BACKEND_PORT || '9099'}`;
 
     console.log(
       `%c╭─────────────────────────────────────────────╮\n` +

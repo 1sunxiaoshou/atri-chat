@@ -9,6 +9,7 @@
 
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+import sys
 import logging
 from sqlalchemy.orm import Session
 
@@ -27,7 +28,11 @@ class PromptManager:
     def __init__(self):
         """初始化提示词管理器"""
         self._cache = {}
-        self._templates_dir = Path(__file__).parent / "templates"
+        # 打包后从 PyInstaller 临时目录读取模板
+        if getattr(sys, 'frozen', False):
+            self._templates_dir = Path(sys._MEIPASS) / "core" / "prompts" / "templates"
+        else:
+            self._templates_dir = Path(__file__).parent / "templates"
     
     def _load_template(self, template_path: str) -> str:
         """从文件加载模板
@@ -156,58 +161,69 @@ class PromptManager:
         expressions_list = character_repo.get_avatar_expressions(character_id)
         expressions_str = ", ".join(expressions_list)
         
-        # 2. 获取动作列表（带详细描述）
-        actions_str = self._get_character_actions_detailed(character_id, character_repo)
+        # 【新增】抽取真实表情ID用于示例（防幻觉）
+        exp1 = expressions_list[0] if len(expressions_list) > 0 else "neutral"
+        exp2 = expressions_list[1] if len(expressions_list) > 1 else exp1
+        
+        # 2. 获取动作列表与纯ID列表
+        actions_str, action_ids = self._get_character_actions_detailed(character_id, character_repo)
+        
+        # 【新增】抽取真实动作ID用于示例（防幻觉）
+        act1 = action_ids[0] if len(action_ids) > 0 else "ACT_PLACEHOLDER_1"
+        act2 = action_ids[1] if len(action_ids) > 1 else act1
         
         # 3. 加载并填充模板
         vrm_template = self._load_template("modes/vrm.md")
         return vrm_template.format(
             expressions=expressions_str,
-            actions=actions_str
+            actions=actions_str,
+            exp1=exp1,
+            exp2=exp2,
+            act1=act1,
+            act2=act2
         )
 
     def _get_character_actions_detailed(
         self, 
         character_id: str, 
         character_repo: CharacterRepository
-    ) -> str:
-        """获取角色动作的详细列表（格式化为字符串）
-        
-        只返回 reply 分类的动作，因为其他分类由系统自动控制：
-        - initial: 由 VRMManager 自动播放
-        - idle: 由 IdleMotionManager 自动触发
-        - thinking: 由 ThinkingMotionManager 自动触发
-        - reply: 由 AI 通过标记控制（应该暴露给AI）
+    ) -> tuple[str, list[str]]:
+        """获取角色动作的详细列表（格式化为字符串）及ID列表
         
         Args:
             character_id: 角色 ID
             character_repo: 角色仓储实例
             
         Returns:
-            格式化的动作列表字符串（格式：ID | 文件名 | 描述）
+            Tuple[格式化的动作列表字符串, 纯动作ID列表]
         """
         try:
-            # 只获取 reply 分类的动作
             motions = character_repo.get_character_motions(character_id, category='reply')
             
             if not motions:
-                return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+                # 兼容旧逻辑
+                fallback_str = "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+                return fallback_str, []
             
             action_lines = []
+            action_ids = []
             for motion in motions:
-                motion_id = motion.id  # 短链 ID（文件名无扩展名）
-                name = motion.name  # 显示名称
-                description = motion.description or "无描述"
-                duration_sec = motion.duration_ms / 1000.0
+                motion_id = motion.id  # 短链 ID
+                action_ids.append(motion_id)  # 保存纯ID供外部提取
                 
-                # 格式: ID | 文件名 (时长) | 描述
-                info = f"{motion_id} | {name} ({duration_sec:.1f}s) | {description}"
+                name = motion.name
+                description = motion.description or "无描述"
+                
+                # 【关键优化】修改格式，把 ID 突出，并用反引号包裹，把名字和描述塞进括号里当辅助信息
+                # AI看了这个格式，就不会错把中文名字当成 ID 输出了
+                info = f"ID: `{motion_id}` (动作含义: {name}, {description})"
                 action_lines.append(info)
                 
-            return "\n  - " + "\n  - ".join(action_lines)
+            return "\n  - " + "\n  - ".join(action_lines), action_ids
+            
         except Exception as e:
             logger.error(f"获取角色动作失败: {e}", exc_info=True)
-            return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
+            return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS), []
 
     
     def _load_user_profile(self, character_id: str) -> Optional[str]:

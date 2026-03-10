@@ -11,7 +11,7 @@ import { buildResourceUrl } from './constants';
  */
 export const buildAvatarUrl = (avatarPath: string | undefined): string => {
   if (!avatarPath) {
-    return '/default-avatar.png';
+    return '/defaults/default-avatar.png';
   }
   return buildResourceUrl(avatarPath);
 };

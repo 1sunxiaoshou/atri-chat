@@ -52,7 +52,7 @@ source .venv/bin/activate
 # 启动后端服务
 python main.py
 ```
-后端服务默认运行在 `http://localhost:8000`。
+后端服务默认运行在 `http://localhost:9099`。
 
 ### 3. 前端设置
 

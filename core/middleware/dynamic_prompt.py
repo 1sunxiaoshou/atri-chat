@@ -45,5 +45,6 @@ def build_character_prompt(request: ModelRequest) -> str:
         db_session=context.db_session  # 传递数据库会话
     )
     
+    
     return prompt
 

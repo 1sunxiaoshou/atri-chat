@@ -14,7 +14,7 @@ config = get_config()
 SLOW_THRESHOLD_MS = 1000
 
 # 忽略的路径（静态资源、健康检查等）
-IGNORED_PATHS = {"/favicon.ico", "/health", "/static", "/uploads"}
+IGNORED_PATHS = {"/favicon.ico", "/health", "/uploads"}
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

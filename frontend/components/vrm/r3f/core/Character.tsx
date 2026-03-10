@@ -28,6 +28,8 @@ interface CharacterProps {
     loopMotion?: boolean;
     /** 动作播放完成回调（仅在非循环模式下触发） */
     onMotionComplete?: () => void;
+    /** 模型加载完成回调 */
+    onModelLoaded?: () => void;
 }
 
 /**
@@ -46,6 +48,7 @@ export function Character({
     lookAtMode = 'mouse',
     loopMotion = true,
     onMotionComplete,
+    onModelLoaded,
 }: CharacterProps) {
     // 加载 VRM 模型
     const vrm = useVRMLoader(url);
@@ -53,13 +56,20 @@ export function Character({
     // 位置调整标记（避免重复调整）
     const hasAdjustedPosition = useRef(false);
 
-    // 模型加载后立即重置姿态（解决缓存模型保留上次动作姿态的问题）
+    // 模型加载完成回调
     useEffect(() => {
-        if (vrm) {
+        if (vrm && onModelLoaded) {
+            onModelLoaded();
+        }
+    }, [vrm, onModelLoaded]);
+
+    // 模型加载后立即重置姿态（仅在没有动作时执行，避免覆盖初始动作）
+    useEffect(() => {
+        if (vrm && !motionUrl) {
             // 重置到 T-Pose
             vrm.humanoid?.resetNormalizedPose();
         }
-    }, [vrm]);
+    }, [vrm, motionUrl]);
 
     // 创建 AnimationMixer
     const mixerRef = useRef<THREE.AnimationMixer | null>(null);
@@ -91,8 +101,8 @@ export function Character({
                 loop: loopMotion,
                 fadeDuration: 0.3,
             });
-        } else {
-            // 如果 motionUrl 为 null，重置模型姿态到 T-Pose
+        } else if (motionUrl === null) {
+            // 如果 motionUrl 明确为 null，重置模型姿态到 T-Pose
             if (vrm && mixerRef.current) {
                 // 停止所有动作
                 mixerRef.current.stopAllAction();

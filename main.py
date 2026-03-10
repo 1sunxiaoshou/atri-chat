@@ -39,8 +39,8 @@ def print_startup_banner():
 │  Environment: {env_display: <28} │
 │  Log Level:   {get_log_level(): <28} │
 ├─────────────────────────────────────────────┤
-│  API Server:  http://localhost:8000         │
-│  API Docs:    http://localhost:8000/docs    │
+│  API Server:  http://localhost:{config.backend_port}         │
+│  API Docs:    http://localhost:{config.backend_port}/docs    │
 ╰─────────────────────────────────────────────╯
 """
     print(banner)
@@ -103,9 +103,6 @@ app.add_middleware(
 # 获取路径管理器
 path_manager = get_path_manager()
 
-# 挂载静态文件目录（logos 等）
-app.mount("/static", StaticFiles(directory=str(path_manager.static_dir)), name="static")
-
 # 挂载上传文件目录
 app.mount("/uploads", StaticFiles(directory=str(path_manager.uploads_dir)), name="uploads")
 
@@ -159,7 +156,7 @@ if __name__ == "__main__":
         uvicorn.run(
             app, 
             host="0.0.0.0", 
-            port=8000,
+            port=config.backend_port,
             log_level=uvicorn_log_level,
             access_log=False  # 禁用 uvicorn 的访问日志，使用我们自己的中间件
         )

@@ -13,7 +13,7 @@ interface AdminMotionsProps {
 }
 
 // 默认 VRM 模型用于动作预览
-const DEFAULT_VRM_MODEL = '/static/defaults/mox.vrm';
+const DEFAULT_VRM_MODEL = '/defaults/mox.vrm';
 
 type ModalType = 'upload' | 'edit';
 

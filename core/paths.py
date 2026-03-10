@@ -1,5 +1,6 @@
 """统一路径管理"""
 import os
+import sys
 from pathlib import Path
 from functools import lru_cache
 
@@ -9,17 +10,31 @@ class PathManager:
     
     def __init__(self):
         # 项目根目录
-        self.root = Path(__file__).parent.parent.resolve()
+        # 打包后使用可执行文件所在目录，开发时使用项目根目录
+        if getattr(sys, 'frozen', False):
+            # 打包后：使用可执行文件所在目录
+            self.root = Path(sys.executable).parent.resolve()
+        else:
+            # 开发环境：使用项目根目录
+            self.root = Path(__file__).parent.parent.resolve()
         
         # 核心目录（从环境变量读取，支持自定义）
-        self.data_dir = self._ensure_dir(self.root / os.getenv("DATA_DIR", "data"))
-        self.logs_dir = self._ensure_dir(self.root / os.getenv("LOGS_DIR", "logs"))
-        self.uploads_dir = self._ensure_dir(self.data_dir / "uploads")
+        # 支持绝对路径和相对路径
+        data_dir_env = os.getenv("DATA_DIR", "data")
+        logs_dir_env = os.getenv("LOGS_DIR", "logs")
         
-        # 静态文件目录
-        self.static_dir = self.root / "static"
-        if not self.static_dir.exists():
-            self.static_dir.mkdir(parents=True, exist_ok=True)
+        # 如果是绝对路径，直接使用；否则相对于 root
+        if Path(data_dir_env).is_absolute():
+            self.data_dir = self._ensure_dir(Path(data_dir_env))
+        else:
+            self.data_dir = self._ensure_dir(self.root / data_dir_env)
+        
+        if Path(logs_dir_env).is_absolute():
+            self.logs_dir = self._ensure_dir(Path(logs_dir_env))
+        else:
+            self.logs_dir = self._ensure_dir(self.root / logs_dir_env)
+        
+        self.uploads_dir = self._ensure_dir(self.data_dir / "uploads")
         
         # 上传子目录
         self.avatars_dir = self._ensure_dir(self.uploads_dir / "avatars")
