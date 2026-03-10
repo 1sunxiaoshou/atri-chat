@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import { Character, Message, Model, ModelParameters } from '../../types';
 import { useChat } from '../../hooks/useChat';
 import { useVRM } from '../../hooks/useVRM';
 import { useTTS } from '../../hooks/useTTS';
 import { useLanguage } from '../../contexts/LanguageContext';
 import ChatHeader from './ChatHeader';
-import MessageList from './MessageList';
-import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
-import { VRMViewerWrapper } from './VRMViewerWrapper';
+import { VRMChatMode } from './VRMChatMode';
+import { NormalChatMode } from './NormalChatMode';
 import RightSidebar from '../layout/RightSidebar';
 import Toast, { ToastMessage } from '../ui/Toast';
 import { cn } from '../../utils/cn';
@@ -35,13 +34,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   isSidebarHidden = false
 }) => {
   const { t } = useLanguage();
-  const [inputValue, setInputValue] = useState('');
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
-
-  // 使用 useCallback 优化回调函数，避免不必要的重渲染
-  const handleInputChange = useCallback((value: string) => {
-    setInputValue(value);
-  }, []);
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
@@ -71,7 +64,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     startThinking,
     clearError: clearVrmError,
     onModelLoaded,
-    onMotionComplete
+    onMotionComplete,
   } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
 
   const {
@@ -102,14 +95,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return undefined;
   }, [chatError, vrmError, ttsError, clearChatError, clearVrmError, clearTtsError]);
 
-  const handleSend = useCallback(async () => {
-    if (!inputValue.trim() || !activeCharacter || !activeModel) { return; }
+  // 移除 handleInputChange，不再需要
 
-    const content = inputValue;
-    setInputValue('');
+  // 优化发送消息回调，使用startTransition降低状态更新优先级
+  const handleSend = useCallback(async (content: string) => {
+    if (!content.trim() || !activeCharacter || !activeModel) { return; }
 
     try {
-      // 如果是VRM模式，开始思考动作
+      // 如果是VRM模式，立即开始思考动作（高优先级）
       if (vrmDisplayMode === 'vrm' && startThinking) {
         startThinking();
       }
@@ -119,19 +112,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const messageCountBeforeSend = messages.length;
 
-      await sendMessage(
-        activeConversationId,
-        content,
-        activeCharacter,
-        activeModel,
-        finalModelParams,
-        (vrmData: any) => {
-          if (vrmDisplayMode === 'vrm') {
-            const segments = Array.isArray(vrmData) ? vrmData : (vrmData.segments || [vrmData]);
-            playSegments(segments);
+      // 使用startTransition将消息发送标记为低优先级更新
+      // 这样VRM渲染不会被阻塞
+      startTransition(() => {
+        sendMessage(
+          activeConversationId,
+          content,
+          activeCharacter,
+          activeModel,
+          finalModelParams,
+          (vrmData: any) => {
+            if (vrmDisplayMode === 'vrm') {
+              const segments = Array.isArray(vrmData) ? vrmData : (vrmData.segments || [vrmData]);
+              playSegments(segments);
+            }
           }
-        }
-      );
+        );
+      });
 
       if (messageCountBeforeSend === 0) {
         onConversationUpdated?.();
@@ -139,9 +136,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (err) {
       console.error(t('chat.sendMessageFailed'), err);
     }
-  }, [inputValue, activeCharacter, activeModel, activeConversationId, modelParameters, vrmDisplayMode, startThinking, sendMessage, playSegments, onConversationUpdated, messages.length]);
+  }, [
+    activeCharacter,
+    activeModel,
+    activeConversationId,
+    modelParameters,
+    vrmDisplayMode,
+    startThinking,
+    sendMessage,
+    playSegments,
+    onConversationUpdated,
+    messages.length,
+    t
+  ]);
 
+  // 优化：MessageList相关的回调只在非VRM模式下创建
   const handleCopyMessage = useCallback(async (messageId: string | number, content: string) => {
+    if (vrmDisplayMode === 'vrm') return; // VRM模式下不需要
+
     try {
       await navigator.clipboard.writeText(content);
       setCopiedMessageId(messageId);
@@ -149,22 +161,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (error) {
       console.error(t('chat.copyFailed'), error);
     }
-  }, []);
+  }, [vrmDisplayMode, t]);
 
   const handlePlayTTS = useCallback(async (messageId: string | number, text: string) => {
+    if (vrmDisplayMode === 'vrm') return; // VRM模式下不需要
+
     // 传递当前角色 ID，使用角色绑定的音色
     await playTTS(messageId, text, activeCharacter?.id);
-  }, [playTTS, activeCharacter]);
+  }, [playTTS, activeCharacter, vrmDisplayMode]);
 
   const handleVrmDisplayModeChange = useCallback((mode: 'normal' | 'vrm' | 'live2d') => {
     setVrmDisplayMode(mode);
   }, []);
 
+  // 优化：只在非VRM模式下计算消息列表，避免不必要的计算
   const allMessages = React.useMemo(() => {
+    // VRM模式下不显示消息列表，直接返回空数组节省计算
+    if (vrmDisplayMode === 'vrm') {
+      return [];
+    }
+
     const safeMessages = Array.isArray(messages) ? messages : [];
     if (isTyping && (currentResponse || currentReasoning || currentStatus)) {
       const streamingMessage: Message = {
-        message_id: `streaming-${Date.now()}`, // 使用唯一的临时 ID
+        message_id: 'streaming-temp', // 使用固定 ID，避免每次都创建新对象
         conversation_id: activeConversationId,
         message_type: 'assistant',
         content: currentResponse || '',
@@ -176,7 +196,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return [...safeMessages, streamingMessage];
     }
     return safeMessages;
-  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, activeConversationId]);
+  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, activeConversationId, vrmDisplayMode]);
 
   return (
     <div className="flex flex-col h-full bg-background transition-colors relative overflow-hidden">
@@ -209,8 +229,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           "h-full flex flex-col",
           vrmDisplayMode !== 'vrm' && "mx-auto"
         )}>
-          {vrmDisplayMode === 'vrm' && (
-            <VRMViewerWrapper
+          {vrmDisplayMode === 'vrm' ? (
+            // VRM模式：完全隔离的VRM组件
+            <VRMChatMode
               modelUrl={modelUrl}
               audioElement={audioElement}
               expression={expression}
@@ -220,47 +241,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onModelLoaded={onModelLoaded}
               onMotionComplete={onMotionComplete}
             />
-          )}
-
-          <div className={cn(
-            "flex-1",
-            vrmDisplayMode === 'vrm' && "hidden"
-          )}>
-            <MessageList
+          ) : (
+            // 普通模式：完全隔离的消息列表组件
+            <NormalChatMode
               messages={allMessages}
-              isTyping={isTyping && !currentResponse}
+              isTyping={isTyping}
               activeCharacter={activeCharacter}
-              onSetInputValue={setInputValue}
-            >
-              {allMessages.map((msg) => (
-                <MessageItem
-                  key={msg.message_id}
-                  message={msg}
-                  activeCharacter={activeCharacter}
-                  playingMessageId={playingMessageId}
-                  copiedMessageId={copiedMessageId}
-                  onCopyMessage={handleCopyMessage}
-                  onPlayTTS={handlePlayTTS}
-                  expandedReasoning={expandedReasoning}
-                  onToggleReasoning={(messageId) => {
-                    const newExpanded = new Set(expandedReasoning);
-                    if (newExpanded.has(messageId)) {
-                      newExpanded.delete(messageId);
-                    } else {
-                      newExpanded.add(messageId);
-                    }
-                    setExpandedReasoning(newExpanded);
-                  }}
-                />
-              ))}
-            </MessageList>
-          </div>
+              playingMessageId={playingMessageId}
+              copiedMessageId={copiedMessageId}
+              expandedReasoning={expandedReasoning}
+              onCopyMessage={handleCopyMessage}
+              onPlayTTS={handlePlayTTS}
+              onToggleReasoning={(messageId) => {
+                const newExpanded = new Set(expandedReasoning);
+                if (newExpanded.has(messageId)) {
+                  newExpanded.delete(messageId);
+                } else {
+                  newExpanded.add(messageId);
+                }
+                setExpandedReasoning(newExpanded);
+              }}
+              currentResponse={currentResponse}
+            />
+          )}
         </div>
       </main>
 
       <ChatInput
-        inputValue={inputValue}
-        onInputChange={handleInputChange}
         onSend={handleSend}
         isTyping={isTyping}
       />

@@ -2,25 +2,23 @@ import React from 'react';
 import { Send, Mic, MicOff, Paperclip } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
+import { useChatStore } from '../../store/useChatStore';
 import Toast, { ToastMessage } from '../ui/Toast';
 import { Logger } from '../../utils/logger';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 
 interface ChatInputProps {
-  inputValue: string;
-  onInputChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (message: string) => void;
   isTyping: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = React.memo(({
-  inputValue,
-  onInputChange,
   onSend,
   isTyping
 }) => {
   const { t } = useLanguage();
+  const { inputValue, setInputValue, clearInput } = useChatStore();
   const {
     isRecording,
     isProcessing,
@@ -34,19 +32,28 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({
 
   const [toastMessage, setToastMessage] = React.useState<ToastMessage | null>(null);
 
-  // 直接处理输入，不使用 transition（避免中文输入法问题）
+  // 直接处理输入，不触发父组件重渲染
   const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onInputChange(e.target.value);
-  }, [onInputChange]);
+    setInputValue(e.target.value);
+  }, [setInputValue]);
+
+  // 发送消息处理
+  const handleSend = React.useCallback(() => {
+    if (!inputValue.trim()) return;
+
+    const message = inputValue.trim();
+    clearInput(); // 清空输入框
+    onSend(message); // 通知父组件发送消息
+  }, [inputValue, clearInput, onSend]);
 
   // 当转录文本更新时，添加到输入框
   React.useEffect(() => {
     if (transcribedText) {
-      onInputChange(inputValue + (inputValue ? ' ' : '') + transcribedText);
+      setInputValue(inputValue + (inputValue ? ' ' : '') + transcribedText);
       clearTranscribedText();
       setTimeout(() => setToastMessage(null), 3000);
     }
-  }, [transcribedText, inputValue, onInputChange, clearTranscribedText]);
+  }, [transcribedText, inputValue, setInputValue, clearTranscribedText]);
 
   // 处理 ASR 错误
   React.useEffect(() => {
@@ -66,7 +73,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
     }
   };
 
@@ -84,7 +91,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({
     <>
       <Toast message={toastMessage} />
       <div className={cn(
-        "pt-0 pb-3 px-3 md:pb-4 md:px-4 transition-all duration-500 absolute bottom-0 left-0 right-0 z-10"
+        "pt-0 pb-3 px-3 md:pb-4 md:px-4 absolute bottom-0 left-0 right-0 z-10"
       )}>
         <div className="max-w-4xl mx-auto relative">
           {/* Recording Banner */}
@@ -98,7 +105,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({
 
           {/* Input Container */}
           <div className={cn(
-            "relative bg-card/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl border transition-all duration-300",
+            "relative bg-card/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl border",
             isRecording
               ? "border-destructive ring-4 ring-destructive/10"
               : "border-border focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10"
@@ -153,13 +160,13 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({
               </Button>
 
               <Button
-                onClick={onSend}
+                onClick={handleSend}
                 disabled={(!inputValue.trim() && !isRecording) || isTyping}
                 size="icon"
                 className={cn(
-                  "h-9 w-9 transition-all duration-300",
+                  "h-9 w-9",
                   inputValue.trim() && !isTyping
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                     : "bg-muted text-muted-foreground"
                 )}
               >

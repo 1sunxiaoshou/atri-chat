@@ -1,6 +1,6 @@
 import { ContactShadows } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Bloom, Vignette } from '@react-three/postprocessing';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode } from 'react';
 import { VRMRenderConfig } from '../../VRMRenderSettings';
 import { GenshinControls } from '../core/GenshinControls';
 
