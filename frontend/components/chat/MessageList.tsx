@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Bot, Sparkles } from 'lucide-react';
 import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useChatStore } from '../../store/useChatStore';
 import { buildAvatarUrl } from '../../utils/url';
 import { Button } from '../ui';
 
@@ -9,7 +10,6 @@ interface MessageListProps {
   messages: Message[];
   isTyping: boolean;
   activeCharacter: Character | null;
-  onSetInputValue: (value: string) => void;
   children?: React.ReactNode;
 }
 
@@ -17,10 +17,10 @@ const MessageList: React.FC<MessageListProps> = ({
   messages,
   isTyping,
   activeCharacter,
-  onSetInputValue,
   children
 }) => {
   const { t } = useLanguage();
+  const { setInputValue } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -61,7 +61,7 @@ const MessageList: React.FC<MessageListProps> = ({
               key={index}
               variant="outline"
               size="sm"
-              onClick={() => onSetInputValue(suggestion)}
+              onClick={() => setInputValue(suggestion)}
               className="rounded-full bg-background/50 backdrop-blur-sm border-border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
             >
               {suggestion}
@@ -73,7 +73,7 @@ const MessageList: React.FC<MessageListProps> = ({
   }
 
   return (
-    <div className="space-y-3 md:space-y-4 pb-32">
+    <div className="space-y-3 md:space-y-4 pb-20">
       {children}
 
       {isTyping && (

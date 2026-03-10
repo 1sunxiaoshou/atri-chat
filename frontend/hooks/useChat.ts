@@ -14,7 +14,7 @@ export const useChat = () => {
   const [currentReasoning, setCurrentReasoning] = useState('');
   const [currentStatus, setCurrentStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [renderTrigger, setRenderTrigger] = useState(0);
+  // 移除不必要的 renderTrigger，避免频繁重渲染
 
   /**
    * 加载对话消息
@@ -89,16 +89,16 @@ export const useChat = () => {
         {
           onChunk: (chunk: string) => {
             setCurrentResponse(chunk);
-            setRenderTrigger(prev => prev + 1);
+            // 移除 renderTrigger 更新，减少重渲染
           },
           onStatus: (status: string) => {
             setCurrentStatus(status);
-            setRenderTrigger(prev => prev + 1);
+            // 移除 renderTrigger 更新，减少重渲染
           },
           onReasoning: (reasoning: string) => {
             streamReasoning = reasoning;
             setCurrentReasoning(reasoning);
-            setRenderTrigger(prev => prev + 1);
+            // 移除 renderTrigger 更新，减少重渲染
           },
           onVrmData: (data: any) => {
             if (onVrmData) {
@@ -198,7 +198,7 @@ export const useChat = () => {
     currentReasoning,
     currentStatus,
     error,
-    renderTrigger,
+    // 移除 renderTrigger，不再需要
     loadMessages,
     sendMessage,
     copyMessage,
