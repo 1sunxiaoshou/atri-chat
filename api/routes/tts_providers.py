@@ -373,7 +373,7 @@ async def test_provider(
         # 创建临时实例测试
         factory = TTSFactory()
         tts_instance = factory.create_tts(
-            provider=provider.provider_type,
+            provider_type=provider.provider_type,
             config=provider.config_payload
         )
         

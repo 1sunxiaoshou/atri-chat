@@ -82,6 +82,7 @@ export const api = {
   transcribeAudio: asrApi.transcribeAudio,
 
   // TTS API
+  synthesizeSpeech: ttsApi.synthesizeSpeech,
   synthesizeSpeechStream: ttsApi.synthesizeSpeechStream,
 
   // Avatar API
@@ -102,9 +103,8 @@ export const api = {
   uploadMotion: motionsApi.uploadMotion,
   deleteMotion: motionsApi.deleteMotion,
   getCharacterMotionBindings: motionBindingsApi.getCharacterBindings,
-  createMotionBinding: motionBindingsApi.createBinding,
-  updateMotionBinding: motionBindingsApi.updateBinding,
-  deleteMotionBinding: motionBindingsApi.deleteBinding,
+  updateCharacterMotionBindings: motionBindingsApi.updateCharacterBindings,
+  deleteCharacterMotionBindings: motionBindingsApi.deleteCharacterBindings,
 
   // VRM API
   getVRMModels: vrmApi.getVRMModels,

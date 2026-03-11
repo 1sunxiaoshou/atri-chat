@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 
 from core.dependencies import get_db
 from core.db import Avatar
-from core.db.utils import check_avatar_references, safe_delete_avatar, ResourceInUseError
-from core.paths import get_path_manager
+from core.db.utils import check_avatar_references
+from core.config import get_settings, AppSettings
 from core.logger import get_logger
 from api.schemas import ResponseModel
 
@@ -45,8 +45,9 @@ async def list_avatars(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+    db: Session = Depends(get_db),
+    settings: AppSettings = Depends(get_settings)
+):
     """获取所有形象
     
     支持分页和搜索
@@ -63,8 +64,6 @@ async def list_avatars(
         # 分页
         avatars = query.offset(skip).limit(limit).all()
         
-        path_manager = get_path_manager()
-        
         # 构建响应
         data = [
             {
@@ -72,8 +71,9 @@ async def list_avatars(
                 "name": avatar.name,
                 "file_url": avatar.file_url,
                 "thumbnail_url": avatar.thumbnail_url,
-                "model_path": path_manager.build_url(avatar.file_url),
-                "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+                # 兼容旧字段：在新架构下直接使用属性
+                "model_path": avatar.file_url,
+                "thumbnail_path": avatar.thumbnail_url,
                 "available_expressions": json.loads(avatar.available_expressions) if avatar.available_expressions else [],
                 "created_at": avatar.created_at.isoformat(),
                 "updated_at": avatar.updated_at.isoformat(),
@@ -106,16 +106,14 @@ async def get_avatar(
         if not avatar:
             raise HTTPException(status_code=404, detail="形象不存在")
         
-        path_manager = get_path_manager()
-        
         # 构建响应
         data = {
             "id": avatar.id,
             "name": avatar.name,
             "file_url": avatar.file_url,
             "thumbnail_url": avatar.thumbnail_url,
-            "model_path": path_manager.build_url(avatar.file_url),
-            "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+            "model_path": avatar.file_url,
+            "thumbnail_path": avatar.thumbnail_url,
             "available_expressions": json.loads(avatar.available_expressions) if avatar.available_expressions else [],
             "created_at": avatar.created_at.isoformat(),
             "updated_at": avatar.updated_at.isoformat(),
@@ -163,16 +161,14 @@ async def update_avatar(
         db.commit()
         db.refresh(avatar)
         
-        path_manager = get_path_manager()
-        
         # 构建响应
         data = {
             "id": avatar.id,
             "name": avatar.name,
             "file_url": avatar.file_url,
             "thumbnail_url": avatar.thumbnail_url,
-            "model_path": path_manager.build_url(avatar.file_url),
-            "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+            "model_path": avatar.file_url,
+            "thumbnail_path": avatar.thumbnail_url,
             "created_at": avatar.created_at.isoformat(),
             "updated_at": avatar.updated_at.isoformat(),
         }
@@ -197,7 +193,8 @@ async def upload_avatar(
     name: str = Form(..., description="形象名称"),
     thumbnail: Optional[UploadFile] = File(None, description="缩略图文件（可选）"),
     expressions: Optional[str] = Form(None, description="表情列表（JSON数组字符串）"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    settings: AppSettings = Depends(get_settings)
 ) -> Dict[str, Any]:
     """上传形象文件（支持可选的缩略图上传和表情列表）"""
     try:
@@ -222,9 +219,8 @@ async def upload_avatar(
                 logger.warning(f"表情列表解析失败: {expressions}")
         
         # 保存VRM文件
-        path_manager = get_path_manager()
         filename = f"{avatar_id}.vrm"
-        file_path = path_manager.get_vrm_model_path(filename)
+        file_path = settings.vrm_models_dir / filename
         
         with open(file_path, 'wb') as f:
             content = await file.read()
@@ -241,7 +237,7 @@ async def upload_avatar(
             
             # 保存缩略图（统一使用 .jpg）
             thumbnail_filename = f"{avatar_id}.jpg"
-            thumbnail_file_path = path_manager.get_vrm_thumbnail_path(thumbnail_filename)
+            thumbnail_file_path = settings.vrm_thumbnails_dir / thumbnail_filename
             
             with open(thumbnail_file_path, 'wb') as f:
                 thumbnail_content = await thumbnail.read()
@@ -272,8 +268,8 @@ async def upload_avatar(
                 "name": avatar.name,
                 "file_url": avatar.file_url,
                 "thumbnail_url": avatar.thumbnail_url,
-                "model_path": path_manager.build_url(avatar.file_url),
-                "thumbnail_path": path_manager.build_url(avatar.thumbnail_url) if avatar.thumbnail_url else None,
+                "model_path": avatar.file_url,
+                "thumbnail_path": avatar.thumbnail_url,
                 "available_expressions": expressions_list,
                 "created_at": avatar.created_at.isoformat(),
             }
@@ -317,36 +313,27 @@ async def delete_avatar(
                 }
             )
         
-        path_manager = get_path_manager()
-        
         # 删除文件
         deleted_files = []
         
-        # 删除模型文件
         try:
-            model_filename = f"{avatar_id}.vrm"
-            model_file_path = path_manager.get_vrm_model_path(model_filename)
+            # 使用模型自带的方法获取路径
+            model_file_path = avatar.get_file_path()
             if model_file_path.exists():
                 model_file_path.unlink()
                 deleted_files.append("model")
             else:
                 logger.warning("模型文件不存在，跳过删除", extra={"path": str(model_file_path)})
-        except Exception as e:
-            logger.error(f"删除模型文件失败: {e}", exc_info=True)
-        
-        # 删除缩略图文件
-        if avatar.has_thumbnail:
-            try:
-                thumbnail_filename = f"{avatar_id}.jpg"
-                thumbnail_file_path = path_manager.get_vrm_thumbnail_path(thumbnail_filename)
-                if thumbnail_file_path.exists():
+
+            # 删除缩略图文件
+            if avatar.has_thumbnail:
+                thumbnail_file_path = avatar.get_thumbnail_path()
+                if thumbnail_file_path and thumbnail_file_path.exists():
                     thumbnail_file_path.unlink()
                     deleted_files.append("thumbnail")
-                else:
-                    logger.warning("缩略图文件不存在，跳过删除", extra={"path": str(thumbnail_file_path)})
-            except Exception as e:
-                logger.error(f"删除缩略图文件失败: {e}", exc_info=True)
-        
+        except Exception as e:
+            logger.error(f"清理物理文件失败: {e}", exc_info=True)
+            
         # 删除数据库记录
         db.delete(avatar)
         db.commit()

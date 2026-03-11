@@ -42,7 +42,7 @@ interface VRMViewerProps {
     /** 标题（显示在左上角） */
     title?: string;
     /** 模型加载完成回调 */
-    onModelLoaded?: () => void;
+    onModelLoaded?: (expressions: string[]) => void;
 }
 
 export interface VRMViewerHandle {
@@ -110,6 +110,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
     const glRef = useRef<THREE.WebGLRenderer | null>(null);
     const [internalMotionUrl, setInternalMotionUrl] = useState<string | null>(motionUrl || null);
     const [internalLoopMotion, setInternalLoopMotion] = useState<boolean>(loopMotion);
+    const [internalFadeDuration, setInternalFadeDuration] = useState<number>(0.3);
 
     // 同步外部 motionUrl 的变化
     useEffect(() => {
@@ -149,8 +150,30 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
                         return;
                     }
 
-                    // 绘制并调整大小
-                    ctx.drawImage(canvas, 0, 0, width, height);
+                    // 计算裁剪区域，实现 object-cover 效果（居中裁剪）
+                    const sourceWidth = canvas.width;
+                    const sourceHeight = canvas.height;
+                    const sourceAspect = sourceWidth / sourceHeight;
+                    const targetAspect = width / height;
+
+                    let sX, sY, sW, sH;
+
+                    if (sourceAspect > targetAspect) {
+                        // 源比例更宽，裁剪左右
+                        sW = sourceHeight * targetAspect;
+                        sH = sourceHeight;
+                        sX = (sourceWidth - sW) / 2;
+                        sY = 0;
+                    } else {
+                        // 源比例更高，裁剪上下
+                        sW = sourceWidth;
+                        sH = sourceWidth / targetAspect;
+                        sX = 0;
+                        sY = (sourceHeight - sH) / 2;
+                    }
+
+                    // 绘制并裁剪
+                    ctx.drawImage(canvas, sX, sY, sW, sH, 0, 0, width, height);
 
                     tempCanvas.toBlob((blob) => {
                         if (blob) {
@@ -174,6 +197,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
         playMotion: (url: string, loop: boolean = true, fadeDuration: number = 0.5) => {
             setInternalMotionUrl(url);
             setInternalLoopMotion(loop);
+            setInternalFadeDuration(fadeDuration);
         },
         replayMotion: () => {
             // 强制重新播放当前动作：先设置为 null，再恢复
@@ -194,7 +218,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
         getCurrentMotionUrl: () => {
             return internalMotionUrl;
         }
-    }), [internalMotionUrl]);
+    }), [internalMotionUrl, internalLoopMotion]);
 
     return (
         <div className={cn(
@@ -229,6 +253,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
                             enableBlink={enableBlink}
                             lookAtMode={lookAtMode}
                             loopMotion={internalLoopMotion}
+                            fadeDuration={internalFadeDuration}
                             onMotionComplete={onMotionComplete}
                             onModelLoaded={onModelLoaded}
                         />

@@ -55,11 +55,26 @@
         "usageInstruction4": "语言和精度设置会在下次录音时生效",
         "saveSettings": "保存设置",
         "higherAccuracy": "精度更高",
-        "slowerSpeed": "速度较慢（~150ms/10s）",
-        "largerModel": "模型大小 ~900MB",
-        "fasterSpeed": "速度更快（~70ms/10s）",
+        "slowerSpeed": "",
+        "largerModel": "模型大小 894.2 MB",
+        "fasterSpeed": "",
         "slightlyLowerAccuracy": "精度略低",
-        "smallerModel": "模型大小 ~200MB"
+        "smallerModel": "模型大小 228.2 MB",
+        "asrModelMgmt": "ASR 模型管理",
+        "asrModelMgmtDesc": "管理本地语音识别需要的模型资源。可以选择性下载以节省空间。",
+        "modelNotReady": "模型未就绪",
+        "modelReady": "模型已就绪",
+        "downloadingModel": "正在下载模型...",
+        "cleaningAssets": "正在清理资源...",
+        "clearAssets": "清理模型资源",
+        "confirmClearAssets": "确定要清理 {precision} 模型资源吗？下次使用需要重新下载。",
+        "downloadInt8": "下载极速版 (INT8 228.2 MB)",
+        "downloadFp32": "下载全量版 (FP32 894.2 MB)",
+        "downloadBoth": "下载全部模型 (约 1.1GB)",
+        "ready": "就绪",
+        "notInstalled": "未安装",
+        "totalSize": "总占用空间",
+        "downloadFailed": "下载失败"
     },
     "admin": {
         "allCategories": "全部",
@@ -218,7 +233,11 @@
             "selectModel": "选择模型",
             "searchModel": "搜索模型...",
             "reset": "重置为默认值",
-            "loadingSchema": "加载参数配置..."
+            "loadingSchema": "加载参数配置...",
+            "audioSettings": "音频",
+            "autoPlay": "自动朗读",
+            "autoPlayDesc": "AI 回复完成后自动播放语音",
+            "volume": "音量"
         }
     },
     "app": {

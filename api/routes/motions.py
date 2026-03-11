@@ -8,8 +8,7 @@ from pydantic import BaseModel, Field
 
 from core.dependencies import get_db
 from core.db import Motion
-from core.db.utils import check_motion_references, safe_delete_motion, ResourceInUseError
-from core.paths import get_path_manager
+from core.config import get_settings, AppSettings
 from core.logger import get_logger
 from api.schemas import ResponseModel
 
@@ -52,7 +51,8 @@ async def list_motions(
     tags: Optional[str] = None,  # 逗号分隔的标签
     duration_min: Optional[int] = None,  # 最小持续时间（毫秒）
     duration_max: Optional[int] = None,  # 最大持续时间（毫秒）
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    settings: AppSettings = Depends(get_settings)
 ) -> Dict[str, Any]:
     """获取所有动作
     
@@ -80,15 +80,13 @@ async def list_motions(
         # 分页
         motions = query.offset(skip).limit(limit).all()
         
-        path_manager = get_path_manager()
-        
         # 构建响应
         data = [
             {
                 "id": motion.id,
                 "name": motion.name,
                 "file_url": motion.file_url,
-                "animation_path": path_manager.build_url(motion.file_url),
+                "animation_path": motion.file_url,
                 "duration_ms": motion.duration_ms,
                 "description": motion.description,
                 "tags": motion.tags if motion.tags else [],
@@ -121,14 +119,12 @@ async def get_motion(
         if not motion:
             raise HTTPException(status_code=404, detail="动作不存在")
         
-        path_manager = get_path_manager()
-        
         # 构建响应
         data = {
             "id": motion.id,
             "name": motion.name,
             "file_url": motion.file_url,
-            "animation_path": path_manager.build_url(motion.file_url),
+            "animation_path": motion.file_url,
             "duration_ms": motion.duration_ms,
             "description": motion.description,
             "tags": motion.tags if motion.tags else [],
@@ -182,14 +178,12 @@ async def update_motion(
         db.commit()
         db.refresh(motion)
         
-        path_manager = get_path_manager()
-        
         # 构建响应
         data = {
             "id": motion.id,
             "name": motion.name,
             "file_url": motion.file_url,
-            "animation_path": path_manager.build_url(motion.file_url),
+            "animation_path": motion.file_url,
             "duration_ms": motion.duration_ms,
             "description": motion.description,
             "tags": motion.tags if motion.tags else [],
@@ -218,7 +212,8 @@ async def upload_motion(
     description: Optional[str] = Form(None, description="动作描述"),
     tags: Optional[str] = Form(None, description="标签（逗号分隔）"),
     duration_ms: Optional[int] = Form(None, description="动作时长（毫秒）"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    settings: AppSettings = Depends(get_settings)
 ) -> Dict[str, Any]:
     """上传动作文件"""
     try:
@@ -236,9 +231,8 @@ async def upload_motion(
             motion_id = generate_short_uuid(5)
         
         # 保存文件
-        path_manager = get_path_manager()
         filename = f"{motion_id}.vrma"
-        file_path = path_manager.get_vrm_animation_path(filename)
+        file_path = settings.vrm_motions_dir / filename
         
         with open(file_path, 'wb') as f:
             content = await file.read()
@@ -273,7 +267,7 @@ async def upload_motion(
                 "id": motion.id,
                 "name": motion.name,
                 "file_url": motion.file_url,
-                "animation_path": path_manager.build_url(motion.file_url),
+                "animation_path": motion.file_url,
                 "duration_ms": motion.duration_ms,
                 "description": motion.description,
                 "tags": motion.tags if motion.tags else [],

@@ -5,39 +5,67 @@
 
 // ==================== API 相关 ====================
 
+import { invoke } from '@tauri-apps/api/core';
+
 /**
- * 获取运行时的 API 基础 URL
- * 优先级：环境变量 > 自动检测 > 默认值
+ * 异步获取运行时的 API 基础 URL
+ * 优先级：Tauri通信 > 环境变量 > 自动检测 > 默认值
  */
-const getApiBaseUrl = (): string => {
+export const getApiBaseUrl = async (): Promise<string> => {
   // 1. 优先使用环境变量（开发时可配置）
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
 
-  // 2. 生产环境使用相对路径（前后端同域）
+  // 2. 检查是否在 Tauri 环境中
+  // @ts-ignore
+  const isTauri = window.__TAURI_INTERNALS__ !== undefined || window.__TAURI__ !== undefined;
+  if (isTauri) {
+    try {
+      // 通过 Tauri 获取真正启动的动态端口
+      const port: number = await invoke('get_backend_port');
+      return `http://localhost:${port}`;
+    } catch (e) {
+      console.error("Failed to fetch backend port from Tauri, falling back to 9099", e);
+      const backendPort = import.meta.env.BACKEND_PORT || import.meta.env.VITE_BACKEND_PORT || '9099';
+      return `http://localhost:${backendPort}`;
+    }
+  }
+
+  // 3. 生产 Web 环境使用相对路径（前后端同域）
   if (import.meta.env.PROD) {
     return window.location.origin;
   }
 
-  // 3. 开发环境默认值
-  const backendPort = import.meta.env.VITE_BACKEND_PORT || '9099';
+  // 4. 开发环境默认值
+  const backendPort = import.meta.env.BACKEND_PORT || import.meta.env.VITE_BACKEND_PORT || '9099';
   return `http://localhost:${backendPort}`;
 };
 
 /**
- * API 配置
+ * API 配置（因为变成异步获取，这里存放一个可变结构用于初始化后注入）
  */
 export const API_CONFIG = {
-  BASE_URL: `${getApiBaseUrl()}/api/v1`,
-  UPLOAD_URL: `${getApiBaseUrl()}/api/upload`,
-  STATIC_URL: getApiBaseUrl(),
+  BASE_URL: '',
+  UPLOAD_URL: '',
+  STATIC_URL: '',
   TIMEOUT: 30000, // 30秒超时
-} as const;
+};
+
+/**
+ * 注入异步生成的 BaseURL 到配置对象
+ */
+export const initApiConfig = async () => {
+  const baseUrl = await getApiBaseUrl();
+  API_CONFIG.BASE_URL = `${baseUrl}/api/v1`;
+  API_CONFIG.UPLOAD_URL = `${baseUrl}/api/upload`;
+  API_CONFIG.STATIC_URL = baseUrl;
+  return API_CONFIG;
+};
 
 /**
  * 获取完整的资源 URL
- * @param path - 资源路径，如 /uploads/avatar.jpg
+ * @param path - 资源路径，如 /static/images/avatar.jpg
  */
 export const buildResourceUrl = (path: string | undefined): string => {
   if (!path) return '';

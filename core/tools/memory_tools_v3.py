@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Optional
 from langchain.tools import tool, ToolRuntime
 from ..middleware import AgentContext
-from ..paths import get_path_manager
+from ..config import get_settings
 
 
 # ==================== 路径管理 ====================
 
 def _get_memory_root(character_id: str) -> Path:
     """获取角色的记忆根目录"""
-    memory_root = get_path_manager().data_dir / "memory"
+    memory_root = get_settings().memory_dir
     character_dir = memory_root / str(character_id)
     character_dir.mkdir(parents=True, exist_ok=True)
     return character_dir

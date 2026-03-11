@@ -1,20 +1,15 @@
-"""文件上传路由"""
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
-from pathlib import Path
+"""文件上传路由 - 重构后版本"""
 import uuid
 import shutil
-from core.paths import get_path_manager
+from pathlib import Path
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from core.config import get_settings, AppSettings
+from api.schemas import ResponseModel
+
 
 router = APIRouter()
 
-# 获取路径管理器
-path_manager = get_path_manager()
-
-# 上传目录配置
-AVATAR_DIR = path_manager.avatars_dir
-
-# 允许的图片格式
+# 允许的图片格式 (常量)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
 
 
@@ -28,31 +23,34 @@ def validate_image(file: UploadFile) -> None:
         )
 
 
-@router.post("/upload/portrait")
-async def upload_portrait(file: UploadFile = File(...)):
-    """上传角色立绘/头像(2D图片)
-    
-    注意: 此接口用于临时上传,文件会在24小时后自动清理
-    建议在创建/更新角色时一并上传,避免产生孤儿文件
-    """
+@router.post("/upload/portrait", response_model=ResponseModel)
+async def upload_portrait(
+    file: UploadFile = File(...),
+    settings: AppSettings = Depends(get_settings)
+):
+    """上传角色立绘/头像 (2D图片)"""
     try:
         validate_image(file)
         
-        # 生成唯一文件名
+        # 1. 动态获取全站唯一的绝对路径
+        images_dir = settings.images_dir
+        
+        # 2. 生成唯一文件名
         ext = Path(file.filename).suffix.lower()
         filename = f"{uuid.uuid4()}{ext}"
-        file_path = AVATAR_DIR / filename
+        file_path = images_dir / filename
         
-        # 保存文件
+        # 3. 保存文件
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # 返回访问URL
+        # 4. 返回访问 URL
+        # 注意：前端可以通过 /static/images/{filename} 访问
         return {
             "code": 200,
             "message": "上传成功",
             "data": {
-                "url": f"/uploads/avatars/{filename}",
+                "url": f"/static/images/{filename}",
                 "filename": filename
             }
         }
@@ -60,30 +58,3 @@ async def upload_portrait(file: UploadFile = File(...)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
-
-
-@router.get("/uploads/avatars/{filename}")
-async def get_avatar(filename: str):
-    """获取头像文件"""
-    file_path = AVATAR_DIR / filename
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="文件不存在")
-    return FileResponse(file_path)
-
-
-@router.delete("/uploads/avatars/{filename}")
-async def delete_avatar(filename: str):
-    """删除头像文件"""
-    file_path = AVATAR_DIR / filename
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="文件不存在")
-    
-    try:
-        file_path.unlink()
-        return {
-            "code": 200,
-            "message": "删除成功",
-            "data": {"filename": filename}
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")

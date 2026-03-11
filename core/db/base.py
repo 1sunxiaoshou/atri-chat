@@ -6,7 +6,6 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from core.logger import get_logger
-from core.paths import get_path_manager
 
 logger = get_logger(__name__)
 
@@ -27,22 +26,9 @@ def set_sqlite_pragma(dbapi_conn, connection_record):
 
 
 def get_database_url() -> str:
-    """获取数据库 URL
-    
-    支持通过环境变量配置不同数据库：
-    - SQLite: sqlite:///path/to/db.db
-    - PostgreSQL: postgresql://user:pass@host:port/dbname
-    - MySQL: mysql://user:pass@host:port/dbname
-    """
-    db_url = os.getenv("DATABASE_URL")
-    
-    if not db_url:
-        # 默认使用 SQLite
-        path_manager = get_path_manager()
-        db_path = str(path_manager.data_dir / "app.db")
-        db_url = f"sqlite:///{db_path}"
-    
-    return db_url
+    """从统一配置中获取数据库连接串"""
+    from core.config import get_settings
+    return get_settings().app_db_url
 
 
 def get_engine_config(database_url: str) -> dict:

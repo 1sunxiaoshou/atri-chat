@@ -1,32 +1,33 @@
-"""ASR 模块 - 固定使用 SenseVoice-Small ONNX"""
+"""SenseVoice ASR 核心模块"""
+from functools import lru_cache
 from .sensevoice import SenseVoiceASR
 
-# 导出单一 ASR 实现
-__all__ = ["SenseVoiceASR", "get_asr"]
 
-
-# 全局单例
-_asr_instance = None
-
-
-def get_asr(model_dir: str = None, num_threads: int = 4, auto_download: bool = True) -> SenseVoiceASR:
-    """获取 ASR 实例（单例模式）
+@lru_cache(maxsize=1)
+def get_asr_engine() -> SenseVoiceASR:
+    """获取 ASR 引擎实例（单例模式）
     
-    Args:
-        model_dir: 模型目录路径（可选，默认 data/models/sensevoice）
-        num_threads: CPU 线程数
-        auto_download: 是否自动下载模型（如果不存在）
-        
+    使用 lru_cache 确保全局只有一个 ASR 实例，
+    自动通过 get_settings() 加载配置。
+    
     Returns:
         SenseVoiceASR 实例
     """
-    global _asr_instance
+    from core.config import get_settings
     
-    if _asr_instance is None:
-        _asr_instance = SenseVoiceASR(
-            model_dir=model_dir,
-            num_threads=num_threads,
-            auto_download=auto_download
-        )
+    settings = get_settings()
+    model_dir = str(settings.asr_models_dir / "sensevoice")
     
-    return _asr_instance
+    return SenseVoiceASR(
+        model_dir=model_dir,
+        num_threads=4  # 可以后续从配置中读取
+    )
+
+
+# 兼容性保留
+def get_asr(model_dir: str, num_threads: int = 4) -> SenseVoiceASR:
+    """获取 ASR 实例（兼容性保留）
+    
+    注意：推荐使用 get_asr_engine() 替代此方法
+    """
+    return get_asr_engine()

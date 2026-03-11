@@ -57,7 +57,7 @@ export const CharacterLibrary: React.FC<CharacterLibraryProps> = ({
                             {/* 3. 立绘区域 - 3/4 比例和内切圆角 */}
                             <div className="relative w-full rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 will-change-transform" style={{ paddingBottom: '133.33%' }}>
                                 <img
-                                    src={buildAvatarUrl(char.portrait_url || char.avatar?.thumbnail_url || `/uploads/vrm_thumbnails/${char.avatar_id}.jpg`)}
+                                    src={buildAvatarUrl(char.portrait_url || char.avatar?.thumbnail_url || `/static/vrm/thumbnails/${char.avatar_id}.jpg`)}
                                     alt={char.name}
                                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 />

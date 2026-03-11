@@ -3,6 +3,7 @@ import { X, Loader2 } from 'lucide-react';
 import { Button } from '../../ui';
 import { VRMViewer } from '../../vrm/r3f';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { buildResourceUrl } from '../../../utils/constants';
 
 export const VRMEditPreview: React.FC<{
     avatar: { id: string; name: string; model_path: string };
@@ -27,7 +28,7 @@ export const VRMEditPreview: React.FC<{
                 {/* 左侧：3D 预览区 */}
                 <div className="flex-1 relative bg-slate-900 rounded-l-2xl overflow-hidden">
                     <VRMViewer
-                        modelUrl={avatar.model_path}
+                        modelUrl={buildResourceUrl(avatar.model_path)}
                         enableOrbitControls={true}
                         showGrid={true}
                         className="w-full h-full"

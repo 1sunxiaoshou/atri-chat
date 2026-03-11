@@ -55,11 +55,26 @@
         "usageInstruction4": "Language and precision settings take effect on next recording",
         "saveSettings": "Save Settings",
         "higherAccuracy": "Higher accuracy",
-        "slowerSpeed": "Slower (~150ms/10s)",
-        "largerModel": "Model size ~900MB",
-        "fasterSpeed": "Faster (~70ms/10s)",
+        "slowerSpeed": "",
+        "largerModel": "Model size 894.2 MB",
+        "fasterSpeed": "",
         "slightlyLowerAccuracy": "Slightly lower accuracy",
-        "smallerModel": "Model size ~200MB"
+        "smallerModel": "Model size 228.2 MB",
+        "asrModelMgmt": "ASR Model Management",
+        "asrModelMgmtDesc": "Manage local speech recognition model resources. Selective download is supported.",
+        "modelNotReady": "Model Not Ready",
+        "modelReady": "Model Ready",
+        "downloadingModel": "Downloading Model...",
+        "cleaningAssets": "Cleaning Assets...",
+        "clearAssets": "Clear Model Assets",
+        "confirmClearAssets": "Are you sure you want to clear {precision} model assets? You will need to re-download them next time.",
+        "downloadInt8": "Download Lite (INT8 228.2 MB)",
+        "downloadFp32": "Download Full (FP32 894.2 MB)",
+        "downloadBoth": "Download Both (approx. 1.1GB)",
+        "ready": "Ready",
+        "notInstalled": "Not Installed",
+        "totalSize": "Total Disk Usage",
+        "downloadFailed": "Download Failed"
     },
     "admin": {
         "allCategories": "All",
@@ -218,7 +233,11 @@
             "selectModel": "Select Model",
             "searchModel": "Search models...",
             "reset": "Reset to Defaults",
-            "loadingSchema": "Loading parameters..."
+            "loadingSchema": "Loading parameters...",
+            "audioSettings": "Audio",
+            "autoPlay": "Auto Read Aloud",
+            "autoPlayDesc": "Automatically read assistant replies",
+            "volume": "Volume"
         }
     },
     "app": {

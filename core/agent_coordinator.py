@@ -19,7 +19,7 @@ from .middleware import (
     AgentContext
 )
 from .callbacks import LLMCallLogger
-from .config import get_config
+from .config import get_settings
 from .services import ConversationService, MessageService, get_output_strategy
 from .services.model_service import ModelService
 from .repositories import CharacterRepository
@@ -167,8 +167,8 @@ class AgentCoordinator:
         config = {"configurable": {"thread_id": str(conversation_id)}}
         
         # 根据配置决定是否启用 LLM 调用日志记录器
-        app_config = get_config()
-        if app_config.enable_llm_call_logger:
+        settings = get_settings()
+        if settings.enable_llm_call_logger:
             llm_logger = LLMCallLogger()
             config["callbacks"] = [llm_logger]
             logger.debug("LLM 调用日志记录器已启用")

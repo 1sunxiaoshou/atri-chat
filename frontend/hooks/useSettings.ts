@@ -9,26 +9,42 @@ export interface GeneralSettings {
 }
 
 export const useSettings = () => {
-  const [settings, setSettings] = useState<GeneralSettings>({
-    audioVolume: AUDIO_CONFIG.DEFAULT_VOLUME,
-    audioCacheLimit: AUDIO_CONFIG.DEFAULT_CACHE_LIMIT,
-    asrLanguage: 'auto',
-    asrUseInt8: false
-  });
-
-  // 从本地存储加载设置
-  useEffect(() => {
+  const [settings, setSettings] = useState<GeneralSettings>(() => {
+    // 同步初始化，避免 UI 闪烁
     const savedVolume = localStorage.getItem(STORAGE_KEYS.AUDIO_VOLUME);
     const savedCacheLimit = localStorage.getItem(STORAGE_KEYS.AUDIO_CACHE_LIMIT);
     const savedAsrLanguage = localStorage.getItem(STORAGE_KEYS.ASR_LANGUAGE);
     const savedAsrUseInt8 = localStorage.getItem(STORAGE_KEYS.ASR_USE_INT8);
 
-    setSettings({
+    return {
       audioVolume: savedVolume ? Number(savedVolume) : AUDIO_CONFIG.DEFAULT_VOLUME,
       audioCacheLimit: savedCacheLimit ? Number(savedCacheLimit) : AUDIO_CONFIG.DEFAULT_CACHE_LIMIT,
       asrLanguage: savedAsrLanguage || 'auto',
       asrUseInt8: savedAsrUseInt8 === 'true'
-    });
+    };
+  });
+
+  // 监听并同步 localStorage 变化（处理多窗口、多组件同步）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      const keys = Object.values(STORAGE_KEYS) as string[];
+      if (e.key && keys.includes(e.key)) {
+        const savedVolume = localStorage.getItem(STORAGE_KEYS.AUDIO_VOLUME);
+        const savedCacheLimit = localStorage.getItem(STORAGE_KEYS.AUDIO_CACHE_LIMIT);
+        const savedAsrLanguage = localStorage.getItem(STORAGE_KEYS.ASR_LANGUAGE);
+        const savedAsrUseInt8 = localStorage.getItem(STORAGE_KEYS.ASR_USE_INT8);
+
+        setSettings({
+          audioVolume: savedVolume ? Number(savedVolume) : AUDIO_CONFIG.DEFAULT_VOLUME,
+          audioCacheLimit: savedCacheLimit ? Number(savedCacheLimit) : AUDIO_CONFIG.DEFAULT_CACHE_LIMIT,
+          asrLanguage: savedAsrLanguage || 'auto',
+          asrUseInt8: savedAsrUseInt8 === 'true'
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // 保存设置到本地存储

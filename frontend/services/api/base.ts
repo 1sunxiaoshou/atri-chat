@@ -7,11 +7,7 @@ import { Logger, LogCategory } from '../../utils/logger';
  * 封装所有 HTTP 请求，提供统一的错误处理和响应处理
  */
 export class HttpClient {
-  private baseURL: string;
-
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
-  }
+  constructor() {}
 
   /**
    * 构建完整的 URL
@@ -21,7 +17,7 @@ export class HttpClient {
   private buildURL(endpoint: string): string {
     // 移除端点开头的斜杠（如果存在）
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-    return `${this.baseURL}/${cleanEndpoint}`;
+    return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`;
   }
 
   /**
@@ -236,32 +232,21 @@ export class HttpClient {
 }
 
 /**
- * API 基础 URL 配置
- * 动态获取 API 地址：生产环境使用相对路径，开发环境使用 localhost
- */
-const BASE_URL = API_CONFIG.BASE_URL;
-
-/**
- * 上传 URL 配置
- */
-const UPLOAD_BASE_URL = API_CONFIG.UPLOAD_URL;
-
-/**
  * 创建 HTTP 客户端实例
  */
-export const httpClient = new HttpClient(BASE_URL);
+export const httpClient = new HttpClient();
 
 /**
  * 获取基础 URL（用于需要直接使用 fetch 的特殊场景）
  * @returns 基础 URL
  */
-export const getBaseURL = (): string => BASE_URL;
+export const getBaseURL = (): string => API_CONFIG.BASE_URL;
 
 /**
  * 获取上传基础 URL
  * @returns 上传基础 URL
  */
-export const getUploadBaseURL = (): string => UPLOAD_BASE_URL;
+export const getUploadBaseURL = (): string => API_CONFIG.UPLOAD_URL;
 
 /**
  * 构建完整的 API URL（用于需要直接使用 fetch 的特殊场景）
@@ -270,7 +255,7 @@ export const getUploadBaseURL = (): string => UPLOAD_BASE_URL;
  */
 export const buildURL = (endpoint: string): string => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${BASE_URL}/${cleanEndpoint}`;
+  return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`;
 };
 
 /**
@@ -280,5 +265,5 @@ export const buildURL = (endpoint: string): string => {
  */
 export const buildUploadURL = (endpoint: string): string => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${UPLOAD_BASE_URL}/${cleanEndpoint}`;
+  return `${API_CONFIG.UPLOAD_URL}/${cleanEndpoint}`;
 };

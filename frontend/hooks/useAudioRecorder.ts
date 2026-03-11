@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { api } from '../services/api/index';
-import { HTTP_STATUS, STORAGE_KEYS } from '../utils/constants';
+import { HTTP_STATUS } from '../utils/constants';
 import { Logger } from '../utils/logger';
+import { useAudioStore } from '../store/useAudioStore';
 
 /**
  * 将 AudioBuffer 转换为 WAV 格式的 Blob
@@ -78,6 +79,10 @@ export const useAudioRecorder = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transcribedText, setTranscribedText] = useState<string>('');
+
+  // 从 Zustand Store 读取 ASR 设置（替代 localStorage 直读）
+  const asrLanguage = useAudioStore((state) => state.asrLanguage);
+  const asrUseInt8 = useAudioStore((state) => state.asrUseInt8);
 
   // AudioWorklet 相关
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -166,8 +171,11 @@ export const useAudioRecorder = () => {
     try {
       const audioContext = audioContextRef.current;
 
-      // 断开节点
+      // 断开节点前先发 flush，让 Worklet 把剩余缓冲区数据发送出来（P0 修复）
       if (workletNodeRef.current) {
+        workletNodeRef.current.port.postMessage({ command: 'flush' });
+        // 等待 flush 消息被处理
+        await new Promise(resolve => setTimeout(resolve, 50));
         workletNodeRef.current.disconnect();
         workletNodeRef.current.port.onmessage = null;
         workletNodeRef.current = null;
@@ -215,15 +223,10 @@ export const useAudioRecorder = () => {
       audioContextRef.current = null;
       recordedChunksRef.current = [];
 
-      // 获取 ASR 设置
-      const asrLanguage = localStorage.getItem(STORAGE_KEYS.ASR_LANGUAGE) || 'auto';
-      const asrUseInt8 = localStorage.getItem(STORAGE_KEYS.ASR_USE_INT8) === 'true';
-
+      // 从 Store 读取 ASR 设置（已在 hook 顶部声明）
       Logger.debug('读取 ASR 设置', {
         language: asrLanguage,
-        useInt8: asrUseInt8,
-        rawLanguage: localStorage.getItem(STORAGE_KEYS.ASR_LANGUAGE),
-        rawUseInt8: localStorage.getItem(STORAGE_KEYS.ASR_USE_INT8)
+        useInt8: asrUseInt8
       });
 
       // 调用转录 API
@@ -247,7 +250,7 @@ export const useAudioRecorder = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [asrLanguage, asrUseInt8]);
 
   /**
    * 取消录音

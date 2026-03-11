@@ -172,7 +172,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ? buildAvatarUrl(char.portrait_url)
                 : char.avatar?.thumbnail_url
                   ? buildAvatarUrl(char.avatar.thumbnail_url)
-                  : buildAvatarUrl(`/uploads/vrm_thumbnails/${char.avatar_id}.jpg`);
+                  : buildAvatarUrl(`/static/vrm/thumbnails/${char.avatar_id}.jpg`);
               return (
                 <button
                   key={char.id}

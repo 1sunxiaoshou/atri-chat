@@ -4,6 +4,7 @@ import { Volume2, Database, Save, Moon, Sun, Monitor, Palette } from 'lucide-rea
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../hooks/useSettings';
+import { useAudioStore } from '../../store/useAudioStore';
 import { Button, Select, Card, CardContent } from '../ui';
 import { SUCCESS_MESSAGES } from '../../utils/constants';
 import { cn } from '../../utils/cn';
@@ -16,10 +17,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme, themeColor, setThemeColor } = useTheme();
   const { settings, saveSettings } = useSettings();
+  // 音量从 Zustand Store 读写，与右侧边栏同步
+  const audioVolume = useAudioStore((state) => state.volume);
+  const setAudioVolume = useAudioStore((state) => state.setVolume);
   const [saveMessage, setSaveMessage] = React.useState<string>('');
 
   const handleVolumeChange = (volume: number) => {
-    saveSettings({ audioVolume: volume });
+    setAudioVolume(volume); // 写入 Zustand Store
     if (onSettingsChange) {
       onSettingsChange({ ...settings, audioVolume: volume });
     }
@@ -74,7 +78,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                   <label className="text-sm font-medium text-foreground">
                     {t('settings.themeMode')}
                   </label>
-                  <div className="flex p-1 bg-muted rounded-lg ring-1 ring-border/50">
+                  <div className="flex p-1 bg-muted/60 rounded-xl ring-1 ring-border/50 max-w-md">
                     {[
                       { id: 'light', icon: Sun, label: t('settings.light') },
                       { id: 'dark', icon: Moon, label: t('settings.dark') },
@@ -84,13 +88,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                         key={item.id}
                         onClick={() => setTheme(item.id as any)}
                         className={cn(
-                          "flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-medium transition-all",
+                          "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs transition-all outline-none",
                           theme === item.id
-                            ? "bg-background text-primary shadow-sm ring-1 ring-border/20"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "bg-background text-primary font-bold shadow-sm ring-1 ring-border/20"
+                            : "text-muted-foreground hover:text-foreground font-medium"
                         )}
                       >
-                        <item.icon size={14} />
+                        <item.icon size={16} className={cn(theme === item.id ? "text-primary" : "opacity-70")} />
                         {item.label}
                       </button>
                     ))}
@@ -108,7 +112,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                       { label: 'English', value: 'en' },
                       { label: '简体中文', value: 'zh' }
                     ]}
-                    className="w-full"
+                    className="w-full max-w-md"
                   />
                 </div>
               </div>
@@ -155,10 +159,10 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                       key={color.id}
                       onClick={() => setThemeColor(color.id as any)}
                       className={cn(
-                        "relative p-4 rounded-lg border-2 transition-all text-left",
+                        "relative p-4 rounded-xl border-2 transition-all duration-300 text-left overflow-hidden group hover:-translate-y-1 hover:shadow-md",
                         themeColor === color.id
-                          ? "border-primary bg-primary/5 shadow-sm"
-                          : "border-border hover:border-muted-foreground/30 bg-card"
+                          ? "border-primary bg-primary/5 shadow-sm ring-4 ring-primary/10"
+                          : "border-border/50 hover:border-primary/40 bg-card"
                       )}
                     >
                       <div className="flex gap-1.5 mb-3">
@@ -211,13 +215,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                     type="range"
                     min="0"
                     max="100"
-                    value={settings.audioVolume}
+                    value={audioVolume}
                     onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                    className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-emerald-500 hover:accent-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all"
                   />
                 </div>
                 <div className="w-12 text-right">
-                  <span className="text-sm font-bold text-primary">{settings.audioVolume}%</span>
+                  <span className="text-sm font-bold text-primary">{audioVolume}%</span>
                 </div>
               </div>
               <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium tracking-wider">
@@ -255,7 +259,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                     step="10"
                     value={settings.audioCacheLimit}
                     onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
-                    className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    className="w-full bg-card border-2 border-border/50 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium uppercase">
                     {language === 'zh' ? '条' : 'items'}

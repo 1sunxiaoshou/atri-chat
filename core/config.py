@@ -1,7 +1,11 @@
-"""系统配置管理"""
+"""系统配置与路径管理中枢"""
 import os
+import sys
 from enum import Enum
-from typing import Literal
+from pathlib import Path
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, model_validator
 
 
 class Environment(str, Enum):
@@ -11,84 +15,157 @@ class Environment(str, Enum):
     STAGING = "staging"
 
 
-class Config:
-    """系统配置类"""
+def get_base_dir() -> Path:
+    """获取应用根目录（绝对路径）
     
-    def __init__(self):
-        # 环境配置
-        self._env = os.getenv("ENV", "development").lower()
-        if self._env not in [e.value for e in Environment]:
-            self._env = Environment.DEVELOPMENT.value
-        
-        # 端口配置
-        self._backend_port = int(os.getenv("BACKEND_PORT", "9099"))
-        
-        # 日志配置
-        self._log_level = os.getenv("LOG_LEVEL", self._default_log_level()).upper()
-        
-        # LLM 调用日志配置
-        self._enable_llm_call_logger = os.getenv("ENABLE_LLM_CALL_LOGGER", "false").lower() == "true"
-        
-        # HTTP 请求日志配置
-        self._enable_http_logging = os.getenv("ENABLE_HTTP_LOGGING", "true").lower() == "true"
+    兼容 PyInstaller 打包后的路径定位。
+    """
+    if getattr(sys, 'frozen', False):
+        # 打包后，返回 .exe 所在的目录
+        return Path(sys.executable).parent.resolve()
+    # 开发环境，返回项目源码根目录
+    return Path(__file__).parent.parent.resolve()
+
+
+class AppSettings(BaseSettings):
+    """应用全局配置（单点事实源）"""
     
-    @property
-    def env(self) -> str:
-        """获取当前环境"""
-        return self._env
+    # 1. 基础环境配置
+    env: str = Field(default=Environment.DEVELOPMENT.value, alias="ENV")
+    backend_port: int = Field(default=9099, alias="BACKEND_PORT")
     
-    @property
-    def is_development(self) -> bool:
-        """是否为开发环境"""
-        return self._env == Environment.DEVELOPMENT.value
+    # 2. 根目录（自动计算）
+    base_dir: Path = Field(default_factory=get_base_dir)
+    
+    # 3. 日志与调试
+    log_level: str | None = Field(default=None, alias="LOG_LEVEL")
+    enable_http_logging: bool = Field(default=True, alias="ENABLE_HTTP_LOGGING")
+    enable_llm_call_logger: bool = Field(default=False, alias="ENABLE_LLM_CALL_LOGGER")
+
+    # 4. 路径计算属性 (分层结构优化)
     
     @property
-    def is_production(self) -> bool:
-        """是否为生产环境"""
-        return self._env == Environment.PRODUCTION.value
+    def data_dir(self) -> Path:
+        """数据存放根目录"""
+        return self.base_dir / "data"
+
+    @property
+    def logs_dir(self) -> Path:
+        """日志存放目录"""
+        return self.base_dir / "logs"
+
+    @property
+    def db_dir(self) -> Path:
+        """数据库存放目录"""
+        return self.data_dir / "sqlite"
+
+    @property
+    def models_dir(self) -> Path:
+        """AI 模型根目录"""
+        return self.data_dir / "models"
     
     @property
-    def is_staging(self) -> bool:
-        """是否为测试环境"""
-        return self._env == Environment.STAGING.value
+    def memory_dir(self) -> Path:
+        """长期记忆存储目录"""
+        return self.data_dir / "memory"
     
     @property
-    def backend_port(self) -> int:
-        """获取后端服务器端口"""
-        return self._backend_port
-    
+    def asr_models_dir(self) -> Path:
+        """SenseVoice ASR 模型存放目录"""
+        return self.models_dir / "asr"
+
     @property
-    def log_level(self) -> str:
-        """获取日志级别"""
-        return self._log_level
-    
+    def assets_dir(self) -> Path:
+        """应用资产根目录 (原 uploads)"""
+        return self.data_dir / "assets"
+
     @property
-    def enable_llm_call_logger(self) -> bool:
-        """是否启用 LLM 调用日志记录器"""
-        return self._enable_llm_call_logger
-    
+    def images_dir(self) -> Path:
+        """图片资产 (包括头像/立绘)"""
+        return self.assets_dir / "images"
+
     @property
-    def enable_http_logging(self) -> bool:
-        """是否启用 HTTP 请求日志中间件"""
-        return self._enable_http_logging
-    
-    def _default_log_level(self) -> str:
-        """根据环境返回默认日志级别"""
-        if self.is_production:
-            return "WARNING"
-        elif self.is_staging:
-            return "INFO"
+    def avatars_dir(self) -> Path:
+        """兼容性别名"""
+        return self.images_dir
+
+    @property
+    def vrm_dir(self) -> Path:
+        """VRM 相关资产根目录"""
+        return self.assets_dir / "vrm"
+
+    @property
+    def vrm_models_dir(self) -> Path:
+        return self.vrm_dir / "models"
+
+    @property
+    def vrm_motions_dir(self) -> Path:
+        """VRM 动作/动画文件"""
+        return self.vrm_dir / "motions"
+
+    @property
+    def vrm_thumbnails_dir(self) -> Path:
+        return self.vrm_dir / "thumbnails"
+
+    # 5. 数据库连接字符串与路径
+    @property
+    def app_db_url(self) -> str:
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            return db_url
+        return f"sqlite:///{self.db_dir / 'app.db'}"
+
+    @property
+    def store_db_path(self) -> str:
+        return str(self.db_dir / "store.db")
+
+    @property
+    def checkpoints_db_path(self) -> str:
+        return str(self.db_dir / "checkpoints.db")
+
+    # 6. 配置加载规则
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
+
+    @model_validator(mode='after')
+    def set_default_log_level(self) -> 'AppSettings':
+        """根据环境设置默认日志级别"""
+        if not self.log_level:
+            if self.env.lower() == Environment.PRODUCTION.value:
+                self.log_level = "WARNING"
+            elif self.env.lower() == Environment.STAGING.value:
+                self.log_level = "INFO"
+            else:
+                self.log_level = "DEBUG"
         else:
-            return "DEBUG"
+            self.log_level = self.log_level.upper()
+        return self
+
+    # 7. 显式初始化辅助方法
+    def ensure_directories(self):
+        """显式创建所有必要的系统目录"""
+        dirs = [
+            self.data_dir,
+            self.db_dir,
+            self.logs_dir,
+            self.models_dir,
+            self.memory_dir,
+            self.asr_models_dir,
+            self.assets_dir,
+            self.images_dir,
+            self.vrm_dir,
+            self.vrm_models_dir,
+            self.vrm_motions_dir,
+            self.vrm_thumbnails_dir,
+        ]
+        for d in dirs:
+            d.mkdir(parents=True, exist_ok=True)
 
 
-# 全局配置实例
-_config: Config | None = None
-
-
-def get_config() -> Config:
-    """获取配置实例（单例）"""
-    global _config
-    if _config is None:
-        _config = Config()
-    return _config
+@lru_cache()
+def get_settings() -> AppSettings:
+    """获取全站唯一的配置单例"""
+    return AppSettings()

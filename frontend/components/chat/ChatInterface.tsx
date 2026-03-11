@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, startTransition } from 'react';
+import React, { useState, useEffect, useCallback, startTransition, useRef } from 'react';
 import { Character, Message, Model, ModelParameters } from '../../types';
 import { useChat } from '../../hooks/useChat';
 import { useVRM } from '../../hooks/useVRM';
 import { useTTS } from '../../hooks/useTTS';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAudioStore } from '../../store/useAudioStore';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import { VRMChatMode } from './VRMChatMode';
@@ -41,6 +42,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
+  // autoPlay 设置从 Store 读取
+  const autoPlay = useAudioStore((state) => state.autoPlay);
+  // 追踪已自动播放的消息 ID，避免重复触发
+  const autoPlayedRef = useRef<Set<string | number>>(new Set());
+  // 标记当前会话是否为初次加载，避免切换会话时朗读历史最后一条消息
+  const isInitialLoadRef = useRef(true);
+
   const {
     messages,
     isTyping,
@@ -76,9 +84,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   useEffect(() => {
     if (activeConversationId) {
-      loadMessages(activeConversationId);
+      isInitialLoadRef.current = true; // 切换会话时标记为初次加载
+      loadMessages(activeConversationId).then(() => {
+        // 等待下一帧取消初次加载标记，让那些已经存在的历史消息不要触发 autoPlay
+        requestAnimationFrame(() => {
+          isInitialLoadRef.current = false;
+        });
+      });
+      // 切换会话时重置已播放记录
+      autoPlayedRef.current = new Set();
     }
   }, [activeConversationId, loadMessages]);
+
+  // autoPlay：监听 messages，新增 assistant 消息时自动播放 TTS
+  useEffect(() => {
+    if (!autoPlay || vrmDisplayMode === 'vrm' || messages.length === 0) return;
+
+    // 找最后一条 assistant 消息
+    const lastMsg = messages[messages.length - 1];
+    if (
+      !isInitialLoadRef.current && // 必须不是初次加载历史消息
+      lastMsg &&
+      lastMsg.message_type === 'assistant' &&
+      lastMsg.content &&
+      !lastMsg.generating && // 不在生成中才播放
+      !autoPlayedRef.current.has(lastMsg.message_id)
+    ) {
+      autoPlayedRef.current.add(lastMsg.message_id);
+      playTTS(lastMsg.message_id, lastMsg.content, activeCharacter?.id ?? undefined);
+    }
+  }, [messages, autoPlay, vrmDisplayMode, activeCharacter, playTTS]);
 
   useEffect(() => {
     const error = chatError || vrmError || ttsError;

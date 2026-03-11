@@ -5,6 +5,37 @@ import { buildURL } from './base';
  */
 export const ttsApi = {
   /**
+   * TTS 非流式合成（音频文件格式，默认 WAV）
+   * @param text - 要合成的文本
+   * @param characterId - 可选的角色 ID
+   * @param language - 可选的语言参数
+   * @returns 返回合成音频文件的 Blob
+   */
+  synthesizeSpeech: async (
+    text: string,
+    characterId?: string,
+    language?: string
+  ): Promise<Blob> => {
+    const response = await fetch(buildURL('/tts/synthesize?stream=false'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, character_id: characterId, language })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.message || `TTS 失败: ${response.status}`);
+      } catch {
+        throw new Error(errorText || `TTS 失败: ${response.status}`);
+      }
+    }
+
+    return await response.blob();
+  },
+
+  /**
    * TTS 流式合成（PCM raw 格式）
    * @param text - 要合成的文本
    * @param characterId - 可选的角色 ID（使用角色绑定的音色）

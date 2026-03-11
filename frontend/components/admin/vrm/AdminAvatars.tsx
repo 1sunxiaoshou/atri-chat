@@ -6,6 +6,7 @@ import { Button, ConfirmDialog } from '../../ui';
 import Toast, { ToastMessage } from '../../ui/Toast';
 import { VRMUploadPreview } from './UploadPreview';
 import { VRMEditPreview } from './EditPreview';
+import { buildResourceUrl } from '../../../utils/constants';
 
 interface Avatar {
     id: string;
@@ -200,7 +201,7 @@ export const AdminAvatars: React.FC<AdminAvatarsProps> = ({ onAvatarsChange }) =
                                 <div className="relative w-full rounded-md overflow-hidden bg-muted/30 will-change-transform" style={{ paddingBottom: '133.33%' }}>
                                     {avatar.thumbnail_path ? (
                                         <img
-                                            src={avatar.thumbnail_path}
+                                            src={buildResourceUrl(avatar.thumbnail_path)}
                                             alt={avatar.name}
                                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         />

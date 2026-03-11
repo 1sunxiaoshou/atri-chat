@@ -9,8 +9,9 @@ In portable mode:
 - The application can be run from a USB drive or moved freely
 
 Data locations:
-- Database: ./data/app.db
-- Uploads: ./data/uploads/
+- Database: ./data/sqlite/
+- Assets: ./data/assets/
+- Models: ./data/models/
 - Logs: ./logs/
 
 To switch to standard mode, delete this file.

@@ -240,7 +240,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       playQueueRef.current = [];
 
       // avatarId 可能是：
-      // 1. 完整的文件路径（如 /uploads/vrm_models/xxx.vrm）
+      // 1. 完整的文件路径（如 /static/vrm/models/xxx.vrm）
       // 2. Avatar 资产 ID（需要通过 API 获取 file_url）
 
       // 如果是路径格式，直接使用
@@ -248,8 +248,8 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       if (avatarId.startsWith('/') || avatarId.startsWith('http')) {
         url = buildResourceUrl(avatarId);
       } else {
-        // 如果是 ID，构建标准路径（假设存储在 /uploads/vrm_models/）
-        url = buildResourceUrl(`/uploads/vrm_models/${avatarId}.vrm`);
+        // 如果是 ID，构建后端新架构下的标准路径
+        url = buildResourceUrl(`/static/vrm/models/${avatarId}.vrm`);
       }
 
       // 重置状态
