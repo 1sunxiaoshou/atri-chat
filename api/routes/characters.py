@@ -10,6 +10,7 @@ from core.db.utils import (
     validate_avatar_exists, validate_voice_asset_exists,
     validate_model_exists, InvalidReferenceError
 )
+from core.config import get_settings, AppSettings
 from core.logger import get_logger
 from api.schemas import ResponseModel
 
@@ -313,7 +314,8 @@ async def create_character(
 async def update_character(
     character_id: str,
     character_update: CharacterUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    settings: AppSettings = Depends(get_settings)
 ) -> Dict[str, Any]:
     """更新角色（如果更新立绘URL,会自动清理旧的立绘文件）"""
     try:
@@ -362,12 +364,9 @@ async def update_character(
                     
                     if other_users == 0:
                         # 没有其他角色使用,可以安全删除
-                        from core.paths import get_path_manager
-                        path_manager = get_path_manager()
-                        
-                        if old_portrait_url.startswith('/uploads/avatars/'):
+                        if old_portrait_url.startswith('/static/images/'):
                             filename = old_portrait_url.split('/')[-1]
-                            file_path = path_manager.avatars_dir / filename
+                            file_path = settings.images_dir / filename
                             
                             if file_path.exists():
                                 file_path.unlink()
@@ -422,7 +421,8 @@ async def update_character(
 @router.delete("/characters/{character_id}", summary="删除角色", response_model=ResponseModel)
 async def delete_character(
     character_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    settings: AppSettings = Depends(get_settings)
 ) -> Dict[str, Any]:
     """删除角色（级联删除会话和消息,并清理关联的立绘文件）"""
     try:
@@ -449,13 +449,10 @@ async def delete_character(
                 
                 if other_users == 0:
                     # 没有其他角色使用,可以安全删除
-                    from core.paths import get_path_manager
-                    path_manager = get_path_manager()
-                    
                     # 解析文件路径
-                    if portrait_to_delete.startswith('/uploads/avatars/'):
+                    if portrait_to_delete.startswith('/static/images/'):
                         filename = portrait_to_delete.split('/')[-1]
-                        file_path = path_manager.avatars_dir / filename
+                        file_path = settings.images_dir / filename
                         
                         if file_path.exists():
                             file_path.unlink()

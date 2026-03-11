@@ -21,7 +21,7 @@ class Avatar(Base):
     """3D 形象资产表
     
     存储 VRM 格式的 3D 模型资产，可被多个角色引用
-    文件路径由 ID 动态构建：/uploads/vrm_models/{id}.vrm
+    文件路径由 ID 动态构建：/static/vrm/models/{id}.vrm
     """
     __tablename__ = "assets_avatars"
     
@@ -56,25 +56,25 @@ class Avatar(Base):
     @property
     def file_url(self) -> str:
         """动态构建文件URL（用于API响应）"""
-        return f"/uploads/vrm_models/{self.id}.vrm"
+        return f"/static/vrm/models/{self.id}.vrm"
     
     @property
     def thumbnail_url(self) -> Optional[str]:
         """动态构建缩略图URL（用于API响应）"""
         if self.has_thumbnail:
-            return f"/uploads/vrm_thumbnails/{self.id}.jpg"
+            return f"/static/vrm/thumbnails/{self.id}.jpg"
         return None
     
     def get_file_path(self):
         """获取文件系统路径（用于后端文件操作）"""
-        from core.paths import get_path_manager
-        return get_path_manager().get_vrm_model_path(f"{self.id}.vrm")
+        from core.config import get_settings
+        return get_settings().vrm_models_dir / f"{self.id}.vrm"
     
     def get_thumbnail_path(self):
         """获取缩略图文件系统路径（用于后端文件操作）"""
-        from core.paths import get_path_manager
+        from core.config import get_settings
         if self.has_thumbnail:
-            return get_path_manager().get_vrm_thumbnail_path(f"{self.id}.jpg")
+            return get_settings().vrm_thumbnails_dir / f"{self.id}.jpg"
         return None
 
 
@@ -82,7 +82,7 @@ class Motion(Base):
     """动作资产表
     
     存储可重用的动画文件（.vrma, .vmd, .fbx 等），可被多个角色绑定
-    文件路径由 ID 动态构建：/uploads/vrm_animations/{id}.vrma
+    文件路径由 ID 动态构建：/static/vrm/motions/{id}.vrma
     ID 使用 5 位短 UUID，避免文件名过长
     """
     __tablename__ = "assets_motions"
@@ -115,12 +115,12 @@ class Motion(Base):
     @property
     def file_url(self) -> str:
         """动态构建文件URL（用于API响应）"""
-        return f"/uploads/vrm_animations/{self.id}.vrma"
+        return f"/static/vrm/motions/{self.id}.vrma"
     
     def get_file_path(self):
         """获取文件系统路径（用于后端文件操作）"""
-        from core.paths import get_path_manager
-        return get_path_manager().get_vrm_animation_path(f"{self.id}.vrma")
+        from core.config import get_settings
+        return get_settings().vrm_motions_dir / f"{self.id}.vrma"
 
 
 class TTSProvider(Base):

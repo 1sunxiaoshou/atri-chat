@@ -67,7 +67,7 @@ class VRMService:
         # 获取音色资产信息
         voice_asset = character.voice_asset
         if not voice_asset:
-            raise ValueError(f"角色 {character_id} 未配置音色")
+            raise ValueError(f"角色 {character.name} 未配置音色")
         
         # 获取 TTS 供应商信息
         tts_provider = voice_asset.provider

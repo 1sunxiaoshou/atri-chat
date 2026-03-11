@@ -62,6 +62,8 @@ export interface Avatar {
   name: string;
   file_url: string;
   thumbnail_url?: string;
+  model_path: string;      // 完整可访问的 VRM 模型 URL（由后端 build_url 拼接返回）
+  thumbnail_path?: string; // 完整可访问的缩略图 URL（由后端 build_url 拼接返回）
   available_expressions?: string[]; // 可用表情列表
   created_at: string;
   updated_at: string;

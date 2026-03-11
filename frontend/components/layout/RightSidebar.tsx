@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, Volume2, MessageSquare } from 'lucide-react';
 import { Model, ModelParameters, ModelParameterSchemaResponse } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelector';
 import ParameterField from './ParameterField';
+import { useAudioStore } from '../../store/useAudioStore';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -30,6 +31,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  // 从 Zustand Store 读写音频设置
+  const volume = useAudioStore((state) => state.volume);
+  const autoPlay = useAudioStore((state) => state.autoPlay);
+  const setVolume = useAudioStore((state) => state.setVolume);
+  const setAutoPlay = useAudioStore((state) => state.setAutoPlay);
 
   // 当模型选择器打开时，加载可用模型列表
   useEffect(() => {
@@ -166,6 +173,63 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 <span>{t('chat.settings.selectModel')}</span>
               )}
             </Button>
+          </div>
+
+          <div className="h-px bg-border/50" />
+
+          {/* 音频设置 */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Volume2 size={14} className="text-muted-foreground" />
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                {t('chat.settings.audioSettings')}
+              </label>
+            </div>
+
+            {/* 自动朗读 */}
+            <div className="flex items-center justify-between py-1">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-sm text-foreground font-medium">
+                  <MessageSquare size={13} className="text-primary" />
+                  {t('chat.settings.autoPlay')}
+                </div>
+                <p className="text-xs text-muted-foreground">{t('chat.settings.autoPlayDesc')}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoPlay}
+                onClick={() => setAutoPlay(!autoPlay)}
+                className={cn(
+                  'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  autoPlay ? 'bg-primary' : 'bg-muted'
+                )}
+              >
+                <span
+                  className={cn(
+                    'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out',
+                    autoPlay ? 'translate-x-4' : 'translate-x-0'
+                  )}
+                />
+              </button>
+            </div>
+
+            {/* 音量控制 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-foreground font-medium">{t('chat.settings.volume')}</label>
+                <span className="text-xs text-muted-foreground tabular-nums">{volume}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-muted [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md"
+              />
+            </div>
           </div>
 
           <div className="h-px bg-border/50" />

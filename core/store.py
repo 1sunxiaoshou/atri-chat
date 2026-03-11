@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple, Iterator
 from langgraph.store.base import BaseStore, Item
-from .paths import get_store_db_path
+from .config import get_settings
 
 
 class SqliteStore(BaseStore):
@@ -20,7 +20,8 @@ class SqliteStore(BaseStore):
         Args:
             db_path: SQLite 数据库文件路径
         """
-        self.db_path = db_path or get_store_db_path()
+        self.db_path = db_path or get_settings().store_db_path
+        # 确保目录存在
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     

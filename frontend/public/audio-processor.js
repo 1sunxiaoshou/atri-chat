@@ -8,6 +8,17 @@ class RecorderProcessor extends AudioWorkletProcessor {
         this.bufferSize = 4096;
         this.buffer = new Float32Array(this.bufferSize);
         this.bufferIndex = 0;
+
+        // 监听主线程的 flush 命令，将剩余缓冲区数据发送出去
+        this.port.onmessage = (event) => {
+            if (event.data.command === 'flush' && this.bufferIndex > 0) {
+                this.port.postMessage({
+                    eventType: 'data',
+                    audioData: this.buffer.slice(0, this.bufferIndex)
+                });
+                this.bufferIndex = 0;
+            }
+        };
     }
 
     process(inputs, outputs, parameters) {

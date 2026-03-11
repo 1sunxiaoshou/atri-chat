@@ -28,8 +28,10 @@ interface CharacterProps {
     loopMotion?: boolean;
     /** 动作播放完成回调（仅在非循环模式下触发） */
     onMotionComplete?: () => void;
-    /** 模型加载完成回调 */
-    onModelLoaded?: () => void;
+    /** 模型加载完成回调，返回检测到的表情列表 */
+    onModelLoaded?: (expressions: string[]) => void;
+    /** 动作切换淡入淡出时间 */
+    fadeDuration?: number;
 }
 
 /**
@@ -49,6 +51,7 @@ export function Character({
     loopMotion = true,
     onMotionComplete,
     onModelLoaded,
+    fadeDuration = 0.3,
 }: CharacterProps) {
     // 加载 VRM 模型
     const vrm = useVRMLoader(url);
@@ -59,7 +62,11 @@ export function Character({
     // 模型加载完成回调
     useEffect(() => {
         if (vrm && onModelLoaded) {
-            onModelLoaded();
+            // 提取模型自带的表情列表
+            const expressionsFromVrm = vrm.expressionManager 
+                ? Object.keys(vrm.expressionManager.expressionMap)
+                : [];
+            onModelLoaded(expressionsFromVrm);
         }
     }, [vrm, onModelLoaded]);
 
@@ -88,7 +95,7 @@ export function Character({
     // 注册动作完成回调
     useEffect(() => {
         if (onMotionComplete) {
-            motionController.onFinished((url) => {
+            motionController.onFinished(() => {
                 onMotionComplete();
             });
         }
@@ -99,7 +106,7 @@ export function Character({
         if (motionUrl) {
             motionController.play(motionUrl, {
                 loop: loopMotion,
-                fadeDuration: 0.3,
+                fadeDuration: fadeDuration,
             });
         } else if (motionUrl === null) {
             // 如果 motionUrl 明确为 null，重置模型姿态到 T-Pose

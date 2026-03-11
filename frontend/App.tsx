@@ -250,11 +250,11 @@ const App: React.FC = () => {
                 {selectedCharacterId ? (
                   (() => {
                     const selectedChar = characters.find(c => c.id === selectedCharacterId);
-                    const avatarUrl = selectedChar?.portrait_url
-                      ? buildAvatarUrl(selectedChar.portrait_url)
-                      : selectedChar?.avatar?.thumbnail_url
-                        ? buildAvatarUrl(selectedChar.avatar.thumbnail_url)
-                        : buildAvatarUrl(`/uploads/vrm_thumbnails/${selectedCharacterId}.jpg`);
+                      const avatarUrl = selectedChar?.portrait_url
+                        ? buildAvatarUrl(selectedChar.portrait_url)
+                        : selectedChar?.avatar?.thumbnail_url
+                          ? buildAvatarUrl(selectedChar.avatar.thumbnail_url)
+                          : buildAvatarUrl(`/static/vrm/thumbnails/${selectedCharacterId}.jpg`);
                     return (
                       <img
                         src={avatarUrl}

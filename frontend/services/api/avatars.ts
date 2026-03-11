@@ -22,13 +22,9 @@ export const avatarsApi = {
 
     /**
      * 上传形象资产
-     * @param file - 形象文件
-     * @param name - 形象名称
+     * @param formData - 包含 file (VRM), name, thumbnail, expressions 的 FormData
      */
-    uploadAvatar: async (file: File, name: string): Promise<ApiResponse<Avatar>> => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('name', name);
+    uploadAvatar: async (formData: FormData): Promise<ApiResponse<Avatar>> => {
         return httpClient.post<Avatar>('/avatars/upload', formData);
     },
 

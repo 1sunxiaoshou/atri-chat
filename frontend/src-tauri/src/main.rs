@@ -6,16 +6,43 @@ use std::process::{Command, Child};
 use std::sync::Mutex;
 use std::path::PathBuf;
 use std::fs;
+use std::net::TcpListener;
 
 struct BackendProcess(Mutex<Option<Child>>);
+
+// 动态获取可用端口
+fn get_available_port() -> u16 {
+    // 首先尝试读取环境变量（如果有配置文件或手动注入）
+    if let Ok(port_str) = std::env::var("BACKEND_PORT") {
+        if let Ok(port) = port_str.parse::<u16>() {
+            // 测试端口是否被占用
+            if TcpListener::bind(("127.0.0.1", port)).is_ok() {
+                return port;
+            }
+            println!("Port {} is occupied, resolving a random one...", port);
+        }
+    }
+    
+    // 如果没有指定或端口被占用，拿一个随机的空闲端口
+    TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port()
+}
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_log::Builder::default().build())
+        // 定义可由前端调用的获取端口和基址的方法
+        .invoke_handler(tauri::generate_handler![get_backend_port])
         .setup(|app| {
-            // 开发和生产模式都自动启动后端
-            let backend_process = start_backend(app);
+            // 开机自动拿到一个端口并启动后端
+            let backend_port = get_available_port();
+            app.manage(BackendPortState(backend_port));
+
+            let backend_process = start_backend(app, backend_port);
             app.manage(BackendProcess(Mutex::new(backend_process)));
             Ok(())
         })
@@ -35,52 +62,25 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-/// 检测是否为便携模式
-/// 便携模式：可执行文件同目录下存在 portable.txt 文件
-fn is_portable_mode() -> bool {
+struct BackendPortState(u16);
+
+#[tauri::command]
+fn get_backend_port(state: tauri::State<BackendPortState>) -> u16 {
+    state.0
+}
+
+/// 强制使用可执行文件所在目录作为数据根目录
+fn get_app_root_dir() -> PathBuf {
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let portable_marker = exe_dir.join("portable.txt");
-            return portable_marker.exists();
+            return exe_dir.to_path_buf();
         }
     }
-    false
+    // 降级方案
+    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
-/// 获取数据目录路径
-fn get_data_directory(app: &tauri::App) -> PathBuf {
-    if is_portable_mode() {
-        // 便携模式：使用可执行文件同目录
-        println!("Running in PORTABLE mode");
-        if let Ok(exe_path) = std::env::current_exe() {
-            if let Some(exe_dir) = exe_path.parent() {
-                let data_dir = exe_dir.join("data");
-                // 确保目录存在
-                let _ = fs::create_dir_all(&data_dir);
-                return data_dir;
-            }
-        }
-        // 降级方案
-        PathBuf::from("./data")
-    } else {
-        // 标准模式：使用系统 AppData 目录
-        println!("Running in STANDARD mode");
-        match app.path().app_data_dir() {
-            Ok(app_data) => {
-                let data_dir = app_data.join("data");
-                // 确保目录存在
-                let _ = fs::create_dir_all(&data_dir);
-                data_dir
-            }
-            Err(e) => {
-                eprintln!("Failed to get app data directory: {}", e);
-                PathBuf::from("./data")
-            }
-        }
-    }
-}
-
-fn start_backend(app: &tauri::App) -> Option<Child> {
+fn start_backend(app: &tauri::App, port: u16) -> Option<Child> {
     // 构建后端可执行文件名
     let backend_name = if cfg!(windows) {
         "atri-backend-x86_64-pc-windows-msvc.exe"
@@ -114,27 +114,30 @@ fn start_backend(app: &tauri::App) -> Option<Child> {
     
     println!("Starting backend from: {:?}", backend_path);
     
-    // 检查文件是否存在
     if !backend_path.exists() {
         eprintln!("Backend binary not found at: {:?}", backend_path);
-        eprintln!("Please run: uv run python build_and_copy_backend.py");
         return None;
     }
     
-    // 获取数据目录
-    let data_dir = get_data_directory(app);
-    let logs_dir = data_dir.parent().unwrap_or(&data_dir).join("logs");
+    // 获取同级应用数据目录
+    let app_root = get_app_root_dir();
+    let data_dir = app_root.join("data");
+    let logs_dir = app_root.join("logs");
     
-    // 确保日志目录存在
+    // 确保目录存在
+    let _ = fs::create_dir_all(&data_dir);
     let _ = fs::create_dir_all(&logs_dir);
     
     println!("Data directory: {:?}", data_dir);
     println!("Logs directory: {:?}", logs_dir);
+    println!("Allocating backend to port: {}", port);
     
-    // 启动后端进程，传递数据目录路径
+    // 启动后端进程，传递严格参数
     match Command::new(&backend_path)
+        .env("BACKEND_PORT", port.to_string())
         .env("DATA_DIR", data_dir.to_str().unwrap_or("data"))
         .env("LOGS_DIR", logs_dir.to_str().unwrap_or("logs"))
+        .env("ENV", "production") // Tauri 打包的必然是生产环境行为
         .spawn()
     {
         Ok(child) => {

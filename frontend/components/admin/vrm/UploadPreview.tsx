@@ -82,6 +82,7 @@ export const VRMUploadPreview: React.FC<{
                             <VRMViewer
                                 ref={viewerRef}
                                 modelUrl={previewUrl}
+                                onModelLoaded={(exps) => setExpressions(exps)}
                                 enableOrbitControls={true}
                                 showGrid={true}
                                 className="w-full h-full"
@@ -111,26 +112,6 @@ export const VRMUploadPreview: React.FC<{
                     {/* 上传表单 */}
                     <div className="flex-1 p-6 overflow-y-auto">
                         <div className="space-y-6">
-                            {/* 文件选择 */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">{t('character.modelFile')}</label>
-                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer transition-all hover:border-primary/50 hover:bg-muted/50 group">
-                                    <div className="flex flex-col items-center justify-center p-4 text-center">
-                                        <Upload className="w-8 h-8 mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                        <p className="text-sm font-medium text-foreground">
-                                            {file ? file.name : t('admin.uploadVRMModel')}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-1">{t('character.onlySupportVRM')}</p>
-                                    </div>
-                                    <input
-                                        type="file"
-                                        accept=".vrm"
-                                        className="hidden"
-                                        onChange={handleFileChange}
-                                    />
-                                </label>
-                            </div>
-
                             {/* 模型名称 */}
                             {file && (
                                 <>
@@ -145,6 +126,26 @@ export const VRMUploadPreview: React.FC<{
                                         />
                                     </div>
 
+                                    {/* 识别到的表情 */}
+                                    {expressions.length > 0 && (
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground flex justify-between">
+                                                <span>{t('character.expressions')}</span>
+                                                <span className="text-xs text-muted-foreground">{expressions.length}</span>
+                                            </label>
+                                            <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-3 bg-muted/50 rounded-lg border border-border custom-scrollbar">
+                                                {expressions.map((exp) => (
+                                                    <span 
+                                                        key={exp} 
+                                                        className="px-2 py-0.5 bg-background border border-border rounded text-[10px] text-muted-foreground font-medium"
+                                                    >
+                                                        {exp}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* 缩略图生成状态 */}
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-muted-foreground">{t('character.thumbnail')}</label>
@@ -158,7 +159,7 @@ export const VRMUploadPreview: React.FC<{
                                             {thumbnail
                                                 ? t('admin.syncSuccess')
                                                 : isGeneratingThumbnail
-                                                    ? t('admin.loading')
+                                                    ? t('vrm.avatar.generatingThumbnail') || '正在生成缩略图...'
                                                     : t('admin.loading')
                                             }
                                         </div>

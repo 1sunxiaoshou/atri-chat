@@ -2,13 +2,11 @@ import { AUDIO_CONFIG } from './constants';
 
 /**
  * 音频缓存管理器
- * 缓存TTS生成的音频数据，避免重复请求
+ * 缓存TTS生成的完整音频 Blob 数据，避免重复请求
  */
 
 interface CacheEntry {
-  data: Uint8Array[];
-  sampleRate: number;
-  channels: number;
+  blob: Blob;
   timestamp: number;
 }
 
@@ -41,13 +39,17 @@ class AudioCacheManager {
       return null;
     }
 
+    // LRU: 删除后重新插入，使其移到 Map 末尾（最近使用）
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
     return entry;
   }
 
   /**
    * 设置缓存
    */
-  set(text: string, data: Uint8Array[], sampleRate: number, channels: number): void {
+  set(text: string, blob: Blob): void {
     // 如果缓存已满，删除最旧的条目
     if (this.cache.size >= this.maxCacheSize) {
       const oldestKey = this.cache.keys().next().value as string | undefined;
@@ -58,9 +60,7 @@ class AudioCacheManager {
 
     const key = this.getCacheKey(text);
     this.cache.set(key, {
-      data,
-      sampleRate,
-      channels,
+      blob,
       timestamp: Date.now()
     });
   }

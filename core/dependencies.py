@@ -10,7 +10,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .store import SqliteStore
 from .db import get_session as get_db_session
 from .agent_coordinator import AgentCoordinator
-from .paths import get_app_db_path, get_store_db_path, get_checkpoints_db_path
+from .config import get_settings
 
 
 # ==================== 全局变量 ====================
@@ -23,7 +23,8 @@ _aiosqlite_conn = None
 @lru_cache()
 def get_store() -> SqliteStore:
     """获取 SqliteStore 单例"""
-    return SqliteStore(db_path=get_store_db_path())
+    settings = get_settings()
+    return SqliteStore(db_path=settings.store_db_path)
 
 def get_checkpointer() -> AsyncSqliteSaver:
     """获取 AsyncSqliteSaver 单例"""
@@ -34,11 +35,12 @@ def get_checkpointer() -> AsyncSqliteSaver:
 
 
 async def init_checkpointer() -> AsyncSqliteSaver:
-    """初始化 AsyncSqliteSaver（在应用启动时调用）"""
+    """初始化 AsyncSqliteSaver (生命周期引导时调用)"""
     global _checkpointer_instance, _aiosqlite_conn
     
+    settings = get_settings()
     # 创建 aiosqlite 连接
-    _aiosqlite_conn = await aiosqlite.connect(get_checkpoints_db_path())
+    _aiosqlite_conn = await aiosqlite.connect(settings.checkpoints_db_path)
     
     # 使用连接创建 AsyncSqliteSaver
     _checkpointer_instance = AsyncSqliteSaver(_aiosqlite_conn)
@@ -91,6 +93,16 @@ def get_agent_coordinator() -> AgentCoordinator:
     )
 
 
+@lru_cache()
+def get_asr_engine() -> "SenseVoiceASR":
+    """获取 ASR 引擎单例
+    
+    使用 lru_cache 确保全局只有一个 ASR 实例
+    """
+    from .asr import get_asr_engine as _get_asr_engine
+    return _get_asr_engine()
+
+
 # ==================== FastAPI 依赖项 ====================
 
 def get_db() -> Generator[Session, None, None]:
@@ -101,3 +113,8 @@ def get_db() -> Generator[Session, None, None]:
 def get_agent() -> Generator[AgentCoordinator, None, None]:
     """FastAPI 依赖：获取 AgentCoordinator"""
     yield get_agent_coordinator()
+
+
+def get_asr() -> Generator["SenseVoiceASR", None, None]:
+    """FastAPI 依赖：获取 ASR 引擎"""
+    yield get_asr_engine()

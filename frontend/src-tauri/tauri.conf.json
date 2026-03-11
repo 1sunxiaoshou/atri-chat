@@ -5,7 +5,7 @@
   "identifier": "com.atri.chat",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:9900",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
@@ -28,9 +28,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis"
-    ],
+    "targets": [],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -41,16 +39,14 @@
     "externalBin": [
       "binaries/atri-backend"
     ],
-    "resources": [
-      "portable.txt"
-    ],
+    "resources": [],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
       "nsis": {
         "installerIcon": "icons/icon.ico",
-        "installMode": "perUser",
+        "installMode": "currentUser",
         "languages": [
           "SimpChinese",
           "English"
