@@ -1,47 +1,88 @@
-# 数据文件
-data/
-*.db
-*.db-shm
-*.db-wal
-asr_models/
-.env
-
-# Python
-__pycache__/
-*.pyc
-runtime/
-.venv/
-logs/
-*.log
-
-# PyInstaller 打包产物
-build/
-dist/
-*.spec
-
-# 测试
-tests/
-.pytest_cache/
-
-# IDE 和工具
-.kiro/
+# --- 基础/IDE ---
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+.claude/
+.kiro/
 
-# 前端环境配置
-frontend/.env.development
-frontend/.env.production
-frontend/.env.local
+# --- 后端 (Python) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyenv/
 
-# Tauri 构建产物
+# --- 后端 (PyInstaller) ---
+*.spec
+
+# --- 前端 (React/Vite) ---
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/.nx/
+frontend/.vercel/
+frontend/.shiki/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# --- Tauri ---
 frontend/src-tauri/target/
 frontend/src-tauri/gen/
 frontend/src-tauri/binaries/
+frontend/src-tauri/bundle/
+frontend/src-tauri/lib/
 
-# 临时文件
-*.tmp
-*.temp
+# --- 环境/敏感信息 ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env.development
+frontend/.env.production
+frontend/.env.local
+frontend/*.local
 
-# 脚本
-启动音频服务.bat
+# --- 项目特定数据 ---
+data/
+asr_models/
+logs/
+*.log
+runtime/
+
+# --- 脚本 (如果不需要提交 bat 文件) ---
 *.bat
+启动音频服务.bat

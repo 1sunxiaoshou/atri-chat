@@ -58,8 +58,21 @@ fn main() {
                 }
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| match event {
+            // 应用关闭或请求退出时，最后一次强制清理
+            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+                if let Some(backend) = app_handle.try_state::<BackendProcess>() {
+                    if let Ok(mut process) = backend.0.lock() {
+                        if let Some(mut child) = process.take() {
+                            let _ = child.kill();
+                        }
+                    }
+                }
+            }
+            _ => {}
+        });
 }
 
 struct BackendPortState(u16);
@@ -135,8 +148,7 @@ fn start_backend(app: &tauri::App, port: u16) -> Option<Child> {
     // 启动后端进程，传递严格参数
     match Command::new(&backend_path)
         .env("BACKEND_PORT", port.to_string())
-        .env("DATA_DIR", data_dir.to_str().unwrap_or("data"))
-        .env("LOGS_DIR", logs_dir.to_str().unwrap_or("logs"))
+        .env("BASE_DIR", app_root.to_str().unwrap_or("."))
         .env("ENV", "production") // Tauri 打包的必然是生产环境行为
         .spawn()
     {
