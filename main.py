@@ -1,7 +1,11 @@
 """FastAPI 主应用入口 - 显式引导引导架构"""
 import sys
+import os
+import time
+import threading
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+import psutil
 
 # 1. 唯一一次执行的副作用：加载 .env。
 # 这是后续所有配置的基础。
@@ -18,11 +22,31 @@ from core.config import get_settings
 settings = get_settings()
 settings.ensure_directories()
 
+def watch_parent_process():
+    """监控父进程状态，如果父进程退出则自杀"""
+    parent_pid = os.getppid()
+    # 在 Windows 下，如果直接运行二进制文件，ppid 可能是 1 或是 shell 进程
+    # 这里我们只在 frozen (打包) 状态下开启更严格的检查
+    if parent_pid <= 1:
+        return
+
+    while True:
+        # 检查父进程是否存在
+        if not psutil.pid_exists(parent_pid):
+            # 发现父进程（Tauri）已消失，后端强制自毁
+            # 使用 os._exit(0) 绕过所有正常的 Python 清理逻辑，确保瞬间退出
+            os._exit(0) 
+        time.sleep(2) # 每 2 秒检查一次
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期引导管理器"""
     
     # 2. 引导阶段 A：实例化单一事实源
+    # 如果是打包环境，启动父进程监控线程
+    if getattr(sys, 'frozen', False):
+        monitor_thread = threading.Thread(target=watch_parent_process, daemon=True)
+        monitor_thread.start()
     # 注意：这里继续使用 settings，因为 get_settings 是 lru_cache
     
     # 3. 引导阶段 B：显式初始化日志 (此时 settings 已妥，目录已建)
@@ -51,7 +75,8 @@ async def lifespan(app: FastAPI):
     from core.dependencies import get_agent_coordinator
     get_agent_coordinator()
     
-    logger.success("✓ 系统全组件初始化完成，服务器就绪")
+    logger.success(f"✓ ATRI Backend Service is ready on port {settings.backend_port}")
+    logger.info(f"Environment: {settings.env} | PID: {os.getpid()} | Parent PID: {os.getppid()}")
 
     yield
     

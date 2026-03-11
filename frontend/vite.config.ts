@@ -38,6 +38,23 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/zustand')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/three') || id.includes('node_modules/@react-three') || id.includes('node_modules/@pixiv')) {
+              return 'vendor-three';
+            }
+            if (id.includes('node_modules/highlight.js') || id.includes('node_modules/rehype-highlight')) {
+              return 'vendor-highlight';
+            }
+          }
+        }
+      }
     }
   };
 });

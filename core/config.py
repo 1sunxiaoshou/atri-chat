@@ -34,8 +34,8 @@ class AppSettings(BaseSettings):
     env: str = Field(default=Environment.DEVELOPMENT.value, alias="ENV")
     backend_port: int = Field(default=9099, alias="BACKEND_PORT")
     
-    # 2. 根目录（自动计算）
-    base_dir: Path = Field(default_factory=get_base_dir)
+    # 2. 根目录（自动计算，支持通过 BASE_DIR 环境变量注入）
+    base_dir: Path = Field(default_factory=get_base_dir, alias="BASE_DIR")
     
     # 3. 日志与调试
     log_level: str | None = Field(default=None, alias="LOG_LEVEL")

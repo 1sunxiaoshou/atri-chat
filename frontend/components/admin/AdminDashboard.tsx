@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Box, Zap, Mic, Menu, PanelLeftOpen } from 'lucide-react';
-import { Provider, Model, AdminTab } from '../../types';
-import { providersApi, modelsApi } from '../../services/api';
+import { AdminTab } from '../../types';
+import { useDataStore } from '../../store/useDataStore';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { AdminModels } from './models/AdminModels';
 import { AdminAvatars, AdminMotions } from './vrm';
@@ -26,24 +26,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<AdminTab>('models');
-  // ... 数据状态保持不变 ...
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const [providerTemplates, setProviderTemplates] = useState<any[]>([]);
+
+  // Use Global Data Store
+  const {
+    providers,
+    models,
+    providerTemplates,
+    fetchProviders,
+    fetchModels,
+    fetchTemplates
+  } = useDataStore();
 
   useEffect(() => {
-    fetchData();
+    fetchProviders();
+    fetchModels();
     fetchTemplates();
-  }, []);
+  }, [fetchProviders, fetchModels, fetchTemplates]);
 
   const fetchData = async () => {
-    const [providersRes, modelsRes] = await Promise.all([
-      providersApi.getProviders(),
-      modelsApi.getModels()
+    await Promise.all([
+      fetchProviders(true),
+      fetchModels(true)
     ]);
-
-    setProviders(providersRes.data);
-    setModels(modelsRes.data);
 
     // 通知父组件数据已更新
     if (onDataUpdated) {
@@ -59,16 +63,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // Animation data refresh logic (if needed)
   };
 
-  const fetchTemplates = async () => {
-    try {
-      const res = await providersApi.getProviderTemplates();
-      if (res.code === 200) {
-        setProviderTemplates(res.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch provider templates:', error);
-    }
-  };
+
 
   const tabs = [
     { id: 'models', label: t('admin.models'), icon: Cpu },

@@ -7,9 +7,10 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudioStore } from '../../store/useAudioStore';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
-import { VRMChatMode } from './VRMChatMode';
 import { NormalChatMode } from './NormalChatMode';
 import RightSidebar from '../layout/RightSidebar';
+
+const VRMChatMode = React.lazy(() => import('./VRMChatMode').then(m => ({ default: m.VRMChatMode })));
 import Toast, { ToastMessage } from '../ui/Toast';
 import { cn } from '../../utils/cn';
 
@@ -134,7 +135,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // 优化发送消息回调，使用startTransition降低状态更新优先级
   const handleSend = useCallback(async (content: string) => {
-    if (!content.trim() || !activeCharacter || !activeModel) { return; }
+    if (!content.trim() || !activeCharacter) { return; }
+
+    // 校验：如果角色没有配置模型，显示错误提示
+    if (!activeModel) {
+      setToastMessage({
+        success: false,
+        message: t('chat.noModelConfigured')
+      });
+      // 3秒后自动清除提示
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     try {
       // 如果是VRM模式，立即开始思考动作（高优先级）
@@ -265,17 +277,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           vrmDisplayMode !== 'vrm' && "mx-auto"
         )}>
           {vrmDisplayMode === 'vrm' ? (
-            // VRM模式：完全隔离的VRM组件
-            <VRMChatMode
-              modelUrl={modelUrl}
-              audioElement={audioElement}
-              expression={expression}
-              motionUrl={motionUrl}
-              subtitle={subtitle}
-              activeCharacterId={activeCharacter?.id}
-              onModelLoaded={onModelLoaded}
-              onMotionComplete={onMotionComplete}
-            />
+            // VRM模式：完全隔离的VRM组件，懒加载
+            <React.Suspense fallback={
+              <div className="flex h-full items-center justify-center flex-col gap-4">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-muted-foreground text-sm">正在加载 3D 渲染引擎...</p>
+              </div>
+            }>
+              <VRMChatMode
+                modelUrl={modelUrl}
+                audioElement={audioElement}
+                expression={expression}
+                motionUrl={motionUrl}
+                subtitle={subtitle}
+                activeCharacterId={activeCharacter?.id}
+                onModelLoaded={onModelLoaded}
+                onMotionComplete={onMotionComplete}
+              />
+            </React.Suspense>
           ) : (
             // 普通模式：完全隔离的消息列表组件
             <NormalChatMode

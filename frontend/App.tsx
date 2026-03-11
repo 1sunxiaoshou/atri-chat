@@ -1,25 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import ChatInterface from './components/chat/ChatInterface';
-import AdminDashboard from './components/admin/AdminDashboard';
-import SettingsView from './components/settings/SettingsView';
-import { AdminCharacters } from './components/characters/AdminCharacters';
 import Toast, { ToastMessage } from './components/ui/Toast';
-import { Conversation, ViewMode, Character, Model } from './types';
+
+const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
+const SettingsView = React.lazy(() => import('./components/settings/SettingsView'));
+const AdminCharacters = React.lazy(() => import('./components/characters/AdminCharacters').then(m => ({ default: m.AdminCharacters })));
+import { Conversation, ViewMode, Model } from './types';
 import { api } from './services/api/index';
 import { useLanguage } from './contexts/LanguageContext';
 import { buildAvatarUrl } from './utils/url';
 import { Button } from './components/ui';
 import { Plus, Sparkles, Menu, PanelLeftOpen } from 'lucide-react';
 import { cn } from './utils/cn';
+import { useDataStore } from './store/useDataStore';
 
 const App: React.FC = () => {
   const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<ViewMode>('chat');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | string | null>(null);
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [models, setModels] = useState<Model[]>([]); // 仅在管理界面使用
+  
+  // Use Global Data Store
+  const { 
+    characters, 
+    models, 
+    fetchCharacters, 
+    fetchModels 
+  } = useDataStore();
 
   // Character Selection State
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
@@ -54,15 +62,14 @@ const App: React.FC = () => {
   // 统一的数据加载逻辑
   useEffect(() => {
     if (viewMode === 'chat') {
-      loadCharacters();
+      fetchCharacters();
       loadConversations(selectedCharacterId);
     } else if (viewMode === 'characters') {
       // 角色管理页面需要 characters 和 models 数据
-      loadCharacters();
-      loadModels();
+      fetchCharacters();
+      fetchModels();
     }
-    // admin 视图的数据由 AdminDashboard 自己管理
-  }, [selectedCharacterId, viewMode]);
+  }, [selectedCharacterId, viewMode, fetchCharacters, fetchModels]);
 
   // 处理模型切换
   const handleUpdateModel = (modelData: string) => {
@@ -74,19 +81,7 @@ const App: React.FC = () => {
     }
   };
 
-  const loadCharacters = async () => {
-    const charRes = await api.getCharacters();
-    if (charRes.code === 200) {
-      setCharacters(charRes.data);
-    }
-  };
 
-  const loadModels = async () => {
-    const modelRes = await api.getModels(false); // 管理界面加载所有模型
-    if (modelRes.code === 200) {
-      setModels(modelRes.data);
-    }
-  };
 
   const loadConversations = async (charId: string | null) => {
     // API supports filtering by character_id
@@ -209,6 +204,7 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-background transition-all duration-300">
+        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground animate-pulse">加载中...</div>}>
         {viewMode === 'chat' ? (
           activeConversationId ? (
             <ChatInterface
@@ -302,9 +298,11 @@ const App: React.FC = () => {
             onShowSidebar={() => setIsLeftSidebarHidden(false)}
             onDataUpdated={async () => {
               // 当 AdminDashboard 更新数据后，刷新 App 层的数据
-              // 这样切换到其他视图时数据是最新的
-              await loadCharacters();
-              await loadModels();
+              // 触发 Store 的强制刷新保证数据同步
+              await Promise.all([
+                fetchCharacters(true),
+                fetchModels(true)
+              ]);
             }}
           />
         ) : viewMode === 'characters' ? (
@@ -312,8 +310,10 @@ const App: React.FC = () => {
             characters={characters}
             models={models}
             onRefresh={async () => {
-              await loadCharacters();
-              await loadModels();
+              await Promise.all([
+                fetchCharacters(true),
+                fetchModels(true)
+              ]);
             }}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
             isSidebarHidden={isLeftSidebarHidden}
@@ -327,6 +327,7 @@ const App: React.FC = () => {
             onShowSidebar={() => setIsLeftSidebarHidden(false)}
           />
         ) : null}
+        </Suspense>
       </main>
     </div>
   );
