@@ -86,3 +86,7 @@ runtime/
 # --- 脚本 (如果不需要提交 bat 文件) ---
 *.bat
 启动音频服务.bat
+
+# --- 打包输出 ---
+release_package/
+*_Release.zip

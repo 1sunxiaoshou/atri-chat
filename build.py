@@ -131,6 +131,7 @@ def clean_build():
         "dist",
         "release_package",
         "frontend/src-tauri/target",
+        "frontend/src-tauri/binaries",
     ]
     
     files_to_clean = [
@@ -178,6 +179,10 @@ def build_backend():
     
     target_name = "atri-backend-x86_64-pc-windows-msvc.exe"
     binaries_dir = Path("frontend/src-tauri/binaries")
+    
+    # 清理旧的 Sidecar 目录，防止残留过时文件
+    if binaries_dir.exists():
+        shutil.rmtree(binaries_dir)
     binaries_dir.mkdir(parents=True, exist_ok=True)
     target = binaries_dir / target_name
     
