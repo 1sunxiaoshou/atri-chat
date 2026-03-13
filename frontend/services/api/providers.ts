@@ -26,11 +26,11 @@ export const providersApi = {
    * @param updates - 更新的字段
    */
   updateProvider: async (
-    providerId: string,
-    updates: { config_json?: any }
+    configId: number,
+    updates: Partial<Provider>
   ): Promise<ApiResponse<Provider>> => {
     return httpClient.put<Provider>(
-      `/providers/update?provider_id=${providerId}`,
+      `/providers/${configId}`,
       updates
     );
   },
@@ -39,8 +39,8 @@ export const providersApi = {
    * 删除服务商
    * @param providerId - 服务商 ID
    */
-  deleteProvider: async (providerId: string): Promise<ApiResponse<void>> => {
-    return httpClient.delete<void>(`/providers/delete?provider_id=${providerId}`);
+  deleteProvider: async (configId: number): Promise<ApiResponse<void>> => {
+    return httpClient.delete<void>(`/providers/${configId}`);
   },
 
   /**

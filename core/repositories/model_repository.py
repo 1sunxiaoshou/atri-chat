@@ -17,20 +17,20 @@ class ModelRepository(BaseRepository[Model]):
     
     def get_by_provider_and_model(
         self, 
-        provider_id: str, 
+        provider_config_id: int, 
         model_id: str
     ) -> Optional[Model]:
-        """根据供应商和模型 ID 获取模型
+        """根据供应商 ID 和模型 ID 获取模型
         
         Args:
-            provider_id: 供应商标识
+            provider_config_id: 供应商配置内部 ID
             model_id: 模型标识
             
         Returns:
             模型配置对象
         """
         return self.db.query(Model).filter(
-            Model.provider_id == provider_id,
+            Model.provider_config_id == provider_config_id,
             Model.model_id == model_id
         ).first()
     
@@ -50,8 +50,11 @@ class ModelRepository(BaseRepository[Model]):
         query = self.db.query(Model)
         
         # 按供应商过滤
-        if 'provider_id' in filters:
-            query = query.filter(Model.provider_id == filters['provider_id'])
+        if 'provider_config_id' in filters:
+            query = query.filter(Model.provider_config_id == filters['provider_config_id'])
+        elif 'provider_id' in filters:
+            # 兼容旧代码，将 provider_id 视为 provider_config_id (如果传的是 int)
+            query = query.filter(Model.provider_config_id == filters['provider_id'])
         
         # 按模型类型过滤
         if 'model_type' in filters:
@@ -62,26 +65,26 @@ class ModelRepository(BaseRepository[Model]):
             query = query.filter(Model.enabled == True)
         
         # 排序
-        query = query.order_by(Model.provider_id, Model.created_at.desc())
+        query = query.order_by(Model.provider_config_id, Model.created_at.desc())
         
         return query.offset(skip).limit(limit).all()
     
     def list_by_provider(
         self, 
-        provider_id: str, 
+        provider_config_id: int, 
         enabled_only: bool = False
     ) -> List[Model]:
         """列出指定供应商的所有模型
         
         Args:
-            provider_id: 供应商 ID
+            provider_config_id: 供应商配置内部 ID
             enabled_only: 是否仅返回启用的模型
             
         Returns:
             模型列表
         """
         return self.list(
-            provider_id=provider_id,
+            provider_config_id=provider_config_id,
             enabled_only=enabled_only,
             limit=1000  # 获取所有
         )
@@ -110,12 +113,12 @@ class ModelRepository(BaseRepository[Model]):
     
     def update_by_provider_and_model(
         self,
-        provider_id: str,
+        provider_config_id: int,
         model_id: str,
         **data
     ) -> Optional[Model]:
-        """根据供应商和模型 ID 更新模型"""
-        model = self.get_by_provider_and_model(provider_id, model_id)
+        """根据供应商 ID 和模型 ID 更新模型"""
+        model = self.get_by_provider_and_model(provider_config_id, model_id)
         if not model:
             return None
         
@@ -139,11 +142,11 @@ class ModelRepository(BaseRepository[Model]):
     
     def delete_by_provider_and_model(
         self,
-        provider_id: str,
+        provider_config_id: int,
         model_id: str
     ) -> bool:
-        """根据供应商和模型 ID 删除模型"""
-        model = self.get_by_provider_and_model(provider_id, model_id)
+        """根据供应商 ID 和模型 ID 删除模型"""
+        model = self.get_by_provider_and_model(provider_config_id, model_id)
         if not model:
             return False
         

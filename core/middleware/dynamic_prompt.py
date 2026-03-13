@@ -21,7 +21,7 @@ class AgentContext:
     character_id: str  # 改为 UUID
     enable_vrm: bool = False
     model_id: str = "gpt-4o"
-    provider_id: str = "openai"
+    provider_config_id: int = 1
     model_kwargs: Dict[str, Any] = field(default_factory=dict)
     
     # 服务依赖（请求级别）

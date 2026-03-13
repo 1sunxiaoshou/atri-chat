@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, ChevronLeft, Sparkle, User } from 'lucide-react';
-import { Character, Model, Avatar, VoiceAsset, Motion } from '../../types';
+import { Character, Model, Avatar, VoiceAsset, Motion, Provider } from '../../types';
 import { buildAvatarUrl } from '../../utils/url';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { cn } from '../../utils/cn';
@@ -13,6 +13,7 @@ import { LocalMotionBinding } from './types';
 interface CharacterEditorProps {
     character: Character;
     models: Model[];
+    providers: Provider[];
     onSave: (character: Character, motionBindings?: LocalMotionBinding[]) => Promise<void>;
     onBack: () => void;
 }
@@ -22,6 +23,7 @@ type TabType = 'persona' | 'assets';
 export const CharacterEditor: React.FC<CharacterEditorProps> = ({
     character: initialCharacter,
     models,
+    providers,
     onSave,
     onBack
 }) => {
@@ -227,6 +229,7 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                     <PersonaTab
                         character={character}
                         models={enabledModels}
+                        providers={providers}
                         voiceAssets={voiceAssets}
                         onChange={setCharacter}
                         onPortraitUpload={(file) => {

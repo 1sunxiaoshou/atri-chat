@@ -7,6 +7,8 @@ import { cn } from '../../utils/cn';
 import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelector';
 import ParameterField from './ParameterField';
 import { useAudioStore } from '../../store/useAudioStore';
+import { useDataStore } from '../../store/useDataStore';
+import { Provider } from '../../types';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -29,8 +31,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [parameterSchema, setParameterSchema] = useState<ModelParameterSchemaResponse | null>(null);
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
+ 
+  // Get models and providers from Global Data Store
+  const { models, providers, fetchModels, fetchProviders } = useDataStore();
 
   // 从 Zustand Store 读写音频设置
   const volume = useAudioStore((state) => state.volume);
@@ -40,25 +43,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   // 当模型选择器打开时，加载可用模型列表
   useEffect(() => {
-    if (isModelSelectorOpen && availableModels.length === 0) {
-      loadAvailableModels();
+    if (isModelSelectorOpen) {
+      fetchModels();
+      fetchProviders();
     }
-  }, [isModelSelectorOpen]);
-
-  const loadAvailableModels = async () => {
-    setIsLoadingModels(true);
-    try {
-      const response = await fetch('/api/v1/models?enabled_only=true');
-      const result = await response.json();
-      if (result.code === 200) {
-        setAvailableModels(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to load models:', error);
-    } finally {
-      setIsLoadingModels(false);
-    }
-  };
+  }, [isModelSelectorOpen, fetchModels, fetchProviders]);
 
   // 获取模型参数 schema
   useEffect(() => {
@@ -85,23 +74,26 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   // 转换模型列表为 HierarchicalItem 格式
   const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
-    return availableModels.map(model => ({
-      id: model.id,
-      label: model.model_id,
-      category: model.provider_id,
-      tags: model.capabilities
-    }));
-  }, [availableModels]);
+    return models.filter((m: Model) => m.enabled).map((model: Model) => {
+      const provider = providers.find((p: Provider) => p.id === model.provider_config_id);
+      return {
+        id: model.id,
+        label: model.model_id,
+        category: provider?.name || `Provider #${model.provider_config_id}`,
+        tags: model.capabilities
+      };
+    });
+  }, [models, providers]);
 
   const handleModelSelect = (item: HierarchicalItem) => {
     // 找到完整的模型对象
-    const selectedModel = availableModels.find(m => m.id === item.id);
+    const selectedModel = models.find((m: Model) => m.id === item.id);
     if (selectedModel) {
-      // 传递完整的模型信息（id, model_id, provider_id）
+      // 传递完整的模型信息（id, model_id, provider_config_id）
       onUpdateModel(JSON.stringify({
         id: selectedModel.id,
         model_id: selectedModel.model_id,
-        provider_id: selectedModel.provider_id
+        provider_config_id: selectedModel.provider_config_id
       }));
     }
     setIsModelSelectorOpen(false);
@@ -167,7 +159,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             >
               {activeModel ? (
                 <span className="truncate">
-                  {activeModel.provider_id} / {activeModel.model_id}
+                  {providers.find((p: Provider) => p.id === activeModel.provider_config_id)?.name || `Provider #${activeModel.provider_config_id}`} / {activeModel.model_id}
                 </span>
               ) : (
                 <span>{t('chat.settings.selectModel')}</span>

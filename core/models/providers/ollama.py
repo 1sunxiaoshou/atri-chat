@@ -25,7 +25,7 @@ class OllamaProvider(BaseProvider):
         from ...logger import get_logger
         
         logger = get_logger(__name__)
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {
@@ -62,7 +62,7 @@ class OllamaProvider(BaseProvider):
     
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_community.embeddings import OllamaEmbeddings
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         params = {
             "model": model_id,
@@ -77,7 +77,7 @@ class OllamaProvider(BaseProvider):
         from ...logger import get_logger
         
         logger = get_logger(__name__)
-        config = provider_config.config_json
+        config = provider_config.config_payload
         base_url = config.get("base_url", "http://localhost:11434")
         
         try:

@@ -25,15 +25,14 @@ async def create_provider(
 ):
     """创建供应商配置
     
-    所有供应商通过 template_type 指定使用哪个 Provider 实现类。
+    所有供应商通过 provider_type 指定使用哪个 Provider 实现类。
     可用的模板类型: openai, anthropic, google, qwen, local
     
     请求体示例:
     {
-        "provider_id": "deepseek",
         "name": "DeepSeek",
-        "template_type": "openai",
-        "config_json": {
+        "provider_type": "openai",
+        "config_payload": {
             "api_key": "sk-xxx",
             "base_url": "https://api.deepseek.com/v1"
         }
@@ -43,22 +42,22 @@ async def create_provider(
         agent_manager = get_agent_coordinator()
         
         # 确定模板类型
-        template_type = req.template_type or "openai"
+        provider_type = req.provider_type or "openai"
         
         # 验证模板类型并获取模板
-        template = agent_manager.model_factory.get_provider_template(template_type)
+        template = agent_manager.model_factory.get_provider_template(provider_type)
         if not template:
             available = agent_manager.model_factory.get_available_templates()
             raise HTTPException(
                 status_code=400,
-                detail=f"无效的 template_type: {template_type}，可用模板: {', '.join(available)}"
+                detail=f"无效的 provider_type: {provider_type}，可用模板: {', '.join(available)}"
             )
         
         # 创建供应商配置
         provider = ProviderConfigORM(
-            provider_id=req.provider_id,
-            config_json=req.config_json,
-            template_type=template_type
+            name=req.name,
+            config_payload=req.config_payload,
+            provider_type=provider_type
         )
         
         db.add(provider)
@@ -70,8 +69,8 @@ async def create_provider(
             message="供应商创建成功",
             data={
                 "id": provider.id,
-                "provider_id": req.provider_id,
-                "template_type": template_type
+                "name": provider.name,
+                "provider_type": provider_type
             }
         )
     except IntegrityError:
@@ -85,15 +84,15 @@ async def create_provider(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/{provider_id}", response_model=ResponseModel)
+@router.get("/providers/{config_id}", response_model=ResponseModel)
 async def get_provider(
-    provider_id: str,
+    config_id: int,
     db: Session = Depends(get_db)
 ):
     """获取供应商配置"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == provider_id
+            ProviderConfigORM.id == config_id
         ).first()
         
         if not provider:
@@ -101,17 +100,17 @@ async def get_provider(
         
         # 获取模板元数据
         agent_manager = get_agent_coordinator()
-        template = agent_manager.model_factory.get_provider_template(provider.template_type)
+        template = agent_manager.model_factory.get_provider_template(provider.provider_type)
         
         return ResponseModel(
             code=200,
             message="获取成功",
             data={
                 "id": provider.id,
-                "provider_id": provider.provider_id,
-                "template_type": provider.template_type,
+                "name": provider.name,
+                "provider_type": provider.provider_type,
                 "description": template.metadata.description if template else "",
-                "config_json": provider.config_json,
+                "config_payload": provider.config_payload,
                 "created_at": provider.created_at.isoformat(),
                 "updated_at": provider.updated_at.isoformat()
             }
@@ -146,14 +145,14 @@ async def list_providers(
         
         data = []
         for p in providers:
-            template_metadata = all_templates.get(p.template_type)
+            template_metadata = all_templates.get(p.provider_type)
             
             data.append({
                 "id": p.id,
-                "provider_id": p.provider_id,
-                "template_type": p.template_type,
+                "name": p.name,
+                "provider_type": p.provider_type,
                 "description": template_metadata.description if template_metadata else "",
-                "config_json": p.config_json,
+                "config_payload": p.config_payload,
                 "model_count": len(p.models),  # 已预加载，不会触发查询
                 "created_at": p.created_at.isoformat(),
                 "updated_at": p.updated_at.isoformat()
@@ -171,47 +170,38 @@ async def list_providers(
 
 @router.put("/providers/update", response_model=ResponseModel)
 async def update_provider(
-    provider_id: str,
+    config_id: int,
     req: ProviderConfigUpdateRequest,
     db: Session = Depends(get_db)
 ):
-    """更新供应商配置
-    
-    查询参数:
-    - provider_id: 供应商ID
-    
-    请求体示例:
-    {
-        "template_type": "openai",
-        "config_json": {
-            "api_key": "sk-xxx",
-            "base_url": "https://api.openai.com/v1"
-        }
-    }
-    """
+    """更新供应商配置"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == provider_id
+            ProviderConfigORM.id == config_id
         ).first()
         
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
         
-        # 如果更新了 template_type，验证
-        if req.template_type:
+        # 如果更新了名称
+        if req.name is not None:
+            provider.name = req.name
+
+        # 如果更新了 provider_type，验证
+        if req.provider_type:
             agent_manager = get_agent_coordinator()
-            template = agent_manager.model_factory.get_provider_template(req.template_type)
+            template = agent_manager.model_factory.get_provider_template(req.provider_type)
             if not template:
                 available = agent_manager.model_factory.get_available_templates()
                 raise HTTPException(
                     status_code=400,
-                    detail=f"无效的 template_type: {req.template_type}，可用模板: {', '.join(available)}"
+                    detail=f"无效的 provider_type: {req.provider_type}，可用模板: {', '.join(available)}"
                 )
-            provider.template_type = req.template_type
+            provider.provider_type = req.provider_type
         
         # 更新配置
-        if req.config_json is not None:
-            provider.config_json = req.config_json
+        if req.config_payload is not None:
+            provider.config_payload = req.config_payload
         
         db.commit()
         db.refresh(provider)
@@ -221,7 +211,7 @@ async def update_provider(
             message="更新成功",
             data={
                 "id": provider.id,
-                "provider_id": provider.provider_id
+                "name": provider.name
             }
         )
     except HTTPException:
@@ -234,19 +224,13 @@ async def update_provider(
 
 @router.delete("/providers/delete", response_model=ResponseModel)
 async def delete_provider(
-    provider_id: str,
+    config_id: int,
     db: Session = Depends(get_db)
 ):
-    """删除供应商配置及其下所有模型
-    
-    查询参数:
-    - provider_id: 供应商ID
-    
-    注意：会级联删除该供应商下的所有模型
-    """
+    """删除供应商配置及其下所有模型"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == provider_id
+            ProviderConfigORM.id == config_id
         ).first()
         
         if not provider:
@@ -264,7 +248,7 @@ async def delete_provider(
             code=200,
             message="删除成功",
             data={
-                "provider_id": provider_id,
+                "config_id": config_id,
                 "deleted_models": model_ids,
                 "deleted_count": model_count
             }
@@ -281,7 +265,7 @@ async def delete_provider(
 async def list_provider_templates():
     """获取系统支持的所有供应商模板及其配置字段
     
-    返回可用的供应商模板列表，用于创建供应商时指定 template_type
+    返回可用的供应商模板列表，用于创建供应商时指定 provider_type
     """
     try:
         agent_manager = get_agent_coordinator()
@@ -289,7 +273,7 @@ async def list_provider_templates():
         
         data = [
             {
-                "template_type": metadata.provider_id,
+                "provider_type": metadata.provider_id,
                 "name": metadata.name,
                 "description": metadata.description,
                 "config_fields": [
@@ -297,6 +281,7 @@ async def list_provider_templates():
                         "field_name": field.field_name,
                         "field_type": field.field_type,
                         "required": field.required,
+                        "sensitive": field.sensitive,
                         "default_value": field.default_value,
                         "description": field.description
                     }
@@ -316,15 +301,15 @@ async def list_provider_templates():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/{provider_id}/models", response_model=ResponseModel)
+@router.get("/providers/{config_id}/models", response_model=ResponseModel)
 async def get_provider_models(
-    provider_id: str,
+    config_id: int,
     db: Session = Depends(get_db)
 ):
     """获取供应商已配置的模型列表"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == provider_id
+            ProviderConfigORM.id == config_id
         ).first()
         
         if not provider:
@@ -333,7 +318,7 @@ async def get_provider_models(
         data = [
             {
                 "id": m.id,
-                "provider_id": m.provider_id,
+                "provider_config_id": m.provider_config_id,
                 "model_id": m.model_id,
                 "model_type": m.model_type,
                 "capabilities": m.capabilities,
@@ -361,55 +346,42 @@ async def get_provider_models(
 
 @router.post("/providers/sync-models", response_model=ResponseModel)
 async def sync_provider_models(
-    provider_id: str,
+    provider_id: int,
     update_existing: bool = False,
     db: Session = Depends(get_db)
 ):
-    """同步供应商模型列表
-    
-    从供应商 API 获取所有可用模型，并自动添加到系统中。
-    
-    查询参数:
-    - provider_id: 供应商ID
-    - update_existing: 是否更新已存在的模型信息 (默认 false，只添加新模型)
-    
-    返回:
-    - added: 新添加的模型数量
-    - updated: 更新的模型数量
-    - skipped: 跳过的模型数量
-    - failed: 失败的模型数量
-    - errors: 错误详情列表
-    """
+    """同步供应商模型列表"""
     try:
         agent_manager = get_agent_coordinator()
         
         # 获取供应商配置
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == provider_id
+            ProviderConfigORM.id == provider_id
         ).first()
         
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
         
         # 获取 Provider 实例
-        provider_template = agent_manager.model_factory.get_provider_template(provider.template_type)
+        provider_template = agent_manager.model_factory.get_provider_template(provider.provider_type)
         if not provider_template:
             raise HTTPException(
                 status_code=400, 
-                detail=f"不支持的供应商模板类型: {provider.template_type}"
+                detail=f"不支持的供应商模板类型: {provider.provider_type}"
             )
         
         # 构造 ProviderConfig
-        provider_config = ProviderConfig(
-            provider_id=provider.provider_id,
-            config_json=provider.config_json
+        from core import ProviderConfig
+        provider_instance_config = ProviderConfig(
+            provider_id=provider.id,
+            config_payload=provider.config_payload
         )
         
         # 调用 list_models 获取可用模型
         try:
-            available_models = provider_template.list_models(provider_config)
+            available_models = provider_template.list_models(provider_instance_config)
         except Exception as e:
-            logger.error(f"同步模型失败 [{provider_id}]: {str(e)}")
+            logger.error(f"同步模型失败 [Config ID: {provider_id}]: {str(e)}")
             raise HTTPException(status_code=400, detail=str(e))
         
         # 统计信息
@@ -424,7 +396,7 @@ async def sync_provider_models(
             try:
                 # 检查模型是否已存在
                 existing_model = db.query(ModelORM).filter(
-                    ModelORM.provider_id == provider_id,
+                    ModelORM.provider_config_id == provider_id,
                     ModelORM.model_id == model_info.model_id
                 ).first()
                 
@@ -442,7 +414,7 @@ async def sync_provider_models(
                 else:
                     # 添加新模型
                     new_model = ModelORM(
-                        provider_id=provider_id,
+                        provider_config_id=provider_id,
                         model_id=model_info.model_id,
                         model_type=model_info.type.value,
                         capabilities=[c.value for c in model_info.capabilities],
@@ -464,7 +436,7 @@ async def sync_provider_models(
             code=200,
             message=f"同步完成: 新增 {added_count} 个，更新 {updated_count} 个，跳过 {skipped_count} 个，失败 {failed_count} 个",
             data={
-                "provider_id": provider_id,
+                "config_id": provider_id,
                 "total": len(available_models),
                 "added": added_count,
                 "updated": updated_count,
@@ -481,43 +453,40 @@ async def sync_provider_models(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/{provider_id}/available-models", response_model=ResponseModel)
+@router.get("/providers/{config_id}/available-models", response_model=ResponseModel)
 async def list_available_models(
-    provider_id: str,
+    config_id: int,
     db: Session = Depends(get_db)
 ):
-    """获取供应商所有可用的模型列表（从 API 获取）
-    
-    此接口会调用供应商的 list_models() 方法，从供应商 API 获取所有可用模型。
-    返回的模型包含类型、能力、上下文窗口等信息，可用于添加新模型到系统。
-    """
+    """获取供应商所有可用的模型列表（从 API 获取）"""
     try:
         agent_manager = get_agent_coordinator()
         
         # 获取供应商配置
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == provider_id
+            ProviderConfigORM.id == config_id
         ).first()
         
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
         
         # 获取 Provider 实例
-        provider_template = agent_manager.model_factory.get_provider_template(provider.template_type)
+        provider_template = agent_manager.model_factory.get_provider_template(provider.provider_type)
         if not provider_template:
             raise HTTPException(
                 status_code=400, 
-                detail=f"不支持的供应商模板类型: {provider.template_type}"
+                detail=f"不支持的供应商模板类型: {provider.provider_type}"
             )
         
         # 构造 ProviderConfig
-        provider_config = ProviderConfig(
-            provider_id=provider.provider_id,
-            config_json=provider.config_json
+        from core import ProviderConfig
+        provider_instance_config = ProviderConfig(
+            provider_id=provider.id,
+            config_payload=provider.config_payload
         )
         
         # 调用 list_models 获取可用模型
-        models = provider_template.list_models(provider_config)
+        models = provider_template.list_models(provider_instance_config)
         
         # 转换为字典格式
         models_data = [
@@ -536,7 +505,7 @@ async def list_available_models(
             code=200,
             message="获取成功",
             data={
-                "provider_id": provider_id,
+                "config_id": config_id,
                 "models": models_data
             }
         )

@@ -14,16 +14,17 @@ export interface ProviderConfig {
 }
 
 export interface Provider {
-  provider_id: string;
+  id: number;
+  name: string;
   description?: string;
-  config_json: ProviderConfig;
-  template_type: string;  // 动态模板类型，不再硬编码
+  config_payload: ProviderConfig;
+  provider_type: string;  // 动态模板类型
 }
 
 // 3. Models
 export interface Model {
-  id: string; // UUID (primary key)
-  provider_id: string;
+  id: number; // Integer (primary key)
+  provider_config_id: number;
   model_id: string;
   model_type: 'chat' | 'embedding' | 'rerank';
   capabilities: string[];
@@ -41,14 +42,14 @@ export interface Character {
   avatar_id?: string; // Avatar asset ID (可选)
   avatar_position?: 'left' | 'center' | 'right'; // Avatar display position (前端使用)
   system_prompt: string;
-  primary_model_id?: string; // UUID of the model (references models.id, 可选)
-  primary_provider_id?: string;
+  primary_model_id?: number; // Integer ID of the model (references models.id, 可选)
+  primary_provider_config_id?: number;
   primary_model?: { // 模型详情（从后端返回）
-    id: string;
+    id: number;
     model_id: string;
-    provider_id: string;
+    provider_config_id: number;
   };
-  voice_asset_id?: string; // Voice asset ID (可选)
+  voice_asset_id?: number; // Voice asset ID (可选)
   voice_speaker_id?: string; // Voice speaker ID (可选)
   voice_asset?: VoiceAsset; // Voice asset object (from API with relationships)
   enabled: boolean;
@@ -71,14 +72,14 @@ export interface Avatar {
 
 // 音色资产
 export interface VoiceAsset {
-  id: string;
+  id: number;
   name: string;
-  provider_id: string;
+  provider_id: number;
   voice_config: Record<string, any>;
   created_at: string;
   updated_at: string;
   provider?: {
-    id: string;
+    id: number;
     name: string;
     provider_type: string;
   };
@@ -172,7 +173,7 @@ export interface ParameterSchema {
 
 export interface ModelParameterSchemaResponse {
   model_id: string;
-  provider_id: string;
+  provider_config_id: number;
   model_type: string;
   capabilities: string[];
   common_parameters: Record<string, ParameterSchema>;

@@ -28,7 +28,7 @@ class QwenProvider(BaseProvider):
 
             config_fields=[
 
-                ConfigField(field_name="api_key", field_type="string", required=True, description="通义千问API密钥"),
+                ConfigField(field_name="api_key", field_type="string", required=True, sensitive=True, description="通义千问API密钥"),
 
                 ConfigField(field_name="base_url", field_type="string", required=False, description="API基础URL"),
 
@@ -68,7 +68,7 @@ class QwenProvider(BaseProvider):
 
         logger = get_logger(__name__)
 
-        config = provider_config.config_json
+        config = provider_config.config_payload
 
         merged = self._merge_params(config, **kwargs)
         
@@ -149,7 +149,7 @@ class QwenProvider(BaseProvider):
 
         logger = get_logger(__name__)
 
-        config = provider_config.config_json
+        config = provider_config.config_payload
 
         api_key = config.get("api_key")
 
@@ -419,7 +419,7 @@ class QwenProvider(BaseProvider):
         from typing import List
         
 
-        config = provider_config.config_json
+        config = provider_config.config_payload
 
         api_key = config.get("api_key")
         
@@ -486,7 +486,7 @@ class QwenProvider(BaseProvider):
 
         logger = get_logger(__name__)
 
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
 
         try:

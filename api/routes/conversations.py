@@ -41,7 +41,13 @@ async def list_conversations(
     支持分页和按角色过滤
     """
     try:
-        query = db.query(Conversation)
+        from sqlalchemy.orm import joinedload, selectinload
+        
+        # 使用 joinedload 预加载角色信息，使用 selectinload 预加载消息以计算数量
+        query = db.query(Conversation).options(
+            joinedload(Conversation.character),
+            selectinload(Conversation.messages)
+        )
         
         # 按角色过滤
         if character_id:
@@ -86,9 +92,17 @@ async def get_conversation(
 ) -> Dict[str, Any]:
     """获取会话详情"""
     try:
-        conversation = db.query(Conversation).filter(
+        from sqlalchemy.orm import joinedload, selectinload
+        
+        # 预加载必要的关系
+        query = db.query(Conversation).filter(
             Conversation.id == conversation_id
-        ).first()
+        ).options(
+            joinedload(Conversation.character),
+            selectinload(Conversation.messages)
+        )
+        
+        conversation = query.first()
         
         if not conversation:
             raise HTTPException(status_code=404, detail="会话不存在")
@@ -265,10 +279,11 @@ async def get_conversation_messages(
 ) -> Dict[str, Any]:
     """获取会话的所有消息"""
     try:
-        # 检查会话是否存在
+        from sqlalchemy.orm import selectinload
+        # 检查会话是否存在并预加载消息
         conversation = db.query(Conversation).filter(
             Conversation.id == conversation_id
-        ).first()
+        ).options(selectinload(Conversation.messages)).first()
         
         if not conversation:
             raise HTTPException(status_code=404, detail="会话不存在")

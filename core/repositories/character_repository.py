@@ -144,15 +144,15 @@ class CharacterRepository(BaseRepository[Character]):
         self.db.commit()
         return True
     
-    def get_by_provider(self, provider_id: str) -> List[Character]:
+    def get_by_provider_config_id(self, provider_config_id: int) -> List[Character]:
         """获取使用指定供应商的所有角色
         
         Args:
-            provider_id: 供应商 ID
+            provider_config_id: 供应商内部 ID
             
         Returns:
             角色列表
         """
         return self.db.query(Character).filter(
-            Character.primary_provider_id == provider_id
+            Character.primary_provider_config_id == provider_config_id
         ).all()

@@ -132,12 +132,10 @@ const ASRSettings: React.FC = () => {
                 <Card className="border-none bg-muted/30 shadow-none">
                     <CardContent className="p-6">
                         <div className="flex items-start gap-4 mb-6">
-                            <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
-                                <Cpu size={20} className="text-primary" />
-                            </div>
+                            <Cpu size={20} className="text-foreground shrink-0 mt-1" />
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-base font-bold text-foreground mb-1">
-                                    {t('settings.modelPrecision')}
+                                     {t('settings.modelPrecision')}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
                                     {t('settings.asrModelMgmtDesc')}
@@ -341,9 +339,7 @@ const ASRSettings: React.FC = () => {
                 <Card className="border-none bg-muted/30 shadow-none">
                     <CardContent className="p-6">
                         <div className="flex items-start gap-4 mb-6">
-                            <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
-                                <Languages size={20} className="text-primary" />
-                            </div>
+                            <Languages size={20} className="text-foreground shrink-0 mt-1" />
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-base font-bold text-foreground mb-1">
                                     {t('settings.recognitionLanguage')}

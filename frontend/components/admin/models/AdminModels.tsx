@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { Provider, Model } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { providersApi, modelsApi } from '../../../services/api';
+import { useDataStore } from '../../../store/useDataStore';
 import { ConfirmDialog, Toast, ToastMessage } from '../../ui';
 import { ProviderList } from './ProviderList';
 import { ModelToolbar } from './ModelToolbar';
@@ -24,12 +25,12 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   onRefresh,
 }) => {
   const { t } = useLanguage();
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<number | null>(null);
 
   // 建议 A：默认选中第一个供应商
   useEffect(() => {
-    if (providers.length > 0 && !selectedProvider && providers[0]) {
-      setSelectedProvider(providers[0].provider_id);
+    if (providers.length > 0 && selectedProvider === null && providers[0]) {
+      setSelectedProvider(providers[0].id);
     }
   }, [providers, selectedProvider]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,22 +60,21 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     { id: 'rerank', label: t('admin.rerank') },
   ];
 
+  const [showEnabledOnly, setShowEnabledOnly] = useState(false);
+
   const filteredModels = models.filter(m => {
-    if (selectedProvider && m.provider_id !== selectedProvider) return false;
+    if (selectedProvider !== null && m.provider_config_id !== selectedProvider) return false;
     if (searchQuery && !m.model_id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (showEnabledOnly && !m.enabled) return false;
     if (activeCategory === 'all') return true;
     if (['chat', 'embedding', 'rerank'].includes(activeCategory)) {
       return m.model_type === activeCategory;
     }
     return m.capabilities.includes(activeCategory);
-  }).sort((a, b) => {
-    // 优先显示已启用的模型
-    if (a.enabled === b.enabled) return 0;
-    return a.enabled ? -1 : 1;
   });
 
-  const getProviderModelCount = (providerId: string) => {
-    return models.filter(m => m.provider_id === providerId).length;
+  const getProviderModelCount = (providerConfigId: number) => {
+    return models.filter(m => m.provider_config_id === providerConfigId).length;
   };
 
   const handleOpenProviderModal = (provider?: Provider) => {
@@ -82,35 +82,36 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       setEditingProvider({ ...provider });
     } else {
       const defaultTemplate = providerTemplates[0];
-      const defaultConfigJson: any = {};
+      const defaultConfigPayload: any = {};
       if (defaultTemplate) {
         defaultTemplate.config_fields?.forEach((field: any) => {
-          defaultConfigJson[field.field_name] = field.default_value || '';
+          defaultConfigPayload[field.field_name] = field.default_value || '';
         });
       }
       setEditingProvider({
-        provider_id: defaultTemplate?.template_type || 'openai',
-        template_type: defaultTemplate?.template_type || 'openai',
+        name: defaultTemplate?.name || '',
+        provider_type: defaultTemplate?.provider_type || 'openai',
         description: '',
-        config_json: defaultConfigJson
+        config_payload: defaultConfigPayload
       });
     }
     setIsProviderModalOpen(true);
   };
 
   const handleSaveProvider = async () => {
-    if (!editingProvider || !editingProvider.provider_id) return;
+    if (!editingProvider || !editingProvider.name) return;
 
     try {
-      const existing = providers.find(p => p.provider_id === editingProvider.provider_id);
-      if (existing) {
+      if (editingProvider.id) {
         // 更新现有供应商
-        await providersApi.updateProvider(editingProvider.provider_id, {
-          config_json: editingProvider.config_json
+        await providersApi.updateProvider(editingProvider.id, {
+          name: editingProvider.name,
+          config_payload: editingProvider.config_payload,
+          provider_type: editingProvider.provider_type
         });
         setToast({ success: true, message: t('admin.providerUpdated') });
       } else {
-        // 创建新供应商 - 后端会检查重复
+        // 创建新供应商
         await providersApi.createProvider(editingProvider as Provider);
         setToast({ success: true, message: t('admin.providerCreated') });
       }
@@ -137,15 +138,15 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     }
   };
 
-  const handleDeleteProvider = async (providerId: string) => {
+  const handleDeleteProvider = async (configId: number) => {
     setConfirmDialog({
       isOpen: true,
       title: t('admin.delete'),
       description: t('admin.confirmDeleteProvider'),
       type: 'danger',
       onConfirm: async () => {
-        await providersApi.deleteProvider(providerId);
-        if (selectedProvider === providerId) setSelectedProvider(null);
+        await providersApi.deleteProvider(configId);
+        if (selectedProvider === configId) setSelectedProvider(null);
         await onRefresh();
       }
     });
@@ -156,7 +157,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       setEditingModel({ ...model });
     } else {
       setEditingModel({
-        provider_id: selectedProvider || '',
+        provider_config_id: selectedProvider || 0,
         model_id: '',
         model_type: 'chat',
         capabilities: [],
@@ -167,10 +168,10 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   };
 
   const handleSaveModel = async () => {
-    if (!editingModel || !editingModel.model_id || !editingModel.provider_id) return;
-    const existing = models.find(m => m.provider_id === editingModel.provider_id && m.model_id === editingModel.model_id);
+    if (!editingModel || !editingModel.model_id || !editingModel.provider_config_id) return;
+    const existing = models.find(m => m.provider_config_id === editingModel.provider_config_id && m.model_id === editingModel.model_id);
     if (existing && existing.model_id === editingModel.model_id) {
-      await modelsApi.updateModel(editingModel.provider_id, editingModel.model_id, editingModel as Model);
+      await modelsApi.updateModel(editingModel.provider_config_id, editingModel.model_id, editingModel as Model);
     } else {
       await modelsApi.createModel(editingModel as Model);
     }
@@ -178,22 +179,34 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     await onRefresh();
   };
 
-  const handleDeleteModel = async (providerId: string, modelId: string) => {
+  const handleDeleteModel = async (providerConfigId: number, modelId: string) => {
     setConfirmDialog({
       isOpen: true,
       title: t('admin.delete'),
       description: t('admin.confirmDeleteModel'),
       type: 'danger',
       onConfirm: async () => {
-        await modelsApi.deleteModel(providerId, modelId);
+        await modelsApi.deleteModel(providerConfigId, modelId);
         await onRefresh();
       }
     });
   };
 
+  const { updateModelStatus } = useDataStore();
+
   const handleToggleModel = async (model: Model) => {
-    await modelsApi.toggleModel(model.model_id, !model.enabled, model.provider_id);
-    await onRefresh();
+    const newEnabled = !model.enabled;
+    // 乐观更新：立即应用 UI 变化
+    updateModelStatus(model.provider_config_id, model.model_id, newEnabled);
+    
+    try {
+      await modelsApi.toggleModel(model.model_id, newEnabled, model.provider_config_id, model);
+    } catch (error) {
+      // 出错时回滚
+      updateModelStatus(model.provider_config_id, model.model_id, !newEnabled);
+      setToast({ success: false, message: t('admin.operationFailed') });
+      setTimeout(() => setToast(null), 3000);
+    }
   };
 
   const handleSyncModels = async () => {
@@ -251,6 +264,8 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
               onSync={handleSyncModels}
               onAddModel={() => handleOpenModelModal()}
               isSyncing={isSyncing}
+              showEnabledOnly={showEnabledOnly}
+              onToggleEnabledFilter={() => setShowEnabledOnly(!showEnabledOnly)}
             />
 
             <ModelTable
@@ -277,7 +292,6 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
         onClose={() => setIsProviderModalOpen(false)}
         provider={editingProvider}
         providerTemplates={providerTemplates}
-        existingProviders={providers}
         onSave={handleSaveProvider}
         onChange={setEditingProvider}
       />

@@ -11,7 +11,7 @@ export interface SendMessageParams {
   content: string;
   characterId: number | string;
   modelId: string;
-  providerId: string;
+  providerConfigId: number;
   modelParameters?: {
     temperature?: number;
     max_tokens?: number;
@@ -95,7 +95,7 @@ export const messagesApi = {
       content,
       characterId,
       modelId,
-      providerId,
+      providerConfigId,
       modelParameters
     } = params;
 
@@ -103,7 +103,7 @@ export const messagesApi = {
       conversation_id: conversationId,
       character_id: characterId,
       model_id: modelId,
-      provider_id: providerId,
+      provider_config_id: providerConfigId,
       content,
       display_mode: 'text' // 默认值
     };

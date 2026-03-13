@@ -53,11 +53,8 @@ class TTSFactory:
         
         from core.db import TTSProvider
         
-        # 查询启用的供应商
         if not provider_type:
-            provider = db_session.query(TTSProvider).filter(
-                TTSProvider.enabled == True
-            ).first()
+            provider = db_session.query(TTSProvider).first()
             
             if not provider:
                 raise ValueError("未找到启用的 TTS 供应商，请先配置")
@@ -65,10 +62,8 @@ class TTSFactory:
             provider_type = provider.provider_type
             config = provider.config_payload
         else:
-            # 根据类型查询供应商
             provider = db_session.query(TTSProvider).filter(
-                TTSProvider.provider_type == provider_type,
-                TTSProvider.enabled == True
+                TTSProvider.provider_type == provider_type
             ).first()
             
             if not provider:

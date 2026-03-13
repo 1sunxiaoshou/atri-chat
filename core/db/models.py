@@ -132,13 +132,12 @@ class TTSProvider(Base):
     __tablename__ = "tts_providers"
     
     # 主键
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     
     # 基本信息
     provider_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # openai/gpt_sovits/azure
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     config_payload: Mapped[dict] = mapped_column(JSON, nullable=False)  # 供应商级别配置
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
@@ -164,11 +163,11 @@ class VoiceAsset(Base):
     __tablename__ = "assets_voices_v2"
     
     # 主键
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     
     # 外键
-    provider_id: Mapped[str] = mapped_column(
-        String(36),
+    provider_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey("tts_providers.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -203,14 +202,16 @@ class ProviderConfig(Base):
     __tablename__ = "provider_configs"
     
     # 主键
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     
-    # 供应商标识（唯一）
-    provider_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    # 供应商显示名称
+    name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    
+    # 供应商类型（驱动类型，如 openai, anthropic）
+    provider_type: Mapped[str] = mapped_column(String(50), default="openai")
     
     # 配置信息
-    config_json: Mapped[dict] = mapped_column(JSON, nullable=False)
-    template_type: Mapped[str] = mapped_column(String(50), default="openai")
+    config_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
     
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
@@ -224,7 +225,7 @@ class ProviderConfig(Base):
     )
     
     def __repr__(self):
-        return f"<ProviderConfig(id={self.id}, provider_id={self.provider_id})>"
+        return f"<ProviderConfig(id={self.id}, name={self.name})>"
 
 
 class Model(Base):
@@ -232,12 +233,12 @@ class Model(Base):
     __tablename__ = "models"
     
     # 主键
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     
     # 外键
-    provider_id: Mapped[str] = mapped_column(
-        String(100), 
-        ForeignKey("provider_configs.provider_id", ondelete="CASCADE"),
+    provider_config_id: Mapped[int] = mapped_column(
+        Integer, 
+        ForeignKey("provider_configs.id", ondelete="CASCADE"),
         nullable=False,
         index=True
     )
@@ -264,11 +265,11 @@ class Model(Base):
     
     # 唯一约束
     __table_args__ = (
-        UniqueConstraint("provider_id", "model_id", name="uq_provider_model"),
+        UniqueConstraint("provider_config_id", "model_id", name="uq_provider_model"),
     )
     
     def __repr__(self):
-        return f"<Model(id={self.id}, provider_id={self.provider_id}, model_id={self.model_id})>"
+        return f"<Model(id={self.id}, provider_config_id={self.provider_config_id}, model_id={self.model_id})>"
 
 
 # ==================== 角色表 ====================
@@ -298,8 +299,8 @@ class Character(Base):
     )
     
     # 语音配置：引用音色资产（可选）
-    voice_asset_id: Mapped[Optional[str]] = mapped_column(
-        String(36),
+    voice_asset_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
         ForeignKey("assets_voices_v2.id", ondelete="RESTRICT"),
         nullable=True,
         index=True
@@ -307,13 +308,20 @@ class Character(Base):
     voice_speaker_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     
     # 主模型（可选）
-    primary_model_id: Mapped[Optional[str]] = mapped_column(
-        String(36),
+    primary_model_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
         ForeignKey("models.id", ondelete="SET NULL"),
         nullable=True,
-        index=True
+        index=True,
+        comment="关联的模型内部 ID"
     )
-    primary_provider_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    primary_provider_config_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("provider_configs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="关联的供应商内部 ID"
+    )
     
     # 状态
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)

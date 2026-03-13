@@ -2,7 +2,7 @@ import { httpClient } from './base';
 import { ApiResponse, VoiceAsset } from '../../types';
 
 export interface TTSProvider {
-    id: string;
+    id: number;
     name: string;
     provider_type: string;
     level: 'user' | 'character';
@@ -33,7 +33,7 @@ export const voiceAssetsApi = {
      */
     createVoiceAsset: async (data: {
         name: string;
-        provider_id: string;
+        provider_id: number;
         voice_config: Record<string, any>;
     }): Promise<ApiResponse<VoiceAsset>> => {
         return httpClient.post<VoiceAsset>('/voice-assets', data);
@@ -45,7 +45,7 @@ export const voiceAssetsApi = {
      * @param data - 更新数据
      */
     updateVoiceAsset: async (
-        id: string,
+        id: number,
         data: Partial<VoiceAsset>
     ): Promise<ApiResponse<VoiceAsset>> => {
         return httpClient.patch<VoiceAsset>(`/voice-assets/${id}`, data);
@@ -55,7 +55,7 @@ export const voiceAssetsApi = {
      * 删除音色资产
      * @param id - 音色资产 ID
      */
-    deleteVoiceAsset: async (id: string): Promise<ApiResponse<void>> => {
+    deleteVoiceAsset: async (id: number): Promise<ApiResponse<void>> => {
         return httpClient.delete<void>(`/voice-assets/${id}`);
     },
 };

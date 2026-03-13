@@ -15,7 +15,7 @@ class DeepSeekProvider(BaseProvider):
             description="DeepSeek - 高性能开源 AI 模型",
 
             config_fields=[
-                ConfigField(field_name="api_key", field_type="string", required=True, description="DeepSeek API密钥"),
+                ConfigField(field_name="api_key", field_type="string", required=True, sensitive=True, description="DeepSeek API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.deepseek.com", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
@@ -25,7 +25,7 @@ class DeepSeekProvider(BaseProvider):
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_openai import ChatOpenAI
         
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {

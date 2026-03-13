@@ -7,6 +7,7 @@ interface AudioState {
   asrLanguage: string;   // 'auto' | 'zh' | 'en' | 'ja' | 'ko' | 'yue'
   asrUseInt8: boolean;
   autoPlay: boolean;     // AI 回复后自动播放 TTS
+  audioCacheLimit: number;
 }
 
 interface AudioStore extends AudioState {
@@ -14,6 +15,8 @@ interface AudioStore extends AudioState {
   setAsrLanguage: (lang: string) => void;
   setAsrUseInt8: (v: boolean) => void;
   setAutoPlay: (v: boolean) => void;
+  setAudioCacheLimit: (v: number) => void;
+  resetSettings: () => void;
 }
 
 export const useAudioStore = create<AudioStore>()(
@@ -24,11 +27,20 @@ export const useAudioStore = create<AudioStore>()(
       asrLanguage: 'auto',
       asrUseInt8: false,
       autoPlay: false,
+      audioCacheLimit: AUDIO_CONFIG.DEFAULT_CACHE_LIMIT,
 
       setVolume: (v) => set({ volume: v }),
       setAsrLanguage: (lang) => set({ asrLanguage: lang }),
       setAsrUseInt8: (v) => set({ asrUseInt8: v }),
       setAutoPlay: (v) => set({ autoPlay: v }),
+      setAudioCacheLimit: (v) => set({ audioCacheLimit: v }),
+      resetSettings: () => set({
+        volume: AUDIO_CONFIG.DEFAULT_VOLUME,
+        asrLanguage: 'auto',
+        asrUseInt8: false,
+        autoPlay: false,
+        audioCacheLimit: AUDIO_CONFIG.DEFAULT_CACHE_LIMIT,
+      }),
     }),
     {
       name: 'audio-settings',
@@ -38,6 +50,7 @@ export const useAudioStore = create<AudioStore>()(
         asrLanguage: state.asrLanguage,
         asrUseInt8: state.asrUseInt8,
         autoPlay: state.autoPlay,
+        audioCacheLimit: state.audioCacheLimit,
       }),
     }
   )

@@ -7,7 +7,7 @@ import { cn } from '../../../utils/cn';
 interface ModelTableProps {
     models: Model[];
     onEditModel: (model: Model) => void;
-    onDeleteModel: (providerId: string, modelId: string) => void;
+    onDeleteModel: (providerConfigId: number, modelId: string) => void;
     onToggleModel: (model: Model) => void;
 }
 
@@ -42,7 +42,7 @@ export const ModelTable: React.FC<ModelTableProps> = ({
                     {models.length > 0 ? (
                         models.map((model) => (
                             <tr
-                                key={`${model.provider_id}-${model.model_id}`}
+                                key={model.id}
                                 className="group hover:bg-muted/20 transition-colors"
                             >
                                 <td className="pl-6 pr-4 py-4 font-medium">{model.model_id}</td>
@@ -102,7 +102,7 @@ export const ModelTable: React.FC<ModelTableProps> = ({
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-destructive hover:text-destructive"
-                                            onClick={() => onDeleteModel(model.provider_id, model.model_id)}
+                                            onClick={() => onDeleteModel(model.provider_config_id, model.model_id)}
                                         >
                                             <Trash size={14} />
                                         </Button>

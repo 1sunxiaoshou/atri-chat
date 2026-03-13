@@ -155,7 +155,7 @@ class BaseProvider(ABC):
             **kwargs: 动态参数
         """
         from langchain_openai import OpenAIEmbeddings
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         params = {
             "model": model_id,
@@ -184,7 +184,7 @@ class BaseProvider(ABC):
             Exception: 当 API 调用失败时抛出异常
         """
         from openai import OpenAI
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         client = OpenAI(
             api_key=config.get("api_key"),

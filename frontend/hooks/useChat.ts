@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Message, Character, Model, ModelParameters } from '../types';
 import { api } from '../services/api/index';
 import { MESSAGE_ID_CONFIG, HTTP_STATUS } from '../utils/constants';
@@ -83,7 +83,7 @@ export const useChat = () => {
           content: content.trim(),
           characterId: character.id,
           modelId: model.model_id,
-          providerId: model.provider_id,
+          providerConfigId: model.provider_config_id,
           modelParameters
         },
         {

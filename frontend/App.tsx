@@ -25,8 +25,10 @@ const App: React.FC = () => {
   const { 
     characters, 
     models, 
+    providers,
     fetchCharacters, 
-    fetchModels 
+    fetchModels,
+    fetchProviders
   } = useDataStore();
 
   // Character Selection State
@@ -50,12 +52,12 @@ const App: React.FC = () => {
 
   // 查找活动模型：优先使用临时覆盖的模型，否则使用角色的主模型
   const activeModel = overrideModel
-    ? overrideModel as Model
+    ? overrideModel as any as Model
     : activeCharacter?.primary_model
       ? {
         id: activeCharacter.primary_model.id,
         model_id: activeCharacter.primary_model.model_id,
-        provider_id: activeCharacter.primary_model.provider_id
+        provider_config_id: activeCharacter.primary_model.provider_config_id
       } as Model
       : null;
 
@@ -65,9 +67,10 @@ const App: React.FC = () => {
       fetchCharacters();
       loadConversations(selectedCharacterId);
     } else if (viewMode === 'characters') {
-      // 角色管理页面需要 characters 和 models 数据
+      // 角色管理页面需要 characters, models 和 providers 数据
       fetchCharacters();
       fetchModels();
+      fetchProviders();
     }
   }, [selectedCharacterId, viewMode, fetchCharacters, fetchModels]);
 
@@ -309,10 +312,12 @@ const App: React.FC = () => {
           <AdminCharacters
             characters={characters}
             models={models}
+            providers={providers}
             onRefresh={async () => {
               await Promise.all([
                 fetchCharacters(true),
-                fetchModels(true)
+                fetchModels(true),
+                fetchProviders(true)
               ]);
             }}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

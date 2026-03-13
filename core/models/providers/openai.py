@@ -14,7 +14,7 @@ class OpenAIProvider(BaseProvider):
             name="OpenAI",
             description="OpenAI API provider for GPT models",
             config_fields=[
-                ConfigField(field_name="api_key", field_type="string", required=True, description="OpenAI API密钥"),
+                ConfigField(field_name="api_key", field_type="string", required=True, sensitive=True, description="OpenAI API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.openai.com/v1", description="API基础URL"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
@@ -53,7 +53,7 @@ class OpenAIProvider(BaseProvider):
         from ...logger import get_logger
         
         logger = get_logger(__name__)
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {
@@ -80,7 +80,7 @@ class OpenAIProvider(BaseProvider):
     
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_openai import OpenAIEmbeddings
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         params = {
             "model": model_id,
