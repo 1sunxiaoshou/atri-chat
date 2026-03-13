@@ -88,7 +88,7 @@ async def list_avatars(
         }
         
     except Exception as e:
-        logger.error(f"获取形象列表失败: {e}", exc_info=True)
+        logger.error("获取形象列表失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -133,7 +133,7 @@ async def get_avatar(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取形象详情失败: {e}", exc_info=True)
+        logger.error("获取形象详情失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -183,7 +183,7 @@ async def update_avatar(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新形象失败: {e}", exc_info=True)
+        logger.error("更新形象失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -285,7 +285,7 @@ async def upload_avatar(
         if 'thumbnail_file_path' in locals() and thumbnail_file_path.exists():
             thumbnail_file_path.unlink(missing_ok=True)
         
-        logger.error(f"上传形象失败: {e}", exc_info=True)
+        logger.error("上传形象失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -332,7 +332,7 @@ async def delete_avatar(
                     thumbnail_file_path.unlink()
                     deleted_files.append("thumbnail")
         except Exception as e:
-            logger.error(f"清理物理文件失败: {e}", exc_info=True)
+            logger.error("清理物理文件失败: {}", str(e), exc_info=True)
             
         # 删除数据库记录
         db.delete(avatar)
@@ -350,5 +350,5 @@ async def delete_avatar(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除形象失败: {e}", exc_info=True)
+        logger.error("删除形象失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

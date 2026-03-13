@@ -13,6 +13,7 @@ export const useChat = () => {
   const [currentResponse, setCurrentResponse] = useState('');
   const [currentReasoning, setCurrentReasoning] = useState('');
   const [currentStatus, setCurrentStatus] = useState('');
+  const [currentToolCalls, setCurrentToolCalls] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   // 移除不必要的 renderTrigger，避免频繁重渲染
 
@@ -20,8 +21,8 @@ export const useChat = () => {
    * 加载对话消息
    */
   const loadMessages = useCallback(async (conversationId: string | number) => {
+    setError(null);
     try {
-      setError(null);
       const response = await api.getMessages(conversationId);
       if (response.code === HTTP_STATUS.OK) {
         // 确保 response.data 是数组
@@ -51,7 +52,8 @@ export const useChat = () => {
     character: Character,
     model: Model,
     modelParameters?: ModelParameters,
-    onVrmData?: (data: any) => void
+    onVrmData?: (data: any) => void,
+    onTitleUpdate?: (title: string) => void
   ) => {
     if (!content.trim()) { return; }
 
@@ -72,6 +74,7 @@ export const useChat = () => {
     setCurrentResponse('');
     setCurrentReasoning('');
     setCurrentStatus('');
+    setCurrentToolCalls([]);
 
     // 用于存储流式响应中的推理内容
     let streamReasoning = '';
@@ -104,6 +107,24 @@ export const useChat = () => {
             if (onVrmData) {
               onVrmData(data);
             }
+          },
+          onTitleUpdate: (title: string) => {
+            if (onTitleUpdate) {
+              onTitleUpdate(title);
+            }
+          },
+          onToolStart: (tool: string, input: any, run_id: string) => {
+            setCurrentToolCalls(prev => [
+              ...prev, 
+              { run_id, tool, input, status: 'running' }
+            ]);
+            setCurrentStatus(`正在使用工具: ${tool}...`);
+          },
+          onToolEnd: (tool: string, output: any, run_id: string) => {
+            setCurrentToolCalls(prev => prev.map(tc => 
+              tc.run_id === run_id ? { ...tc, output, status: 'completed' } : tc
+            ));
+            setCurrentStatus(`工具执行完成: ${tool}`);
           }
         }
       );
@@ -116,7 +137,8 @@ export const useChat = () => {
           message_type: 'assistant',
           content: response.data.message || currentResponse,
           created_at: new Date().toISOString(),
-          reasoning: streamReasoning || undefined
+          reasoning: streamReasoning || undefined,
+          tool_calls: currentToolCalls.length > 0 ? currentToolCalls : undefined
         };
 
         setMessages(prev => [...prev, assistantMessage]);
@@ -155,6 +177,7 @@ export const useChat = () => {
       setCurrentResponse('');
       setCurrentReasoning('');
       setCurrentStatus('');
+      setCurrentToolCalls([]);
     }
   }, [currentResponse]);
 
@@ -181,6 +204,7 @@ export const useChat = () => {
     setCurrentResponse('');
     setCurrentReasoning('');
     setCurrentStatus('');
+    setCurrentToolCalls([]);
     setError(null);
   }, []);
 
@@ -197,6 +221,7 @@ export const useChat = () => {
     currentResponse,
     currentReasoning,
     currentStatus,
+    currentToolCalls,
     error,
     // 移除 renderTrigger，不再需要
     loadMessages,

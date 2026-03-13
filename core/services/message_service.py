@@ -43,183 +43,110 @@ class MessageService:
                 context=context,
                 version="v2"
             ):
-                event_type = event.get("event")
+                # 将 LangChain 事件转换为前端标准负载
+                payload = self._get_payload_from_event(event)
                 
-                # 工具调用开始
-                if event_type == "on_tool_start":
-                    tool_name = event.get("name", "未知工具")
-                    tool_input = event.get("data", {}).get("input", {})
-                    run_id = event.get("run_id", "")
-                    tool_call_count += 1
+                if not payload:
+                    continue
                     
-                    # 使用 run_id 的前8位作为标识
-                    call_id = str(run_id)[-8:] if run_id else "unknown"
-                    
-                    # 格式化参数
-                    params_str = self._format_tool_params(tool_input)
-                    logger.info(f"[{call_id}] 工具: {tool_name}\n{params_str}")
-                    
-                    yield json.dumps({
-                        "type": "status",
-                        "content": f"正在使用工具: {tool_name}..."
-                    }, ensure_ascii=False)
+                # 统一处理：将其视为列表进行统计和分发
+                items = payload if isinstance(payload, list) else [payload]
                 
-                # 工具调用结束
-                elif event_type == "on_tool_end":
-                    tool_name = event.get("name", "未知工具")
-                    output = event.get("data", {}).get("output", "")
-                    run_id = event.get("run_id", "")
-                    
-                    call_id = str(run_id)[-8:] if run_id else "unknown"
-                    output_str = str(output)
-                    output_preview = output_str[:80] + "..." if len(output_str) > 80 else output_str
-                    logger.info(f"[{call_id}] 完成: {tool_name} → {output_preview}")
-                    
-                    yield json.dumps({
-                        "type": "tool_result",
-                        "tool": tool_name,
-                        "content": str(output)[:200]  # 只显示前200字符
-                    }, ensure_ascii=False)
-                
-                # 模型流式输出
-                elif event_type == "on_chat_model_stream":
-                    chunk = event.get("data", {}).get("chunk")
-                    if not isinstance(chunk, AIMessageChunk):
-                        continue
-                    
-                    # 聚合消息块
-                    full_message = chunk if full_message is None else full_message + chunk
-                    
-                    # 解析并发送内容
-                    text_chunk, reasoning_chunk = self._parse_chunk(chunk)
-                    
-                    if reasoning_chunk:
-                        yield json.dumps({
-                            "type": "reasoning",
-                            "content": reasoning_chunk
-                        }, ensure_ascii=False)
-                    
-                    if text_chunk:
+                for item in items:
+                    item_type = item.get("type")
+                    if item_type == "tool_start":
+                        tool_call_count += 1
+                    elif item_type == "text":
                         chunk_count += 1
-                        yield json.dumps({
-                            "type": "text",
-                            "content": text_chunk
-                        }, ensure_ascii=False)
-            
-            # 发送完成统计
-            full_response = full_message.content if full_message else ""
-            token_info = self._get_token_info(full_message)
-            
-            logger.info(
-                f"完成: {chunk_count} chunks, {tool_call_count} tools, "
-                f"{len(full_response)} chars{token_info}"
-            )
+                    elif item_type == "complete":
+                        continue
+                        
+                    yield json.dumps(item, ensure_ascii=False)
             
             yield json.dumps({
-                "type": "complete",
-                "stats": {
-                    "chunk_count": chunk_count,
-                    "tool_call_count": tool_call_count,
-                    "response_length": len(full_response)
-                },
-                "full_response": full_response
+                "type": "complete"
+                # full_response 由 AgentCoordinator 负责聚合，MessageService 不再尝试计算不准确的汇总
             }, ensure_ascii=False)
             
         except Exception as e:
-            logger.error(f"流式处理失败: {e}", exc_info=True)
+            logger.error("流式处理失败: {}", str(e), exc_info=True)
             raise
     
-    def _parse_chunk(self, chunk: AIMessageChunk) -> Tuple[str, str]:
-        """解析消息块
+    def _get_payload_from_event(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """从 LangChain 事件中提取前端负载 (类似 extract_tool_calls 的逻辑)"""
+        event_type = event.get("event")
+        data = event.get("data", {})
+        run_id = event.get("run_id", "")
         
-        Args:
-            chunk: AI消息块
+        # 1. 工具调用开始
+        if event_type == "on_tool_start":
+            return {
+                "type": "tool_start",
+                "tool": event.get("name"),
+                "input": data.get("input"),
+                "run_id": str(run_id)
+            }
             
-        Returns:
-            (text_content, reasoning_content) 元组
-        """
-        text_content = ""
-        reasoning_content = ""
-        
-        try:
-            if hasattr(chunk, 'content') and chunk.content:
-                if isinstance(chunk.content, str):
-                    text_content = chunk.content
-                elif isinstance(chunk.content, list):
-                    for block in chunk.content:
-                        if isinstance(block, str):
-                            text_content += block
-                        elif isinstance(block, dict):
-                            if block.get('type') == 'text':
-                                text_content += block.get('text', '')
-                            elif block.get('type') == 'reasoning':
-                                reasoning_content += block.get('reasoning', '')
-            
-            # 检查 additional_kwargs 中的推理内容
-            if hasattr(chunk, 'additional_kwargs') and chunk.additional_kwargs:
-                reasoning_content += chunk.additional_kwargs.get('reasoning_content', "")
-                
-        except Exception as e:
-            logger.warning(f"解析消息块异常: {e}", exc_info=True)
-            text_content = str(chunk.content) if chunk.content else ""
-        
-        return text_content, reasoning_content
-    
-    def _format_tool_params(self, params: Dict[str, Any]) -> str:
-        """格式化工具参数为易读格式
-        
-        Args:
-            params: 工具参数字典
-            
-        Returns:
-            格式化后的字符串
-        """
-        if not params:
-            return "  (无参数)"
-        
-        lines = []
-        for key, value in params.items():
-            # 处理长字符串
-            if isinstance(value, str):
-                if len(value) > 60:
-                    value_str = f"{value[:60]}... ({len(value)} chars)"
-                else:
-                    value_str = value
+        # 2. 工具调用结束
+        if event_type == "on_tool_end":
+            output = data.get("output")
+            # 确保输出是可序列化的，如果是消息对象则提取内容
+            if hasattr(output, "content"):
+                content = output.content
+            elif isinstance(output, (dict, list, str, int, float, bool, type(None))):
+                content = output
             else:
-                value_str = str(value)
+                content = str(output)
+                
+            return {
+                "type": "tool_result",
+                "tool": event.get("name"),
+                "content": content,
+                "run_id": str(run_id)
+            }
             
-            lines.append(f"  {key}: {value_str}")
-        
-        return "\n".join(lines)
-    
-    def _get_token_info(self, message) -> str:
-        """获取 token 使用信息
-        
-        Args:
-            message: AI 消息对象
+        # 3. 模型流式内容 (Text/Reasoning)
+        if event_type == "on_chat_model_stream":
+            chunk = data.get("chunk")
+            if not isinstance(chunk, AIMessageChunk):
+                return None
             
-        Returns:
-            格式化的 token 信息字符串,如 ", tokens=100+20=120"
-        """
-        if not message:
-            return ""
+            text, reasoning = self._parse_chunk(chunk)
+            payloads = []
+            if reasoning:
+                payloads.append({"type": "reasoning", "content": reasoning})
+            if text:
+                payloads.append({"type": "text", "content": text})
+            
+            return payloads if payloads else None
+
+        if event_type == "on_chat_model_end":
+            pass
+                
+        return None
+
+    def _parse_chunk(self, chunk: AIMessageChunk) -> Tuple[str, str]:
+        """解析消息块，提取文本和思考内容"""
+        text = ""
+        reasoning = ""
         
-        usage = None
-        
-        # 尝试标准方式
-        if hasattr(message, 'usage_metadata') and message.usage_metadata:
-            usage = message.usage_metadata
-        # 尝试 response_metadata
-        elif hasattr(message, 'response_metadata') and message.response_metadata:
-            metadata = message.response_metadata
-            usage = metadata.get('token_usage') or metadata.get('usage')
-        
-        if not usage:
-            return ""
-        
-        # 统一提取 token 数量 (兼容不同字段名)
-        input_tokens = usage.get('input_tokens') or usage.get('prompt_tokens', 0)
-        output_tokens = usage.get('output_tokens') or usage.get('completion_tokens', 0)
-        total_tokens = usage.get('total_tokens', input_tokens + output_tokens)
-        
-        return f", tokens={input_tokens}+{output_tokens}={total_tokens}"
+        # 1. 尝试从 content 列表/字符串中提取 (极简处理)
+        if isinstance(chunk.content, list):
+            for block in chunk.content:
+                if isinstance(block, dict):
+                    if block.get("type") == "text":
+                        text += block.get("text", "")
+                    elif block.get("type") == "reasoning":
+                        reasoning += block.get("reasoning", "")
+        elif isinstance(chunk.content, str):
+            text = chunk.content
+            
+        # 2. 依据阿里云官方文档，深度思考内容在 additional_kwargs['reasoning_content'] 中
+        if hasattr(chunk, 'additional_kwargs') and chunk.additional_kwargs:
+            # 阿里标准字段: reasoning_content
+            reasoning += chunk.additional_kwargs.get('reasoning_content') or ""
+            # 其他兼容字段
+            reasoning += chunk.additional_kwargs.get('thought') or ""
+            reasoning += chunk.additional_kwargs.get('thinking') or ""
+            
+        return text, reasoning

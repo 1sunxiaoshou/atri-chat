@@ -110,7 +110,7 @@ async def list_characters(
                 "primary_model": {
                     "id": char.primary_model.id,
                     "model_id": char.primary_model.model_id,
-                    "provider_id": char.primary_model.provider_config_id,
+                    "provider_config_id": char.primary_model.provider_config_id,
                 } if char.primary_model else None,
                 "enabled": char.enabled,
                 "created_at": char.created_at.isoformat(),
@@ -126,7 +126,7 @@ async def list_characters(
         }
         
     except Exception as e:
-        logger.error(f"获取角色列表失败: {e}", exc_info=True)
+        logger.error("获取角色列表失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -174,7 +174,7 @@ async def get_character(
             "primary_model": {
                 "id": character.primary_model.id,
                 "model_id": character.primary_model.model_id,
-                "provider_id": character.primary_model.provider_config_id,
+                "provider_config_id": character.primary_model.provider_config_id,
                 "model_type": character.primary_model.model_type,
             } if character.primary_model else None,
             # 动作绑定
@@ -202,7 +202,7 @@ async def get_character(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取角色详情失败: {e}", exc_info=True)
+        logger.error("获取角色详情失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -307,7 +307,7 @@ async def create_character(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"创建角色失败: {e}", exc_info=True)
+        logger.error("创建角色失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -376,7 +376,7 @@ async def update_character(
                     else:
                         logger.info(f"旧立绘文件被 {other_users} 个其他角色使用,跳过删除")
                 except Exception as e:
-                    logger.error(f"删除旧立绘文件失败: {e}", exc_info=True)
+                    logger.error("删除旧立绘文件失败: {}", str(e), exc_info=True)
                     # 不影响更新操作,只记录错误
         else:
             # 没有更新立绘URL,正常更新其他字段
@@ -415,7 +415,7 @@ async def update_character(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新角色失败: {e}", exc_info=True)
+        logger.error("更新角色失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -464,7 +464,7 @@ async def delete_character(
                 else:
                     logger.info(f"立绘文件被 {other_users} 个其他角色使用,跳过删除")
             except Exception as e:
-                logger.error(f"删除立绘文件失败: {e}", exc_info=True)
+                logger.error("删除立绘文件失败: {}", str(e), exc_info=True)
                 # 不影响角色删除,只记录错误
         
         return {
@@ -479,5 +479,5 @@ async def delete_character(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除角色失败: {e}", exc_info=True)
+        logger.error("删除角色失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

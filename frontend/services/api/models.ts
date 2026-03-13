@@ -30,12 +30,11 @@ export const modelsApi = {
    * @param model - 模型数据
    */
   updateModel: async (
-    providerConfigId: number,
-    modelId: string,
+    id: number,
     model: Partial<Model>
   ): Promise<ApiResponse<Model>> => {
     return httpClient.put<Model>(
-      `/models/update?provider_config_id=${providerConfigId}&model_id=${modelId}`,
+      `/models/${id}`,
       {
         model_type: model.model_type,
         capabilities: model.capabilities,
@@ -54,9 +53,8 @@ export const modelsApi = {
    * @param baseModel - 可选的模型基础数据，用于避免额外的服务器请求
    */
   toggleModel: async (
-    modelId: string,
+    id: number,
     enabled: boolean,
-    providerConfigId: number,
     baseModel?: Partial<Model>
   ): Promise<ApiResponse<void>> => {
     let payload: any;
@@ -73,7 +71,7 @@ export const modelsApi = {
     } else {
       // 否则先获取模型详情（兼容性回退）
       const modelData = await httpClient.get<any>(
-        `/models/detail?provider_config_id=${providerConfigId}&model_id=${modelId}`
+        `/models/${id}`
       );
 
       if (modelData.code !== HTTP_STATUS.OK) {
@@ -91,7 +89,7 @@ export const modelsApi = {
 
     // 更新模型
     return httpClient.put<void>(
-      `/models/update?provider_config_id=${providerConfigId}&model_id=${modelId}`,
+      `/models/${id}`,
       payload
     );
   },
@@ -102,12 +100,9 @@ export const modelsApi = {
    * @param modelId - 模型 ID
    */
   deleteModel: async (
-    providerConfigId: number,
-    modelId: string
+    id: number
   ): Promise<ApiResponse<void>> => {
-    return httpClient.delete<void>(
-      `/models/delete?provider_config_id=${providerConfigId}&model_id=${modelId}`
-    );
+    return httpClient.delete<void>(`/models/${id}`);
   },
 
   /**
@@ -136,7 +131,7 @@ export const modelsApi = {
       failed: number;
       errors?: string[];
     }>(
-      `/providers/sync-models?provider_id=${providerConfigId}&update_existing=${updateExisting}`,
+      `/providers/${providerConfigId}/sync?update_existing=${updateExisting}`,
       {}
     );
   }

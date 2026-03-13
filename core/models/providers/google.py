@@ -67,8 +67,8 @@ class GoogleProvider(BaseProvider):
         
         params = {
             "model": model_id,
-            "api_key": config.get("api_key"),
-            "base_url": config.get("base_url"),
+            "api_key": merged.get("api_key"),
+            "base_url": merged.get("base_url") or None,
             "temperature": merged.get("temperature"),
             "max_output_tokens": merged.get("max_tokens"),  # Google 使用 max_output_tokens
         }

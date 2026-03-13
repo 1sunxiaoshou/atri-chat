@@ -199,7 +199,11 @@
         "showSidebar": "Show Sidebar",
         "noMotionsYet": "No motions yet",
         "searchMotions": "Search motion name, description or tags...",
-        "duration": "Duration"
+        "duration": "Duration",
+        "enablePreview": "Enable Preview",
+        "disablePreview": "Disable Preview",
+        "clickToPreview": "Click to Enable 3D Preview",
+        "saveResourcesTip": "Click to enable and save system resources"
     },
     "chat": {
         "placeholder": "Send a message...",
@@ -219,6 +223,7 @@
         "read": "Read Aloud",
         "regenerate": "Regenerate",
         "reasoning": "Chain of Thought",
+        "usingTool": "Using Tool",
         "noModelConfigured": "No AI model configured for this character. Please link a model in character settings first.",
         "asrError": "ASR Error",
         "toggleRecording": "Toggle recording",

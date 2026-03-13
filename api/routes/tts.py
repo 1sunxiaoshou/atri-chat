@@ -77,7 +77,7 @@ async def get_tts_status(db: Session = Depends(get_db)):
         }
         
     except Exception as e:
-        logger.error(f"获取 TTS 状态失败: {e}", exc_info=True)
+        logger.error("获取 TTS 状态失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -151,7 +151,7 @@ async def synthesize_speech(
             except StopAsyncIteration:
                 raise HTTPException(status_code=500, detail="TTS生成失败：无数据")
             except Exception as e:
-                logger.error(f"获取采样率失败: {e}", exc_info=True)
+                logger.error("获取采样率失败: {}", str(e), exc_info=True)
                 raise HTTPException(status_code=500, detail=f"TTS失败: {str(e)}")
             
             async def audio_stream():
@@ -162,7 +162,7 @@ async def synthesize_speech(
                     async for chunk in generator:
                         yield chunk
                 except Exception as e:
-                    logger.error(f"流式合成失败: {e}", exc_info=True)
+                    logger.error("流式合成失败: {}", str(e), exc_info=True)
                     raise
             
             return StreamingResponse(
@@ -189,8 +189,8 @@ async def synthesize_speech(
     except HTTPException:
         raise
     except ValueError as e:
-        logger.error(f"TTS配置错误: {e}", exc_info=True)
+        logger.error("TTS配置错误: {}", str(e), exc_info=True)
         raise HTTPException(status_code=400, detail=f"配置错误: {str(e)}")
     except Exception as e:
-        logger.error(f"语音合成失败: {e}", exc_info=True)
+        logger.error("语音合成失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"合成失败: {str(e)}")

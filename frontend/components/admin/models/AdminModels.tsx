@@ -170,8 +170,8 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const handleSaveModel = async () => {
     if (!editingModel || !editingModel.model_id || !editingModel.provider_config_id) return;
     const existing = models.find(m => m.provider_config_id === editingModel.provider_config_id && m.model_id === editingModel.model_id);
-    if (existing && existing.model_id === editingModel.model_id) {
-      await modelsApi.updateModel(editingModel.provider_config_id, editingModel.model_id, editingModel as Model);
+    if (existing) {
+      await modelsApi.updateModel(existing.id, editingModel as Model);
     } else {
       await modelsApi.createModel(editingModel as Model);
     }
@@ -179,14 +179,14 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     await onRefresh();
   };
 
-  const handleDeleteModel = async (providerConfigId: number, modelId: string) => {
+  const handleDeleteModel = async (id: number) => {
     setConfirmDialog({
       isOpen: true,
       title: t('admin.delete'),
       description: t('admin.confirmDeleteModel'),
       type: 'danger',
       onConfirm: async () => {
-        await modelsApi.deleteModel(providerConfigId, modelId);
+        await modelsApi.deleteModel(id);
         await onRefresh();
       }
     });
@@ -197,13 +197,13 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const handleToggleModel = async (model: Model) => {
     const newEnabled = !model.enabled;
     // 乐观更新：立即应用 UI 变化
-    updateModelStatus(model.provider_config_id, model.model_id, newEnabled);
+    updateModelStatus(model.id, newEnabled);
     
     try {
-      await modelsApi.toggleModel(model.model_id, newEnabled, model.provider_config_id, model);
+      await modelsApi.toggleModel(model.id, newEnabled, model);
     } catch (error) {
       // 出错时回滚
-      updateModelStatus(model.provider_config_id, model.model_id, !newEnabled);
+      updateModelStatus(model.id, !newEnabled);
       setToast({ success: false, message: t('admin.operationFailed') });
       setTimeout(() => setToast(null), 3000);
     }

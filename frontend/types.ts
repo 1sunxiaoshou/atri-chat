@@ -120,6 +120,14 @@ export interface Conversation {
   character_name?: string;
 }
 
+export interface ToolCall {
+  run_id: string;
+  tool: string;
+  input: any;
+  output?: any;
+  status: 'running' | 'completed' | 'error';
+}
+
 // 6. Messages
 export interface Message {
   message_id: number | string; // 支持数字 ID 和临时字符串 ID
@@ -128,6 +136,7 @@ export interface Message {
   content: string;
   reasoning?: string; // 思维链内容
   status?: string; // 工具调用状态
+  tool_calls?: ToolCall[]; // 消息相关的工具调用
   created_at: string;
   generating?: boolean; // 是否正在生成（流式响应时）
 }

@@ -259,7 +259,7 @@ class BaseProvider(ABC):
                     max_output=profile.get('max_output_tokens'),
                 )
         except Exception as e:
-            logger.debug(f"无法从 LangChain profile 获取模型信息 {model_id}: {e}")
+            logger.debug("无法从 LangChain profile 获取模型信息 {model_id}: {}", str(e))
         
         # 降级到基于名称的推断
         model_id_lower = model_id.lower()

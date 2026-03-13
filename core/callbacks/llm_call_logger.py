@@ -121,18 +121,28 @@ class LLMCallLogger(BaseCallbackHandler):
             end_time = datetime.now()
             duration_ms = int((end_time - start_time).total_seconds() * 1000)
             
+            # 安全地提取 token 使用信息
+            token_count = None
+            llm_output_data = None
+            if response.llm_output:
+                try:
+                    usage = response.llm_output.get("usage", {}) if isinstance(response.llm_output, dict) else {}
+                    token_count = {
+                        "prompt": usage.get("prompt_tokens"),
+                        "completion": usage.get("completion_tokens"),
+                        "total": usage.get("total_tokens"),
+                    }
+                    llm_output_data = response.llm_output
+                except (AttributeError, TypeError) as e:
+                    logger.warning("无法提取 token 信息: {}", str(e))
+            
             self.current_call.update({
                 "timestamp_end": end_time.isoformat(),
                 "duration_ms": duration_ms,
                 "response": response_text,
                 "tool_calls_in_response": tool_calls_in_response,
-                "token_count": {
-                    "prompt": response.llm_output.get("usage", {}).get("prompt_tokens") if response.llm_output else None,
-                    "completion": response.llm_output.get("usage", {}).get("completion_tokens") if response.llm_output else None,
-                    "total": response.llm_output.get("usage", {}).get("total_tokens") if response.llm_output else None,
-                } if response.llm_output else None,
-                # 新增：完整的 llm_output（包含模型特定信息）
-                "llm_output": response.llm_output if response.llm_output else None,
+                "token_count": token_count,
+                "llm_output": llm_output_data,
             })
             
             # 打印响应（调试用）

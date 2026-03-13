@@ -58,8 +58,8 @@ class OpenAIProvider(BaseProvider):
         
         params = {
             "model": model_id,
-            "api_key": config.get("api_key"),
-            "base_url": config.get("base_url"),
+            "api_key": merged.get("api_key"),
+            "base_url": merged.get("base_url") or None,  # 为空字符串时设为 None，触发 LangChain 默认逻辑
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "top_p": merged.get("top_p"),

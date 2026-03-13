@@ -51,6 +51,7 @@ def setup_logging(
             "<level>{level: <8}</level> | "
             "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
             "<level>{message}</level>"
+            "<level>{exception}</level>"
         )
         console_level = "DEBUG"
     else:
@@ -88,12 +89,14 @@ def setup_logging(
             # 错误专用日志
             logger.add(
                 log_dir / "error.log",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
+                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
                 level="ERROR",
                 rotation="100 MB",
                 retention="30 days",
                 encoding="utf-8",
                 enqueue=True,
+                backtrace=True,
+                diagnose=True,
             )
             
             # 访问日志（由中间件调用，通过 extra 过滤）

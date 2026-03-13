@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Bot, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useChatStore } from '../../store/useChatStore';
@@ -8,14 +8,12 @@ import { Button } from '../ui';
 
 interface MessageListProps {
   messages: Message[];
-  isTyping: boolean;
   activeCharacter: Character | null;
   children?: React.ReactNode;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
   messages,
-  isTyping,
   activeCharacter,
   children
 }) => {
@@ -31,7 +29,7 @@ const MessageList: React.FC<MessageListProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages]);
 
   if (messages.length === 0) {
     return (
@@ -75,29 +73,6 @@ const MessageList: React.FC<MessageListProps> = ({
   return (
     <div className="space-y-3 md:space-y-4 pb-20">
       {children}
-
-      {isTyping && (
-        <div className="flex gap-4 items-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-primary/10 text-primary ring-2 ring-background shadow-sm">
-            {activeCharacter?.portrait_url ? (
-              <img src={buildAvatarUrl(activeCharacter.portrait_url)} alt="AI" className="w-full h-full object-cover" />
-            ) : activeCharacter?.avatar?.thumbnail_url ? (
-              <img src={buildAvatarUrl(activeCharacter.avatar.thumbnail_url)} alt="AI" className="w-full h-full object-cover" />
-            ) : (
-              <Bot size={18} />
-            )}
-          </div>
-          <div className="max-w-[85%] md:max-w-[75%]">
-            <div className="px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm bg-card border border-border">
-              <div className="flex gap-1.5 items-center h-5">
-                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div ref={messagesEndRef} className="h-4" />
     </div>

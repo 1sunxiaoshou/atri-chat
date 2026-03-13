@@ -18,6 +18,10 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
     const renderField = () => {
         switch (schema.type) {
             case 'slider':
+                const isAuto = value === undefined || value === null;
+                const displayValue = isAuto ? schema.default : value;
+                const initialSliderValue = isAuto ? (schema.max ?? 128000) : displayValue;
+
                 return (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -25,7 +29,9 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
                                 {schema.label}
                             </label>
                             <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg">
-                                {value?.toFixed(schema.step && schema.step < 1 ? 1 : 0) ?? schema.default?.toFixed(schema.step && schema.step < 1 ? 1 : 0) ?? '0'}
+                                {isAuto && (displayValue === undefined || displayValue === null)
+                                    ? 'auto'
+                                    : displayValue?.toFixed(schema.step && schema.step < 1 ? 1 : 0)}
                             </span>
                         </div>
 
@@ -34,7 +40,7 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
                             min={schema.min ?? 0}
                             max={schema.max ?? 1}
                             step={schema.step ?? 0.1}
-                            value={value ?? schema.default ?? 0}
+                            value={initialSliderValue ?? 0}
                             onChange={(e) => onChange(name, parseFloat(e.target.value))}
                             className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary/80 transition-all"
                         />

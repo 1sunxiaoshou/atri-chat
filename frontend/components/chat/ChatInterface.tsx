@@ -11,7 +11,6 @@ import { NormalChatMode } from './NormalChatMode';
 import RightSidebar from '../layout/RightSidebar';
 
 const VRMChatMode = React.lazy(() => import('./VRMChatMode').then(m => ({ default: m.VRMChatMode })));
-import Toast, { ToastMessage } from '../ui/Toast';
 import { cn } from '../../utils/cn';
 
 interface ChatInterfaceProps {
@@ -23,6 +22,7 @@ interface ChatInterfaceProps {
   onOpenMobileSidebar?: () => void;
   onShowSidebar?: () => void;
   isSidebarHidden?: boolean;
+  setGlobalToast?: (toast: { success: boolean, message: string } | null) => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -33,13 +33,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onConversationUpdated,
   onOpenMobileSidebar,
   onShowSidebar,
-  isSidebarHidden = false
+  isSidebarHidden = false,
+  setGlobalToast
 }) => {
   const { t } = useLanguage();
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const [vrmDisplayMode, setVrmDisplayMode] = useState<'normal' | 'vrm' | 'live2d'>('normal');
   const [copiedMessageId, setCopiedMessageId] = useState<string | number | null>(null);
-  const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
   const [expandedReasoning, setExpandedReasoning] = useState<Set<string | number>>(new Set());
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
@@ -56,6 +56,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     currentResponse,
     currentReasoning,
     currentStatus,
+    currentToolCalls,
     error: chatError,
     loadMessages,
     sendMessage,
@@ -118,10 +119,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   useEffect(() => {
     const error = chatError || vrmError || ttsError;
-    if (error) {
-      setToastMessage({ success: false, message: error });
+    if (error && setGlobalToast) {
+      setGlobalToast({ success: false, message: error });
       const timer = setTimeout(() => {
-        setToastMessage(null);
+        setGlobalToast(null);
         if (chatError) clearChatError();
         if (vrmError) clearVrmError();
         if (ttsError) clearTtsError();
@@ -129,7 +130,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [chatError, vrmError, ttsError, clearChatError, clearVrmError, clearTtsError]);
+  }, [chatError, vrmError, ttsError, clearChatError, clearVrmError, clearTtsError, setGlobalToast]);
 
   // 移除 handleInputChange，不再需要
 
@@ -138,17 +139,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!content.trim() || !activeCharacter) { return; }
 
     // 校验：如果角色没有配置模型，显示错误提示
-    if (!activeModel) {
-      setToastMessage({
+    if (!activeModel && setGlobalToast) {
+      setGlobalToast({
         success: false,
         message: t('chat.noModelConfigured')
       });
       // 3秒后自动清除提示
-      setTimeout(() => setToastMessage(null), 3000);
+      setTimeout(() => setGlobalToast(null), 3000);
       return;
     }
 
     try {
+      // 默认折叠新消息的思考过程
+      setExpandedReasoning(prev => {
+        const newSet = new Set(prev);
+        newSet.delete('streaming-temp');
+        return newSet;
+      });
+
       // 如果是VRM模式，立即开始思考动作（高优先级）
       if (vrmDisplayMode === 'vrm' && startThinking) {
         startThinking();
@@ -157,11 +165,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const finalModelParams = { ...modelParameters };
       finalModelParams.display_mode = vrmDisplayMode === 'vrm' ? 'vrm' : 'text';
 
-      const messageCountBeforeSend = messages.length;
-
       // 使用startTransition将消息发送标记为低优先级更新
       // 这样VRM渲染不会被阻塞
       startTransition(() => {
+        if (!activeModel) return;
+        
         sendMessage(
           activeConversationId,
           content,
@@ -173,13 +181,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               const segments = Array.isArray(vrmData) ? vrmData : (vrmData.segments || [vrmData]);
               playSegments(segments);
             }
+          },
+          () => {
+            // 当探测到标题更新（通常是第一条消息）时，刷新侧边栏
+            onConversationUpdated?.();
           }
         );
       });
-
-      if (messageCountBeforeSend === 0) {
-        onConversationUpdated?.();
-      }
     } catch (err) {
       console.error(t('chat.sendMessageFailed'), err);
     }
@@ -229,7 +237,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
 
     const safeMessages = Array.isArray(messages) ? messages : [];
-    if (isTyping && (currentResponse || currentReasoning || currentStatus)) {
+    if (isTyping) {
       const streamingMessage: Message = {
         message_id: 'streaming-temp', // 使用固定 ID，避免每次都创建新对象
         conversation_id: activeConversationId,
@@ -237,17 +245,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         content: currentResponse || '',
         reasoning: currentReasoning || undefined,
         status: currentStatus || undefined,
+        tool_calls: currentToolCalls.length > 0 ? currentToolCalls : undefined,
         generating: true,
         created_at: new Date().toISOString()
       };
       return [...safeMessages, streamingMessage];
     }
     return safeMessages;
-  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, activeConversationId, vrmDisplayMode]);
+  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, currentToolCalls, activeConversationId, vrmDisplayMode]);
 
   return (
     <div className="flex flex-col h-full bg-background transition-colors relative overflow-hidden">
-      <Toast message={toastMessage} />
 
       <ChatHeader
         activeCharacter={activeCharacter}

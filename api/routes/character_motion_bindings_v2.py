@@ -76,7 +76,7 @@ async def get_character_motions(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取角色动作失败: {e}", exc_info=True)
+        logger.error("获取角色动作失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -148,7 +148,7 @@ async def update_character_motions(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新角色动作绑定失败: {e}", exc_info=True)
+        logger.error("更新角色动作绑定失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -186,5 +186,5 @@ async def delete_character_motions(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除角色动作绑定失败: {e}", exc_info=True)
+        logger.error("删除角色动作绑定失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

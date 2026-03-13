@@ -74,7 +74,7 @@ class SenseVoiceASR:
                 provider="cpu",
             )
         except Exception as e:
-            logger.error(f"ASR模型加载失败: {e}")
+            logger.error("ASR模型加载失败: {}", str(e))
             raise RuntimeError(f"模型加载失败: {str(e)}")
             
     def _check_model_files(self, use_int8: bool) -> bool:
@@ -123,7 +123,7 @@ class SenseVoiceASR:
             return EMOTION_PATTERN.sub("", stream.result.text).strip()
             
         except Exception as e:
-            logger.error(f"ASR推理异常: {e}")
+            logger.error("ASR推理异常: {}", str(e))
             raise RuntimeError(f"推理失败: {str(e)}")
     
     async def transcribe_async(self, audio: Union[bytes, str], language: str = "auto", use_int8: bool = False) -> str:

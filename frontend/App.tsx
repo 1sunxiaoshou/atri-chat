@@ -48,7 +48,7 @@ const App: React.FC = () => {
   const activeCharacter = characters.find(c => c.id === activeConversation?.character_id) || null;
 
   // Local state for temporary model override in chat
-  const [overrideModel, setOverrideModel] = useState<{ id: string; model_id: string; provider_id: string } | null>(null);
+  const [overrideModel, setOverrideModel] = useState<{ id: number; model_id: string; provider_config_id: number } | null>(null);
 
   // 查找活动模型：优先使用临时覆盖的模型，否则使用角色的主模型
   const activeModel = overrideModel
@@ -65,6 +65,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (viewMode === 'chat') {
       fetchCharacters();
+      fetchProviders(); // 必须获取 providers 才能正确显示供应商名称
       loadConversations(selectedCharacterId);
     } else if (viewMode === 'characters') {
       // 角色管理页面需要 characters, models 和 providers 数据
@@ -73,6 +74,20 @@ const App: React.FC = () => {
       fetchProviders();
     }
   }, [selectedCharacterId, viewMode, fetchCharacters, fetchModels]);
+
+  // 当角色列表更新时，检查当前选中的角色是否仍然有效
+  const { loading: dataLoading } = useDataStore();
+  useEffect(() => {
+    // 只有在数据加载完成且列表不为空的情况下，如果当前选中的角色不在列表中，才进行清理
+    // 如果 characters 为空且不在加载中，说明确实没角色了
+    if (selectedCharacterId && !dataLoading.characters) {
+      const exists = characters.find(c => c.id === selectedCharacterId);
+      if (!exists) {
+        setSelectedCharacterId(null);
+        setActiveConversationId(null);
+      }
+    }
+  }, [characters, selectedCharacterId, dataLoading.characters]);
 
   // 处理模型切换
   const handleUpdateModel = (modelData: string) => {
@@ -87,19 +102,27 @@ const App: React.FC = () => {
 
 
   const loadConversations = async (charId: string | null) => {
-    // API supports filtering by character_id
-    const res = await api.getConversations(charId);
-    if (res.code === 200) {
-      setConversations(res.data);
-      // If we just switched characters and have conversations, pick the first one
-      if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => (c.id || c.conversation_id) === activeConversationId))) {
-        setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
-      } else if (charId && res.data.length === 0) {
+    try {
+      const res = await api.getConversations(charId);
+      if (res.code === 200) {
+        setConversations(res.data);
+        // If we just switched characters and have conversations, pick the first one
+        if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => (c.id || c.conversation_id) === activeConversationId))) {
+          setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
+        } else if (charId && res.data.length === 0) {
+          setActiveConversationId(null);
+        } else if (!charId && res.data.length > 0 && res.data[0] && !activeConversationId) {
+          // Fallback for 'All' view if nothing selected
+          setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
+        }
+      } else {
+        // Handle API error (e.g. character deleted)
+        setConversations([]);
         setActiveConversationId(null);
-      } else if (!charId && res.data.length > 0 && res.data[0] && !activeConversationId) {
-        // Fallback for 'All' view if nothing selected
-        setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
       }
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+      setConversations([]);
     }
   };
 
@@ -219,6 +242,7 @@ const App: React.FC = () => {
               onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
               onShowSidebar={() => setIsLeftSidebarHidden(false)}
               isSidebarHidden={isLeftSidebarHidden}
+              setGlobalToast={setToastMessage}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full bg-muted/10 relative p-6 animate-in fade-in duration-500">

@@ -95,7 +95,7 @@ async def list_voice_assets(
         }
         
     except Exception as e:
-        logger.error(f"获取音色资产列表失败: {e}", exc_info=True)
+        logger.error("获取音色资产列表失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -137,7 +137,7 @@ async def get_voice_asset(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取音色资产详情失败: {e}", exc_info=True)
+        logger.error("获取音色资产详情失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -186,7 +186,7 @@ async def create_voice_asset(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"创建音色资产失败: {e}", exc_info=True)
+        logger.error("创建音色资产失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -236,7 +236,7 @@ async def update_voice_asset(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新音色资产失败: {e}", exc_info=True)
+        logger.error("更新音色资产失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -284,5 +284,5 @@ async def delete_voice_asset(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除音色资产失败: {e}", exc_info=True)
+        logger.error("删除音色资产失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

@@ -10,10 +10,10 @@ from core.db import Model as ModelORM, ProviderConfig as ProviderConfigORM
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/models", tags=["Models"])
 
 
-@router.post("/models", response_model=ResponseModel)
+@router.post("", response_model=ResponseModel)
 async def create_model(
     req: ModelRequest,
     db: Session = Depends(get_db)
@@ -71,26 +71,23 @@ async def create_model(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"创建模型失败: {e}", exc_info=True)
+        logger.error("创建模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/models/detail", response_model=ResponseModel)
+@router.get("/{id}", response_model=ResponseModel)
 async def get_model(
-    provider_config_id: int,
-    model_id: str,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """获取模型详情
     
-    查询参数:
-    - provider_id: 供应商ID
-    - model_id: 模型ID
+    路径参数:
+    - id: 模型在数据库中的唯一 ID
     """
     try:
         model = db.query(ModelORM).filter(
-            ModelORM.provider_config_id == provider_config_id,
-            ModelORM.model_id == model_id
+            ModelORM.id == id
         ).first()
         
         if not model:
@@ -115,11 +112,11 @@ async def get_model(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取模型失败: {e}", exc_info=True)
+        logger.error("获取模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/models", response_model=ResponseModel)
+@router.get("", response_model=ResponseModel)
 async def list_models(
     provider_config_id: Optional[int] = None,
     model_type: Optional[str] = None,
@@ -175,22 +172,20 @@ async def list_models(
             data=data
         )
     except Exception as e:
-        logger.error(f"列出模型失败: {e}", exc_info=True)
+        logger.error("列出模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/models/update", response_model=ResponseModel)
+@router.put("/{id}", response_model=ResponseModel)
 async def update_model(
-    provider_config_id: int,
-    model_id: str,
+    id: int,
     req: ModelUpdateRequest,
     db: Session = Depends(get_db)
 ):
     """更新单个模型
     
-    查询参数:
-    - provider_id: 供应商ID
-    - model_id: 模型ID
+    路径参数:
+    - id: 模型在数据库中的唯一 ID
     
     请求体示例:
     {
@@ -204,8 +199,7 @@ async def update_model(
     try:
         # 使用更直接的 update 语句减少往返和内存开销
         stmt = db.query(ModelORM).filter(
-            ModelORM.provider_config_id == provider_config_id,
-            ModelORM.model_id == model_id
+            ModelORM.id == id
         )
         
         result = stmt.update({
@@ -226,34 +220,30 @@ async def update_model(
             code=200,
             message="更新成功",
             data={
-                "provider_config_id": provider_config_id,
-                "model_id": model_id
+                "id": id
             }
         )
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新模型失败: {e}", exc_info=True)
+        logger.error("更新模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/models/delete", response_model=ResponseModel)
+@router.delete("/{id}", response_model=ResponseModel)
 async def delete_model(
-    provider_config_id: int,
-    model_id: str,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """删除模型
     
-    查询参数:
-    - provider_id: 供应商ID
-    - model_id: 模型ID
+    路径参数:
+    - id: 模型在数据库中的唯一 ID
     """
     try:
         model = db.query(ModelORM).filter(
-            ModelORM.provider_config_id == provider_config_id,
-            ModelORM.model_id == model_id
+            ModelORM.id == id
         ).first()
         
         if not model:
@@ -266,21 +256,20 @@ async def delete_model(
             code=200,
             message="删除成功",
             data={
-                "provider_config_id": provider_config_id,
-                "model_id": model_id
+                "id": id
             }
         )
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除模型失败: {e}", exc_info=True)
+        logger.error("删除模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/models/{model_id}/parameter-schema", response_model=ResponseModel)
+@router.get("/{id}/parameter-schema", response_model=ResponseModel)
 async def get_model_parameter_schema(
-    model_id: int,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """获取模型的参数 Schema
@@ -298,7 +287,7 @@ async def get_model_parameter_schema(
         from core.dependencies import get_model_factory
         
         # 获取模型
-        model = db.query(ModelORM).filter(ModelORM.id == model_id).first()
+        model = db.query(ModelORM).filter(ModelORM.id == id).first()
         if not model:
             raise HTTPException(status_code=404, detail="模型不存在")
         
@@ -384,5 +373,5 @@ async def get_model_parameter_schema(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取模型参数 Schema 失败: {e}", exc_info=True)
+        logger.error("获取模型参数 Schema 失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
