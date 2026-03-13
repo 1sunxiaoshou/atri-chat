@@ -21,23 +21,20 @@ class TTSProviderCreate(BaseModel):
     provider_type: str = Field(..., description="供应商类型（openai/gpt_sovits/azure）")
     name: str = Field(..., description="供应商名称")
     config_payload: Dict[str, Any] = Field(..., description="供应商级别配置 JSON")
-    enabled: bool = Field(True, description="是否启用")
 
 
 class TTSProviderUpdate(BaseModel):
     """更新 TTS 供应商"""
     name: Optional[str] = Field(None, description="供应商名称")
     config_payload: Optional[Dict[str, Any]] = Field(None, description="供应商级别配置 JSON")
-    enabled: Optional[bool] = Field(None, description="是否启用")
 
 
 class TTSProviderResponse(BaseModel):
     """TTS 供应商响应"""
-    id: str
+    id: int
     provider_type: str
     name: str
     config_payload: Dict[str, Any]
-    enabled: bool
     created_at: str
     updated_at: str
     voice_count: int = Field(0, description="该供应商下的音色数量")
@@ -54,7 +51,6 @@ async def list_providers(
     limit: int = 100,
     search: Optional[str] = None,
     provider_type: Optional[str] = None,
-    enabled: Optional[bool] = None,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """获取所有 TTS 供应商
@@ -68,13 +64,8 @@ async def list_providers(
         if search:
             query = query.filter(TTSProvider.name.ilike(f"%{search}%"))
         
-        # 类型过滤
         if provider_type:
             query = query.filter(TTSProvider.provider_type == provider_type)
-        
-        # 启用状态过滤
-        if enabled is not None:
-            query = query.filter(TTSProvider.enabled == enabled)
         
         # 分页
         providers = query.offset(skip).limit(limit).all()
@@ -86,8 +77,6 @@ async def list_providers(
                 "provider_type": provider.provider_type,
                 "name": provider.name,
                 "config_payload": provider.config_payload,
-                "enabled": provider.enabled,
-                "created_at": provider.created_at.isoformat(),
                 "updated_at": provider.updated_at.isoformat(),
                 "voice_count": len(provider.voices)
             }
@@ -107,7 +96,7 @@ async def list_providers(
 
 @router.get("/{provider_id}", summary="获取 TTS 供应商详情", response_model=ResponseModel)
 async def get_provider(
-    provider_id: str,
+    provider_id: int,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """获取 TTS 供应商详情"""
@@ -123,8 +112,6 @@ async def get_provider(
             "provider_type": provider.provider_type,
             "name": provider.name,
             "config_payload": provider.config_payload,
-            "enabled": provider.enabled,
-            "created_at": provider.created_at.isoformat(),
             "updated_at": provider.updated_at.isoformat(),
             "voice_count": len(provider.voices),
             # 获取该供应商下的所有音色
@@ -172,8 +159,7 @@ async def create_provider(
         provider = TTSProvider(
             provider_type=provider_create.provider_type,
             name=provider_create.name,
-            config_payload=provider_create.config_payload,
-            enabled=provider_create.enabled
+            config_payload=provider_create.config_payload
         )
         
         db.add(provider)
@@ -188,8 +174,6 @@ async def create_provider(
                 "provider_type": provider.provider_type,
                 "name": provider.name,
                 "config_payload": provider.config_payload,
-                "enabled": provider.enabled,
-                "created_at": provider.created_at.isoformat(),
                 "updated_at": provider.updated_at.isoformat(),
                 "voice_count": 0
             }
@@ -205,7 +189,7 @@ async def create_provider(
 
 @router.put("/{provider_id}", summary="更新 TTS 供应商", response_model=ResponseModel)
 async def update_provider(
-    provider_id: str,
+    provider_id: int,
     provider_update: TTSProviderUpdate,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -233,8 +217,6 @@ async def update_provider(
             "provider_type": provider.provider_type,
             "name": provider.name,
             "config_payload": provider.config_payload,
-            "enabled": provider.enabled,
-            "created_at": provider.created_at.isoformat(),
             "updated_at": provider.updated_at.isoformat(),
             "voice_count": len(provider.voices)
         }
@@ -255,7 +237,7 @@ async def update_provider(
 
 @router.delete("/{provider_id}", summary="删除 TTS 供应商", response_model=ResponseModel)
 async def delete_provider(
-    provider_id: str,
+    provider_id: int,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """删除 TTS 供应商（级联删除所有音色）"""
@@ -358,7 +340,7 @@ async def get_provider_template(provider_type: str) -> Dict[str, Any]:
 
 @router.post("/{provider_id}/test", summary="测试 TTS 供应商配置", response_model=ResponseModel)
 async def test_provider(
-    provider_id: str,
+    provider_id: int,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """测试 TTS 供应商配置是否可用"""

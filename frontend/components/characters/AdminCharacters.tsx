@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Menu, PanelLeftOpen } from 'lucide-react';
-import { Character, Model } from '../../types';
+import { Character, Model, Provider } from '../../types';
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ConfirmDialog, Button } from '../ui';
@@ -11,6 +11,7 @@ import { cn } from '../../utils/cn';
 interface AdminCharactersProps {
   characters: Character[];
   models: Model[];
+  providers: Provider[];
   onRefresh: () => Promise<void>;
   onOpenMobileSidebar?: () => void;
   isSidebarHidden?: boolean;
@@ -20,6 +21,7 @@ interface AdminCharactersProps {
 export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   characters,
   models,
+  providers,
   onRefresh,
   onOpenMobileSidebar,
   isSidebarHidden,
@@ -46,7 +48,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
       name: '',
       system_prompt: t('character.defaultSystemPrompt'), // 提供默认系统提示词
       primary_model_id: defaultModel?.id || '', // 使用 UUID 而不是 model_id
-      primary_provider_id: defaultModel?.provider_id || '',
+      primary_provider_config_id: defaultModel?.provider_config_id || undefined,
       avatar_id: '',
       voice_asset_id: '',
       enabled: true
@@ -74,8 +76,8 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
       if (!cleanedData.primary_model_id) {
         delete cleanedData.primary_model_id;
       }
-      if (!cleanedData.primary_provider_id) {
-        delete cleanedData.primary_provider_id;
+      if (!cleanedData.primary_provider_config_id) {
+        delete cleanedData.primary_provider_config_id;
       }
       if (!cleanedData.portrait_url) {
         delete cleanedData.portrait_url;
@@ -96,7 +98,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
       if (character.name !== originalChar.name) updateData.name = character.name;
       if (character.system_prompt !== originalChar.system_prompt) updateData.system_prompt = character.system_prompt;
       if (character.primary_model_id !== originalChar.primary_model_id) updateData.primary_model_id = character.primary_model_id;
-      if (character.primary_provider_id !== originalChar.primary_provider_id) updateData.primary_provider_id = character.primary_provider_id;
+      if (character.primary_provider_config_id !== originalChar.primary_provider_config_id) updateData.primary_provider_config_id = character.primary_provider_config_id;
       if (character.avatar_id !== originalChar.avatar_id) updateData.avatar_id = character.avatar_id;
       if (character.voice_asset_id !== originalChar.voice_asset_id) updateData.voice_asset_id = character.voice_asset_id;
       if (character.portrait_url !== originalChar.portrait_url) updateData.portrait_url = character.portrait_url;
@@ -193,6 +195,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
           <CharacterEditor
             character={editingCharacter}
             models={models}
+            providers={providers}
             onSave={handleSave}
             onBack={() => setEditingCharacter(null)}
           />

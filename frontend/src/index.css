@@ -385,3 +385,11 @@ body {
   display: none;
   /* Chrome, Safari, Opera */
 }
+
+/* Hide browser native password reveal/clear buttons */
+input::-ms-reveal,
+input::-ms-clear,
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}

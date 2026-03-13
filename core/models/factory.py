@@ -21,7 +21,7 @@ class ModelFactory:
     """模型工厂
     
     使用供应商插件化架构管理不同供应商的模型创建逻辑。
-    所有供应商配置统一存储在数据库，通过 template_type 路由到对应的 Provider 实现类。
+    所有供应商配置统一存储在数据库，通过 provider_type 路由到对应的 Provider 实现类。
     
     注意：Factory 不再持有 storage，所有配置由调用者（ModelService）提供。
     """
@@ -56,16 +56,16 @@ class ModelFactory:
         """
         self._provider_templates[provider.metadata.provider_id] = provider
     
-    def get_provider_template(self, template_type: str) -> Optional[BaseProvider]:
-        """根据模板类型获取 Provider 实现类
+    def get_provider_template(self, provider_type: str) -> Optional[BaseProvider]:
+        """根据供应商类型获取 Provider 实现类
         
         Args:
-            template_type: 模板类型 (openai, anthropic, google, qwen, ollama)
+            provider_type: 供应商类型 (openai, anthropic, google, qwen, ollama)
         
         Returns:
             Provider 实例，如果模板不存在则返回 None
         """
-        return self._provider_templates.get(template_type)
+        return self._provider_templates.get(provider_type)
     
     def get_all_template_metadata(self) -> Dict[str, ProviderMetadata]:
         """获取所有供应商模板的元数据"""
@@ -78,7 +78,7 @@ class ModelFactory:
         self,
         model_config: ModelConfig,
         provider_config: ProviderConfig,
-        template_type: str,
+        provider_type: str,
         **kwargs
     ) -> Optional[Any]:
         """根据配置创建模型实例
@@ -88,7 +88,7 @@ class ModelFactory:
         Args:
             model_config: 模型配置对象
             provider_config: 供应商配置对象
-            template_type: 模板类型（openai, anthropic 等）
+            provider_type: 供应商类型（openai, anthropic 等）
             **kwargs: 动态参数（temperature, max_tokens等），会覆盖配置中的默认值
             
         Returns:
@@ -97,17 +97,17 @@ class ModelFactory:
         Raises:
             ValueError: 当模板类型不支持或创建失败时
         """
-        # 根据 template_type 获取 Provider 实现类
-        provider_template = self.get_provider_template(template_type)
+        # 根据 provider_type 获取 Provider 实现类
+        provider_template = self.get_provider_template(provider_type)
         if not provider_template:
-            logger.error(f"不支持的模板类型: {template_type}")
-            raise ValueError(f"不支持的供应商模板类型: {template_type}")
+            logger.error(f"不支持的供应商类型: {provider_type}")
+            raise ValueError(f"不支持的供应商类型: {provider_type}")
         
         # 使用 Provider 实例化模型
         try:
             model = provider_template.create_model(model_config, provider_config, **kwargs)
             if model is None:
-                logger.error(f"模型创建失败: {model_config.provider_id}/{model_config.model_id}")
+                logger.error(f"模型创建失败: {model_config.provider_config_id}/{model_config.model_id}")
                 raise ValueError(f"模型创建失败，请检查配置")
             
             return model
@@ -115,7 +115,7 @@ class ModelFactory:
             logger.error(
                 f"创建模型时出错",
                 extra={
-                    "provider_id": model_config.provider_id,
+                    "provider_config_id": model_config.provider_config_id,
                     "model_id": model_config.model_id,
                     "error": str(e)
                 },
@@ -123,14 +123,14 @@ class ModelFactory:
             )
             raise ValueError(f"创建模型时出错: {str(e)}")
     
-    def validate_template_type(self, template_type: str) -> bool:
-        """验证模板类型是否有效
+    def validate_provider_type(self, provider_type: str) -> bool:
+        """验证供应商类型是否有效
         
         Args:
-            template_type: 模板类型
+            provider_type: 供应商类型
             
         Returns:
             是否有效
         """
-        return template_type in self._provider_templates
+        return provider_type in self._provider_templates
 

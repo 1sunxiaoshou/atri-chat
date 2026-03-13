@@ -1,48 +1,31 @@
-
 import React from 'react';
-import { Volume2, Database, Save, Moon, Sun, Monitor, Palette } from 'lucide-react';
+import { Volume2, Database, Moon, Sun, Monitor, Palette } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useSettings } from '../../hooks/useSettings';
 import { useAudioStore } from '../../store/useAudioStore';
-import { Button, Select, Card, CardContent } from '../ui';
-import { SUCCESS_MESSAGES } from '../../utils/constants';
+import { Select, Card, CardContent } from '../ui';
 import { cn } from '../../utils/cn';
 
-interface GeneralSettingsProps {
-  onSettingsChange?: (settings: { audioVolume: number; audioCacheLimit: number; asrLanguage?: string; asrUseInt8?: boolean }) => void;
-}
-
-const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) => {
+const GeneralSettings: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme, themeColor, setThemeColor } = useTheme();
-  const { settings, saveSettings } = useSettings();
-  // 音量从 Zustand Store 读写，与右侧边栏同步
-  const audioVolume = useAudioStore((state) => state.volume);
-  const setAudioVolume = useAudioStore((state) => state.setVolume);
-  const [saveMessage, setSaveMessage] = React.useState<string>('');
+  
+  // 从 Zustand Store 读写所有设置，实现全全局实时同步
+  const volume = useAudioStore((state) => state.volume);
+  const setVolume = useAudioStore((state) => state.setVolume);
+  const audioCacheLimit = useAudioStore((state) => state.audioCacheLimit);
+  const setAudioCacheLimit = useAudioStore((state) => state.setAudioCacheLimit);
 
-  const handleVolumeChange = (volume: number) => {
-    setAudioVolume(volume); // 写入 Zustand Store
-    if (onSettingsChange) {
-      onSettingsChange({ ...settings, audioVolume: volume });
-    }
+  const handleVolumeChange = (v: number) => {
+    setVolume(v);
   };
 
   const handleCacheLimitChange = (limit: number) => {
-    saveSettings({ audioCacheLimit: limit });
-    if (onSettingsChange) {
-      onSettingsChange({ ...settings, audioCacheLimit: limit });
-    }
-  };
-
-  const handleSave = () => {
-    setSaveMessage(SUCCESS_MESSAGES.SAVE_SUCCESS);
-    setTimeout(() => setSaveMessage(''), 2000);
+    setAudioCacheLimit(limit);
   };
 
   return (
-    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* 头部标题 */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground">
@@ -59,9 +42,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
         <Card className="border-none bg-muted/30 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
-                <Monitor size={20} className="text-primary" />
-              </div>
+              <Monitor size={20} className="text-foreground shrink-0 mt-1" />
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-foreground mb-1">
                   {t('settings.interfaceSettings')}
@@ -195,9 +176,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
         <Card className="border-none bg-muted/30 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="p-2.5 bg-emerald-500/10 rounded-xl shrink-0">
-                <Volume2 size={20} className="text-emerald-500" />
-              </div>
+              <Volume2 size={20} className="text-foreground shrink-0 mt-1" />
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-foreground mb-1">
                   {language === 'zh' ? '音频音量' : 'Audio Volume'}
@@ -215,13 +194,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                     type="range"
                     min="0"
                     max="100"
-                    value={audioVolume}
+                    value={volume}
                     onChange={(e) => handleVolumeChange(Number(e.target.value))}
                     className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-emerald-500 hover:accent-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all"
                   />
                 </div>
                 <div className="w-12 text-right">
-                  <span className="text-sm font-bold text-primary">{audioVolume}%</span>
+                  <span className="text-sm font-bold text-primary">{volume}%</span>
                 </div>
               </div>
               <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium tracking-wider">
@@ -236,9 +215,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
         <Card className="border-none bg-muted/30 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="p-2.5 bg-purple-500/10 rounded-xl shrink-0">
-                <Database size={20} className="text-purple-500" />
-              </div>
+              <Database size={20} className="text-foreground shrink-0 mt-1" />
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-foreground mb-1">
                   {language === 'zh' ? '音频缓存上限' : 'Audio Cache Limit'}
@@ -257,7 +234,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
                     min="10"
                     max="200"
                     step="10"
-                    value={settings.audioCacheLimit}
+                    value={audioCacheLimit}
                     onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
                     className="w-full bg-card border-2 border-border/50 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
                   />
@@ -272,22 +249,6 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ onSettingsChange }) =
             </div>
           </CardContent>
         </Card>
-
-        {/* Save Button */}
-        <div className="flex items-center justify-end gap-4 pt-4 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur-sm -mx-6 px-6 pb-6">
-          {saveMessage && (
-            <span className="text-emerald-500 text-xs font-medium animate-in fade-in slide-in-from-right-2">
-              {saveMessage}
-            </span>
-          )}
-          <Button
-            onClick={handleSave}
-            className="min-w-[120px]"
-          >
-            <Save size={18} className="mr-2" />
-            {language === 'zh' ? '保存设置' : 'Save Settings'}
-          </Button>
-        </div>
       </div>
     </div>
   );

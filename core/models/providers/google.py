@@ -15,7 +15,7 @@ class GoogleProvider(BaseProvider):
             description="Google Gemini - 多模态 AI 模型,支持文本、代码、图像、音频和视频",
 
             config_fields=[
-                ConfigField(field_name="api_key", field_type="string", required=True, description="Google API密钥"),
+                ConfigField(field_name="api_key", field_type="string", required=True, sensitive=True, description="Google AI API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://generativelanguage.googleapis.com", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
@@ -62,7 +62,7 @@ class GoogleProvider(BaseProvider):
         from ...logger import get_logger
         
         logger = get_logger(__name__)
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {
@@ -90,7 +90,7 @@ class GoogleProvider(BaseProvider):
     
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         params = {
             "model": model_id,

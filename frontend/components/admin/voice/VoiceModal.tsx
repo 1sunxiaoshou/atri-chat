@@ -6,22 +6,21 @@ import { httpClient } from '../../../services/api/base';
 import { extractConfigValues } from '../../../utils/helpers';
 
 interface VoiceAsset {
-    id: string;
-    provider_id: string;
+    id: number;
+    provider_id: number;
     name: string;
     voice_config: Record<string, any>;
     provider?: {
-        id: string;
+        id: number;
         name: string;
         provider_type: string;
     };
 }
 
 interface TTSProvider {
-    id: string;
+    id: number;
     provider_type: string;
     name: string;
-    enabled: boolean;
 }
 
 interface VoiceModalProps {
@@ -38,7 +37,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     onClose
 }) => {
     const { t } = useLanguage();
-    const providerId = voice?.provider_id || '';
+    const providerId = voice?.provider_id || 0;
     const [name, setName] = useState(voice?.name || '');
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(false);

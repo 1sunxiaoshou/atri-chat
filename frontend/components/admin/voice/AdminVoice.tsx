@@ -10,25 +10,24 @@ import VoiceToolbar from './VoiceToolbar';
 import VoiceModal from './VoiceModal';
 
 interface TTSProvider {
-    id: string;
+    id: number;
     provider_type: string;
     name: string;
     config_payload: Record<string, any>;
-    enabled: boolean;
     voice_count: number;
     created_at: string;
     updated_at: string;
 }
 
 interface VoiceAsset {
-    id: string;
-    provider_id: string;
+    id: number;
+    provider_id: number;
     name: string;
     voice_config: Record<string, any>;
     created_at: string;
     updated_at: string;
     provider?: {
-        id: string;
+        id: number;
         name: string;
         provider_type: string;
     };
@@ -46,7 +45,7 @@ const AdminVoice: React.FC = () => {
     const [providers, setProviders] = useState<TTSProvider[]>([]);
     const [voices, setVoices] = useState<VoiceAsset[]>([]);
     const [providerTypes, setProviderTypes] = useState<ProviderType[]>([]);
-    const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+    const [selectedProviderId, setSelectedProviderId] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
     const [editingProvider, setEditingProvider] = useState<TTSProvider | null>(null);
@@ -107,7 +106,7 @@ const AdminVoice: React.FC = () => {
         setTimeout(() => setToastMessage(null), 3000);
     };
 
-    const getProviderVoiceCount = (providerId: string) => {
+    const getProviderVoiceCount = (providerId: number) => {
         return voices.filter(v => v.provider_id === providerId).length;
     };
 
@@ -127,7 +126,7 @@ const AdminVoice: React.FC = () => {
         setIsProviderModalOpen(true);
     };
 
-    const handleDeleteProvider = async (providerId: string) => {
+    const handleDeleteProvider = async (providerId: number) => {
         setConfirmDialog({
             isOpen: true,
             title: t('admin.delete'),
@@ -170,14 +169,14 @@ const AdminVoice: React.FC = () => {
             }
 
             setEditingVoice({
-                id: '',
+                id: 0,
                 provider_id: selectedProviderId,
                 name: '',
                 voice_config: {},
                 created_at: '',
                 updated_at: '',
                 provider: {
-                    id: selectedProviderId,
+                    id: selectedProviderId as number,
                     name: selectedProvider.name,
                     provider_type: selectedProvider.provider_type
                 }
@@ -191,7 +190,7 @@ const AdminVoice: React.FC = () => {
         setIsVoiceModalOpen(true);
     };
 
-    const handleDeleteVoice = async (voiceId: string) => {
+    const handleDeleteVoice = async (voiceId: number) => {
         setConfirmDialog({
             isOpen: true,
             title: t('admin.delete'),

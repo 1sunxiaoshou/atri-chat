@@ -25,7 +25,7 @@ class GroqProvider(BaseProvider):
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_groq import ChatGroq
         
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {

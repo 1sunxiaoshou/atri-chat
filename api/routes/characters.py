@@ -33,10 +33,10 @@ class CharacterCreate(BaseModel):
     system_prompt: str = Field("你是一个友好、乐于助人的AI助手。", description="系统提示词")
     portrait_url: Optional[str] = Field(None, description="2D立绘/头像URL")
     avatar_id: Optional[str] = Field(None, description="3D形象资产ID（可选）")
-    voice_asset_id: Optional[str] = Field(None, description="音色资产 ID（可选）")
+    voice_asset_id: Optional[int] = Field(None, description="音色资产 ID（可选）")
     voice_speaker_id: Optional[str] = Field(None, description="音色说话人 ID（可选）")
-    primary_model_id: Optional[str] = Field(None, description="主模型 ID（可选）")
-    primary_provider_id: Optional[str] = Field(None, description="主供应商 ID（可选）")
+    primary_model_id: Optional[int] = Field(None, description="主模型 ID（可选）")
+    primary_provider_config_id: Optional[int] = Field(None, description="主供应商配置 ID（可选）")
     enabled: bool = Field(True, description="是否启用")
     motion_bindings: Optional[List[MotionBindingInput]] = Field(None, description="动作绑定列表（可选）")
 
@@ -47,10 +47,10 @@ class CharacterUpdate(BaseModel):
     system_prompt: Optional[str] = Field(None, description="系统提示词")
     portrait_url: Optional[str] = Field(None, description="2D立绘/头像URL")
     avatar_id: Optional[str] = Field(None, description="3D形象资产ID")
-    voice_asset_id: Optional[str] = Field(None, description="音色资产 ID")
+    voice_asset_id: Optional[int] = Field(None, description="音色资产 ID")
     voice_speaker_id: Optional[str] = Field(None, description="音色说话人 ID")
-    primary_model_id: Optional[str] = Field(None, description="主模型 ID")
-    primary_provider_id: Optional[str] = Field(None, description="主供应商 ID")
+    primary_model_id: Optional[int] = Field(None, description="主模型 ID")
+    primary_provider_config_id: Optional[int] = Field(None, description="主供应商配置 ID")
     enabled: Optional[bool] = Field(None, description="是否启用")
 
 
@@ -69,13 +69,14 @@ async def list_characters(
     支持分页、搜索和过滤
     """
     try:
-        from sqlalchemy.orm import joinedload
+        from sqlalchemy.orm import joinedload, selectinload
         
-        # 使用 joinedload 预加载所有关联数据，避免 N+1 查询
+        # 使用 joinedload/selectinload 预加载所有关联数据，避免 N+1 查询
         query = db.query(Character).options(
             joinedload(Character.avatar),
             joinedload(Character.voice_asset).joinedload(VoiceAsset.provider),
-            joinedload(Character.primary_model)
+            joinedload(Character.primary_model),
+            selectinload(Character.motion_bindings)
         )
         
         # 搜索过滤
@@ -104,12 +105,12 @@ async def list_characters(
                 "voice_provider_type": char.voice_asset.provider.provider_type if char.voice_asset else None,
                 "voice_speaker_id": char.voice_speaker_id,
                 "primary_model_id": char.primary_model_id,
-                "primary_provider_id": char.primary_provider_id,
+                "primary_provider_config_id": char.primary_provider_config_id,
                 # 添加模型详情，方便前端显示
                 "primary_model": {
                     "id": char.primary_model.id,
                     "model_id": char.primary_model.model_id,
-                    "provider_id": char.primary_model.provider_id,
+                    "provider_id": char.primary_model.provider_config_id,
                 } if char.primary_model else None,
                 "enabled": char.enabled,
                 "created_at": char.created_at.isoformat(),
@@ -151,7 +152,7 @@ async def get_character(
             "voice_asset_id": character.voice_asset_id,
             "voice_speaker_id": character.voice_speaker_id,
             "primary_model_id": character.primary_model_id,
-            "primary_provider_id": character.primary_provider_id,
+            "primary_provider_config_id": character.primary_provider_config_id,
             "enabled": character.enabled,
             "created_at": character.created_at.isoformat(),
             "updated_at": character.updated_at.isoformat(),
@@ -173,7 +174,7 @@ async def get_character(
             "primary_model": {
                 "id": character.primary_model.id,
                 "model_id": character.primary_model.model_id,
-                "provider_id": character.primary_model.provider_id,
+                "provider_id": character.primary_model.provider_config_id,
                 "model_type": character.primary_model.model_type,
             } if character.primary_model else None,
             # 动作绑定
@@ -246,7 +247,7 @@ async def create_character(
             voice_asset_id=character_create.voice_asset_id,
             voice_speaker_id=character_create.voice_speaker_id,
             primary_model_id=character_create.primary_model_id,
-            primary_provider_id=character_create.primary_provider_id,
+            primary_provider_config_id=character_create.primary_provider_config_id,
             enabled=character_create.enabled
         )
         
@@ -279,7 +280,7 @@ async def create_character(
             "voice_asset_id": character.voice_asset_id,
             "voice_speaker_id": character.voice_speaker_id,
             "primary_model_id": character.primary_model_id,
-            "primary_provider_id": character.primary_provider_id,
+            "primary_provider_config_id": character.primary_provider_config_id,
             "enabled": character.enabled,
             "created_at": character.created_at.isoformat(),
             "updated_at": character.updated_at.isoformat(),
@@ -291,7 +292,7 @@ async def create_character(
                 {
                     "id": binding.id,
                     "motion_id": binding.motion_id,
-                    "category": binding.category
+                    "category": binding_input.category
                 }
                 for binding in created_bindings
             ]
@@ -395,7 +396,7 @@ async def update_character(
             "voice_asset_id": character.voice_asset_id,
             "voice_speaker_id": character.voice_speaker_id,
             "primary_model_id": character.primary_model_id,
-            "primary_provider_id": character.primary_provider_id,
+            "primary_provider_config_id": character.primary_provider_config_id,
             "enabled": character.enabled,
             "created_at": character.created_at.isoformat(),
             "updated_at": character.updated_at.isoformat(),

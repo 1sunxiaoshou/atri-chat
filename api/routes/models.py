@@ -1,4 +1,4 @@
-"""模型管理路由 (ORM 版本)"""
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -34,7 +34,7 @@ async def create_model(
     try:
         # 验证供应商是否存在
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == req.provider_id
+            ProviderConfigORM.id == req.provider_config_id
         ).first()
         
         if not provider:
@@ -42,7 +42,7 @@ async def create_model(
         
         # 创建模型
         model = ModelORM(
-            provider_id=req.provider_id,
+            provider_config_id=req.provider_config_id,
             model_id=req.model_id,
             model_type=req.model_type,
             capabilities=req.capabilities,
@@ -60,7 +60,7 @@ async def create_model(
             message="模型创建成功",
             data={
                 "id": model.id,
-                "provider_id": req.provider_id,
+                "provider_config_id": req.provider_config_id,
                 "model_id": req.model_id
             }
         )
@@ -77,7 +77,7 @@ async def create_model(
 
 @router.get("/models/detail", response_model=ResponseModel)
 async def get_model(
-    provider_id: str,
+    provider_config_id: int,
     model_id: str,
     db: Session = Depends(get_db)
 ):
@@ -89,7 +89,7 @@ async def get_model(
     """
     try:
         model = db.query(ModelORM).filter(
-            ModelORM.provider_id == provider_id,
+            ModelORM.provider_config_id == provider_config_id,
             ModelORM.model_id == model_id
         ).first()
         
@@ -101,7 +101,7 @@ async def get_model(
             message="获取成功",
             data={
                 "id": model.id,
-                "provider_id": model.provider_id,
+                "provider_config_id": model.provider_config_id,
                 "model_id": model.model_id,
                 "model_type": model.model_type,
                 "capabilities": model.capabilities,
@@ -121,7 +121,7 @@ async def get_model(
 
 @router.get("/models", response_model=ResponseModel)
 async def list_models(
-    provider_id: Optional[str] = None,
+    provider_config_id: Optional[int] = None,
     model_type: Optional[str] = None,
     enabled_only: bool = False,
     db: Session = Depends(get_db)
@@ -137,8 +137,8 @@ async def list_models(
         query = db.query(ModelORM)
         
         # 按供应商过滤
-        if provider_id:
-            query = query.filter(ModelORM.provider_id == provider_id)
+        if provider_config_id:
+            query = query.filter(ModelORM.provider_config_id == provider_config_id)
         
         # 按模型类型过滤
         if model_type:
@@ -150,13 +150,13 @@ async def list_models(
         
         # 排序
         models = query.order_by(
-            ModelORM.provider_id, ModelORM.created_at.desc()
+            ModelORM.provider_config_id, ModelORM.created_at.desc()
         ).all()
         
         data = [
             {
                 "id": m.id,
-                "provider_id": m.provider_id,
+                "provider_config_id": m.provider_config_id,
                 "model_id": m.model_id,
                 "model_type": m.model_type,
                 "capabilities": m.capabilities,
@@ -181,7 +181,7 @@ async def list_models(
 
 @router.put("/models/update", response_model=ResponseModel)
 async def update_model(
-    provider_id: str,
+    provider_config_id: int,
     model_id: str,
     req: ModelUpdateRequest,
     db: Session = Depends(get_db)
@@ -202,30 +202,31 @@ async def update_model(
     }
     """
     try:
-        model = db.query(ModelORM).filter(
-            ModelORM.provider_id == provider_id,
+        # 使用更直接的 update 语句减少往返和内存开销
+        stmt = db.query(ModelORM).filter(
+            ModelORM.provider_config_id == provider_config_id,
             ModelORM.model_id == model_id
-        ).first()
+        )
         
-        if not model:
+        result = stmt.update({
+            "model_type": req.model_type,
+            "capabilities": req.capabilities,
+            "context_window": req.context_window,
+            "max_output": req.max_output,
+            "enabled": req.enabled,
+            "updated_at": datetime.utcnow()
+        })
+        
+        if result == 0:
             raise HTTPException(status_code=404, detail="模型不存在")
-        
-        # 更新字段
-        model.model_type = req.model_type
-        model.capabilities = req.capabilities
-        model.context_window = req.context_window
-        model.max_output = req.max_output
-        model.enabled = req.enabled
-        
+            
         db.commit()
-        db.refresh(model)
         
         return ResponseModel(
             code=200,
             message="更新成功",
             data={
-                "id": model.id,
-                "provider_id": provider_id,
+                "provider_config_id": provider_config_id,
                 "model_id": model_id
             }
         )
@@ -239,7 +240,7 @@ async def update_model(
 
 @router.delete("/models/delete", response_model=ResponseModel)
 async def delete_model(
-    provider_id: str,
+    provider_config_id: int,
     model_id: str,
     db: Session = Depends(get_db)
 ):
@@ -251,7 +252,7 @@ async def delete_model(
     """
     try:
         model = db.query(ModelORM).filter(
-            ModelORM.provider_id == provider_id,
+            ModelORM.provider_config_id == provider_config_id,
             ModelORM.model_id == model_id
         ).first()
         
@@ -265,7 +266,7 @@ async def delete_model(
             code=200,
             message="删除成功",
             data={
-                "provider_id": provider_id,
+                "provider_config_id": provider_config_id,
                 "model_id": model_id
             }
         )
@@ -277,9 +278,9 @@ async def delete_model(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/models/{model_uuid}/parameter-schema", response_model=ResponseModel)
+@router.get("/models/{model_id}/parameter-schema", response_model=ResponseModel)
 async def get_model_parameter_schema(
-    model_uuid: str,
+    model_id: int,
     db: Session = Depends(get_db)
 ):
     """获取模型的参数 Schema
@@ -297,22 +298,22 @@ async def get_model_parameter_schema(
         from core.dependencies import get_model_factory
         
         # 获取模型
-        model = db.query(ModelORM).filter(ModelORM.id == model_uuid).first()
+        model = db.query(ModelORM).filter(ModelORM.id == model_id).first()
         if not model:
             raise HTTPException(status_code=404, detail="模型不存在")
         
         # 获取 Provider 模板
         model_factory = get_model_factory()
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.provider_id == model.provider_id
+            ProviderConfigORM.id == model.provider_config_id
         ).first()
         
         if not provider:
             raise HTTPException(status_code=404, detail="供应商不存在")
         
-        template = model_factory.get_provider_template(provider.template_type)
+        template = model_factory.get_provider_template(provider.provider_type)
         if not template:
-            raise HTTPException(status_code=400, detail=f"不支持的供应商模板: {provider.template_type}")
+            raise HTTPException(status_code=400, detail=f"不支持的供应商模板: {provider.provider_type}")
         
         metadata = template.metadata
         model_capabilities = set(model.capabilities)
@@ -373,7 +374,7 @@ async def get_model_parameter_schema(
             message="获取成功",
             data={
                 "model_id": model.model_id,
-                "provider_id": model.provider_id,
+                "provider_config_id": model.provider_config_id,
                 "model_type": model.model_type,
                 "capabilities": model.capabilities,
                 "common_parameters": common_params,

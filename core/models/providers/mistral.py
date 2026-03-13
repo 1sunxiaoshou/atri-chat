@@ -25,7 +25,7 @@ class MistralProvider(BaseProvider):
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_mistralai import ChatMistralAI
         
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {
@@ -45,7 +45,7 @@ class MistralProvider(BaseProvider):
     
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_mistralai import MistralAIEmbeddings
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         params = {
             "model": model_id,

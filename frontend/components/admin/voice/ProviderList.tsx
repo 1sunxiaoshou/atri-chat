@@ -1,15 +1,14 @@
 import React from 'react';
-import { Plus, Edit2, Trash, Volume2, Power, PowerOff } from 'lucide-react';
+import { Plus, Edit2, Trash } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
 
 interface TTSProvider {
-    id: string;
+    id: number;
     provider_type: string;
     name: string;
     config_payload: Record<string, any>;
-    enabled: boolean;
     voice_count: number;
     created_at: string;
     updated_at: string;
@@ -17,12 +16,12 @@ interface TTSProvider {
 
 interface ProviderListProps {
     providers: TTSProvider[];
-    selectedProvider: string | null;
-    onSelectProvider: (providerId: string) => void;
+    selectedProvider: number | null;
+    onSelectProvider: (providerId: number) => void;
     onEditProvider: (provider: TTSProvider) => void;
-    onDeleteProvider: (providerId: string) => void;
+    onDeleteProvider: (providerId: number) => void;
     onAddProvider: () => void;
-    getVoiceCount: (providerId: string) => number;
+    getVoiceCount: (providerId: number) => number;
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
@@ -56,8 +55,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             "group relative flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg cursor-pointer transition-all duration-200",
                             selectedProvider === provider.id
                                 ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            !provider.enabled && "opacity-60"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                     >
                         {/* 左侧选中指示条 */}
@@ -74,26 +72,19 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                     : "bg-muted/50 border-border"
                             )}
                         >
-                            <Volume2 size={16} className={cn(
+                            <span className={cn(
+                                "text-xs font-bold uppercase",
                                 selectedProvider === provider.id ? "text-primary" : "text-muted-foreground"
-                            )} />
+                            )}>
+                                {provider.provider_type.charAt(0)}
+                            </span>
                         </div>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex justify-between items-center">
                                 <span className="truncate text-sm">{provider.name}</span>
-                                {provider.enabled ? (
-                                    <Power size={10} className="text-green-500 flex-shrink-0" />
-                                ) : (
-                                    <PowerOff size={10} className="text-muted-foreground flex-shrink-0" />
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-muted-foreground truncate">
-                                    {provider.provider_type}
-                                </span>
-                                <span className="text-[10px] bg-muted/50 px-1.5 rounded text-muted-foreground">
+                                <span className="text-[10px] bg-muted/50 px-1.5 rounded text-muted-foreground ml-2">
                                     {getVoiceCount(provider.id)}
                                 </span>
                             </div>

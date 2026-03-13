@@ -20,7 +20,7 @@ async def select_model_and_params(
     
     # 使用 ModelService 创建模型实例
     model = context.model_service.create_model_instance(
-        provider_id=context.provider_id,
+        provider_config_id=context.provider_config_id,
         model_id=context.model_id,
         streaming=context.model_kwargs.get("streaming", True),
         **{k: v for k, v in context.model_kwargs.items() if k != "streaming"}

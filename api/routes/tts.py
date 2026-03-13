@@ -32,9 +32,7 @@ async def get_tts_status(db: Session = Depends(get_db)):
     """
     try:
         # 查询启用的供应商
-        enabled_providers = db.query(TTSProvider).filter(
-            TTSProvider.enabled == True
-        ).all()
+        enabled_providers = db.query(TTSProvider).all()
         
         if not enabled_providers:
             return {
@@ -125,8 +123,9 @@ async def synthesize_speech(
                 TTSProvider.id == voice_asset.provider_id
             ).first()
             
-            if not provider or not provider.enabled:
-                raise HTTPException(status_code=400, detail="音色供应商未启用")
+            if not provider:
+                raise HTTPException(status_code=400, detail="音色供应商不存在")
+            
             
             provider_type = provider.provider_type
             # 合并供应商配置和音色配置

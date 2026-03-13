@@ -20,6 +20,7 @@ interface DataState {
   fetchProviders: (force?: boolean) => Promise<void>;
   fetchTemplates: (force?: boolean) => Promise<void>;
   fetchAll: (force?: boolean) => Promise<void>;
+  updateModelStatus: (providerConfigId: number, modelId: string, enabled: boolean) => void;
 }
 
 // 内存中的请求去重，防止同时发起多个相同请求
@@ -131,5 +132,15 @@ export const useDataStore = create<DataState>((set, get) => ({
       get().fetchProviders(force),
       get().fetchTemplates(force)
     ]);
+  },
+  
+  updateModelStatus: (providerConfigId: number, modelId: string, enabled: boolean) => {
+    set(state => ({
+      models: state.models.map(m => 
+        (m.provider_config_id === providerConfigId && m.model_id === modelId)
+          ? { ...m, enabled }
+          : m
+      )
+    }));
   }
 }));

@@ -11,23 +11,23 @@ class ProviderRepository(BaseRepository[ProviderConfig]):
     负责供应商配置的数据访问操作。
     """
     
-    def get(self, id: str) -> Optional[ProviderConfig]:
-        """根据 UUID 获取供应商"""
+    def get(self, id: int) -> Optional[ProviderConfig]:
+        """根据内部整数 ID 获取供应商"""
         return self.db.query(ProviderConfig).filter(
             ProviderConfig.id == id
         ).first()
     
-    def get_by_provider_id(self, provider_id: str) -> Optional[ProviderConfig]:
-        """根据 provider_id 获取供应商
+    def get_by_name(self, name: str) -> Optional[ProviderConfig]:
+        """根据显示名称获取供应商
         
         Args:
-            provider_id: 供应商标识（如 openai, anthropic）
+            name: 供应商显示名称
             
         Returns:
             供应商配置对象
         """
         return self.db.query(ProviderConfig).filter(
-            ProviderConfig.provider_id == provider_id
+            ProviderConfig.name == name
         ).first()
     
     def list(self, skip: int = 0, limit: int = 100, **filters) -> List[ProviderConfig]:
@@ -47,7 +47,7 @@ class ProviderRepository(BaseRepository[ProviderConfig]):
         self.db.refresh(provider)
         return provider
     
-    def update(self, id: str, **data) -> Optional[ProviderConfig]:
+    def update(self, id: int, **data) -> Optional[ProviderConfig]:
         """更新供应商"""
         provider = self.get(id)
         if not provider:
@@ -61,9 +61,9 @@ class ProviderRepository(BaseRepository[ProviderConfig]):
         self.db.refresh(provider)
         return provider
     
-    def update_by_provider_id(self, provider_id: str, **data) -> Optional[ProviderConfig]:
-        """根据 provider_id 更新供应商"""
-        provider = self.get_by_provider_id(provider_id)
+    def update_by_name(self, name: str, **data) -> Optional[ProviderConfig]:
+        """根据显示名称更新供应商"""
+        provider = self.get_by_name(name)
         if not provider:
             return None
         
@@ -75,7 +75,7 @@ class ProviderRepository(BaseRepository[ProviderConfig]):
         self.db.refresh(provider)
         return provider
     
-    def delete(self, id: str) -> bool:
+    def delete(self, id: int) -> bool:
         """删除供应商（级联删除模型）"""
         provider = self.get(id)
         if not provider:
@@ -85,9 +85,9 @@ class ProviderRepository(BaseRepository[ProviderConfig]):
         self.db.commit()
         return True
     
-    def delete_by_provider_id(self, provider_id: str) -> bool:
-        """根据 provider_id 删除供应商"""
-        provider = self.get_by_provider_id(provider_id)
+    def delete_by_name(self, name: str) -> bool:
+        """根据显示名称删除供应商"""
+        provider = self.get_by_name(name)
         if not provider:
             return False
         

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, RefreshCw, Plus } from 'lucide-react';
+import { Search, RefreshCw, Plus, Filter } from 'lucide-react';
 import { Button, Input } from '../../ui';
 import { cn } from '../../../utils/cn';
 
@@ -17,6 +17,8 @@ interface ModelToolbarProps {
     onSync: () => void;
     onAddModel: () => void;
     isSyncing: boolean;
+    showEnabledOnly: boolean;
+    onToggleEnabledFilter: () => void;
 }
 
 export const ModelToolbar: React.FC<ModelToolbarProps> = ({
@@ -28,6 +30,8 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
     onSync,
     onAddModel,
     isSyncing,
+    showEnabledOnly,
+    onToggleEnabledFilter,
 }) => {
     return (
         <div className="h-16 px-6 flex items-center gap-4 border-b border-border sticky top-0 z-20 bg-background">
@@ -63,6 +67,15 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
 
             {/* 操作按钮 */}
             <div className="flex items-center gap-2 border-l border-border pl-4">
+                <Button
+                    variant={showEnabledOnly ? "default" : "outline"}
+                    size="icon"
+                    onClick={onToggleEnabledFilter}
+                    title={showEnabledOnly ? "Show All Models" : "Show Enabled Only"}
+                    className={cn(showEnabledOnly && "bg-emerald-500 hover:bg-emerald-600 text-white border-transparent")}
+                >
+                    <Filter size={16} />
+                </Button>
                 <Button
                     variant="outline"
                     size="icon"

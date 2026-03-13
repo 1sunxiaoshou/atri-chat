@@ -97,7 +97,7 @@ class AgentCoordinator:
         conversation_id: str,
         character_id: str,
         model_id: str,
-        provider_id: str,
+        provider_config_id: int,
         db_session: Session,
         output_mode: str = "text",
         **model_kwargs
@@ -137,7 +137,7 @@ class AgentCoordinator:
             character_id=character_id,
             enable_vrm=enable_vrm,
             model_id=model_id,
-            provider_id=provider_id,
+            provider_config_id=provider_config_id,
             model_kwargs={**model_kwargs, "streaming": not enable_vrm},
             db_session=db_session,
             model_service=model_service,
@@ -148,7 +148,7 @@ class AgentCoordinator:
         all_tools = get_memory_tools_v3()
         tool_count = len([t for t in all_tools if not t.name.startswith("vrm_") or enable_vrm])
         logger.info(
-            f"Agent配置: 模型={provider_id}/{model_id}, 模式={'VRM' if enable_vrm else '文本'}, 工具数={tool_count}",
+            f"Agent配置: 模型={provider_config_id}/{model_id}, 模式={'VRM' if enable_vrm else '文本'}, 工具数={tool_count}",
             extra={
                 "character_id": character_id,
                 "conversation_id": conversation_id,

@@ -14,7 +14,7 @@ class AnthropicProvider(BaseProvider):
             name="Anthropic",
             description="Anthropic Claude API provider",
             config_fields=[
-                ConfigField(field_name="api_key", field_type="string", required=True, description="Anthropic API密钥"),
+                ConfigField(field_name="api_key", field_type="string", required=True, sensitive=True, description="Anthropic API密钥"),
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="https://api.anthropic.com", description="API基础URL（用于代理或自定义端点）"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
@@ -65,7 +65,7 @@ class AnthropicProvider(BaseProvider):
         from ...logger import get_logger
         
         logger = get_logger(__name__)
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {

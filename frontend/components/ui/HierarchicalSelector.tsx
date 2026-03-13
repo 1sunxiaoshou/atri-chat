@@ -5,7 +5,7 @@ import Modal from './Modal';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface HierarchicalItem {
-    id: string;
+    id: string | number;
     label: string;
     category: string;
     tags?: string[];
@@ -18,8 +18,8 @@ interface HierarchicalSelectorProps {
     isOpen: boolean;
     onClose: () => void;
     items: HierarchicalItem[];
-    selectedId?: string;
-    selectedIds?: string[];
+    selectedId?: string | number;
+    selectedIds?: (string | number)[];
     onSelect: (item: HierarchicalItem) => void;
     onMultiSelect?: (items: HierarchicalItem[]) => void;
     title?: string;
@@ -48,7 +48,7 @@ const HierarchicalSelector: React.FC<HierarchicalSelectorProps> = ({
     const { t } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-    const [tempSelectedIds, setTempSelectedIds] = useState<Set<string>>(new Set(selectedIds));
+    const [tempSelectedIds, setTempSelectedIds] = useState<Set<string | number>>(new Set(selectedIds));
 
     // 提取所有可用的标签
     const allTags = useMemo(() => {

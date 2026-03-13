@@ -4,14 +4,14 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { Button } from '../../ui';
 
 interface VoiceAsset {
-    id: string;
-    provider_id: string;
+    id: number;
+    provider_id: number;
     name: string;
     voice_config: Record<string, any>;
     created_at: string;
     updated_at: string;
     provider?: {
-        id: string;
+        id: number;
         name: string;
         provider_type: string;
     };
@@ -20,7 +20,7 @@ interface VoiceAsset {
 interface VoiceTableProps {
     voices: VoiceAsset[];
     onEditVoice: (voice: VoiceAsset) => void;
-    onDeleteVoice: (voiceId: string) => void;
+    onDeleteVoice: (voiceId: number) => void;
 }
 
 const VoiceTable: React.FC<VoiceTableProps> = ({

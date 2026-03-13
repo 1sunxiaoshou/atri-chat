@@ -42,7 +42,7 @@ async def send_message(
                 conversation_id=req.conversation_id,
                 character_id=req.character_id,
                 model_id=req.model_id,
-                provider_id=req.provider_id,
+                provider_config_id=req.provider_config_id,
                 db_session=db,
                 output_mode=output_mode,
                 **model_kwargs

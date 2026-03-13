@@ -31,14 +31,14 @@ class ProviderModelInfo(BaseModel):
 
 class ProviderConfig(BaseModel):
     """供应商配置"""
-    provider_id: str = Field(..., description="供应商ID")
-    config_json: Dict[str, Any] = Field(default_factory=dict, description="配置参数")
+    provider_id: int = Field(..., description="供应商配置数据库 ID")
+    config_payload: Dict[str, Any] = Field(default_factory=dict, description="配置参数")
 
 
 class ModelConfig(BaseModel):
     """模型配置"""
-    model_id: str = Field(..., description="模型ID")
-    provider_id: str = Field(..., description="供应商ID")
+    model_id: str = Field(..., description="模型内部 UUID")
+    provider_config_id: int = Field(..., description="供应商配置内部 ID")
     model_type: ModelType = Field(..., description="模型类型: chat, embedding, rerank")
     capabilities: List[ModelCapability] = Field(default_factory=list, description="模型能力列表")
     context_window: Optional[int] = Field(default=None, description="上下文窗口大小")
@@ -49,8 +49,8 @@ class ModelConfig(BaseModel):
         caps = ", ".join([c.value for c in self.capabilities])
         return (
             f"ModelConfig(\n"
-            f"  model_id     = {self.model_id!r},\n"
-            f"  provider_id  = {self.provider_id!r},\n"
+            f"  model_id           = {self.model_id!r},\n"
+            f"  provider_config_id = {self.provider_config_id!r},\n"
             f"  model_type   = {self.model_type.value!r},\n"
             f"  capabilities = [{caps}],\n"
             f"  context_window = {self.context_window},\n"
@@ -80,6 +80,7 @@ class ConfigField(BaseModel):
     field_name: str = Field(..., description="字段名称")
     field_type: str = Field(..., description="字段类型: string, number, boolean")
     required: bool = Field(default=False, description="是否必填")
+    sensitive: bool = Field(default=False, description="是否为敏感字段（如密码、API密钥）")
     default_value: Any = Field(default=None, description="默认值")
     description: str = Field(default="", description="字段描述")
 

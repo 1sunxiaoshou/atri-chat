@@ -25,7 +25,7 @@ class CohereProvider(BaseProvider):
     def create_text_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_cohere import ChatCohere
         
-        config = provider_config.config_json
+        config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
         params = {
@@ -44,7 +44,7 @@ class CohereProvider(BaseProvider):
     
     def create_embedding_model(self, model_id: str, provider_config: ProviderConfig, **kwargs) -> Any:
         from langchain_cohere import CohereEmbeddings
-        config = provider_config.config_json
+        config = provider_config.config_payload
         
         params = {
             "model": model_id,

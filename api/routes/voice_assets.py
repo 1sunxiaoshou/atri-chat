@@ -18,7 +18,7 @@ router = APIRouter(prefix="/voice-assets", tags=["Voice Assets"])
 
 class VoiceAssetCreate(BaseModel):
     """创建音色资产"""
-    provider_id: str = Field(..., description="所属供应商 ID")
+    provider_id: int = Field(..., description="所属供应商 ID")
     name: str = Field(..., description="音色名称")
     voice_config: Dict[str, Any] = Field(..., description="音色级别配置 JSON")
 
@@ -31,8 +31,8 @@ class VoiceAssetUpdate(BaseModel):
 
 class VoiceAssetResponse(BaseModel):
     """音色资产响应"""
-    id: str
-    provider_id: str
+    id: int
+    provider_id: int
     name: str
     voice_config: Dict[str, Any]
     created_at: str
@@ -49,7 +49,7 @@ async def list_voice_assets(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    provider_id: Optional[str] = None,
+    provider_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """获取所有音色资产
@@ -101,7 +101,7 @@ async def list_voice_assets(
 
 @router.get("/{voice_id}", summary="获取音色资产详情", response_model=ResponseModel)
 async def get_voice_asset(
-    voice_id: str,
+    voice_id: int,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """获取音色资产详情"""
@@ -192,7 +192,7 @@ async def create_voice_asset(
 
 @router.put("/{voice_id}", summary="更新音色资产", response_model=ResponseModel)
 async def update_voice_asset(
-    voice_id: str,
+    voice_id: int,
     voice_update: VoiceAssetUpdate,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -242,7 +242,7 @@ async def update_voice_asset(
 
 @router.delete("/{voice_id}", summary="删除音色资产", response_model=ResponseModel)
 async def delete_voice_asset(
-    voice_id: str,
+    voice_id: int,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """删除音色资产（会检查是否被角色引用）"""

@@ -14,22 +14,23 @@ class ResponseModel(BaseModel):
 
 class ProviderConfigRequest(BaseModel):
     """供应商配置请求"""
-    provider_id: str = Field(..., description="供应商ID（同时作为显示名称）")
-    config_json: Dict[str, Any] = Field(..., description="配置JSON")
-    template_type: Optional[str] = Field("openai", description="供应商模板类型: openai/anthropic/google/qwen/local")
+    name: str = Field(..., description="供应商显示名称")
+    config_payload: Dict[str, Any] = Field(..., description="配置详情")
+    provider_type: Optional[str] = Field("openai", description="供应商模板类型: openai/anthropic/google/qwen/local")
 
 
 class ProviderConfigUpdateRequest(BaseModel):
     """供应商配置更新请求"""
-    config_json: Optional[Dict[str, Any]] = Field(None, description="配置JSON")
-    template_type: Optional[str] = Field(None, description="供应商模板类型: openai/anthropic/google/qwen/local")
+    name: Optional[str] = Field(None, description="供应商显示名称")
+    config_payload: Optional[Dict[str, Any]] = Field(None, description="配置详情")
+    provider_type: Optional[str] = Field(None, description="供应商模板类型")
 
 
 # ==================== 模型相关 ====================
 
 class ModelRequest(BaseModel):
     """模型请求"""
-    provider_id: str = Field(..., description="供应商ID")
+    provider_config_id: int = Field(..., description="供应商配置内部 ID")
     model_id: str = Field(..., description="模型ID")
     model_type: str = Field(..., description="模型类型: chat, embedding, rerank")
     capabilities: List[str] = Field(default_factory=list, description="模型能力: vision, reasoning, tool_use, web_search")
@@ -40,7 +41,8 @@ class ModelRequest(BaseModel):
 
 class ModelResponse(BaseModel):
     """模型响应"""
-    provider_id: str
+    id: int
+    provider_config_id: int
     model_id: str
     model_type: str
     capabilities: List[str]
@@ -63,26 +65,24 @@ class ModelUpdateRequest(BaseModel):
 class TTSRequest(BaseModel):
     """TTS请求"""
     tts_id: str = Field(..., description="TTS ID")
-    provider_id: str = Field(..., description="供应商ID")
+    provider_id: int = Field(..., description="供应商与配置的内部ID")
     voice_role: str = Field(..., description="语音角色")
     api_key: Optional[str] = Field(None, description="API密钥")
     access_url: Optional[str] = Field(None, description="访问URL")
-    enabled: bool = Field(True, description="是否启用")
 
 
 class TTSResponse(BaseModel):
     """TTS响应"""
     tts_id: str
-    provider_id: str
+    provider_id: int
     voice_role: str
     api_key: Optional[str]
     access_url: Optional[str]
-    enabled: bool
 
 
 class TTSUpdateRequest(BaseModel):
     """TTS更新请求"""
-    provider_id: str = Field(..., description="供应商ID")
+    provider_id: int = Field(..., description="供应商与配置的内部ID")
     voice_role: str = Field(..., description="语音角色")
     api_key: Optional[str] = Field(None, description="API密钥")
     access_url: Optional[str] = Field(None, description="访问URL")
@@ -97,10 +97,10 @@ class CharacterCreate(BaseModel):
     system_prompt: str = Field(..., description="系统提示词")
     portrait_url: Optional[str] = Field(None, description="2D立绘/头像URL")
     avatar_id: str = Field(..., description="3D形象资产ID")
-    voice_asset_id: str = Field(..., description="音色资产ID")
+    voice_asset_id: int = Field(..., description="音色资产ID")
     voice_speaker_id: Optional[str] = Field(None, description="音色说话人ID（可选）")
-    primary_model_id: Optional[str] = Field(None, description="主模型ID（可选）")
-    primary_provider_id: Optional[str] = Field(None, description="主供应商ID（可选）")
+    primary_model_id: Optional[int] = Field(None, description="主模型内部 ID（可选）")
+    primary_provider_config_id: Optional[int] = Field(None, description="主供应商内部 ID（可选）")
     enabled: bool = Field(True, description="是否启用")
 
 
@@ -110,10 +110,10 @@ class CharacterUpdate(BaseModel):
     system_prompt: Optional[str] = Field(None, description="系统提示词")
     portrait_url: Optional[str] = Field(None, description="2D立绘/头像URL")
     avatar_id: Optional[str] = Field(None, description="3D形象资产ID")
-    voice_asset_id: Optional[str] = Field(None, description="音色资产ID")
+    voice_asset_id: Optional[int] = Field(None, description="音色资产ID")
     voice_speaker_id: Optional[str] = Field(None, description="音色说话人ID")
-    primary_model_id: Optional[str] = Field(None, description="主模型ID")
-    primary_provider_id: Optional[str] = Field(None, description="主供应商ID")
+    primary_model_id: Optional[int] = Field(None, description="主模型内部 ID")
+    primary_provider_config_id: Optional[int] = Field(None, description="主供应商内部 ID")
     enabled: Optional[bool] = Field(None, description="是否启用")
 
 
@@ -157,7 +157,7 @@ class MessageRequest(BaseModel):
     conversation_id: str = Field(..., description="会话ID（UUID）")
     character_id: str = Field(..., description="角色ID（UUID）")
     model_id: str = Field(..., description="模型ID")
-    provider_id: str = Field(..., description="供应商ID")
+    provider_config_id: int = Field(..., description="供应商配置内部 ID")
     content: str = Field(..., description="消息内容")
     display_mode: str = Field("text", description="显示模式: text/vrm/live2d")
     temperature: Optional[float] = Field(None, description="温度参数")
@@ -189,7 +189,7 @@ class AudioMessageRequest(BaseModel):
     conversation_id: str = Field(..., description="会话ID（UUID）")
     character_id: str = Field(..., description="角色ID（UUID）")
     model_id: str = Field(..., description="模型ID")
-    provider_id: str = Field(..., description="供应商ID")
+    provider_config_id: int = Field(..., description="供应商配置内部 ID")
     asr_provider: Optional[str] = Field(None, description="ASR提供商")
     language: Optional[str] = Field(None, description="语言代码")
 

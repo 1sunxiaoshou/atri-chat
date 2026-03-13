@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { Camera, User } from 'lucide-react';
-import { Character, Model, VoiceAsset } from '../../types';
+import { Character, Model, Provider, VoiceAsset } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { buildAvatarUrl } from '../../utils/url';
 import { Input, Button } from '../ui';
@@ -9,6 +9,7 @@ import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelect
 interface PersonaTabProps {
     character: Character;
     models: Model[];
+    providers: Provider[];
     voiceAssets: VoiceAsset[];
     onChange: (character: Character) => void;
     onPortraitUpload?: (file: File) => void;
@@ -17,6 +18,7 @@ interface PersonaTabProps {
 export const PersonaTab: React.FC<PersonaTabProps> = ({
     character,
     models,
+    providers,
     voiceAssets,
     onChange,
     onPortraitUpload
@@ -69,13 +71,16 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
 
     // 转换模型列表为 HierarchicalItem 格式
     const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
-        return models.map(model => ({
-            id: model.id,
-            label: model.model_id,
-            category: model.provider_id,
-            tags: model.capabilities
-        }));
-    }, [models]);
+        return models.map(model => {
+            const provider = providers.find(p => p.id === model.provider_config_id);
+            return {
+                id: model.id,
+                label: model.model_id,
+                category: provider?.name || `Provider #${model.provider_config_id}`,
+                tags: model.capabilities
+            };
+        });
+    }, [models, providers]);
 
     // 转换语音资产列表为 HierarchicalItem 格式
     const hierarchicalVoices = useMemo<HierarchicalItem[]>(() => {
@@ -89,8 +94,9 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
 
     // 获取当前选中模型的显示名称
     const currentModel = models.find(m => m.id === character.primary_model_id);
+    const currentProvider = currentModel ? providers.find(p => p.id === currentModel.provider_config_id) : null;
     const currentModelName = currentModel
-        ? `${currentModel.provider_id} / ${currentModel.model_id}`
+        ? `${currentProvider?.name || `Provider #${currentModel.provider_config_id}`} / ${currentModel.model_id}`
         : t('admin.notSelected');
 
     // 获取当前选中语音的显示名称

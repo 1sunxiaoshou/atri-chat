@@ -18,7 +18,7 @@ class DatabaseError(Exception):
 
 class ResourceInUseError(DatabaseError):
     """资源被引用错误"""
-    def __init__(self, resource_type: str, resource_id: str, referenced_by: list):
+    def __init__(self, resource_type: str, resource_id: Any, referenced_by: list):
         self.resource_type = resource_type
         self.resource_id = resource_id
         self.referenced_by = referenced_by
@@ -30,7 +30,7 @@ class ResourceInUseError(DatabaseError):
 
 class InvalidReferenceError(DatabaseError):
     """无效引用错误"""
-    def __init__(self, field: str, value: str, resource_type: str):
+    def __init__(self, field: str, value: Any, resource_type: str):
         self.field = field
         self.value = value
         self.resource_type = resource_type
@@ -62,7 +62,7 @@ def check_avatar_references(db: Session, avatar_id: str) -> List[Dict[str, Any]]
     ]
 
 
-def check_voice_asset_references(db: Session, voice_asset_id: str) -> List[Dict[str, Any]]:
+def check_voice_asset_references(db: Session, voice_asset_id: int) -> List[Dict[str, Any]]:
     """检查音色资产是否被角色引用
     
     Args:
@@ -111,7 +111,7 @@ def check_motion_references(db: Session, motion_id: str) -> List[Dict[str, Any]]
     ]
 
 
-def check_model_references(db: Session, model_id: str) -> List[Dict[str, Any]]:
+def check_model_references(db: Session, model_id: int) -> List[Dict[str, Any]]:
     """检查模型是否被角色引用
     
     Args:
@@ -153,7 +153,7 @@ def validate_avatar_exists(db: Session, avatar_id: str) -> bool:
     return True
 
 
-def validate_voice_asset_exists(db: Session, voice_asset_id: str) -> bool:
+def validate_voice_asset_exists(db: Session, voice_asset_id: int) -> bool:
     """验证音色资产是否存在
     
     Args:
@@ -191,7 +191,7 @@ def validate_motion_exists(db: Session, motion_id: str) -> bool:
     return True
 
 
-def validate_model_exists(db: Session, model_id: str) -> bool:
+def validate_model_exists(db: Session, model_id: int) -> bool:
     """验证模型是否存在
     
     Args:
@@ -239,7 +239,7 @@ def safe_delete_avatar(db: Session, avatar_id: str) -> bool:
     return False
 
 
-def safe_delete_voice_asset(db: Session, voice_asset_id: str) -> bool:
+def safe_delete_voice_asset(db: Session, voice_asset_id: int) -> bool:
     """安全删除音色资产（检查引用）
     
     Args:
@@ -293,7 +293,7 @@ def safe_delete_motion(db: Session, motion_id: str) -> bool:
     return False
 
 
-def safe_delete_model(db: Session, model_id: str) -> bool:
+def safe_delete_model(db: Session, model_id: int) -> bool:
     """安全删除模型（检查引用）
     
     Args:

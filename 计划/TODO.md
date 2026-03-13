@@ -9,10 +9,12 @@
 - [x] 动作上传预览
 - [x] 国际化：迁移翻译到JSON格式
 - [x] 国际化：更新项目规则
+
 - [x] 前端国际化完善
   - [x] 排查硬编码中文文本
   - [x] 修复 `t('key') || '默认值'` 用法
   - [x] 补充缺失的翻译键
+
 - [x] **长期记忆系统重构 V3** ✅ 已完成
   - [x] 设计简洁的工具架构（4 个核心工具）
   - [x] 实现参数化控制（file, section, mode 等）
@@ -20,6 +22,7 @@
   - [x] 工具描述包含完整使用说明
   - [x] 极简 System Prompt（约 200 字）
   - [x] 创建测试脚本
+
 - [x] **中间件架构优化** ✅ 已完成
   - [x] 统一中间件导入逻辑
   - [x] 分离回调处理器到 `core/callbacks/`
@@ -32,27 +35,37 @@
   - [x] 移除后端所有供应商的 logo 字段定义（10个供应商）
   - [x] 移除 `ProviderMetadata` 和 API Schema 中的 logo 字段
   - [x] 数据库迁移：移除 `provider_configs.logo` 列
-  - [x] 前端使用 `@lobehub/icons` 的 `ProviderIcon` 组件（基于 `template_type`）
+  - [x] 前端使用 `@lobehub/icons` 的 `ProviderIcon` 组件（基于 `provider_type`）
   - [x] 更新文档 `docs/供应商图标集成-完成报告.md`
+
 - [x] **模型供应商创建优化** ✅ 已完成 (2025-03-07)
   - [x] 修复重复ID时输入框锁死问题 → 改为提交时校验
+  - [x] 前端使用 `@lobehub/icons` 的 `ProviderIcon` 组件（基于 `provider_type`）
+  - [x] 优化配置存储：改用 `provider_type` 和 `config_payload`
   - [x] 添加错误提示翻译键（providerIdExists, providerCreated, providerUpdated）
-  - [x] 优化默认值：`provider_id` 默认使用 `template_type`
-  - [x] 智能同步：只在 `provider_id === template_type` 时自动同步更新
+  - [x] 优化默认值：`provider_id` 默认使用 `provider_type`
+  - [x] 智能同步：只在 `provider_id === provider_type` 时自动同步更新
 
 - [x] **VRM 渲染系统升级到 React Three Fiber** ✅ 已完成 (2025-03-09)
   - 使用 R3F 重构 VRM 渲染系统，提升视觉表现力
   - 删除旧架构代码约 2,463 行，20 个文件
   - 文档：`docs/VRM-R3F-开发指南.md`、`docs/VRM-R3F-Hooks使用规范.md`、`docs/VRM-R3F-进阶技巧.md`
-## 📋 待办事项
 
-### 功能开发
 - [x] 角色编辑页面
   - [x] 将模型和动作在一个界面管理
   - [x] 立绘上传修复
   - [x] 实现角色编辑页面的动作预览功能
   - [x] AI模型选择和音色模型选择使用同样的组件
   - [x] 将模型选择和音色选择放在人设界面
+
+- [x] ASR模型管理、加载时机、切换、ASR设置UI
+- [x] 打包测试
+
+## 📋 待办事项
+
+### 功能开发
+
+- [ ] 调整渲染风格，保证性能足够的情况下，渲染风格二次元、卡通
 - [ ] 资源配置界面优化
   - [x] 动作库：左边为模型预览，右边是动作列表
   - [x] 3D形象顶部删除多余文字
@@ -63,8 +76,8 @@
 - [ ] VRM背景切换支持
 - [ ] 运镜系统（待定）
 - [ ] 头像位置显示切换
-- [x] ASR模型管理、加载时机、切换、ASR设置UI
-- [x] 打包测试
+
+
 
 ### 可选优化
 - [ ] 表情启用/禁用功能
