@@ -46,7 +46,7 @@ async def get_asr_status(settings: AppSettings = Depends(get_settings)):
             }
         )
     except Exception as e:
-        logger.error(f"获取 ASR 状态失败: {e}")
+        logger.error("获取 ASR 状态失败: {}", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/download", response_model=ResponseModel)
@@ -77,7 +77,7 @@ async def trigger_download(
             data={"precision": req.precision}
         )
     except Exception as e:
-        logger.error(f"触发 ASR 下载失败: {e}")
+        logger.error("触发 ASR 下载失败: {}", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/clear", response_model=ResponseModel)
@@ -105,5 +105,5 @@ async def clear_asr_models(
             data={"success": success}
         )
     except Exception as e:
-        logger.error(f"清理 ASR 资源失败: {e}")
+        logger.error("清理 ASR 资源失败: {}", str(e))
         raise HTTPException(status_code=500, detail=str(e))

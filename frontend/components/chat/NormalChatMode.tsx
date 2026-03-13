@@ -5,7 +5,6 @@ import MessageItem from './MessageItem';
 
 interface NormalChatModeProps {
     messages: Message[];
-    isTyping: boolean;
     activeCharacter: Character | null;
     playingMessageId: string | number | null;
     copiedMessageId: string | number | null;
@@ -13,7 +12,6 @@ interface NormalChatModeProps {
     onCopyMessage: (messageId: string | number, content: string) => void;
     onPlayTTS: (messageId: string | number, text: string) => void;
     onToggleReasoning: (messageId: string | number) => void;
-    currentResponse: string;
 }
 
 /**
@@ -23,7 +21,6 @@ interface NormalChatModeProps {
  */
 export const NormalChatMode = React.memo(function NormalChatMode({
     messages,
-    isTyping,
     activeCharacter,
     playingMessageId,
     copiedMessageId,
@@ -31,13 +28,11 @@ export const NormalChatMode = React.memo(function NormalChatMode({
     onCopyMessage,
     onPlayTTS,
     onToggleReasoning,
-    currentResponse,
 }: NormalChatModeProps) {
     return (
         <div className="flex-1">
             <MessageList
                 messages={messages}
-                isTyping={isTyping && !currentResponse}
                 activeCharacter={activeCharacter}
             >
                 {messages.map((msg) => (
@@ -60,14 +55,12 @@ export const NormalChatMode = React.memo(function NormalChatMode({
     // 自定义比较函数：只有消息相关属性变化时才重新渲染
     return (
         prevProps.messages === nextProps.messages &&
-        prevProps.isTyping === nextProps.isTyping &&
         prevProps.activeCharacter === nextProps.activeCharacter &&
         prevProps.playingMessageId === nextProps.playingMessageId &&
         prevProps.copiedMessageId === nextProps.copiedMessageId &&
         prevProps.expandedReasoning === nextProps.expandedReasoning &&
         prevProps.onCopyMessage === nextProps.onCopyMessage &&
         prevProps.onPlayTTS === nextProps.onPlayTTS &&
-        prevProps.onToggleReasoning === nextProps.onToggleReasoning &&
-        prevProps.currentResponse === nextProps.currentResponse
+        prevProps.onToggleReasoning === nextProps.onToggleReasoning
     );
 });

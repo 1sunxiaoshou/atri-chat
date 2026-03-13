@@ -135,7 +135,7 @@ class OllamaProvider(BaseProvider):
             )
             
         except Exception as e:
-            logger.warning(f"无法从 API 获取模型信息 {model_id}: {e}，使用默认推断")
+            logger.warning("无法从 API 获取模型信息 {model_id}: {}，使用默认推断", str(e))
             # 降级到基于名称的推断
             model_id_lower = model_id.lower()
             

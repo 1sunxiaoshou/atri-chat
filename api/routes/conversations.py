@@ -80,7 +80,7 @@ async def list_conversations(
         }
         
     except Exception as e:
-        logger.error(f"获取会话列表失败: {e}", exc_info=True)
+        logger.error("获取会话列表失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -139,7 +139,7 @@ async def get_conversation(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取会话详情失败: {e}", exc_info=True)
+        logger.error("获取会话详情失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -186,7 +186,7 @@ async def create_conversation(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"创建会话失败: {e}", exc_info=True)
+        logger.error("创建会话失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -233,7 +233,7 @@ async def update_conversation(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新会话失败: {e}", exc_info=True)
+        logger.error("更新会话失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -266,7 +266,7 @@ async def delete_conversation(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除会话失败: {e}", exc_info=True)
+        logger.error("删除会话失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -317,7 +317,7 @@ async def get_conversation_messages(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取会话消息失败: {e}", exc_info=True)
+        logger.error("获取会话消息失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -355,5 +355,5 @@ async def clear_conversation_messages(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"清空会话消息失败: {e}", exc_info=True)
+        logger.error("清空会话消息失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

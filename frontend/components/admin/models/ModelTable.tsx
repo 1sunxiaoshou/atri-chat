@@ -7,7 +7,7 @@ import { cn } from '../../../utils/cn';
 interface ModelTableProps {
     models: Model[];
     onEditModel: (model: Model) => void;
-    onDeleteModel: (providerConfigId: number, modelId: string) => void;
+    onDeleteModel: (id: number) => void;
     onToggleModel: (model: Model) => void;
 }
 
@@ -102,7 +102,7 @@ export const ModelTable: React.FC<ModelTableProps> = ({
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-destructive hover:text-destructive"
-                                            onClick={() => onDeleteModel(model.provider_config_id, model.model_id)}
+                                            onClick={() => onDeleteModel(model.id)}
                                         >
                                             <Trash size={14} />
                                         </Button>

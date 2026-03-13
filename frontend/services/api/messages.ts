@@ -34,6 +34,9 @@ export interface StreamCallbacks {
   onStatus?: (status: string) => void;
   onReasoning?: (reasoning: string) => void;
   onVrmData?: (data: any) => void;
+  onToolStart?: (tool: string, input: any, run_id: string) => void;
+  onToolEnd?: (tool: string, output: any, run_id: string) => void;
+  onTitleUpdate?: (title: string) => void;
 }
 
 /**
@@ -59,8 +62,6 @@ export const messagesApi = {
         conversation_id: msg.conversation_id,
         message_type: msg.message_type,
         content: msg.content,
-        reasoning: msg.reasoning,
-        status: msg.status,
         created_at: msg.created_at,
         generating: msg.generating
       }));
@@ -178,6 +179,8 @@ export const messagesApi = {
           fullContent += data.content;
           callbacks?.onChunk?.(fullContent);
         },
+        tool_start: () => callbacks?.onToolStart?.(data.tool, data.input, data.run_id),
+        tool_result: () => callbacks?.onToolEnd?.(data.tool, data.content, data.run_id),
         vrm_segment: () => {
           if (data.data && callbacks?.onVrmData) {
             // 后端已经返回标准格式，直接使用
@@ -196,7 +199,8 @@ export const messagesApi = {
             }
           }
         },
-        vrm_complete: () => Logger.debug('VRM音频生成完成', { total_segments: data.total_segments })
+        vrm_complete: () => Logger.debug('VRM音频生成完成', { total_segments: data.total_segments }),
+        title_update: () => callbacks?.onTitleUpdate?.(data.title)
       };
 
       handlers[data.type]?.();

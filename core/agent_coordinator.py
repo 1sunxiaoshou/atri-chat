@@ -18,7 +18,7 @@ from .middleware import (
     filter_tools_by_mode,
     AgentContext
 )
-from .callbacks import LLMCallLogger
+from .callbacks import LLMCallLogger, TokenUsageCallback
 from .config import get_settings
 from .services import ConversationService, MessageService, get_output_strategy
 from .services.model_service import ModelService
@@ -166,15 +166,35 @@ class AgentCoordinator:
         # 4. 执行处理
         config = {"configurable": {"thread_id": str(conversation_id)}}
         
+        # 启用 Token 统计回调
+        token_callback = TokenUsageCallback()
+        config["callbacks"] = [token_callback]
+        
         # 根据配置决定是否启用 LLM 调用日志记录器
         settings = get_settings()
         if settings.enable_llm_call_logger:
             llm_logger = LLMCallLogger()
-            config["callbacks"] = [llm_logger]
+            config["callbacks"].append(llm_logger)
             logger.debug("LLM 调用日志记录器已启用")
         
         full_response = ""
+        full_reasoning = ""
+        tool_calls = []
         
+        # 1. 保存用户消息（提前保存，确保即便 LLM 失败也能留存记录）
+        try:
+            conversation_service.save_message(
+                conversation_id=conversation_id, 
+                role="user", 
+                content=user_message
+            )
+            # 2. 自动更新标题并实时通知前端
+            new_title = conversation_service.auto_title(conversation_id, user_message)
+            if new_title:
+                yield json.dumps({"type": "title_update", "title": new_title}, ensure_ascii=False)
+        except Exception as e:
+            logger.error("前期消息处理失败: {}", str(e))
+
         try:
             async for chunk_json in strategy.process(
                 agent=self.agent,
@@ -184,23 +204,50 @@ class AgentCoordinator:
             ):
                 chunk_data = json.loads(chunk_json)
                 
-                # 捕获完整回复
+                # 累积内容
+                if chunk_data.get("type") == "text":
+                    full_response += chunk_data.get("content", "")
+                elif chunk_data.get("type") == "reasoning":
+                    full_reasoning += chunk_data.get("content", "")
+                elif chunk_data.get("type") == "tool_start":
+                    tool_calls.append({
+                        "run_id": chunk_data.get("run_id"),
+                        "tool": chunk_data.get("tool"),
+                        "input": chunk_data.get("input"),
+                        "status": "running"
+                    })
+                elif chunk_data.get("type") == "tool_result":
+                    # 查找并更新匹配的 run_id
+                    run_id = chunk_data.get("run_id")
+                    for tc in tool_calls:
+                        if tc.get("run_id") == run_id:
+                            tc["output"] = chunk_data.get("content")
+                            tc["status"] = "completed"
+                            break
+
+                # 捕获完整回复 (对于某些策略可能直接返回 complete)
                 if chunk_data.get("type") == "complete":
-                    full_response = chunk_data.get("full_response", "")
-                elif chunk_data.get("type") == "full_response":
-                    full_response = chunk_data.get("content", "")
+                    # 如果 payload 没带 full_response，就用我们累积的
+                    if not chunk_data.get("full_response") and full_response:
+                        chunk_data["full_response"] = full_response
+                    
+                    # 注入累计 Token 信息
+                    chunk_data["usage"] = token_callback.get_summary()
+                    chunk_json = json.dumps(chunk_data, ensure_ascii=False)
                 
                 yield chunk_json
             
-            # 5. 保存消息
+            # 5. 保存助手消息
             if full_response:
                 clean_response = strategy.clean_response(full_response)
-                conversation_service.save_message(conversation_id, "user", user_message)
-                conversation_service.save_message(conversation_id, "assistant", clean_response)
-                conversation_service.auto_title(conversation_id, user_message)
+                conversation_service.save_message(
+                    conversation_id=conversation_id, 
+                    role="assistant", 
+                    content=clean_response
+                )
                 
         except Exception as e:
-            logger.error(f"消息处理失败: {e}", exc_info=True)
+            logger.error("消息处理失败: {}", str(e), exc_info=True)
             yield json.dumps({"type": "error", "message": str(e)}, ensure_ascii=False)
     
     async def start_services(self):

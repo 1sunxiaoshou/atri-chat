@@ -199,7 +199,11 @@
         "showSidebar": "显示侧边栏",
         "noMotionsYet": "还没有动作",
         "searchMotions": "搜索动作名称、描述或标签...",
-        "duration": "时长"
+        "duration": "时长",
+        "enablePreview": "启用预览",
+        "disablePreview": "禁用预览",
+        "clickToPreview": "点击启用 3D 预览",
+        "saveResourcesTip": "点击开启以节省系统资源"
     },
     "chat": {
         "placeholder": "发送消息...",
@@ -219,6 +223,7 @@
         "read": "朗读",
         "regenerate": "重新生成",
         "reasoning": "思维链",
+        "usingTool": "调用工具",
         "noModelConfigured": "该角色尚未配置 AI 模型，请在角色设置中为其关联模型后再试。",
         "asrError": "ASR 错误",
         "toggleRecording": "切换录音状态",

@@ -28,10 +28,15 @@ class DeepSeekProvider(BaseProvider):
         config = provider_config.config_payload
         merged = self._merge_params(config, **kwargs)
         
+        # 处理 base_url：如果为空字符串或 None，则使用默认值
+        base_url = merged.get("base_url")
+        if not base_url:
+            base_url = "https://api.deepseek.com"
+        
         params = {
             "model": model_id,
-            "api_key": config.get("api_key"),
-            "base_url": config.get("base_url", "https://api.deepseek.com"),
+            "api_key": merged.get("api_key"),
+            "base_url": base_url,
             "temperature": merged.get("temperature"),
             "max_tokens": merged.get("max_tokens"),
             "top_p": merged.get("top_p"),

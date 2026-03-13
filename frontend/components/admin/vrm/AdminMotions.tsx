@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash, Upload, Edit2, Film, Clock, Search } from 'lucide-react';
+import { Plus, Trash, Upload, Edit2, Film, Clock, Search, Eye, EyeOff, Play } from 'lucide-react';
 import { api } from '../../../services/api/index';
 import { Modal, Button, Input, ConfirmDialog } from '../../ui';
 import Toast, { ToastMessage } from '../../ui/Toast';
@@ -31,6 +31,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
     const [selectedMotion, setSelectedMotion] = useState<Motion | null>(null);
     const [modal, setModal] = useState<ModalState>({ isOpen: false, type: null });
     const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
+    const [isPreviewActive, setIsPreviewActive] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
@@ -267,36 +268,51 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
             {/* Left: Motion Preview - 25% */}
             <div className="w-[25%] min-w-[240px] max-w-[400px] flex flex-col border-r border-border">
                 <div className="h-16 px-4 border-b border-border flex justify-between items-center bg-background">
-                    <h3 className="text-sm font-bold text-foreground">{t('character.motionList')}</h3>
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {filteredMotions.length}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-foreground">{t('character.motionList')}</h3>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {filteredMotions.length}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => setIsPreviewActive(!isPreviewActive)}
+                        className={cn(
+                            "p-1.5 rounded-md transition-colors",
+                            isPreviewActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted"
+                        )}
+                        title={isPreviewActive ? t('admin.disablePreview') : t('admin.enablePreview')}
+                    >
+                        {isPreviewActive ? <Eye size={16} /> : <EyeOff size={16} />}
+                    </button>
                 </div>
-                <div className="flex-1 relative">
-                    <VRMViewer
-                        modelUrl={DEFAULT_VRM_MODEL}
-                        motionUrl={selectedMotion?.animation_path || null}
-                        title={selectedMotion?.name}
-                        enableBlink={false}
-                        lookAtMode="none"
-                        loopMotion={true}
-                        showGrid={true}
-                        enableOrbitControls={true}
-                        enableCameraFit={true}
-                        className="h-full"
-                    />
-                    {!selectedMotion && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="text-center">
-                                <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 mx-auto">
-                                    <Film size={32} className="text-muted-foreground" />
-                                </div>
-                                <p className="font-medium text-foreground mb-1">{t('vrm.motion.selectToPreview')}</p>
-                                <p className="text-xs text-muted-foreground">{t('hierarchicalSelector.selectItem')}</p>
+                <div className="flex-1 relative bg-muted/10">
+                    {isPreviewActive ? (
+                        <VRMViewer
+                            modelUrl={DEFAULT_VRM_MODEL}
+                            motionUrl={selectedMotion?.animation_path || null}
+                            title={selectedMotion?.name}
+                            enableBlink={false}
+                            lookAtMode="none"
+                            loopMotion={true}
+                            showGrid={true}
+                            enableOrbitControls={true}
+                            enableCameraFit={true}
+                            className="h-full"
+                        />
+                    ) : (
+                        <div
+                            className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group hover:bg-muted/20 transition-colors"
+                            onClick={() => setIsPreviewActive(true)}
+                        >
+                            <div className="w-16 h-16 rounded-full bg-background shadow-sm border border-border flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-primary/50 transition-all">
+                                <Play size={24} className="text-muted-foreground group-hover:text-primary ml-1" />
                             </div>
+                            <p className="text-sm font-medium text-foreground">{t('admin.clickToPreview')}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('admin.saveResourcesTip')}</p>
                         </div>
                     )}
                 </div>
+
             </div>
 
             {/* Right: Motion List - flex-1 */}

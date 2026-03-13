@@ -44,7 +44,7 @@ async def transcribe_audio(
         )
     
     except (ValueError, RuntimeError) as e:
-        logger.warning(f"转录失败: {e}")
+        logger.warning("转录失败: {}", str(e))
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         logger.exception("语音转录出现系统异常")

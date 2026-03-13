@@ -222,7 +222,7 @@ class PromptManager:
             return "\n  - " + "\n  - ".join(action_lines), action_ids
             
         except Exception as e:
-            logger.error(f"获取角色动作失败: {e}", exc_info=True)
+            logger.error("获取角色动作失败: {}", str(e), exc_info=True)
             return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS), []
 
     
@@ -252,7 +252,7 @@ class PromptManager:
                 return None
         
         except Exception as e:
-            logger.warning(f"加载用户画像失败: {e}")
+            logger.warning("加载用户画像失败: {}", str(e))
             return None
     
     def _has_meaningful_content(self, content: str) -> bool:

@@ -15,10 +15,10 @@ from core import ProviderConfig, ModelConfig
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/providers", tags=["Providers"])
 
 
-@router.post("/providers", response_model=ResponseModel)
+@router.post("", response_model=ResponseModel)
 async def create_provider(
     req: ProviderConfigRequest,
     db: Session = Depends(get_db)
@@ -80,19 +80,19 @@ async def create_provider(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"创建供应商失败: {e}", exc_info=True)
+        logger.error("创建供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/{config_id}", response_model=ResponseModel)
+@router.get("/{id}", response_model=ResponseModel)
 async def get_provider(
-    config_id: int,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """获取供应商配置"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == config_id
+            ProviderConfigORM.id == id
         ).first()
         
         if not provider:
@@ -118,11 +118,11 @@ async def get_provider(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取供应商失败: {e}", exc_info=True)
+        logger.error("获取供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers", response_model=ResponseModel)
+@router.get("", response_model=ResponseModel)
 async def list_providers(
     skip: int = 0,
     limit: int = 100,
@@ -164,20 +164,20 @@ async def list_providers(
             data=data
         )
     except Exception as e:
-        logger.error(f"列出供应商失败: {e}", exc_info=True)
+        logger.error("列出供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/providers/update", response_model=ResponseModel)
+@router.put("/{id}", response_model=ResponseModel)
 async def update_provider(
-    config_id: int,
+    id: int,
     req: ProviderConfigUpdateRequest,
     db: Session = Depends(get_db)
 ):
     """更新供应商配置"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == config_id
+            ProviderConfigORM.id == id
         ).first()
         
         if not provider:
@@ -218,19 +218,19 @@ async def update_provider(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新供应商失败: {e}", exc_info=True)
+        logger.error("更新供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/providers/delete", response_model=ResponseModel)
+@router.delete("/{id}", response_model=ResponseModel)
 async def delete_provider(
-    config_id: int,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """删除供应商配置及其下所有模型"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == config_id
+            ProviderConfigORM.id == id
         ).first()
         
         if not provider:
@@ -248,7 +248,7 @@ async def delete_provider(
             code=200,
             message="删除成功",
             data={
-                "config_id": config_id,
+                "config_id": id,
                 "deleted_models": model_ids,
                 "deleted_count": model_count
             }
@@ -257,11 +257,11 @@ async def delete_provider(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除供应商失败: {e}", exc_info=True)
+        logger.error("删除供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/templates/list", response_model=ResponseModel)
+@router.get("/templates/list", response_model=ResponseModel)
 async def list_provider_templates():
     """获取系统支持的所有供应商模板及其配置字段
     
@@ -297,19 +297,19 @@ async def list_provider_templates():
             data=data
         )
     except Exception as e:
-        logger.error(f"获取模板列表失败: {e}", exc_info=True)
+        logger.error("获取模板列表失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/{config_id}/models", response_model=ResponseModel)
+@router.get("/{id}/models", response_model=ResponseModel)
 async def get_provider_models(
-    config_id: int,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """获取供应商已配置的模型列表"""
     try:
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == config_id
+            ProviderConfigORM.id == id
         ).first()
         
         if not provider:
@@ -339,14 +339,14 @@ async def get_provider_models(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取供应商模型失败: {e}", exc_info=True)
+        logger.error("获取供应商模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 
-@router.post("/providers/sync-models", response_model=ResponseModel)
+@router.post("/{id}/sync", response_model=ResponseModel)
 async def sync_provider_models(
-    provider_id: int,
+    id: int,
     update_existing: bool = False,
     db: Session = Depends(get_db)
 ):
@@ -356,7 +356,7 @@ async def sync_provider_models(
         
         # 获取供应商配置
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == provider_id
+            ProviderConfigORM.id == id
         ).first()
         
         if not provider:
@@ -381,7 +381,7 @@ async def sync_provider_models(
         try:
             available_models = provider_template.list_models(provider_instance_config)
         except Exception as e:
-            logger.error(f"同步模型失败 [Config ID: {provider_id}]: {str(e)}")
+            logger.error("同步模型失败 [Config ID: {provider_id}]: {}", str(e))
             raise HTTPException(status_code=400, detail=str(e))
         
         # 统计信息
@@ -396,7 +396,7 @@ async def sync_provider_models(
             try:
                 # 检查模型是否已存在
                 existing_model = db.query(ModelORM).filter(
-                    ModelORM.provider_config_id == provider_id,
+                    ModelORM.provider_config_id == id,
                     ModelORM.model_id == model_info.model_id
                 ).first()
                 
@@ -414,7 +414,7 @@ async def sync_provider_models(
                 else:
                     # 添加新模型
                     new_model = ModelORM(
-                        provider_config_id=provider_id,
+                        provider_config_id=id,
                         model_id=model_info.model_id,
                         model_type=model_info.type.value,
                         capabilities=[c.value for c in model_info.capabilities],
@@ -436,7 +436,7 @@ async def sync_provider_models(
             code=200,
             message=f"同步完成: 新增 {added_count} 个，更新 {updated_count} 个，跳过 {skipped_count} 个，失败 {failed_count} 个",
             data={
-                "config_id": provider_id,
+                "config_id": id,
                 "total": len(available_models),
                 "added": added_count,
                 "updated": updated_count,
@@ -449,13 +449,13 @@ async def sync_provider_models(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"同步模型失败: {e}", exc_info=True)
+        logger.error("同步模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/providers/{config_id}/available-models", response_model=ResponseModel)
+@router.get("/{id}/available-models", response_model=ResponseModel)
 async def list_available_models(
-    config_id: int,
+    id: int,
     db: Session = Depends(get_db)
 ):
     """获取供应商所有可用的模型列表（从 API 获取）"""
@@ -464,7 +464,7 @@ async def list_available_models(
         
         # 获取供应商配置
         provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == config_id
+            ProviderConfigORM.id == id
         ).first()
         
         if not provider:
@@ -505,12 +505,12 @@ async def list_available_models(
             code=200,
             message="获取成功",
             data={
-                "config_id": config_id,
+                "config_id": id,
                 "models": models_data
             }
         )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取可用模型失败: {e}", exc_info=True)
+        logger.error("获取可用模型失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

@@ -90,7 +90,7 @@ async def list_providers(
         }
         
     except Exception as e:
-        logger.error(f"获取 TTS 供应商列表失败: {e}", exc_info=True)
+        logger.error("获取 TTS 供应商列表失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -134,7 +134,7 @@ async def get_provider(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取 TTS 供应商详情失败: {e}", exc_info=True)
+        logger.error("获取 TTS 供应商详情失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -183,7 +183,7 @@ async def create_provider(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"创建 TTS 供应商失败: {e}", exc_info=True)
+        logger.error("创建 TTS 供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -231,7 +231,7 @@ async def update_provider(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"更新 TTS 供应商失败: {e}", exc_info=True)
+        logger.error("更新 TTS 供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -282,7 +282,7 @@ async def delete_provider(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"删除 TTS 供应商失败: {e}", exc_info=True)
+        logger.error("删除 TTS 供应商失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -334,7 +334,7 @@ async def get_provider_template(provider_type: str) -> Dict[str, Any]:
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"获取配置模板失败: {e}", exc_info=True)
+        logger.error("获取配置模板失败: {}", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -370,7 +370,7 @@ async def test_provider(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"测试 TTS 供应商失败: {e}", exc_info=True)
+        logger.error("测试 TTS 供应商失败: {}", str(e), exc_info=True)
         return {
             "code": 500,
             "message": f"测试失败: {str(e)}",
