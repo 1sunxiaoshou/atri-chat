@@ -176,7 +176,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         // 判断字段是否为语言选择（参考语言、合成语言等）
         const isLanguageField = (key: string, label: string) => {
             return key.toLowerCase().includes('language') ||
-                label.includes('语言') ||
+                label.includes(t('admin.language')) ||
                 label.toLowerCase().includes('language');
         };
 

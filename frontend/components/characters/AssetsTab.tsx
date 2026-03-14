@@ -70,7 +70,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
                 onLocalBindingsChange(bindings);
             }
         } catch (error) {
-            console.error('[AssetsTab] 加载动作绑定失败:', error);
+            console.error(t('character.loadMotionBindingsFailed'), error);
         }
     };
 
@@ -143,7 +143,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
     };
 
     const handleAvatarSelect = (item: HierarchicalItem) => {
-        onChange({ ...character, avatar_id: item.id });
+        onChange({ ...character, avatar_id: String(item.id) });
         setIsAvatarSelectorOpen(false);
     };
 
@@ -160,7 +160,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
             }
 
             // 添加新绑定
-            return [...filtered, { motion_id: item.id, category: currentMotionCategory }];
+            return [...filtered, { motion_id: String(item.id), category: currentMotionCategory }];
         });
 
         setIsMotionSelectorOpen(false);
@@ -173,7 +173,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
         onLocalBindingsChange((prevBindings: LocalMotionBinding[]) => {
             // 添加新选择的绑定（选择器已过滤掉已存在的，无需去重）
             const newBindings: LocalMotionBinding[] = items.map(item => ({
-                motion_id: item.id,
+                motion_id: String(item.id),
                 category: 'reply'
             }));
 

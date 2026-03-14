@@ -289,7 +289,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <React.Suspense fallback={
               <div className="flex h-full items-center justify-center flex-col gap-4">
                 <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-muted-foreground text-sm">正在加载 3D 渲染引擎...</p>
+                <p className="text-muted-foreground text-sm">{t('app.loading3DEngine')}</p>
               </div>
             }>
               <VRMChatMode
@@ -307,7 +307,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 普通模式：完全隔离的消息列表组件
             <NormalChatMode
               messages={allMessages}
-              isTyping={isTyping}
               activeCharacter={activeCharacter}
               playingMessageId={playingMessageId}
               copiedMessageId={copiedMessageId}
@@ -323,7 +322,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
                 setExpandedReasoning(newExpanded);
               }}
-              currentResponse={currentResponse}
             />
           )}
         </div>

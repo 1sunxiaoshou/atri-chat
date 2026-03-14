@@ -30,7 +30,7 @@ const ASRSettings: React.FC = () => {
                 return res.data;
             }
         } catch (e) {
-            Logger.error('获取 ASR 状态失败', e instanceof Error ? e : undefined);
+            Logger.error(t('settings.fetchASRStatusFailed'), e instanceof Error ? e : undefined);
         } finally {
             setLoading(false);
         }
@@ -81,7 +81,7 @@ const ASRSettings: React.FC = () => {
                 await fetchStatus();
             }
         } catch (e) {
-            Logger.error('触发模型下载失败', e instanceof Error ? e : undefined);
+            Logger.error(t('settings.triggerModelDownloadFailed'), e instanceof Error ? e : undefined);
         } finally {
             setMgmtActionLoading(false);
         }
@@ -98,7 +98,7 @@ const ASRSettings: React.FC = () => {
                 setShowClearConfirm(false);
             }
         } catch (e) {
-            Logger.error('清理模型资源失败', e instanceof Error ? e : undefined);
+            Logger.error(t('settings.clearModelResourcesFailed'), e instanceof Error ? e : undefined);
         } finally {
             setMgmtActionLoading(false);
         }

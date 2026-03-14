@@ -91,164 +91,164 @@ const GeneralSettings: React.FC = () => {
                     onChange={(val) => setLanguage(val as any)}
                     options={[
                       { label: 'English', value: 'en' },
-                      { label: '简体中文', value: 'zh' }
+                      { label: t('settings.simplifiedChinese'), value: 'zh' }
                     ]}
                     className="w-full max-w-md"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Palette size={16} />
-                  {t('settings.themeMode')}
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {[
-                    {
-                      id: 'indigo',
-                      name: language === 'zh' ? '靛蓝烟波' : 'Indigo Slate',
-                      desc: language === 'zh' ? '专业深邃' : 'Professional',
-                      colors: ['#6366f1', '#4f46e5', '#4338ca']
-                    },
-                    {
-                      id: 'emerald',
-                      name: language === 'zh' ? '宝石翡翠' : 'Emerald',
-                      desc: language === 'zh' ? '沉静优雅' : 'Elegant',
-                      colors: ['#10b981', '#059669', '#047857']
-                    },
-                    {
-                      id: 'violet',
-                      name: language === 'zh' ? '紫罗兰' : 'Violet',
-                      desc: language === 'zh' ? '时尚创意' : 'Creative',
-                      colors: ['#8b5cf6', '#7c3aed', '#6d28d9']
-                    },
-                    {
-                      id: 'obsidian',
-                      name: language === 'zh' ? '极简黑曜石' : 'Obsidian',
-                      desc: language === 'zh' ? '极致冷淡' : 'Minimalist',
-                      colors: ['#1a1a1a', '#404040', '#737373']
-                    },
-                    {
-                      id: 'warm',
-                      name: language === 'zh' ? '暖石灰' : 'Warm Stone',
-                      desc: language === 'zh' ? '温润阅读' : 'Warm',
-                      colors: ['#78716c', '#a8a29e', '#d6d3d1']
-                    }
-                  ].map((color) => (
-                    <button
-                      key={color.id}
-                      onClick={() => setThemeColor(color.id as any)}
-                      className={cn(
-                        "relative p-4 rounded-xl border-2 transition-all duration-300 text-left overflow-hidden group hover:-translate-y-1 hover:shadow-md",
-                        themeColor === color.id
-                          ? "border-primary bg-primary/5 shadow-sm ring-4 ring-primary/10"
-                          : "border-border/50 hover:border-primary/40 bg-card"
-                      )}
-                    >
-                      <div className="flex gap-1.5 mb-3">
-                        {color.colors.map((c, i) => (
-                          <div
-                            key={i}
-                            className="w-6 h-6 rounded-md shadow-sm"
-                            style={{ backgroundColor: c }}
-                          />
-                        ))}
-                      </div>
-                      <div className="text-sm font-semibold text-foreground mb-0.5">
-                        {color.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {color.desc}
-                      </div>
-                      {themeColor === color.id && (
-                        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Audio Volume */}
-        <Card className="border-none bg-muted/30 shadow-none">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <Volume2 size={20} className="text-foreground shrink-0 mt-1" />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-foreground mb-1">
-                  {language === 'zh' ? '音频音量' : 'Audio Volume'}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {language === 'zh' ? '控制 TTS 语音播放的音量大小' : 'Control TTS voice playback volume'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-6">
-                <div className="flex-1 relative h-6 flex items-center">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={volume}
-                    onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-emerald-500 hover:accent-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all"
-                  />
-                </div>
-                <div className="w-12 text-right">
-                  <span className="text-sm font-bold text-primary">{volume}%</span>
-                </div>
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium tracking-wider">
-                <span>{language === 'zh' ? '静音' : 'Mute'}</span>
-                <span>{language === 'zh' ? '最大' : 'Max'}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Audio Cache */}
-        <Card className="border-none bg-muted/30 shadow-none">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <Database size={20} className="text-foreground shrink-0 mt-1" />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-foreground mb-1">
-                  {language === 'zh' ? '音频缓存上限' : 'Audio Cache Limit'}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {language === 'zh' ? '设置最多缓存多少条音频，超出后将删除最早的缓存' : 'Set maximum cached audio items'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 max-w-xs">
-                <div className="flex-1 relative">
-                  <input
-                    type="number"
-                    min="10"
-                    max="200"
-                    step="10"
-                    value={audioCacheLimit}
-                    onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
-                    className="w-full bg-card border-2 border-border/50 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium uppercase">
-                    {language === 'zh' ? '条' : 'items'}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Palette size={16} />
+                    {t('settings.themeMode')}
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {[
+                      {
+                        id: 'indigo',
+                        name: t('settings.themes.indigo.name'),
+                        desc: t('settings.themes.indigo.desc'),
+                        colors: ['#6366f1', '#4f46e5', '#4338ca']
+                      },
+                      {
+                        id: 'emerald',
+                        name: t('settings.themes.emerald.name'),
+                        desc: t('settings.themes.emerald.desc'),
+                        colors: ['#10b981', '#059669', '#047857']
+                      },
+                      {
+                        id: 'violet',
+                        name: t('settings.themes.violet.name'),
+                        desc: t('settings.themes.violet.desc'),
+                        colors: ['#8b5cf6', '#7c3aed', '#6d28d9']
+                      },
+                      {
+                        id: 'obsidian',
+                        name: t('settings.themes.obsidian.name'),
+                        desc: t('settings.themes.obsidian.desc'),
+                        colors: ['#1a1a1a', '#404040', '#737373']
+                      },
+                      {
+                        id: 'warm',
+                        name: t('settings.themes.warm.name'),
+                        desc: t('settings.themes.warm.desc'),
+                        colors: ['#78716c', '#a8a29e', '#d6d3d1']
+                      }
+                    ].map((color) => (
+                      <button
+                        key={color.id}
+                        onClick={() => setThemeColor(color.id as any)}
+                        className={cn(
+                          "relative p-4 rounded-xl border-2 transition-all duration-300 text-left overflow-hidden group hover:-translate-y-1 hover:shadow-md",
+                          themeColor === color.id
+                            ? "border-primary bg-primary/5 shadow-sm ring-4 ring-primary/10"
+                            : "border-border/50 hover:border-primary/40 bg-card"
+                        )}
+                      >
+                        <div className="flex gap-1.5 mb-3">
+                          {color.colors.map((c, i) => (
+                            <div
+                              key={i}
+                              className="w-6 h-6 rounded-md shadow-sm"
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-sm font-semibold text-foreground mb-0.5">
+                          {color.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {color.desc}
+                        </div>
+                        {themeColor === color.id && (
+                          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground italic">
-                {language === 'zh' ? '建议值：10-100 条。缓存过多可能占用较多内存。' : 'Recommended: 10-100 items. Too many may consume more memory.'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+  
+          {/* Audio Volume */}
+          <Card className="border-none bg-muted/30 shadow-none">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4 mb-6">
+                <Volume2 size={20} className="text-foreground shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-foreground mb-1">
+                    {t('settings.audioVolume')}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.audioVolumeDesc')}
+                  </p>
+                </div>
+              </div>
+  
+              <div className="space-y-4">
+                <div className="flex items-center gap-6">
+                  <div className="flex-1 relative h-6 flex items-center">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={volume}
+                      onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-emerald-500 hover:accent-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all"
+                    />
+                  </div>
+                  <div className="w-12 text-right">
+                    <span className="text-sm font-bold text-primary">{volume}%</span>
+                  </div>
+                </div>
+                <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium tracking-wider">
+                  <span>{t('settings.mute')}</span>
+                  <span>{t('settings.max')}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+  
+          {/* Audio Cache */}
+          <Card className="border-none bg-muted/30 shadow-none">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4 mb-6">
+                <Database size={20} className="text-foreground shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-foreground mb-1">
+                    {t('settings.audioCacheLimit')}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.audioCacheLimitDesc')}
+                  </p>
+                </div>
+              </div>
+  
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 max-w-xs">
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      min="10"
+                      max="200"
+                      step="10"
+                      value={audioCacheLimit}
+                      onChange={(e) => handleCacheLimitChange(Number(e.target.value))}
+                      className="w-full bg-card border-2 border-border/50 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium uppercase">
+                      {t('settings.audioCacheItems')}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  {t('settings.audioCacheTip')}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
       </div>
     </div>
   );

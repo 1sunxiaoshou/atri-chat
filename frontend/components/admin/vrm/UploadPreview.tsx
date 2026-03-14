@@ -38,17 +38,18 @@ export const VRMUploadPreview: React.FC<{
                     setIsGeneratingThumbnail(true);
                     const blob = await viewerRef.current!.captureScreenshot(512, 683);
                     setThumbnail(blob);
-                    console.log('缩略图生成成功');
+                    console.log(t('admin.thumbnailSuccess'));
                 } catch (error) {
-                    console.error('生成缩略图失败:', error);
+                    console.error(t('admin.thumbnailFailed'), error);
                 } finally {
                     setIsGeneratingThumbnail(false);
                 }
-            }, 1500); // 等待 1.5 秒确保模型完全渲染
+            }, 1500); // Wait 1.5s to ensure model is fully rendered
 
             return () => clearTimeout(timer);
         }
-    }, [previewUrl]);
+        return undefined;
+    }, [previewUrl, t]);
 
     const handleSave = async () => {
         if (!file || !name.trim() || !thumbnail) return;
@@ -159,7 +160,7 @@ export const VRMUploadPreview: React.FC<{
                                             {thumbnail
                                                 ? t('admin.syncSuccess')
                                                 : isGeneratingThumbnail
-                                                    ? t('vrm.avatar.generatingThumbnail') || '正在生成缩略图...'
+                                                    ? t('vrm.avatar.generatingThumbnail')
                                                     : t('admin.loading')
                                             }
                                         </div>
