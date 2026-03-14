@@ -100,11 +100,10 @@ class ModelService:
             
             return model
             
-        except Exception as e:
-            logger.error(
-                f"创建模型时出错",
-                extra={"provider_config_id": provider_config_id, "model_id": model_id, "error": str(e)},
-                exc_info=True
+        except Exception:
+            logger.exception(
+                "创建模型时出错",
+                extra={"provider_config_id": provider_config_id, "model_id": model_id}
             )
             raise ValueError(f"创建模型 {provider_config_id}/{model_id} 时出错: {str(e)}")
     

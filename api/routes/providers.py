@@ -78,10 +78,10 @@ async def create_provider(
         raise HTTPException(status_code=400, detail="供应商已存在")
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("创建供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("创建供应商失败")
+        raise HTTPException(status_code=500, detail="创建失败")
 
 
 @router.get("/{id}", response_model=ResponseModel)
@@ -117,9 +117,9 @@ async def get_provider(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取供应商失败")
+        raise HTTPException(status_code=500, detail="获取失败")
 
 
 @router.get("", response_model=ResponseModel)
@@ -163,9 +163,9 @@ async def list_providers(
             message="获取成功",
             data=data
         )
-    except Exception as e:
-        logger.error("列出供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("列出供应商失败")
+        raise HTTPException(status_code=500, detail="列出失败")
 
 
 @router.put("/{id}", response_model=ResponseModel)
@@ -216,10 +216,10 @@ async def update_provider(
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("更新供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("更新供应商失败")
+        raise HTTPException(status_code=500, detail="更新失败")
 
 
 @router.delete("/{id}", response_model=ResponseModel)
@@ -255,10 +255,10 @@ async def delete_provider(
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("删除供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("删除供应商失败")
+        raise HTTPException(status_code=500, detail="删除失败")
 
 
 @router.get("/templates/list", response_model=ResponseModel)
@@ -296,9 +296,9 @@ async def list_provider_templates():
             message="获取成功",
             data=data
         )
-    except Exception as e:
-        logger.error("获取模板列表失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取模板列表失败")
+        raise HTTPException(status_code=500, detail="获取模板列表失败")
 
 
 @router.get("/{id}/models", response_model=ResponseModel)
@@ -338,9 +338,9 @@ async def get_provider_models(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取供应商模型失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取供应商模型失败")
+        raise HTTPException(status_code=500, detail="获取模型失败")
 
 
 
@@ -447,10 +447,10 @@ async def sync_provider_models(
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("同步模型失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("同步模型过程异常")
+        raise HTTPException(status_code=500, detail="同步失败")
 
 
 @router.get("/{id}/available-models", response_model=ResponseModel)
@@ -511,6 +511,6 @@ async def list_available_models(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取可用模型失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取可用模型失败")
+        raise HTTPException(status_code=500, detail="获取失败")

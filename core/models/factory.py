@@ -111,15 +111,13 @@ class ModelFactory:
                 raise ValueError(f"模型创建失败，请检查配置")
             
             return model
-        except Exception as e:
-            logger.error(
-                f"创建模型时出错",
+        except Exception:
+            logger.exception(
+                "创建模型时出错",
                 extra={
                     "provider_config_id": model_config.provider_config_id,
-                    "model_id": model_config.model_id,
-                    "error": str(e)
-                },
-                exc_info=True
+                    "model_id": model_config.model_id
+                }
             )
             raise ValueError(f"创建模型时出错: {str(e)}")
     

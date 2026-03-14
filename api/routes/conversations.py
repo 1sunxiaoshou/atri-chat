@@ -79,9 +79,9 @@ async def list_conversations(
             "data": data
         }
         
-    except Exception as e:
-        logger.error("获取会话列表失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取会话列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败")
 
 
 @router.get("/conversations/{conversation_id}", summary="获取会话详情", response_model=ResponseModel)
@@ -138,9 +138,9 @@ async def get_conversation(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取会话详情失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取会话详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败")
 
 
 @router.post("/conversations", summary="创建会话", response_model=ResponseModel)
@@ -184,10 +184,10 @@ async def create_conversation(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("创建会话失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("创建会话失败")
+        raise HTTPException(status_code=500, detail="创建失败")
 
 
 @router.put("/conversations/{conversation_id}", summary="更新会话", response_model=ResponseModel)
@@ -231,10 +231,10 @@ async def update_conversation(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("更新会话失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("更新会话失败")
+        raise HTTPException(status_code=500, detail="更新失败")
 
 
 @router.delete("/conversations/{conversation_id}", summary="删除会话", response_model=ResponseModel)
@@ -264,10 +264,10 @@ async def delete_conversation(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("删除会话失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("删除会话失败")
+        raise HTTPException(status_code=500, detail="删除失败")
 
 
 @router.get("/conversations/{conversation_id}/messages", summary="获取会话消息", response_model=ResponseModel)
@@ -316,9 +316,9 @@ async def get_conversation_messages(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取会话消息失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取会话消息失败")
+        raise HTTPException(status_code=500, detail="获取消息失败")
 
 
 @router.delete("/conversations/{conversation_id}/messages", summary="清空会话消息", response_model=ResponseModel)
@@ -353,7 +353,7 @@ async def clear_conversation_messages(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("清空会话消息失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("清空会话消息失败")
+        raise HTTPException(status_code=500, detail="清空失败")

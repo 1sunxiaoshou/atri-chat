@@ -94,9 +94,9 @@ async def list_voice_assets(
             "data": data
         }
         
-    except Exception as e:
-        logger.error("获取音色资产列表失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取音色资产列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败")
 
 
 @router.get("/{voice_id}", summary="获取音色资产详情", response_model=ResponseModel)
@@ -136,9 +136,9 @@ async def get_voice_asset(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取音色资产详情失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取音色资产详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败")
 
 
 @router.post("", summary="创建音色资产", response_model=ResponseModel)
@@ -184,10 +184,10 @@ async def create_voice_asset(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("创建音色资产失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("创建音色资产失败")
+        raise HTTPException(status_code=500, detail="创建失败")
 
 
 @router.put("/{voice_id}", summary="更新音色资产", response_model=ResponseModel)
@@ -234,10 +234,10 @@ async def update_voice_asset(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("更新音色资产失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("更新音色资产失败")
+        raise HTTPException(status_code=500, detail="更新失败")
 
 
 @router.delete("/{voice_id}", summary="删除音色资产", response_model=ResponseModel)
@@ -282,7 +282,7 @@ async def delete_voice_asset(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("删除音色资产失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("删除音色资产失败")
+        raise HTTPException(status_code=500, detail="删除失败")
