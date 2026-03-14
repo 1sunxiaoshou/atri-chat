@@ -3,6 +3,7 @@ import json
 from typing import AsyncGenerator, Tuple, Optional, Dict, Any
 from langchain.messages import AIMessageChunk
 from ..logger import get_logger
+from ..utils.message_utils import extract_text_from_content
 
 logger = get_logger(__name__)
 
@@ -127,19 +128,9 @@ class MessageService:
 
     def _parse_chunk(self, chunk: AIMessageChunk) -> Tuple[str, str]:
         """解析消息块，提取文本和思考内容"""
-        text = ""
+        # 1. 使用统一工具提取文本
+        text = extract_text_from_content(chunk.content)
         reasoning = ""
-        
-        # 1. 尝试从 content 列表/字符串中提取 (极简处理)
-        if isinstance(chunk.content, list):
-            for block in chunk.content:
-                if isinstance(block, dict):
-                    if block.get("type") == "text":
-                        text += block.get("text", "")
-                    elif block.get("type") == "reasoning":
-                        reasoning += block.get("reasoning", "")
-        elif isinstance(chunk.content, str):
-            text = chunk.content
             
         # 2. 依据阿里云官方文档，深度思考内容在 additional_kwargs['reasoning_content'] 中
         if hasattr(chunk, 'additional_kwargs') and chunk.additional_kwargs:

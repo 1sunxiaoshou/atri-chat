@@ -1,5 +1,4 @@
-import React, { Suspense, useState, useMemo, useEffect } from 'react';
-import { useProgress } from '@react-three/drei';
+import React, { Suspense, useState, useMemo } from 'react';
 import { VRMCanvas } from '../vrm/r3f/core/VRMCanvas';
 import { AIStage } from '../vrm/r3f/scenes/AIStage';
 import { Character } from '../vrm/r3f/core/Character';
@@ -42,6 +41,18 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
     // 性能监控状态（本地控制）
     const [isPerformanceVisible, setIsPerformanceVisible] = useState(false);
     const [showRenderSettings, setShowRenderSettings] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // 当模型 URL 变更时，重置加载状态
+    React.useEffect(() => {
+        setIsLoaded(false);
+    }, [modelUrl]);
+
+    // 内部模型加载回调包装
+    const handleInternalModelLoaded = React.useCallback(() => {
+        setIsLoaded(true);
+        onModelLoaded?.();
+    }, [onModelLoaded]);
 
     const [perfStats, setPerfStats] = useState<PerformanceStats>({
         fps: 0,
@@ -75,7 +86,7 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
                         audioElement={audioElement}
                         enableLipSync={true}
                         loopMotion={false}
-                        onModelLoaded={onModelLoaded}
+                        onModelLoaded={handleInternalModelLoaded}
                         onMotionComplete={onMotionComplete}
                     />
                 </AIStage>
@@ -83,21 +94,29 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
 
             {/* 性能监控（内部组件） */}
             {isPerformanceVisible && <PerformanceMonitorInternal onUpdate={setPerfStats} />}
-            
-            {/* 加载状态监控 */}
-            <LoadingMonitor onLoaded={onModelLoaded} />
         </>
-    ), [modelUrl, audioElement, isPerformanceVisible, onModelLoaded, onMotionComplete]);
+    ), [modelUrl, audioElement, isPerformanceVisible, handleInternalModelLoaded, onMotionComplete]);
 
     return (
         <div className={cn(
-            "absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-black",
+            "absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-transparent",
             className
         )}>
+            {/* 背景加载提示 - 仅在未加载完成时显示 */}
+            <div className={cn(
+                "absolute inset-0 flex flex-col items-center justify-center z-0 transition-opacity duration-1000",
+                isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}>
+                <p className="text-muted-foreground text-sm font-medium tracking-[0.2em] uppercase animate-pulse">
+                    {t('vrm.avatar.loadingModel') || 'Loading AI Model...'}
+                </p>
+                <div className="mt-4 w-32 h-[1px] bg-gradient-to-r from-transparent via-muted-foreground/30 to-transparent" />
+            </div>
+
             {/* R3F 渲染区域 */}
             <VRMCanvas
                 camera={{ position: [0, 0.9, 2.2], fov: 35 }}
-                transparent={false}
+                transparent={true}
             >
                 {vrmCanvasContent}
             </VRMCanvas>
@@ -176,23 +195,4 @@ function PerformanceMonitorInternal({ onUpdate }: { onUpdate: (stats: any) => vo
     return <PerformanceMonitor onUpdate={onUpdate} />;
 }
 
-/**
- * 加载进度监听组件
- * 用于将 R3F 内部的加载状态反馈给外部
- */
-function LoadingMonitor({ onLoaded }: { onLoaded?: () => void }) {
-    const { progress } = useProgress();
-    
-    useEffect(() => {
-        if (progress === 100) {
-            // 延迟一帧确保渲染器已经准备好
-            const timer = setTimeout(() => {
-                onLoaded?.();
-            }, 100);
-            return () => clearTimeout(timer);
-        }
-        return undefined;
-    }, [progress, onLoaded]);
-
-    return null;
-}
+export default ChatVRMViewerR3F;

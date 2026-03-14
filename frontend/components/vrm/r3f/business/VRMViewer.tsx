@@ -142,7 +142,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
                 // for the screenshot if the target format doesn't support transparency well
                 // or if a solid background is desired.
                 const attributes = glRef.current.getContext().getContextAttributes();
-                const needsBackground = attributes?.alpha ?? false;
+                console.log('Capture screenshot with attributes:', attributes);
 
                 // Create a temporary canvas for rendering the screenshot
                 const tempCanvas = document.createElement('canvas');
@@ -155,12 +155,9 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
                     return;
                 }
 
-                // Fill with white background if needed
-                if (needsBackground) {
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, width, height);
-                }
-
+                // By not filling a background color, we keep the transparency of the WebP.
+                // This allows the thumbnail to naturally blend with whatever background it is placed on (e.g., the gray background in the preview or white background in the library).
+                
                 // Calculate crop area for object-cover effect (center crop)
                 const sourceWidth = canvas.width;
                 const sourceHeight = canvas.height;

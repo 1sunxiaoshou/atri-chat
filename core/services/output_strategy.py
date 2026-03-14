@@ -4,6 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator
 from ..logger import get_logger
+from ..utils.message_utils import extract_text_from_content
 
 logger = get_logger(__name__)
 
@@ -150,13 +151,16 @@ class VRMOutputStrategy(OutputStrategy):
         return '\n'.join(cleaned_lines)
     
     def _extract_response(self, response) -> str:
+        """从 Agent 响应中提取纯文本内容"""
+        content = None
         if hasattr(response, 'content'):
-            return response.content
+            content = response.content
         elif isinstance(response, dict) and 'messages' in response:
             messages = response['messages']
             if messages and hasattr(messages[-1], 'content'):
-                return messages[-1].content
-        return ""
+                content = messages[-1].content
+        
+        return extract_text_from_content(content)
 
 
 def get_output_strategy(mode: str, message_service=None, vrm_service=None) -> OutputStrategy:
