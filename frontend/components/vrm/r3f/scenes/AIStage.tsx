@@ -53,16 +53,17 @@ export function AIStage({
                 />
             )}
 
-            {/* 高质量接触阴影 */}
+            {/* 高质量接触阴影 - 进一步微调以避免显眼的“地板”边缘 */}
             {finalConfig.enableContactShadows && (
                 <ContactShadows
-                    position={[0, 0, 0]}
+                    position={[0, -0.01, 0]} // 稍微下移，避免 Z-fighting
                     opacity={0.4}
                     scale={10}
                     blur={2.5}
-                    far={4}
+                    far={2} // 减小 far 值，使阴影只在接触点附近产生
                     resolution={1024}
                     color="#000000"
+                    frames={1}
                 />
             )}
 

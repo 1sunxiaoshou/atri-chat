@@ -207,6 +207,9 @@ class AgentCoordinator:
                 # 累积内容
                 if chunk_data.get("type") == "text":
                     full_response += chunk_data.get("content", "")
+                elif chunk_data.get("type") == "full_response":
+                    # 非流式模式直接获取完整回复
+                    full_response = chunk_data.get("content", "")
                 elif chunk_data.get("type") == "reasoning":
                     full_reasoning += chunk_data.get("content", "")
                 elif chunk_data.get("type") == "tool_start":
@@ -224,14 +227,12 @@ class AgentCoordinator:
                             tc["output"] = chunk_data.get("content")
                             tc["status"] = "completed"
                             break
-
-                # 捕获完整回复 (对于某些策略可能直接返回 complete)
-                if chunk_data.get("type") == "complete":
+                elif chunk_data.get("type") in ["complete", "vrm_complete"]:
                     # 如果 payload 没带 full_response，就用我们累积的
                     if not chunk_data.get("full_response") and full_response:
                         chunk_data["full_response"] = full_response
                     
-                    # 注入累计 Token 信息
+                    # 统一注入 Token 信息
                     chunk_data["usage"] = token_callback.get_summary()
                     chunk_json = json.dumps(chunk_data, ensure_ascii=False)
                 

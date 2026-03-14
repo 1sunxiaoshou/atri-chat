@@ -293,12 +293,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         )}>
           {vrmDisplayMode === 'vrm' ? (
             // VRM模式：完全隔离的VRM组件，懒加载
-            <React.Suspense fallback={
-              <div className="flex h-full items-center justify-center flex-col gap-4">
-                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-muted-foreground text-sm">{t('app.loading3DEngine')}</p>
-              </div>
-            }>
+            <React.Suspense fallback={null}>
               <VRMChatMode
                 modelUrl={modelUrl}
                 audioElement={audioElement}
