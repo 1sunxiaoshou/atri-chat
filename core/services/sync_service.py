@@ -51,7 +51,7 @@ class ModelSyncService:
         try:
             available_models: List[ProviderModelInfo] = provider_template.list_models(p_config)
         except Exception as e:
-            logger.exception(f"获取模型列表失败: {str(e)}")
+            logger.error(f"获取模型列表失败: {e}")
             raise e
 
         # 5. 执行同步逻辑
@@ -104,7 +104,7 @@ class ModelSyncService:
                         has_structured_output=model_info.has_structured_output,
                         context_window=model_info.context_window,
                         max_output=model_info.max_output,
-                        enabled=True,
+                        enabled=False,
                         parameters=model_info.parameters,
                         meta=model_info.meta
                     )

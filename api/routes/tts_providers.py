@@ -89,8 +89,8 @@ async def list_providers(
             "data": data
         }
         
-    except Exception:
-        logger.exception("获取 TTS 供应商列表失败")
+    except Exception as e:
+        logger.error(f"获取 TTS 供应商列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取列表失败")
 
 
@@ -133,8 +133,8 @@ async def get_provider(
         
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取 TTS 供应商详情失败")
+    except Exception as e:
+        logger.error(f"获取 TTS 供应商详情失败: {e}")
         raise HTTPException(status_code=500, detail="获取详情失败")
 
 
@@ -181,9 +181,9 @@ async def create_provider(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("创建 TTS 供应商失败")
+        logger.error(f"创建 TTS 供应商失败: {e}")
         raise HTTPException(status_code=500, detail="创建失败")
 
 
@@ -229,9 +229,9 @@ async def update_provider(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新 TTS 供应商失败")
+        logger.error(f"更新 TTS 供应商失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -280,9 +280,9 @@ async def delete_provider(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("删除 TTS 供应商失败")
+        logger.error(f"删除 TTS 供应商失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")
 
 
@@ -333,8 +333,8 @@ async def get_provider_template(provider_type: str) -> Dict[str, Any]:
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception:
-        logger.exception("获取配置模板失败")
+    except Exception as e:
+        logger.error(f"获取配置模板失败: {e}")
         raise HTTPException(status_code=500, detail="获取模板失败")
 
 
@@ -370,7 +370,7 @@ async def test_provider(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("测试 TTS 供应商失败")
+        logger.error(f"测试 TTS 供应商失败: {e}")
         return {
             "code": 500,
             "message": f"测试失败: {str(e)}",

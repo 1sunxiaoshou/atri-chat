@@ -384,7 +384,7 @@ class QwenTTS(TTSBase):
                 "message": f"HTTP 错误 {e.response.status_code}: {e.response.text}"
             }
         except Exception as e:
-            logger.exception("Qwen-TTS 测试连接失败")
+            logger.error(f"Qwen-TTS 测试连接失败: {e}")
             return {
                 "success": False,
                 "message": f"测试失败: {str(e)}"

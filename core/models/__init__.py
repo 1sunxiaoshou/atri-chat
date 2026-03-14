@@ -7,7 +7,6 @@ __all__ = [
     "ModelConfig",
     "ProviderConfig",
     "ModelType",
-    "ModelCapability",
     "ProviderMetadata",
     "ProviderModelInfo",
     "ModelFactory",

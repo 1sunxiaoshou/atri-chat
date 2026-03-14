@@ -133,8 +133,8 @@ class LLMCallLogger(BaseCallbackHandler):
                         "total": usage.get("total_tokens"),
                     }
                     llm_output_data = response.llm_output
-                except (AttributeError, TypeError):
-                    logger.exception("无法提取 token 信息")
+                except (AttributeError, TypeError) as e:
+                    logger.error(f"无法提取 token 信息: {e}")
             
             self.current_call.update({
                 "timestamp_end": end_time.isoformat(),
@@ -175,7 +175,7 @@ class LLMCallLogger(BaseCallbackHandler):
                 "error_type": type(error).__name__,
             })
             
-            logger.exception(f"LLM 调用失败详情")
+            logger.error(f"LLM 调用失败详情: {error}")
             logger.error(f"=== 调用结束 ===")
             
             self.calls.append(self.current_call)
@@ -242,7 +242,7 @@ class LLMCallLogger(BaseCallbackHandler):
                     "error_type": type(error).__name__,
                 })
                 
-                logger.exception(f"工具调用失败详情")
+                logger.error(f"工具调用失败详情: {error}")
                 break
     
     def get_call_logs(self) -> str:

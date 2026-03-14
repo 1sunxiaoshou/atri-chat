@@ -27,11 +27,20 @@ export interface Model {
   provider_config_id: number;
   model_id: string;
   model_type: 'chat' | 'embedding' | 'rerank';
-  capabilities: string[];
+  has_vision: boolean;
+  has_audio: boolean;
+  has_video: boolean;
+  has_reasoning: boolean;
+  has_tool_use: boolean;
+  has_document: boolean;
+  has_structured_output: boolean;
   context_window?: number;
   max_output?: number;
   enabled: boolean;
   parameters?: Record<string, any>;
+  meta?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // 4. Characters

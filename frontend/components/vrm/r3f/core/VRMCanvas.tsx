@@ -22,6 +22,7 @@ export function VRMCanvas({
     shadows = true,
     camera = { position: [0, 1.5, 3], fov: 50 },
     className = 'w-full h-full',
+    transparent = false,
 }: VRMCanvasProps) {
     return (
         <Canvas
@@ -29,9 +30,10 @@ export function VRMCanvas({
             camera={camera}
             gl={{
                 antialias: true,
-                alpha: true,
+                alpha: transparent,
                 stencil: false,
                 depth: true,
+                preserveDrawingBuffer: true,
                 failIfMajorPerformanceCaveat: false,
                 powerPreference: 'high-performance',
             }}

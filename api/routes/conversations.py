@@ -79,8 +79,8 @@ async def list_conversations(
             "data": data
         }
         
-    except Exception:
-        logger.exception("获取会话列表失败")
+    except Exception as e:
+        logger.error(f"获取会话列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取列表失败")
 
 
@@ -138,8 +138,8 @@ async def get_conversation(
         
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取会话详情失败")
+    except Exception as e:
+        logger.error(f"获取会话详情失败: {e}")
         raise HTTPException(status_code=500, detail="获取详情失败")
 
 
@@ -184,9 +184,9 @@ async def create_conversation(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("创建会话失败")
+        logger.error(f"创建会话失败: {e}")
         raise HTTPException(status_code=500, detail="创建失败")
 
 
@@ -231,9 +231,9 @@ async def update_conversation(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新会话失败")
+        logger.error(f"更新会话失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -264,9 +264,9 @@ async def delete_conversation(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("删除会话失败")
+        logger.error(f"删除会话失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")
 
 
@@ -316,8 +316,8 @@ async def get_conversation_messages(
         
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取会话消息失败")
+    except Exception as e:
+        logger.error(f"获取会话消息失败: {e}")
         raise HTTPException(status_code=500, detail="获取消息失败")
 
 
@@ -353,7 +353,7 @@ async def clear_conversation_messages(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("清空会话消息失败")
+        logger.error(f"清空会话消息失败: {e}")
         raise HTTPException(status_code=500, detail="清空失败")

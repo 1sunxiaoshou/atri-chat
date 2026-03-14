@@ -102,8 +102,8 @@ async def list_motions(
             "data": data
         }
         
-    except Exception:
-        logger.exception("获取动作列表失败")
+    except Exception as e:
+        logger.error(f"获取动作列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取列表失败")
 
 
@@ -149,8 +149,8 @@ async def get_motion(
         
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取动作详情失败")
+    except Exception as e:
+        logger.error(f"获取动作详情失败: {e}")
         raise HTTPException(status_code=500, detail="获取详情失败")
 
 
@@ -199,9 +199,9 @@ async def update_motion(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新动作失败")
+        logger.error(f"更新动作失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -277,13 +277,13 @@ async def upload_motion(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
         # 清理文件
         if 'file_path' in locals() and file_path.exists():
             file_path.unlink(missing_ok=True)
         
-        logger.exception("上传动作详情失败")
+        logger.error(f"上传动作详情失败: {e}")
         raise HTTPException(status_code=500, detail="上传失败")
 
 
@@ -320,7 +320,7 @@ async def delete_motion(
             else:
                 logger.warning("动作文件不存在，跳过删除", extra={"path": str(file_path)})
         except Exception as e:
-            logger.exception("删除动作物理文件失败")
+            logger.error(f"删除动作物理文件失败: {e}")
         
         # 删除数据库记录
         db.delete(motion)
@@ -334,7 +334,7 @@ async def delete_motion(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("删除数据库动作记录失败")
+        logger.error(f"删除数据库动作记录失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")

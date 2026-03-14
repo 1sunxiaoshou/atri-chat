@@ -95,6 +95,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [activeConversationId, loadMessages]);
 
+  // autoPlay：开关变化时，如果是开启，则将当前最后一条消息标记为已播放，避免立即朗读历史消息
+  useEffect(() => {
+    if (autoPlay && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg && lastMsg.message_type === 'assistant') {
+        autoPlayedRef.current.add(lastMsg.message_id);
+      }
+    }
+  }, [autoPlay, messages.length]);
+
   // autoPlay：监听 messages，新增 assistant 消息时自动播放 TTS
   useEffect(() => {
     if (!autoPlay || vrmDisplayMode === 'vrm' || messages.length === 0) return;

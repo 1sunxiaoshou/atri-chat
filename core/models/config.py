@@ -68,15 +68,15 @@ class ModelConfig(BaseModel):
     
     def is_reasoning_model(self) -> bool:
         """判断是否为推理模型"""
-        return ModelCapability.REASONING in self.capabilities
+        return self.has_reasoning
     
     def supports_vision(self) -> bool:
         """判断是否支持视觉"""
-        return ModelCapability.VISION in self.capabilities
+        return self.has_vision
     
     def supports_tool_use(self) -> bool:
         """判断是否支持工具调用"""
-        return ModelCapability.TOOL_USE in self.capabilities
+        return self.has_tool_use
 
 
 class ConfigField(BaseModel):

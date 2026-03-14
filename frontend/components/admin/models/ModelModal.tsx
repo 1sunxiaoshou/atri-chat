@@ -15,13 +15,12 @@ interface ModelModalProps {
 }
 
 const allCapabilities = [
-    'vision',
-    'document',
-    'video',
-    'audio',
-    'reasoning',
-    'tool_use',
-    'web_search',
+    { key: 'has_vision', label: 'Vision' },
+    { key: 'has_document', label: 'Document' },
+    { key: 'has_video', label: 'Video' },
+    { key: 'has_audio', label: 'Audio' },
+    { key: 'has_reasoning', label: 'Reasoning' },
+    { key: 'has_tool_use', label: 'Tool Use' },
 ];
 
 export const ModelModal: React.FC<ModelModalProps> = ({
@@ -59,21 +58,16 @@ export const ModelModal: React.FC<ModelModalProps> = ({
 
     if (!model) return null;
 
-    const toggleCapability = (capability: string) => {
-        const capabilities = model.capabilities || [];
-        const index = capabilities.indexOf(capability);
-        const newCapabilities = index > -1
-            ? capabilities.filter(c => c !== capability)
-            : [...capabilities, capability];
-        
+    const toggleCapability = (capabilityKey: string) => {
+        const currentValue = (model as any)[capabilityKey] || false;
         onChange({
             ...model,
-            capabilities: newCapabilities,
+            [capabilityKey]: !currentValue,
         });
 
         // 如果能力变化，可能需要重新获取 schema (特别是涉及 reasoning 时)
-        if (model.id) {
-            // 这里可以加一个防抖
+        if (model.id && capabilityKey === 'has_reasoning') {
+            fetchSchema(model.id);
         }
     };
 
@@ -130,16 +124,16 @@ export const ModelModal: React.FC<ModelModalProps> = ({
                     <div className="flex flex-wrap gap-2">
                         {allCapabilities.map((cap) => (
                             <button
-                                key={cap}
-                                onClick={() => toggleCapability(cap)}
+                                key={cap.key}
+                                onClick={() => toggleCapability(cap.key)}
                                 className={cn(
                                     "px-3 py-1.5 rounded-full text-xs border transition-all",
-                                    (model.capabilities || []).includes(cap)
+                                    (model as any)[cap.key]
                                         ? "bg-primary text-primary-foreground border-primary"
                                         : "bg-muted text-muted-foreground border-border hover:border-primary/50"
                                 )}
                             >
-                                {cap.replace('_', ' ')}
+                                {cap.label}
                             </button>
                         ))}
                     </div>

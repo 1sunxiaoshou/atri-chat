@@ -61,5 +61,5 @@ async def upload_portrait(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("上传系统出现内部异常")
+        logger.error(f"上传系统出现内部异常: {e}")
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")

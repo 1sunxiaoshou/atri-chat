@@ -187,7 +187,7 @@ class GPTSoVITSTTS(TTSBase):
                 "message": f"连接超时: {self.api_url}"
             }
         except Exception as e:
-            logger.exception("GPT-SoVITS 测试连接失败")
+            logger.error(f"GPT-SoVITS 测试连接失败: {e}")
             return {
                 "success": False,
                 "message": f"测试失败: {str(e)}"

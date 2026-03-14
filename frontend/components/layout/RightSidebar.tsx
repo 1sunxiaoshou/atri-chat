@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, RotateCcw, Volume2, MessageSquare } from 'lucide-react';
+import { X, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { Model, ModelParameters, ModelParameterSchemaResponse } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Button } from '../ui';
@@ -31,14 +31,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [parameterSchema, setParameterSchema] = useState<ModelParameterSchemaResponse | null>(null);
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
- 
+
   // Get models and providers from Global Data Store
   const { models, providers, fetchModels, fetchProviders } = useDataStore();
 
   // 从 Zustand Store 读写音频设置
-  const volume = useAudioStore((state) => state.volume);
   const autoPlay = useAudioStore((state) => state.autoPlay);
-  const setVolume = useAudioStore((state) => state.setVolume);
   const setAutoPlay = useAudioStore((state) => state.setAutoPlay);
 
   // 当模型选择器打开时，加载可用模型列表
@@ -72,6 +70,18 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       });
   }, [activeModel?.id]);
 
+  // 从 has_* 字段生成能力标签
+  const getCapabilityTags = (model: Model): string[] => {
+    const tags: string[] = [];
+    if (model.has_vision) tags.push('Vision');
+    if (model.has_audio) tags.push('Audio');
+    if (model.has_video) tags.push('Video');
+    if (model.has_reasoning) tags.push('Reasoning');
+    if (model.has_tool_use) tags.push('Tool Use');
+    if (model.has_document) tags.push('Document');
+    return tags;
+  };
+
   // 转换模型列表为 HierarchicalItem 格式
   const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
     return models.filter((m: Model) => m.enabled).map((model: Model) => {
@@ -80,7 +90,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         id: model.id,
         label: model.model_id,
         category: provider?.name || `Provider #${model.provider_config_id}`,
-        tags: model.capabilities
+        tags: getCapabilityTags(model)
       };
     });
   }, [models, providers]);
@@ -130,8 +140,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border bg-muted/5">
-          <div>
-            <h3 className="text-lg font-bold text-foreground tracking-tight">{t('chat.settings.title')}</h3>
+          <div className="flex-1 min-w-0 mr-4">
+            <h3 className="text-lg font-bold text-foreground tracking-tight truncate">{t('chat.settings.title')}</h3>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium mt-1">Parameters Configuration</p>
           </div>
           <Button
@@ -167,64 +177,38 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             </Button>
           </div>
 
-          <div className="h-px bg-border/50" />
-
-          {/* 音频设置 */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Volume2 size={14} className="text-muted-foreground" />
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                {t('chat.settings.audioSettings')}
-              </label>
-            </div>
-
-            {/* 自动朗读 */}
-            <div className="flex items-center justify-between py-1">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5 text-sm text-foreground font-medium">
-                  <MessageSquare size={13} className="text-primary" />
-                  {t('chat.settings.autoPlay')}
+          {/* Auto Play Toggle */}
+          <div 
+            className="flex items-center justify-between p-3 bg-muted/20 border border-border/40 rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => setAutoPlay(!autoPlay)}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-lg transition-colors",
+                autoPlay ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                {autoPlay ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{t('chat.settings.autoPlay')}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{t('chat.settings.autoPlayDesc')}</p>
+                <span className="text-[10px] text-muted-foreground line-clamp-1">{t('chat.settings.autoPlayDesc')}</span>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={autoPlay}
-                onClick={() => setAutoPlay(!autoPlay)}
-                className={cn(
-                  'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  autoPlay ? 'bg-primary' : 'bg-muted'
-                )}
-              >
-                <span
-                  className={cn(
-                    'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out',
-                    autoPlay ? 'translate-x-4' : 'translate-x-0'
-                  )}
-                />
-              </button>
             </div>
-
-            {/* 音量控制 */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-foreground font-medium">{t('chat.settings.volume')}</label>
-                <span className="text-xs text-muted-foreground tabular-nums">{volume}%</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-muted [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md"
-              />
+            <div className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              autoPlay ? "bg-primary" : "bg-muted"
+            )}>
+              <span className={cn(
+                "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out",
+                autoPlay ? "translate-x-4" : "translate-x-0"
+              )} />
             </div>
           </div>
 
           <div className="h-px bg-border/50" />
+
 
           {/* Dynamic Parameters */}
           {isLoadingSchema ? (
@@ -234,7 +218,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           ) : parameterSchema ? (
             <div className="space-y-4">
               {/* Provider Parameters (思考类参数) - 显示在最前面 */}
-              {Object.entries(parameterSchema.provider_parameters).map(([key, schema]) => (
+              {(Object.entries(parameterSchema.provider_parameters) as [string, any][]).map(([key, schema]) => (
                 <ParameterField
                   key={key}
                   name={key}
@@ -250,7 +234,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               )}
 
               {/* Common Parameters (通用参数) */}
-              {Object.entries(parameterSchema.common_parameters).map(([key, schema]) => (
+              {(Object.entries(parameterSchema.common_parameters) as [string, any][]).map(([key, schema]) => (
                 <ParameterField
                   key={key}
                   name={key}

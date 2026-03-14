@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from api.schemas import ResponseModel, MessageRequest
 from core import AgentCoordinator
 from core.dependencies import get_agent, get_db
+from core.logger import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -51,7 +53,7 @@ async def send_message(
                     yield f"data: {json_str}\n\n"
             
         except Exception as e:
-            logger.exception("消息处理发生系统性异常")
+            logger.error(f"消息处理发生系统性异常: {e}")
             error_type = {
                 ValueError: "config_error",
                 RuntimeError: "model_error"

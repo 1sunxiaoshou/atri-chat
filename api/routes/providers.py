@@ -78,9 +78,9 @@ async def create_provider(
         raise HTTPException(status_code=400, detail="供应商已存在")
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("创建供应商失败")
+        logger.error(f"创建供应商失败: {e}")
         raise HTTPException(status_code=500, detail="创建失败")
 
 
@@ -117,8 +117,8 @@ async def get_provider(
         )
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取供应商失败")
+    except Exception as e:
+        logger.error(f"获取供应商失败: {e}")
         raise HTTPException(status_code=500, detail="获取失败")
 
 
@@ -163,8 +163,8 @@ async def list_providers(
             message="获取成功",
             data=data
         )
-    except Exception:
-        logger.exception("列出供应商失败")
+    except Exception as e:
+        logger.error(f"列出供应商失败: {e}")
         raise HTTPException(status_code=500, detail="列出失败")
 
 
@@ -216,9 +216,9 @@ async def update_provider(
         )
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新供应商失败")
+        logger.error(f"更新供应商失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -255,9 +255,9 @@ async def delete_provider(
         )
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("删除供应商失败")
+        logger.error(f"删除供应商失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")
 
 
@@ -296,8 +296,8 @@ async def list_provider_templates():
             message="获取成功",
             data=data
         )
-    except Exception:
-        logger.exception("获取模板列表失败")
+    except Exception as e:
+        logger.error(f"获取模板列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取模板列表失败")
 
 
@@ -344,8 +344,8 @@ async def get_provider_models(
         )
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取供应商模型失败")
+    except Exception as e:
+        logger.error(f"获取供应商模型失败: {e}")
         raise HTTPException(status_code=500, detail="获取模型失败")
 
 
@@ -372,7 +372,7 @@ async def sync_provider_models(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.exception("同步模型过程异常")
+        logger.error(f"同步模型过程异常: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -440,6 +440,6 @@ async def list_available_models(
         )
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取可用模型失败")
+    except Exception as e:
+        logger.error(f"获取可用模型失败: {e}")
         raise HTTPException(status_code=500, detail="获取失败")

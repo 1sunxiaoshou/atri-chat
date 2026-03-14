@@ -25,12 +25,6 @@ export const modelsApi = {
 
   /**
    * 更新模型
-   * @param providerId - 服务商 ID
-   * @param modelId - 模型 ID
-   * @param model - 模型数据
-   */
-  /**
-   * 更新模型
    * @param id - 数据库 ID
    * @param model - 模型数据
    */
@@ -42,7 +36,13 @@ export const modelsApi = {
       `/models/${id}`,
       {
         model_type: model.model_type,
-        capabilities: model.capabilities,
+        has_vision: model.has_vision,
+        has_audio: model.has_audio,
+        has_video: model.has_video,
+        has_reasoning: model.has_reasoning,
+        has_tool_use: model.has_tool_use,
+        has_document: model.has_document,
+        has_structured_output: model.has_structured_output,
         enabled: model.enabled,
         context_window: model.context_window,
         max_output: model.max_output,
@@ -68,7 +68,13 @@ export const modelsApi = {
       // 如果提供了基础数据，直接使用
       payload = {
         model_type: baseModel.model_type,
-        capabilities: baseModel.capabilities || [],
+        has_vision: baseModel.has_vision || false,
+        has_audio: baseModel.has_audio || false,
+        has_video: baseModel.has_video || false,
+        has_reasoning: baseModel.has_reasoning || false,
+        has_tool_use: baseModel.has_tool_use || false,
+        has_document: baseModel.has_document || false,
+        has_structured_output: baseModel.has_structured_output || false,
         context_window: baseModel.context_window,
         max_output: baseModel.max_output,
         enabled,
@@ -86,7 +92,13 @@ export const modelsApi = {
 
       payload = {
         model_type: modelData.data.model_type,
-        capabilities: modelData.data.capabilities,
+        has_vision: modelData.data.has_vision,
+        has_audio: modelData.data.has_audio,
+        has_video: modelData.data.has_video,
+        has_reasoning: modelData.data.has_reasoning,
+        has_tool_use: modelData.data.has_tool_use,
+        has_document: modelData.data.has_document,
+        has_structured_output: modelData.data.has_structured_output,
         context_window: modelData.data.context_window,
         max_output: modelData.data.max_output,
         enabled,
