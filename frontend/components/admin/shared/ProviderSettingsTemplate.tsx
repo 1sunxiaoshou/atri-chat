@@ -37,7 +37,7 @@ interface ProviderSettingsTemplateProps {
   onConfigSaved?: () => Promise<void>;
   emptyStateIcon?: string;
   emptyStateText?: string;
-  configKey?: string; // 指定后端使用的配置字段名，如 'config_json' 或 'config_payload'
+  configKey?: string; // Specify config field name, e.g. 'config_json' or 'config_payload'
   filterLevel?: string; // 如果设置，则只渲染对应 level 的字段（如 'provider'）
 }
 
@@ -263,7 +263,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   }
 
   const providerOptions = [
-    { label: '未启用', value: '' },
+    { label: t('admin.notEnabled'), value: '' },
     ...providers.map(p => ({
       label: p.name,
       value: p.id,
@@ -309,7 +309,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
                 <span className="text-5xl">{emptyStateIcon}</span>
               </div>
               <div className="text-sm font-medium tracking-wide">
-                {emptyStateText || "请先选择一个服务商以开始配置"}
+                {emptyStateText || t('admin.selectProviderToConfigure')}
               </div>
             </div>
           )}
@@ -326,7 +326,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
               loading={testing}
             >
               {!testing && <Activity size={16} className="mr-2" />}
-              测试连接
+              {t('admin.testConnection')}
             </Button>
           )}
 
@@ -337,7 +337,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
             loading={saving}
           >
             {!saving && <Save size={16} className="mr-2" />}
-            保存配置
+            {t('admin.save')}
           </Button>
         </div>
       </div>

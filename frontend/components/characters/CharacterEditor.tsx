@@ -121,7 +121,7 @@ export const CharacterEditor: React.FC<CharacterEditorProps> = ({
                         deduped
                     );
                 } catch (error) {
-                    console.error('[CharacterEditor] 动作绑定同步失败:', error);
+                    console.error(t('character.syncMotionBindingsFailed'), error);
                     throw error; // 抛出错误，让用户知道保存失败
                 }
             }

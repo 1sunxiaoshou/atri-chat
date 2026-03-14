@@ -230,7 +230,7 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-background transition-all duration-300">
-        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground animate-pulse">加载中...</div>}>
+        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground animate-pulse">{t('app.loading')}</div>}>
         {viewMode === 'chat' ? (
           activeConversationId ? (
             <ChatInterface

@@ -31,9 +31,6 @@
         "enablePerformanceMonitor": "启用性能监控",
         "asrTitle": "语音识别设置",
         "asrDescription": "配置语音识别的语言和模型精度",
-        "asrStatus": "语音识别状态",
-        "asrEnabled": "已启用（本地模型）",
-        "asrStatusDesc": "系统使用本地 SenseVoice-Small ONNX 模型进行语音识别，无需额外配置。",
         "recognitionLanguage": "识别语言",
         "recognitionLanguageDesc": "选择语音识别的目标语言，或使用自动检测",
         "autoDetect": "自动检测",
@@ -42,46 +39,62 @@
         "japanese": "日语",
         "korean": "韩语",
         "cantonese": "粤语",
-        "languageTip": "提示：自动检测适用于大多数场景，指定语言可能提高识别准确度",
         "modelPrecision": "模型精度",
-        "modelPrecisionDesc": "选择模型精度，平衡识别速度和准确度",
-        "fullPrecision": "全精度",
         "quantized": "量化",
-        "precisionTip": "提示：切换精度时会自动重新加载模型，首次加载需要 4-5 秒",
-        "usageInstructions": "使用说明",
-        "usageInstruction1": "在聊天界面点击麦克风图标开始语音输入",
-        "usageInstruction2": "支持中文、英文、日文、韩文、粤语等多语言识别",
-        "usageInstruction3": "首次使用时会自动下载模型文件（约 1GB）",
-        "usageInstruction4": "语言和精度设置会在下次录音时生效",
-        "saveSettings": "保存设置",
         "higherAccuracy": "精度更高",
         "slowerSpeed": "",
         "largerModel": "模型大小 894.2 MB",
         "fasterSpeed": "",
         "slightlyLowerAccuracy": "精度略低",
         "smallerModel": "模型大小 228.2 MB",
-        "asrModelMgmt": "ASR 模型管理",
         "asrModelMgmtDesc": "管理本地语音识别需要的模型资源。可以选择性下载以节省空间。",
-        "modelNotReady": "模型未就绪",
-        "modelReady": "模型已就绪",
-        "downloadingModel": "正在下载模型...",
-        "cleaningAssets": "正在清理资源...",
         "clearAssets": "清理模型资源",
         "confirmClearAssets": "确定要清理 {precision} 模型资源吗？下次使用需要重新下载。",
         "downloadInt8": "下载极速版 (INT8 228.2 MB)",
         "downloadFp32": "下载全量版 (FP32 894.2 MB)",
-        "downloadBoth": "下载全部模型 (约 1.1GB)",
         "ready": "就绪",
         "notInstalled": "未安装",
-        "totalSize": "总占用空间",
-        "downloadFailed": "下载失败"
+        "downloadFailed": "下载失败",
+        "audioVolume": "音频音量",
+        "audioVolumeDesc": "控制 TTS 语音播放的音量大小",
+        "mute": "静音",
+        "max": "最大",
+        "audioCacheLimit": "音频缓存上限",
+        "audioCacheLimitDesc": "设置最多缓存多少条音频，超出后将删除最早的缓存",
+        "audioCacheItems": "条",
+        "audioCacheTip": "建议值：10-100 条。缓存过多可能占用较多内存。",
+        "themes": {
+            "indigo": {
+                "name": "靛蓝烟波",
+                "desc": "专业深邃"
+            },
+            "emerald": {
+                "name": "宝石翡翠",
+                "desc": "沉静优雅"
+            },
+            "violet": {
+                "name": "紫罗兰",
+                "desc": "时尚创意"
+            },
+            "obsidian": {
+                "name": "极简黑曜石",
+                "desc": "极致冷淡"
+            },
+            "warm": {
+                "name": "暖石灰",
+                "desc": "温润阅读"
+            }
+        },
+        "fetchASRStatusFailed": "获取 ASR 状态失败",
+        "triggerModelDownloadFailed": "触发模型下载失败",
+        "clearModelResourcesFailed": "清理模型资源失败",
+        "simplifiedChinese": "简体中文"
     },
     "admin": {
         "allCategories": "全部",
         "chat": "聊天",
         "embedding": "嵌入",
         "rerank": "重排",
-        "providerTemplate": "供应商引擎",
         "editModel": "编辑模型",
         "addModel": "添加模型",
         "modelId": "模型 ID",
@@ -93,10 +106,7 @@
         "modelCapabilities": "模型能力",
         "editProvider": "编辑供应商",
         "addProvider": "添加供应商",
-        "providerId": "供应商名称",
         "apiConfig": "API 配置",
-        "apiKey": "API Key",
-        "baseUrl": "Base URL",
         "loadDataFailed": "加载数据失败",
         "deleteSuccess": "删除成功",
         "deleteFailed": "删除失败",
@@ -118,7 +128,6 @@
         "testConnection": "测试连接",
         "providerName": "供应商名称",
         "providerType": "服务商引擎",
-        "enableProvider": "启用此供应商",
         "editVoice": "编辑音色",
         "addVoice": "添加音色",
         "voiceName": "音色名称",
@@ -203,7 +212,13 @@
         "enablePreview": "启用预览",
         "disablePreview": "禁用预览",
         "clickToPreview": "点击启用 3D 预览",
-        "saveResourcesTip": "点击开启以节省系统资源"
+        "saveResourcesTip": "点击开启以节省系统资源",
+        "alreadyExists": "已存在",
+        "notEnabled": "未启用",
+        "selectProviderToConfigure": "请先选择一个服务商以开始配置",
+        "language": "语言",
+        "thumbnailSuccess": "缩略图生成成功",
+        "thumbnailFailed": "生成缩略图失败:"
     },
     "chat": {
         "placeholder": "发送消息...",
@@ -254,7 +269,9 @@
         "selectCharHelp": "从左侧选择一个角色，然后点击下方按钮开始新的对话",
         "startNewChat": "开始新对话",
         "noCharacterAvailable": "没有可用的角色",
-        "createConversationFailed": "创建会话失败"
+        "createConversationFailed": "创建会话失败",
+        "loading": "加载中...",
+        "loading3DEngine": "正在加载 3D 渲染引擎..."
     },
     "vrm": {
         "renderSettings": "渲染设置",
@@ -304,7 +321,8 @@
             "unknownError": "未知错误",
             "deleteFailed": "删除失败：{errorMsg}",
             "operationSuccess": "操作成功",
-            "operationFailed": "操作失败"
+            "operationFailed": "操作失败",
+            "generatingThumbnail": "正在生成缩略图..."
         },
         "motion": {
             "fetchFailed": "获取动作失败:",
@@ -316,7 +334,6 @@
             "deleteFailed": "删除失败：{errorMsg}",
             "clickUpload": "点击上传VRMA文件",
             "durationMs": "时长（毫秒）",
-            "selectToPreview": "选择一个动作查看预览",
             "uploadFirst": "上传第一个动作文件，为你的角色添加生动的动画"
         }
     },
@@ -348,10 +365,8 @@
         "completeImport": "完成导入",
         "importing": "导入中...",
         "importAssets": "导入 3D 资产",
-        "modelFile": "模型文件",
         "clickOrDragUpload": "点击或拖拽上传 VRM 模型",
         "supportVRMFormat": "支持 .vrm 格式文件",
-        "onlySupportVRM": "仅支持 .vrm 格式",
         "characterName": "角色名称",
         "enterCharacterName": "输入角色名称...",
         "thumbnail": "缩略图",
@@ -381,7 +396,9 @@
         "selectMotion": "选择动作",
         "searchMotion": "搜索动作...",
         "noMotion": "无动作",
-        "systemOptions": "系统选项"
+        "systemOptions": "系统选项",
+        "loadMotionBindingsFailed": "[AssetsTab] 加载动作绑定失败:",
+        "syncMotionBindingsFailed": "[CharacterEditor] 动作绑定同步失败:"
     },
     "performance": {
         "title": "性能监控",

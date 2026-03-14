@@ -122,7 +122,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       const errorMessage = error.response?.data?.detail || error.message || t('admin.operationFailed');
 
       // 如果是重复ID错误，显示特定提示
-      if (errorMessage.includes('已存在') || errorMessage.includes('already exists')) {
+      if (errorMessage.includes(t('admin.alreadyExists')) || errorMessage.includes('already exists')) {
         setToast({
           success: false,
           message: t('admin.providerIdExists')

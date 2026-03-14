@@ -31,9 +31,6 @@
         "enablePerformanceMonitor": "Enable Performance Monitor",
         "asrTitle": "ASR Settings",
         "asrDescription": "Configure speech recognition language and model precision",
-        "asrStatus": "ASR Status",
-        "asrEnabled": "Enabled (Local Model)",
-        "asrStatusDesc": "The system uses local SenseVoice-Small ONNX model for speech recognition.",
         "recognitionLanguage": "Recognition Language",
         "recognitionLanguageDesc": "Select target language for speech recognition or use auto-detection",
         "autoDetect": "Auto Detect",
@@ -42,46 +39,62 @@
         "japanese": "Japanese",
         "korean": "Korean",
         "cantonese": "Cantonese",
-        "languageTip": "Tip: Auto-detect works for most scenarios, specifying language may improve accuracy",
         "modelPrecision": "Model Precision",
-        "modelPrecisionDesc": "Choose model precision to balance speed and accuracy",
-        "fullPrecision": "Full Precision",
         "quantized": "Quantized",
-        "precisionTip": "Tip: Switching precision will reload the model, first load takes 4-5 seconds",
-        "usageInstructions": "Usage Instructions",
-        "usageInstruction1": "Click the microphone icon in the chat interface to start voice input",
-        "usageInstruction2": "Supports Chinese, English, Japanese, Korean, and Cantonese",
-        "usageInstruction3": "Model files will be downloaded automatically on first use (~1GB)",
-        "usageInstruction4": "Language and precision settings take effect on next recording",
-        "saveSettings": "Save Settings",
         "higherAccuracy": "Higher accuracy",
         "slowerSpeed": "",
         "largerModel": "Model size 894.2 MB",
         "fasterSpeed": "",
         "slightlyLowerAccuracy": "Slightly lower accuracy",
         "smallerModel": "Model size 228.2 MB",
-        "asrModelMgmt": "ASR Model Management",
         "asrModelMgmtDesc": "Manage local speech recognition model resources. Selective download is supported.",
-        "modelNotReady": "Model Not Ready",
-        "modelReady": "Model Ready",
-        "downloadingModel": "Downloading Model...",
-        "cleaningAssets": "Cleaning Assets...",
         "clearAssets": "Clear Model Assets",
         "confirmClearAssets": "Are you sure you want to clear {precision} model assets? You will need to re-download them next time.",
         "downloadInt8": "Download Lite (INT8 228.2 MB)",
         "downloadFp32": "Download Full (FP32 894.2 MB)",
-        "downloadBoth": "Download Both (approx. 1.1GB)",
         "ready": "Ready",
         "notInstalled": "Not Installed",
-        "totalSize": "Total Disk Usage",
-        "downloadFailed": "Download Failed"
+        "downloadFailed": "Download Failed",
+        "audioVolume": "Audio Volume",
+        "audioVolumeDesc": "Control TTS voice playback volume",
+        "mute": "Mute",
+        "max": "Max",
+        "audioCacheLimit": "Audio Cache Limit",
+        "audioCacheLimitDesc": "Set maximum cached audio items",
+        "audioCacheItems": "items",
+        "audioCacheTip": "Recommended: 10-100 items. Too many may consume more memory.",
+        "themes": {
+            "indigo": {
+                "name": "Indigo Slate",
+                "desc": "Professional"
+            },
+            "emerald": {
+                "name": "Emerald",
+                "desc": "Elegant"
+            },
+            "violet": {
+                "name": "Violet",
+                "desc": "Creative"
+            },
+            "obsidian": {
+                "name": "Obsidian",
+                "desc": "Minimalist"
+            },
+            "warm": {
+                "name": "Warm Stone",
+                "desc": "Warm"
+            }
+        },
+        "fetchASRStatusFailed": "Failed to fetch ASR status",
+        "triggerModelDownloadFailed": "Failed to trigger model download",
+        "clearModelResourcesFailed": "Failed to clear model resources",
+        "simplifiedChinese": "Simplified Chinese"
     },
     "admin": {
         "allCategories": "All",
         "chat": "Chat",
         "embedding": "Embedding",
         "rerank": "Rerank",
-        "providerTemplate": "Provider Template",
         "editModel": "Edit Model",
         "addModel": "Add Model",
         "modelId": "Model ID",
@@ -93,10 +106,7 @@
         "modelCapabilities": "Model Capabilities",
         "editProvider": "Edit Provider",
         "addProvider": "Add Provider",
-        "providerId": "Provider ID",
         "apiConfig": "API Configuration",
-        "apiKey": "API Key",
-        "baseUrl": "Base URL",
         "loadDataFailed": "Failed to load data",
         "deleteSuccess": "Deleted successfully",
         "deleteFailed": "Delete failed",
@@ -118,7 +128,6 @@
         "testConnection": "Test Connection",
         "providerName": "Provider Name",
         "providerType": "Provider Type",
-        "enableProvider": "Enable this provider",
         "editVoice": "Edit Voice",
         "addVoice": "Add Voice",
         "voiceName": "Voice Name",
@@ -203,7 +212,13 @@
         "enablePreview": "Enable Preview",
         "disablePreview": "Disable Preview",
         "clickToPreview": "Click to Enable 3D Preview",
-        "saveResourcesTip": "Click to enable and save system resources"
+        "saveResourcesTip": "Click to enable and save system resources",
+        "alreadyExists": "already exists",
+        "notEnabled": "Disabled",
+        "selectProviderToConfigure": "Please select a provider to start configuration",
+        "language": "Language",
+        "thumbnailSuccess": "Thumbnail generated successfully",
+        "thumbnailFailed": "Failed to generate thumbnail:"
     },
     "chat": {
         "placeholder": "Send a message...",
@@ -254,7 +269,9 @@
         "selectCharHelp": "Select a character from the left, then click the button below to start a new conversation",
         "startNewChat": "Start New Chat",
         "noCharacterAvailable": "No character available",
-        "createConversationFailed": "Failed to create conversation"
+        "createConversationFailed": "Failed to create conversation",
+        "loading": "Loading...",
+        "loading3DEngine": "Loading 3D Rendering Engine..."
     },
     "vrm": {
         "renderSettings": "Render Settings",
@@ -304,7 +321,8 @@
             "unknownError": "Unknown Error",
             "deleteFailed": "Delete failed: {errorMsg}",
             "operationSuccess": "Operation Successful",
-            "operationFailed": "Operation Failed"
+            "operationFailed": "Operation Failed",
+            "generatingThumbnail": "Generating thumbnail..."
         },
         "motion": {
             "fetchFailed": "Failed to get motions:",
@@ -316,7 +334,6 @@
             "deleteFailed": "Delete failed: {errorMsg}",
             "clickUpload": "Click to upload VRMA file",
             "durationMs": "Duration (ms)",
-            "selectToPreview": "Select a motion to preview",
             "uploadFirst": "Upload your first motion file to add animations to your characters"
         }
     },
@@ -348,10 +365,8 @@
         "completeImport": "Complete Import",
         "importing": "Importing...",
         "importAssets": "Import 3D Assets",
-        "modelFile": "Model File",
         "clickOrDragUpload": "Click or drag to upload VRM model",
         "supportVRMFormat": "Supports .vrm format files",
-        "onlySupportVRM": "Only .vrm format supported",
         "characterName": "Character Name",
         "enterCharacterName": "Enter character name...",
         "thumbnail": "Thumbnail",
@@ -381,7 +396,9 @@
         "selectMotion": "Select Motion",
         "searchMotion": "Search motions...",
         "noMotion": "No Motion",
-        "systemOptions": "System Options"
+        "systemOptions": "System Options",
+        "loadMotionBindingsFailed": "[AssetsTab] Failed to load motion bindings:",
+        "syncMotionBindingsFailed": "[CharacterEditor] Failed to sync motion bindings:"
     },
     "performance": {
         "title": "Performance Monitor",
