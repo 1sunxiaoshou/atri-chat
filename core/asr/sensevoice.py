@@ -136,4 +136,5 @@ class SenseVoiceASR:
             self._ensure_initialized(use_int8=False, language="auto")
             return {"success": True, "message": "ASR 引擎状态正常"}
         except Exception as e:
+            logger.exception("ASR 连通性测试失败")
             return {"success": False, "message": str(e)}

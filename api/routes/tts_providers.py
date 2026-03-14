@@ -369,7 +369,7 @@ async def test_provider(
         }
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         logger.exception("测试 TTS 供应商失败")
         return {
             "code": 500,

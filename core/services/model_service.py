@@ -74,10 +74,18 @@ class ModelService:
             provider_config_id=model_orm.provider_config_id,
             model_id=model_orm.model_id,
             model_type=model_orm.model_type,
-            capabilities=model_orm.capabilities,
+            has_vision=model_orm.has_vision,
+            has_audio=model_orm.has_audio,
+            has_video=model_orm.has_video,
+            has_reasoning=model_orm.has_reasoning,
+            has_tool_use=model_orm.has_tool_use,
+            has_document=model_orm.has_document,
+            has_structured_output=model_orm.has_structured_output,
             context_window=model_orm.context_window,
             max_output=model_orm.max_output,
-            enabled=model_orm.enabled
+            enabled=model_orm.enabled,
+            parameters=model_orm.parameters,
+            meta=model_orm.meta
         )
         
         provider_config = ProviderConfig(
@@ -100,7 +108,7 @@ class ModelService:
             
             return model
             
-        except Exception:
+        except Exception as e:
             logger.exception(
                 "创建模型时出错",
                 extra={"provider_config_id": provider_config_id, "model_id": model_id}

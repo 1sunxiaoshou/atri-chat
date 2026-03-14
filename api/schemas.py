@@ -33,10 +33,20 @@ class ModelRequest(BaseModel):
     provider_config_id: int = Field(..., description="供应商配置内部 ID")
     model_id: str = Field(..., description="模型ID")
     model_type: str = Field(..., description="模型类型: chat, embedding, rerank")
-    capabilities: List[str] = Field(default_factory=list, description="模型能力: vision, reasoning, tool_use, web_search")
+    
+    # 核心能力布尔值
+    has_vision: bool = Field(default=False)
+    has_audio: bool = Field(default=False)
+    has_video: bool = Field(default=False)
+    has_reasoning: bool = Field(default=False)
+    has_tool_use: bool = Field(default=False)
+    has_document: bool = Field(default=False)
+    has_structured_output: bool = Field(default=False)
+    
     context_window: Optional[int] = Field(None, description="上下文窗口大小")
     max_output: Optional[int] = Field(None, description="最大输出token数")
     enabled: bool = Field(True, description="是否启用")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="模型初始化默认参数")
 
 
 class ModelResponse(BaseModel):
@@ -45,19 +55,40 @@ class ModelResponse(BaseModel):
     provider_config_id: int
     model_id: str
     model_type: str
-    capabilities: List[str]
+    
+    # 核心能力布尔值
+    has_vision: bool
+    has_audio: bool
+    has_video: bool
+    has_reasoning: bool
+    has_tool_use: bool
+    has_document: bool
+    has_structured_output: bool
+    
     context_window: Optional[int]
     max_output: Optional[int]
     enabled: bool
+    parameters: Optional[Dict[str, Any]] = None
+    meta: Optional[Dict[str, Any]] = None
 
 
 class ModelUpdateRequest(BaseModel):
     """模型更新请求"""
     model_type: str = Field(..., description="模型类型: chat, embedding, rerank")
-    capabilities: List[str] = Field(default_factory=list, description="模型能力: vision, reasoning, tool_use, web_search")
+    
+    # 核心能力布尔值
+    has_vision: Optional[bool] = None
+    has_audio: Optional[bool] = None
+    has_video: Optional[bool] = None
+    has_reasoning: Optional[bool] = None
+    has_tool_use: Optional[bool] = None
+    has_document: Optional[bool] = None
+    has_structured_output: Optional[bool] = None
+    
     context_window: Optional[int] = Field(None, description="上下文窗口大小")
     max_output: Optional[int] = Field(None, description="最大输出token数")
     enabled: bool = Field(True, description="是否启用")
+    parameters: Optional[Dict[str, Any]] = Field(None, description="模型初始化默认参数")
 
 
 # ==================== TTS相关 ====================

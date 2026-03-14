@@ -29,6 +29,11 @@ export const modelsApi = {
    * @param modelId - 模型 ID
    * @param model - 模型数据
    */
+  /**
+   * 更新模型
+   * @param id - 数据库 ID
+   * @param model - 模型数据
+   */
   updateModel: async (
     id: number,
     model: Partial<Model>
@@ -40,16 +45,16 @@ export const modelsApi = {
         capabilities: model.capabilities,
         enabled: model.enabled,
         context_window: model.context_window,
-        max_output: model.max_output
+        max_output: model.max_output,
+        parameters: model.parameters
       }
     );
   },
 
   /**
    * 切换模型启用/禁用状态
-   * @param modelId - 模型 ID
+   * @param id - 数据库 ID
    * @param enabled - 是否启用
-   * @param providerConfigId - 服务商配置 ID
    * @param baseModel - 可选的模型基础数据，用于避免额外的服务器请求
    */
   toggleModel: async (
@@ -66,16 +71,17 @@ export const modelsApi = {
         capabilities: baseModel.capabilities || [],
         context_window: baseModel.context_window,
         max_output: baseModel.max_output,
-        enabled
+        enabled,
+        parameters: baseModel.parameters
       };
     } else {
       // 否则先获取模型详情（兼容性回退）
-      const modelData = await httpClient.get<any>(
+      const modelData = await httpClient.get<Model>(
         `/models/${id}`
       );
 
       if (modelData.code !== HTTP_STATUS.OK) {
-        return modelData;
+        return modelData as any;
       }
 
       payload = {
@@ -83,7 +89,8 @@ export const modelsApi = {
         capabilities: modelData.data.capabilities,
         context_window: modelData.data.context_window,
         max_output: modelData.data.max_output,
-        enabled
+        enabled,
+        parameters: modelData.data.parameters
       };
     }
 
@@ -96,8 +103,7 @@ export const modelsApi = {
 
   /**
    * 删除模型
-   * @param providerId - 服务商 ID
-   * @param modelId - 模型 ID
+   * @param id - 数据库 ID
    */
   deleteModel: async (
     id: number
@@ -106,31 +112,25 @@ export const modelsApi = {
   },
 
   /**
+   * 获取模型参数 Schema
+   * @param id - 数据库 ID
+   */
+  getParameterSchema: async (
+    id: number
+  ): Promise<ApiResponse<any>> => {
+    return httpClient.get<any>(`/models/${id}/parameter-schema`);
+  },
+
+  /**
    * 同步供应商模型列表
-   * @param providerId - 服务商 ID
+   * @param providerConfigId - 服务商配置 ID
    * @param updateExisting - 是否更新已存在的模型
    */
   syncProviderModels: async (
     providerConfigId: number,
     updateExisting: boolean = false
-  ): Promise<ApiResponse<{
-    provider_config_id: number;
-    total: number;
-    added: number;
-    updated: number;
-    skipped: number;
-    failed: number;
-    errors?: string[];
-  }>> => {
-    return httpClient.post<{
-      provider_config_id: number;
-      total: number;
-      added: number;
-      updated: number;
-      skipped: number;
-      failed: number;
-      errors?: string[];
-    }>(
+  ): Promise<ApiResponse<any>> => {
+    return httpClient.post<any>(
       `/providers/${providerConfigId}/sync?update_existing=${updateExisting}`,
       {}
     );

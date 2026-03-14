@@ -192,8 +192,8 @@ class AgentCoordinator:
             new_title = conversation_service.auto_title(conversation_id, user_message)
             if new_title:
                 yield json.dumps({"type": "title_update", "title": new_title}, ensure_ascii=False)
-        except Exception as e:
-            logger.error("前期消息处理失败: {}", str(e))
+        except Exception:
+            logger.exception("前期消息处理失败")
 
         try:
             async for chunk_json in strategy.process(
@@ -248,7 +248,8 @@ class AgentCoordinator:
                 
         except Exception as e:
             logger.exception("消息处理失败")
-            yield json.dumps({"type": "error", "message": str(e)}, ensure_ascii=False)
+            error_msg = f"{type(e).__name__}: {str(e)}".strip(": ")
+            yield json.dumps({"type": "error", "message": error_msg}, ensure_ascii=False)
     
     async def start_services(self):
         """启动后台服务"""

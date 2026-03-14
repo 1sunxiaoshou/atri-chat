@@ -10,12 +10,11 @@
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import sys
-import logging
 from sqlalchemy.orm import Session
+from core.repositories import CharacterRepository
+from core.logger import get_logger
 
-from ..repositories import CharacterRepository
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # 默认资源定义（防止数据库为空）
 DEFAULT_EXPRESSIONS = ["neutral", "happy", "angry", "sad", "relaxed"]
@@ -221,8 +220,8 @@ class PromptManager:
                 
             return "\n  - " + "\n  - ".join(action_lines), action_ids
             
-        except Exception as e:
-            logger.error("获取角色动作失败: {}", str(e), exc_info=True)
+        except Exception:
+            logger.exception("获取角色动作失败")
             return "\n  - " + "\n  - ".join(DEFAULT_ACTIONS), []
 
     
@@ -251,8 +250,8 @@ class PromptManager:
                 # 档案为空或只有模板，不添加
                 return None
         
-        except Exception as e:
-            logger.warning("加载用户画像失败: {}", str(e))
+        except Exception:
+            logger.exception("加载用户画像失败")
             return None
     
     def _has_meaningful_content(self, content: str) -> bool:

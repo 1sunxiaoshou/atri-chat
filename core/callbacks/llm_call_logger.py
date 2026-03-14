@@ -133,8 +133,8 @@ class LLMCallLogger(BaseCallbackHandler):
                         "total": usage.get("total_tokens"),
                     }
                     llm_output_data = response.llm_output
-                except (AttributeError, TypeError) as e:
-                    logger.warning("无法提取 token 信息: {}", str(e))
+                except (AttributeError, TypeError):
+                    logger.exception("无法提取 token 信息")
             
             self.current_call.update({
                 "timestamp_end": end_time.isoformat(),

@@ -45,10 +45,17 @@ async def create_model(
             provider_config_id=req.provider_config_id,
             model_id=req.model_id,
             model_type=req.model_type,
-            capabilities=req.capabilities,
+            has_vision=req.has_vision,
+            has_audio=req.has_audio,
+            has_video=req.has_video,
+            has_reasoning=req.has_reasoning,
+            has_tool_use=req.has_tool_use,
+            has_document=req.has_document,
+            has_structured_output=req.has_structured_output,
             context_window=req.context_window,
             max_output=req.max_output,
-            enabled=req.enabled
+            enabled=req.enabled,
+            parameters=req.parameters
         )
         
         db.add(model)
@@ -101,10 +108,18 @@ async def get_model(
                 "provider_config_id": model.provider_config_id,
                 "model_id": model.model_id,
                 "model_type": model.model_type,
-                "capabilities": model.capabilities,
+                "has_vision": model.has_vision,
+                "has_audio": model.has_audio,
+                "has_video": model.has_video,
+                "has_reasoning": model.has_reasoning,
+                "has_tool_use": model.has_tool_use,
+                "has_document": model.has_document,
+                "has_structured_output": model.has_structured_output,
                 "context_window": model.context_window,
                 "max_output": model.max_output,
                 "enabled": model.enabled,
+                "parameters": model.parameters,
+                "meta": model.meta,
                 "created_at": model.created_at.isoformat(),
                 "updated_at": model.updated_at.isoformat()
             }
@@ -156,10 +171,17 @@ async def list_models(
                 "provider_config_id": m.provider_config_id,
                 "model_id": m.model_id,
                 "model_type": m.model_type,
-                "capabilities": m.capabilities,
+                "has_vision": m.has_vision,
+                "has_audio": m.has_audio,
+                "has_video": m.has_video,
+                "has_reasoning": m.has_reasoning,
+                "has_tool_use": m.has_tool_use,
+                "has_document": m.has_document,
+                "has_structured_output": m.has_structured_output,
                 "context_window": m.context_window,
                 "max_output": m.max_output,
                 "enabled": m.enabled,
+                "parameters": m.parameters,
                 "created_at": m.created_at.isoformat(),
                 "updated_at": m.updated_at.isoformat()
             }
@@ -202,14 +224,24 @@ async def update_model(
             ModelORM.id == id
         )
         
-        result = stmt.update({
+        update_data = {
             "model_type": req.model_type,
-            "capabilities": req.capabilities,
             "context_window": req.context_window,
             "max_output": req.max_output,
             "enabled": req.enabled,
             "updated_at": datetime.utcnow()
-        })
+        }
+        
+        # 仅在请求中存在时更新布尔值（支持局部更新，虽然 req 是全部字段，但 Optional 可控）
+        for field in ["has_vision", "has_audio", "has_video", "has_reasoning", "has_tool_use", "has_document", "has_structured_output"]:
+            val = getattr(req, field)
+            if val is not None:
+                update_data[field] = val
+
+        if req.parameters is not None:
+            update_data["parameters"] = req.parameters
+
+        result = stmt.update(update_data)
         
         if result == 0:
             raise HTTPException(status_code=404, detail="模型不存在")
@@ -304,60 +336,14 @@ async def get_model_parameter_schema(
         if not template:
             raise HTTPException(status_code=400, detail=f"不支持的供应商模板: {provider.provider_type}")
         
-        metadata = template.metadata
-        model_capabilities = set(model.capabilities)
-        model_type = model.model_type
+        # 调用模板的参数生成逻辑
+        full_schema = template.get_parameters_schema(model.model_id, model.has_reasoning)
         
-        # 过滤通用参数
-        common_params = {}
-        if metadata.common_parameters_schema:
-            for param_name, param_schema in metadata.common_parameters_schema.items():
-                # 检查 applicable_model_types
-                applicable_types = param_schema.get("applicable_model_types", [])
-                if applicable_types and model_type not in applicable_types:
-                    continue
-                
-                # 检查 applicable_capabilities
-                applicable_caps = param_schema.get("applicable_capabilities", [])
-                if applicable_caps:
-                    if not any(cap in model_capabilities for cap in applicable_caps):
-                        continue
-                
-                # 复制 schema 以避免修改原始数据
-                param_schema_copy = param_schema.copy()
-                
-                # 如果是 max_tokens 参数，根据模型的 max_output 动态设置最大值和默认值
-                if param_name == "max_tokens" and model.max_output:
-                    param_schema_copy["max"] = model.max_output
-                    if param_schema_copy.get("use_max_as_default"):
-                        param_schema_copy["default"] = model.max_output
-                
-                common_params[param_name] = param_schema_copy
-        
-        # 按 order 字段排序通用参数
-        common_params = dict(sorted(
-            common_params.items(),
-            key=lambda x: x[1].get("order", 999)
-        ))
-        
-        # 过滤供应商特定参数
-        provider_params = {}
-        if metadata.provider_options_schema:
-            for param_name, param_schema in metadata.provider_options_schema.items():
-                # 检查 applicable_capabilities
-                applicable_caps = param_schema.get("applicable_capabilities", [])
-                if applicable_caps:
-                    if not any(cap in model_capabilities for cap in applicable_caps):
-                        continue
-                
-                provider_params[param_name] = param_schema
-        
-        # 按 order 字段排序供应商参数
-        provider_params = dict(sorted(
-            provider_params.items(),
-            key=lambda x: x[1].get("order", 999)
-        ))
-        
+        # 将 schema 拆分为 common 和 provider 供前端分块展示
+        common_keys = template.get_common_parameters_schema().keys()
+        common_params = {k: v for k, v in full_schema.items() if k in common_keys}
+        provider_params = {k: v for k, v in full_schema.items() if k not in common_keys}
+
         return ResponseModel(
             code=200,
             message="获取成功",
@@ -365,7 +351,8 @@ async def get_model_parameter_schema(
                 "model_id": model.model_id,
                 "provider_config_id": model.provider_config_id,
                 "model_type": model.model_type,
-                "capabilities": model.capabilities,
+                "has_vision": model.has_vision,
+                "has_reasoning": model.has_reasoning,
                 "common_parameters": common_params,
                 "provider_parameters": provider_params
             }

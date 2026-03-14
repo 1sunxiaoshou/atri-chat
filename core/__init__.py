@@ -1,5 +1,5 @@
 """核心模块"""
-from .models.config import ModelConfig, ProviderConfig, ModelType, ModelCapability
+from .models.config import ModelConfig, ProviderConfig, ModelType
 from .models.factory import ModelFactory
 
 from .store import SqliteStore
@@ -23,12 +23,9 @@ __all__ = [
     "ModelConfig",
     "ProviderConfig",
     "ModelType",
-    "ModelCapability",
     "ModelFactory",
-    
     # 存储
     "SqliteStore",
-    
     # 协调器
     "AgentCoordinator",
     

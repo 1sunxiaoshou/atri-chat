@@ -50,7 +50,8 @@ async def send_message(
                 if json_str:
                     yield f"data: {json_str}\n\n"
             
-        except (ValueError, RuntimeError, Exception) as e:
+        except Exception as e:
+            logger.exception("消息处理发生系统性异常")
             error_type = {
                 ValueError: "config_error",
                 RuntimeError: "model_error"

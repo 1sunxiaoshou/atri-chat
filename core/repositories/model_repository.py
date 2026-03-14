@@ -60,6 +60,15 @@ class ModelRepository(BaseRepository[Model]):
         if 'model_type' in filters:
             query = query.filter(Model.model_type == filters['model_type'])
         
+        # 按能力过滤
+        if filters.get('has_vision'): query = query.filter(Model.has_vision == True)
+        if filters.get('has_audio'): query = query.filter(Model.has_audio == True)
+        if filters.get('has_video'): query = query.filter(Model.has_video == True)
+        if filters.get('has_reasoning'): query = query.filter(Model.has_reasoning == True)
+        if filters.get('has_tool_use'): query = query.filter(Model.has_tool_use == True)
+        if filters.get('has_document'): query = query.filter(Model.has_document == True)
+        if filters.get('has_structured_output'): query = query.filter(Model.has_structured_output == True)
+
         # 仅启用的模型
         if filters.get('enabled_only', False):
             query = query.filter(Model.enabled == True)
