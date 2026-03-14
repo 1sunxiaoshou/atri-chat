@@ -93,8 +93,8 @@ graph TD
 
 #### 2.2.1 状态管理核心 (`store/`)
 使用 `Zustand` 处理极高频度的更新：
-- 拆分了 `chatStore`（存储聊天记录）、`characterStore`（角色信息） 以及专门负责驱动 VRM 的中间层状态记录以隔离重渲染区域。
-- `Zustand` 直接对 HTTP 断点服务发起请求，获取后更改内部状态以触发相关组件刷新。
+- 拆分了 `chatStore`（存储聊天记录）、`characterStore`（角色信息） 以及 **`useVRMStore`**（管理 3D 渲染配置及实时动作/表情状态）。
+- `Zustand` Store 与 `vrm/hooks` 高度配合，实现了配置的自动持久化（LocalStorage）与零开销状态同步。
 
 #### 2.2.2 3D 渲染控制层 (`react-three-fiber` / `@pixiv/three-vrm`)
 使用基于 React 语法包装的 `r3f` 控制三维视图：

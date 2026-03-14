@@ -56,7 +56,7 @@ class ConversationService:
             self.db.commit()
         except Exception as e:
             self.db.rollback()
-            logger.error("保存消息失败: {}", str(e), exc_info=True)
+            logger.exception("保存消息失败")
             raise
     
     def auto_title(self, conversation_id: str, first_message: str):
@@ -85,7 +85,7 @@ class ConversationService:
                 logger.debug(f"自动标题: {title}")
                 return title
             return None
-        except Exception as e:
+        except Exception:
             self.db.rollback()
-            logger.error("自动生成标题失败: {}", str(e), exc_info=True)
+            logger.exception("自动生成标题失败")
             return None

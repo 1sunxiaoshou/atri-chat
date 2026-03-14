@@ -58,7 +58,8 @@ def setup_logging(
         console_format = (
             "{time:YYYY-MM-DD HH:mm:ss} | "
             "{level: <8} | "
-            "{message}"
+            "{name}:{function}:{line} - {message}\n"
+            "{exception}"
         )
         console_level = "WARNING"
 
@@ -78,7 +79,7 @@ def setup_logging(
             # 基础应用日志
             logger.add(
                 log_dir / "app.log",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
+                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
                 level=log_level,
                 rotation="100 MB",
                 retention="7 days",
@@ -86,10 +87,9 @@ def setup_logging(
                 enqueue=True,
             )
             
-            # 错误专用日志
             logger.add(
                 log_dir / "error.log",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
+                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
                 level="ERROR",
                 rotation="100 MB",
                 retention="30 days",

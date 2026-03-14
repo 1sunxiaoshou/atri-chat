@@ -1,25 +1,19 @@
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useMemo, useEffect } from 'react';
+import { useProgress } from '@react-three/drei';
 import { VRMCanvas } from '../vrm/r3f/core/VRMCanvas';
 import { AIStage } from '../vrm/r3f/scenes/AIStage';
 import { Character } from '../vrm/r3f/core/Character';
 import { PerformanceMonitor, PerformanceOverlay, PerformanceStats } from '../vrm/PerformanceMonitor';
-import { VRMRenderSettings, VRMRenderConfig, DEFAULT_VRM_RENDER_CONFIG } from '../vrm/VRMRenderSettings';
-import { STORAGE_KEYS } from '@/utils/constants';
+import { VRMRenderSettings } from '../vrm/ui/VRMRenderSettings';
 import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useVRMStore } from '@/store/vrm/useVRMStore';
 
 interface ChatVRMViewerR3FProps {
     /** VRM 模型 URL */
     modelUrl: string;
     /** 音频元素（用于口型同步） */
     audioElement?: HTMLAudioElement | null;
-    /** 当前表情 */
-    expression?: string;
-    /** 当前动作 URL */
-    motionUrl?: string | null;
-    /** 字幕文本 */
-    subtitle?: string;
     /** 自定义类名 */
     className?: string;
     /** 模型加载完成回调 */
@@ -31,29 +25,23 @@ interface ChatVRMViewerR3FProps {
 /**
  * 聊天界面专用 VRM 渲染组件
  * 基于 R3F 架构，提供沉浸式 AI 对话体验
- * 
- * 功能：
- * - 实时口型同步（TTS 音频驱动）
- * - 情感表情映射（AI 情感 → VRM 表情）
- * - 动作状态绑定（思考/闲置 → 动作播放）
- * - 优化的视觉效果（平衡性能和质量）
- * - 性能监控（画布内控制）
  */
 export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
     modelUrl,
     audioElement,
-    expression = 'neutral',
-    motionUrl,
-    subtitle,
     className,
     onModelLoaded,
     onMotionComplete,
 }: ChatVRMViewerR3FProps) {
     const { t } = useLanguage();
-    const { isDark } = useTheme();
+
+    // Zustand Store
+    const renderConfig = useVRMStore((state) => state.config);
+    const { subtitle } = useVRMStore((state) => state.runtime);
 
     // 性能监控状态（本地控制）
     const [isPerformanceVisible, setIsPerformanceVisible] = useState(false);
+    const [showRenderSettings, setShowRenderSettings] = useState(false);
 
     const [perfStats, setPerfStats] = useState<PerformanceStats>({
         fps: 0,
@@ -77,42 +65,15 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
         audioContextCount: 0,
     });
 
-    // 渲染配置状态
-    const [renderConfig, setRenderConfig] = useState<VRMRenderConfig>(DEFAULT_VRM_RENDER_CONFIG);
-    const [showRenderSettings, setShowRenderSettings] = useState(false);
-
-    // 从 localStorage 加载渲染配置
-    useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEYS.VRM_RENDER_CONFIG);
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                // 合并默认配置和保存的配置，确保新字段有默认值
-                setRenderConfig({ ...DEFAULT_VRM_RENDER_CONFIG, ...parsed });
-            } catch (e) {
-                console.error('Failed to parse render config:', e);
-            }
-        }
-    }, []);
-
-    // 保存渲染配置到 localStorage
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.VRM_RENDER_CONFIG, JSON.stringify(renderConfig));
-    }, [renderConfig]);
-
     // 使用 useMemo 缓存 VRMCanvas 内容，避免性能监控更新导致重新渲染
     const vrmCanvasContent = useMemo(() => (
         <>
             <Suspense fallback={null}>
-                <AIStage config={renderConfig} enableControls={true}>
+                <AIStage enableControls={true}>
                     <Character
                         url={modelUrl}
-                        expression={expression}
-                        motionUrl={motionUrl}
                         audioElement={audioElement}
                         enableLipSync={true}
-                        enableBlink={renderConfig.enableBlink}
-                        lookAtMode={renderConfig.lookAtMode}
                         loopMotion={false}
                         onModelLoaded={onModelLoaded}
                         onMotionComplete={onMotionComplete}
@@ -122,24 +83,21 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
 
             {/* 性能监控（内部组件） */}
             {isPerformanceVisible && <PerformanceMonitorInternal onUpdate={setPerfStats} />}
+            
+            {/* 加载状态监控 */}
+            <LoadingMonitor onLoaded={onModelLoaded} />
         </>
-    ), [modelUrl, expression, motionUrl, audioElement, renderConfig, isPerformanceVisible, onModelLoaded, onMotionComplete]);
+    ), [modelUrl, audioElement, isPerformanceVisible, onModelLoaded, onMotionComplete]);
 
     return (
         <div className={cn(
-            "absolute inset-0 z-0 flex items-center justify-center overflow-hidden",
-            // 动态背景：如果显示环境背景则透明，否则根据主题使用渐变
-            renderConfig.showEnvironmentBackground
-                ? "bg-transparent"
-                : isDark
-                    ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
-                    : "bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200",
+            "absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-black",
             className
         )}>
             {/* R3F 渲染区域 */}
             <VRMCanvas
                 camera={{ position: [0, 0.9, 2.2], fov: 35 }}
-                transparent={!renderConfig.showEnvironmentBackground}
+                transparent={false}
             >
                 {vrmCanvasContent}
             </VRMCanvas>
@@ -186,10 +144,7 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
             {/* 渲染设置面板 */}
             {showRenderSettings && (
                 <div className="absolute top-16 right-4 z-20 max-h-[calc(100vh-15rem)] overflow-y-auto scrollbar-hide rounded-lg">
-                    <VRMRenderSettings
-                        config={renderConfig}
-                        onChange={setRenderConfig}
-                    />
+                    <VRMRenderSettings />
                 </div>
             )}
 
@@ -219,4 +174,25 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
  */
 function PerformanceMonitorInternal({ onUpdate }: { onUpdate: (stats: any) => void }) {
     return <PerformanceMonitor onUpdate={onUpdate} />;
+}
+
+/**
+ * 加载进度监听组件
+ * 用于将 R3F 内部的加载状态反馈给外部
+ */
+function LoadingMonitor({ onLoaded }: { onLoaded?: () => void }) {
+    const { progress } = useProgress();
+    
+    useEffect(() => {
+        if (progress === 100) {
+            // 延迟一帧确保渲染器已经准备好
+            const timer = setTimeout(() => {
+                onLoaded?.();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+        return undefined;
+    }, [progress, onLoaded]);
+
+    return null;
 }

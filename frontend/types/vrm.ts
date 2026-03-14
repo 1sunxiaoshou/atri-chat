@@ -128,3 +128,118 @@ export function parseMarkedText(markedText: string): { text: string; markups: Ti
 
   return { text, markups };
 }
+
+// ============================================
+// 渲染配置相关类型 (Render Config)
+// ============================================
+
+/**
+ * 场景预设模式
+ */
+export type VRMSceneMode = 'studio' | 'natural' | 'cyber' | 'night';
+
+/**
+ * VRM 渲染配置接口
+ */
+export interface VRMRenderConfig {
+  // 渲染模式
+  sceneMode: VRMSceneMode;
+
+  // 环境设置
+  environment: 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'studio' | 'city' | 'park' | 'lobby';
+  showEnvironmentBackground: boolean;
+  backgroundBlurriness: number;
+  backgroundIntensity: number;
+
+  // 光照设置
+  enableMainLight: boolean;
+  mainLightIntensity: number;
+  enableAmbientLight: boolean;
+  ambientLightIntensity: number;
+  enableRimLight: boolean;
+  rimLightIntensity: number;
+
+  // 阴影设置
+  enableShadows: boolean;
+  enableContactShadows: boolean;
+
+  // 后处理特效
+  enablePostProcessing: boolean;
+  enableBloom: boolean;
+  enableDepthOfField: boolean;
+  enableVignette: boolean;
+
+  // 强度调节
+  bloomIntensity: number;
+
+  // VRM 角色行为设置
+  enableBlink: boolean;
+  lookAtMode: 'mouse' | 'camera' | 'none';
+}
+
+/**
+ * 场景预设配置集
+ */
+export const VRM_PRESETS: Record<VRMSceneMode, Partial<VRMRenderConfig>> = {
+  studio: {
+    sceneMode: 'studio',
+    environment: 'studio',
+    mainLightIntensity: 1.0,
+    ambientLightIntensity: 0.8,
+    rimLightIntensity: 0.0,
+  },
+  natural: {
+    sceneMode: 'natural',
+    environment: 'forest',
+    mainLightIntensity: 1.5,
+    ambientLightIntensity: 0.5,
+    rimLightIntensity: 0.4,
+  },
+  cyber: {
+    sceneMode: 'cyber',
+    environment: 'night',
+    mainLightIntensity: 0.5,
+    ambientLightIntensity: 0.3,
+    rimLightIntensity: 1.2,
+  },
+  night: {
+    sceneMode: 'night',
+    environment: 'apartment',
+    mainLightIntensity: 0.8,
+    ambientLightIntensity: 0.4,
+    rimLightIntensity: 0.5,
+  }
+};
+
+/**
+ * 默认 VRM 渲染配置
+ */
+export const DEFAULT_VRM_RENDER_CONFIG: VRMRenderConfig = {
+  ...VRM_PRESETS.natural as VRMRenderConfig,
+  sceneMode: 'natural',
+  
+  // 交互控制 (全局)
+  enableBlink: true,
+  lookAtMode: 'mouse',
+
+  // 资源/效能开关 (全局)
+  enablePostProcessing: false, 
+  enableBloom: true,
+  enableDepthOfField: false,
+  enableVignette: true,
+  enableShadows: false,
+  enableContactShadows: true,
+  
+  // 灯光开关 (状态粘滞)
+  enableMainLight: true,
+  enableAmbientLight: true,
+  enableRimLight: true,
+
+  // 背景控制 (全局)
+  showEnvironmentBackground: true,
+  backgroundBlurriness: 0.1,
+  backgroundIntensity: 1.0,
+
+  // 强度参数 (全局初始值)
+  bloomIntensity: 0.5,
+};

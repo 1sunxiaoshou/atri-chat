@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Character } from '../types';
-import { AudioSegment, parseMarkedText } from '../types/vrm';
-import { buildResourceUrl } from '../utils/constants';
-import { motionBindingsApi } from '../services/api/motions';
+import { useRef, useCallback, useEffect } from 'react';
+import { Character } from '@/types';
+import { AudioSegment, parseMarkedText } from '@/types/vrm';
+import { buildResourceUrl } from '@/utils/constants';
+import { motionBindingsApi } from '@/services/api/motions';
+import { useVRMStore } from '@/store/vrm/useVRMStore';
 
 /**
  * 角色动作绑定数据结构
@@ -131,16 +132,14 @@ async function getCharacterMotionUrl(
  * - 显示字幕
  */
 export const useVRM = (character: Character | null, isVRMMode: boolean) => {
-  // VRM 模型 URL
-  const [modelUrl, setModelUrl] = useState<string | null>(null);
-  const previousModelUrlRef = useRef<string | null>(null);
+  // Zustand Store
+  const setRuntime = useVRMStore((state) => state.setRuntime);
+  const setMotion = useVRMStore((state) => state.setMotion);
+  const setExpression = useVRMStore((state) => state.setExpression);
+  const setSubtitle = useVRMStore((state) => state.setSubtitle);
+  const { modelUrl, expression, motionUrl, subtitle, isLoading, error } = useVRMStore((state) => state.runtime);
 
-  // 当前状态
-  const [expression, setExpression] = useState<string>('neutral');
-  const [motionUrl, setMotionUrl] = useState<string | null>(null);
-  const [subtitle, setSubtitle] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const previousModelUrlRef = useRef<string | null>(null);
 
   // 动作绑定缓存（角色级别）
   const motionBindingsRef = useRef<CharacterMotionBindings | null>(null);
@@ -192,7 +191,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         if (character?.id) {
           const idleMotionUrl = await getCharacterMotionUrl(motionBindingsRef, character.id, 'idle', true);
           if (idleMotionUrl) {
-            setMotionUrl(idleMotionUrl);
+            setMotion(idleMotionUrl);
             currentMotionCategoryRef.current = 'idle';
             lastMotionChangeTimeRef.current = Date.now();
 
@@ -211,7 +210,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         }
       }
     }, delay);
-  }, [character]);
+  }, [character, setMotion, setExpression]);
 
   /**
    * 停止闲置计时器
@@ -230,18 +229,13 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     if (!isVRMMode) return;
 
     try {
-      setIsLoading(true);
-      setError(null);
+      setRuntime({ isLoading: true, error: null });
 
       // 停止当前播放和闲置计时器
       stopIdleTimer();
       isPlayingRef.current = false;
       currentSegmentIndexRef.current = 0;
       playQueueRef.current = [];
-
-      // avatarId 可能是：
-      // 1. 完整的文件路径（如 /static/vrm/models/xxx.vrm）
-      // 2. Avatar 资产 ID（需要通过 API 获取 file_url）
 
       // 如果是路径格式，直接使用
       let url: string;
@@ -253,8 +247,10 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       }
 
       // 重置状态
-      setExpression('neutral');
-      setSubtitle('');
+      setRuntime({
+        expression: 'neutral',
+        subtitle: '',
+      });
       currentMotionCategoryRef.current = null;
 
       // 预加载动作绑定（如果有 characterId）
@@ -265,35 +261,35 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
             motionBindingsRef.current = response.data.bindings_by_category;
 
             // 设置模型URL，标记等待模型加载完成后再加载初始动作
-            setModelUrl(url);
+            setRuntime({ modelUrl: url });
             isWaitingForModelLoadRef.current = true;
           } else {
             // 没有动作绑定，直接设置模型，但仍然标记等待（会在 handleModelLoaded 中设置 null）
             motionBindingsRef.current = null;
-            setModelUrl(url);
+            setRuntime({ modelUrl: url });
             isWaitingForModelLoadRef.current = true;
           }
         } catch (bindingError) {
           console.error('[useVRM] Failed to load motion bindings:', bindingError);
           // 即使动作绑定加载失败，也要设置模型
           motionBindingsRef.current = null;
-          setModelUrl(url);
+          setRuntime({ modelUrl: url });
           isWaitingForModelLoadRef.current = true;
         }
       } else {
         // 没有 characterId，直接设置模型
         motionBindingsRef.current = null;
-        setModelUrl(url);
+        setRuntime({ modelUrl: url });
         isWaitingForModelLoadRef.current = true;
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load VRM model';
-      setError(errorMessage);
+      setRuntime({ error: errorMessage });
       console.error('[useVRM] Load model error:', err);
     } finally {
-      setIsLoading(false);
+      setRuntime({ isLoading: false });
     }
-  }, [isVRMMode, stopIdleTimer]);
+  }, [isVRMMode, stopIdleTimer, setRuntime]);
 
   /**
    * 播放下一个音频片段
@@ -317,7 +313,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       if (character?.id) {
         const initialMotionUrl = await getCharacterMotionUrl(motionBindingsRef, character.id, 'initial', true);
         if (initialMotionUrl) {
-          setMotionUrl(initialMotionUrl);
+          setMotion(initialMotionUrl);
           currentMotionCategoryRef.current = 'initial';
           lastMotionChangeTimeRef.current = Date.now();
 
@@ -359,7 +355,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
               true  // 随机选择
             );
             if (motionUrl) {
-              setMotionUrl(motionUrl);
+              setMotion(motionUrl);
               currentMotionCategoryRef.current = actionValue as 'idle' | 'thinking' | 'reply';
               lastMotionChangeTimeRef.current = Date.now();
               hasSetMotion = true;
@@ -368,7 +364,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
             // 具体动作名称：从 reply 分类中查找匹配的动作
             const motionUrl = await findMotionByName(motionBindingsRef, actionValue);
             if (motionUrl) {
-              setMotionUrl(motionUrl);
+              setMotion(motionUrl);
               currentMotionCategoryRef.current = 'reply';
               lastMotionChangeTimeRef.current = Date.now();
               hasSetMotion = true;
@@ -486,7 +482,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         playNextSegment();
       }, 2000);
     }
-  }, [character, startIdleTimer]);
+  }, [character, startIdleTimer, setSubtitle, setExpression, setMotion]);
 
   /**
    * 播放 VRM 动画片段（队列追加模式）
@@ -541,13 +537,13 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     if (character?.id) {
       const thinkingMotionUrl = await getCharacterMotionUrl(motionBindingsRef, character.id, 'thinking', true);
       if (thinkingMotionUrl) {
-        setMotionUrl(thinkingMotionUrl);
+        setMotion(thinkingMotionUrl);
         currentMotionCategoryRef.current = 'thinking';
         lastMotionChangeTimeRef.current = Date.now();
       }
       // 如果没有思考动作，保持当前动作不变
     }
-  }, [isVRMMode, character, stopIdleTimer]);
+  }, [isVRMMode, character, stopIdleTimer, setSubtitle, setMotion]);
 
   /**
    * 停止 VRM 播放
@@ -565,17 +561,19 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     }
 
     // 重置状态
-    setSubtitle('');
-    setExpression('neutral');
-    setMotionUrl(null);
-  }, []);
+    setRuntime({
+      subtitle: '',
+      expression: 'neutral',
+      motionUrl: null,
+    });
+  }, [setRuntime]);
 
   /**
    * 清除错误
    */
   const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+    setRuntime({ error: null });
+  }, [setRuntime]);
 
   // 当角色改变时，自动加载模型
   useEffect(() => {
@@ -587,8 +585,8 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         // 有 VRM 模型：加载模型
         // 清理旧模型（如果 URL 改变）
         if (previousModelUrlRef.current && previousModelUrlRef.current !== vrmUrl) {
-          // 动态导入以避免循环依赖
-          import('./r3f/useVRMLoader').then(({ useVRMLoader }) => {
+          // 动态导入
+          import('../hooks/useVRMLoader').then(({ useVRMLoader }) => {
             useVRMLoader.clear(previousModelUrlRef.current!);
           });
         }
@@ -600,7 +598,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
 
         // 清理旧模型
         if (previousModelUrlRef.current) {
-          import('./r3f/useVRMLoader').then(({ useVRMLoader }) => {
+          import('../hooks/useVRMLoader').then(({ useVRMLoader }) => {
             useVRMLoader.clear(previousModelUrlRef.current!);
           });
         }
@@ -608,13 +606,15 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         // 清空状态
         previousModelUrlRef.current = null;
         motionBindingsRef.current = null;
-        setModelUrl(null);
-        setMotionUrl(null);
-        setExpression('neutral');
-        setSubtitle('');
+        setRuntime({
+          modelUrl: null,
+          motionUrl: null,
+          expression: 'neutral',
+          subtitle: '',
+        });
       }
     }
-  }, [character?.avatar?.file_url, character?.avatar_id, character?.id, isVRMMode, loadModel]);
+  }, [character?.avatar?.file_url, character?.avatar_id, character?.id, isVRMMode, loadModel, setRuntime]);
 
   // 组件卸载时清理
   useEffect(() => {
@@ -627,12 +627,12 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
 
       // 清理当前模型
       if (previousModelUrlRef.current) {
-        import('./r3f/useVRMLoader').then(({ useVRMLoader }) => {
+        import('../hooks/useVRMLoader').then(({ useVRMLoader }) => {
           useVRMLoader.clear(previousModelUrlRef.current!);
         });
       }
     };
-  }, [stopIdleTimer]);
+  }, [stopIdleTimer, stop]);
 
   // 创建音频元素
   useEffect(() => {
@@ -658,7 +658,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
       // 加载初始动作
       const initialMotionUrl = await getCharacterMotionUrl(motionBindingsRef, character.id, 'initial', true);
       if (initialMotionUrl) {
-        setMotionUrl(initialMotionUrl);
+        setMotion(initialMotionUrl);
         currentMotionCategoryRef.current = 'initial';
         lastMotionChangeTimeRef.current = Date.now();
 
@@ -666,10 +666,10 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         startIdleTimer();
       } else {
         // 如果没有初始动作，重置为 null（会显示 T-pose）
-        setMotionUrl(null);
+        setMotion(null);
       }
     }
-  }, [character, startIdleTimer]);
+  }, [character, startIdleTimer, setMotion]);
 
   /**
    * 动作播放完成回调

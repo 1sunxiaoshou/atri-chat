@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { Camera, User } from 'lucide-react';
-import { Character, Model, Provider, VoiceAsset } from '../../types';
+import { Character, Model, Provider, VoiceAsset } from '@/types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { buildAvatarUrl } from '../../utils/url';
 import { Input, Button } from '../ui';
@@ -77,7 +77,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
                 id: model.id,
                 label: model.model_id,
                 category: provider?.name || `Provider #${model.provider_config_id}`,
-                tags: model.capabilities
+                tags: model.capabilities || []
             };
         });
     }, [models, providers]);
@@ -87,8 +87,8 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
         return voiceAssets.map(voice => ({
             id: voice.id,
             label: voice.name,
-            category: voice.provider?.name || voice.provider_id,
-            tags: []
+            category: voice.provider?.name || String(voice.provider_id),
+            tags: [] as string[]
         }));
     }, [voiceAssets]);
 
@@ -106,12 +106,12 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
         : t('admin.notSelected');
 
     const handleModelSelect = (item: HierarchicalItem) => {
-        onChange({ ...character, primary_model_id: item.id });
+        onChange({ ...character, primary_model_id: Number(item.id) });
         setIsModelSelectorOpen(false);
     };
 
     const handleVoiceSelect = (item: HierarchicalItem) => {
-        onChange({ ...character, voice_asset_id: item.id });
+        onChange({ ...character, voice_asset_id: Number(item.id) });
         setIsVoiceSelectorOpen(false);
     };
 

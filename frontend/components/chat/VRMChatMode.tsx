@@ -4,9 +4,6 @@ import { VRMViewerWrapper } from './VRMViewerWrapper';
 interface VRMChatModeProps {
     modelUrl: string | null;
     audioElement?: HTMLAudioElement | null;
-    expression?: string;
-    motionUrl?: string | null;
-    subtitle?: string;
     activeCharacterId?: string;
     onModelLoaded?: () => void;
     onMotionComplete?: () => void;
@@ -20,9 +17,6 @@ interface VRMChatModeProps {
 export const VRMChatMode = React.memo(function VRMChatMode({
     modelUrl,
     audioElement,
-    expression,
-    motionUrl,
-    subtitle,
     activeCharacterId,
     onModelLoaded,
     onMotionComplete,
@@ -31,9 +25,6 @@ export const VRMChatMode = React.memo(function VRMChatMode({
         <VRMViewerWrapper
             modelUrl={modelUrl}
             audioElement={audioElement}
-            expression={expression}
-            motionUrl={motionUrl}
-            subtitle={subtitle}
             activeCharacterId={activeCharacterId}
             onModelLoaded={onModelLoaded}
             onMotionComplete={onMotionComplete}
@@ -44,9 +35,6 @@ export const VRMChatMode = React.memo(function VRMChatMode({
     return (
         prevProps.modelUrl === nextProps.modelUrl &&
         prevProps.audioElement === nextProps.audioElement &&
-        prevProps.expression === nextProps.expression &&
-        prevProps.motionUrl === nextProps.motionUrl &&
-        prevProps.subtitle === nextProps.subtitle &&
         prevProps.activeCharacterId === nextProps.activeCharacterId &&
         prevProps.onModelLoaded === nextProps.onModelLoaded &&
         prevProps.onMotionComplete === nextProps.onMotionComplete

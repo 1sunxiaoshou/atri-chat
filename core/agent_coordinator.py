@@ -247,7 +247,7 @@ class AgentCoordinator:
                 )
                 
         except Exception as e:
-            logger.error("消息处理失败: {}", str(e), exc_info=True)
+            logger.exception("消息处理失败")
             yield json.dumps({"type": "error", "message": str(e)}, ensure_ascii=False)
     
     async def start_services(self):

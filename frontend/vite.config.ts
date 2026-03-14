@@ -52,6 +52,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules/highlight.js') || id.includes('node_modules/rehype-highlight')) {
               return 'vendor-highlight';
             }
+            return undefined;
           }
         }
       }

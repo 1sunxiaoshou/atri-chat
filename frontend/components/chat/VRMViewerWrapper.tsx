@@ -5,9 +5,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface VRMViewerWrapperProps {
     modelUrl: string | null;
     audioElement?: HTMLAudioElement | null;
-    expression?: string;
-    motionUrl?: string | null;
-    subtitle?: string;
     activeCharacterId?: string;
     onModelLoaded?: () => void;
     onMotionComplete?: () => void;
@@ -20,9 +17,6 @@ interface VRMViewerWrapperProps {
 export const VRMViewerWrapper = React.memo(function VRMViewerWrapper({
     modelUrl,
     audioElement,
-    expression,
-    motionUrl,
-    subtitle,
     activeCharacterId,
     onModelLoaded,
     onMotionComplete,
@@ -65,9 +59,6 @@ export const VRMViewerWrapper = React.memo(function VRMViewerWrapper({
         <ChatVRMViewerR3F
             modelUrl={modelUrl}
             audioElement={audioElement}
-            expression={expression}
-            motionUrl={motionUrl}
-            subtitle={subtitle}
             onModelLoaded={onModelLoaded}
             onMotionComplete={onMotionComplete}
         />
@@ -77,9 +68,6 @@ export const VRMViewerWrapper = React.memo(function VRMViewerWrapper({
     return (
         prevProps.modelUrl === nextProps.modelUrl &&
         prevProps.audioElement === nextProps.audioElement &&
-        prevProps.expression === nextProps.expression &&
-        prevProps.motionUrl === nextProps.motionUrl &&
-        prevProps.subtitle === nextProps.subtitle &&
         prevProps.activeCharacterId === nextProps.activeCharacterId &&
         prevProps.onModelLoaded === nextProps.onModelLoaded &&
         prevProps.onMotionComplete === nextProps.onMotionComplete

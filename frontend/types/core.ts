@@ -85,29 +85,6 @@ export interface VoiceAsset {
   };
 }
 
-// 动作资产（VRM 动画）
-export interface Motion {
-  id: string;
-  name: string;
-  file_url: string;
-  animation_path: string; // 动画文件路径
-  duration_ms: number;
-  description?: string;
-  tags?: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-// 动作绑定
-export interface MotionBinding {
-  id: string;
-  character_id: string;
-  motion_id: string;
-  category: 'initial' | 'idle' | 'thinking' | 'reply';
-  motion?: Motion;
-  created_at: string;
-}
-
 // 5. Conversations
 export interface Conversation {
   id?: string; // 后端返回的字段名（UUID）

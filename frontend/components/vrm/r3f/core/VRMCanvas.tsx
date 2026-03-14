@@ -22,7 +22,6 @@ export function VRMCanvas({
     shadows = true,
     camera = { position: [0, 1.5, 3], fov: 50 },
     className = 'w-full h-full',
-    transparent = false,
 }: VRMCanvasProps) {
     return (
         <Canvas
@@ -30,20 +29,22 @@ export function VRMCanvas({
             camera={camera}
             gl={{
                 antialias: true,
-                alpha: transparent,
-                preserveDrawingBuffer: true,
+                alpha: true,
+                stencil: false,
+                depth: true,
                 failIfMajorPerformanceCaveat: false,
                 powerPreference: 'high-performance',
             }}
             onCreated={({ gl }) => {
-                // 静默处理 WebGL 上下文丢失（避免控制台警告）
+                // 1. 禁用自动重置，以便我们可以在 useFrame 中读取到完整的上一帧统计信息
+                gl.info.autoReset = false;
+
+                // 2. 静默处理 WebGL 上下文丢失
                 gl.domElement.addEventListener('webglcontextlost', (event) => {
                     event.preventDefault();
-                    // 移除警告日志，这是正常的清理行为
                 });
 
                 gl.domElement.addEventListener('webglcontextrestored', () => {
-                    // 强制重新渲染
                     gl.resetState();
                 });
             }}
