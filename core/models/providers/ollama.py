@@ -1,5 +1,5 @@
 """Ollama 供应商"""
-from typing import Any, Dict
+from typing import Any, Dict, List
 from .base import BaseProvider
 from ..config import ProviderConfig, ProviderMetadata, ConfigField, ProviderModelInfo, ModelType, ModelCapability
 
@@ -15,6 +15,7 @@ class OllamaProvider(BaseProvider):
             description="Ollama - 本地运行大语言模型",
             config_fields=[
                 ConfigField(field_name="base_url", field_type="string", required=False, default_value="http://localhost:11434", description="Ollama服务地址"),
+                ConfigField(field_name="api_key", field_type="string", required=False, sensitive=True, description="Ollama API密钥 (可选)"),
             ],
             common_parameters_schema=self.get_common_parameters_schema(),
             provider_options_schema={}
@@ -35,6 +36,10 @@ class OllamaProvider(BaseProvider):
             "max_tokens": merged.get("max_tokens"),
             "top_p": merged.get("top_p"),
         }
+        
+        api_key = config.get("api_key")
+        if api_key:
+            params["headers"] = {"Authorization": f"Bearer {api_key}"}
         
         # 移除 None 值
         params = {k: v for k, v in params.items() if v is not None}
@@ -69,100 +74,67 @@ class OllamaProvider(BaseProvider):
             "base_url": config.get("base_url", "http://localhost:11434"),
         }
         
+        api_key = config.get("api_key")
+        if api_key:
+            params["headers"] = {"Authorization": f"Bearer {api_key}"}
+        
         return OllamaEmbeddings(**params)
     
+    def list_models(self, provider_config: ProviderConfig) -> List[ProviderModelInfo]:
+        """获取模型列表 - 使用 Ollama 原生接口"""
+        import requests
+        config = provider_config.config_payload
+        base_url = config.get("base_url", "http://localhost:11434")
+        api_key = config.get("api_key")
+        
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+        
+        resp = requests.get(f"{base_url}/api/tags", headers=headers, timeout=5)
+        resp.raise_for_status()
+        models_data = resp.json().get("models", [])
+        
+        # 使用列表推导式获取详细信息
+        return [self.get_model_info(m["name"], provider_config) for m in models_data]
+    
     def get_model_info(self, model_id: str, provider_config: ProviderConfig) -> ProviderModelInfo:
-        """获取 Ollama 模型信息 - 从 Ollama API 获取"""
+        """获取 Ollama 模型信息 - 简化版"""
         import requests
         from ...logger import get_logger
-        
         logger = get_logger(__name__)
         config = provider_config.config_payload
         base_url = config.get("base_url", "http://localhost:11434")
+        api_key = config.get("api_key")
+        
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         
         try:
-            # 使用 Ollama API 获取模型详细信息
-            response = requests.post(
-                f"{base_url}/api/show",
-                json={"name": model_id},
-                timeout=5
-            )
-            response.raise_for_status()
-            model_data = response.json()
+            resp = requests.post(f"{base_url}/api/show", json={"name": model_id}, headers=headers, timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
             
-            # 从 API 响应中提取能力信息
-            capabilities_list = model_data.get("capabilities", [])
-            context_length = None
-            
-            # 从 model_info 中提取上下文长度
-            if "model_info" in model_data:
-                model_info = model_data["model_info"]
-                # 尝试多种可能的键名
-                for key in model_info:
-                    if "context_length" in key:
-                        context_length = model_info[key]
-                        break
-            
-            logger.debug(f"从 API 获取模型信息: {model_id}, "
-                        f"capabilities: {capabilities_list}, context: {context_length}")
-            
-            # 转换能力列表
+            # 直接通过字典映射能力 (不依赖名称判断)
+            CAP_MAP = {
+                "vision": [ModelCapability.VISION, ModelCapability.DOCUMENT],
+                "tools": [ModelCapability.TOOL_USE],
+                "function_calling": [ModelCapability.TOOL_USE]
+            }
             capabilities = []
-            if "vision" in capabilities_list:
-                capabilities.extend([ModelCapability.VISION, ModelCapability.DOCUMENT])
-            if "tools" in capabilities_list or "function_calling" in capabilities_list:
-                capabilities.append(ModelCapability.TOOL_USE)
+            for c in data.get("capabilities", []):
+                capabilities.extend(CAP_MAP.get(c, []))
             
-            # 判断模型类型
-            model_id_lower = model_id.lower()
-            if "embed" in model_id_lower or "nomic" in model_id_lower or "mxbai" in model_id_lower:
-                model_type = ModelType.EMBEDDING
-                capabilities = []
-            else:
-                model_type = ModelType.CHAT
-                # 补充基于名称的推断
-                if not capabilities:
-                    if "vision" in model_id_lower or "llava" in model_id_lower or "minicpm-v" in model_id_lower:
-                        capabilities.extend([ModelCapability.VISION, ModelCapability.DOCUMENT])
-                    if "qwen" in model_id_lower or "llama3" in model_id_lower or "llama-3" in model_id_lower:
-                        capabilities.append(ModelCapability.TOOL_USE)
+            # 提取上下文长度 & 类型判断
+            info = data.get("model_info", {})
+            ctx = next((v for k, v in info.items() if "context_length" in k), None)
+            
+            families = data.get("details", {}).get("families") or []
+            is_embed = any(f in families for f in ["bert", "nomic", "mxbai"])
             
             return ProviderModelInfo(
                 model_id=model_id,
-                type=model_type,
-                capabilities=capabilities,
-                context_window=context_length,
+                type=ModelType.EMBEDDING if is_embed else ModelType.CHAT,
+                capabilities=[] if is_embed else capabilities,
+                context_window=ctx,
             )
-            
-        except Exception as e:
-            logger.warning("无法从 API 获取模型信息 {model_id}: {}，使用默认推断", str(e))
-            # 降级到基于名称的推断
-            model_id_lower = model_id.lower()
-            
-            # 嵌入模型
-            if "embed" in model_id_lower or "nomic" in model_id_lower or "mxbai" in model_id_lower:
-                return ProviderModelInfo(
-                    model_id=model_id,
-                    type=ModelType.EMBEDDING,
-                    capabilities=[],
-                )
-            
-            # 聊天模型
-            capabilities = []
-            
-            # 视觉模型
-            if "vision" in model_id_lower or "llava" in model_id_lower or "minicpm-v" in model_id_lower:
-                capabilities.extend([
-                    ModelCapability.VISION,
-                    ModelCapability.DOCUMENT
-                ])
-            
-            # 工具调用能力
-            if "qwen" in model_id_lower or "llama3" in model_id_lower or "llama-3" in model_id_lower:
-                capabilities.append(ModelCapability.TOOL_USE)
-            
-            return ProviderModelInfo(
-                model_id=model_id,
-                type=ModelType.CHAT,
-                capabilities=capabilities,
-            )
+        except Exception:
+            logger.exception(f"获取 {model_id} 信息失败")
+            return ProviderModelInfo(model_id=model_id, type=ModelType.CHAT, capabilities=[])

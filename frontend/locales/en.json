@@ -308,9 +308,25 @@
         "bloomIntensity": "Bloom Intensity",
         "depthOfField": "Depth of Field",
         "vignette": "Vignette",
+        "scenePresets": "Scene Presets",
+        "preset": {
+            "natural": "Natural",
+            "cyber": "Cyber",
+            "studio": "Studio",
+            "night": "Night"
+        },
+        "interactionBehavior": "Interaction Behavior",
+        "displaySettings": "Display Settings",
+        "backgroundBlur": "Background Blur",
+        "advancedSettings": "Advanced Rendering",
         "characterSettings": "Character Settings",
         "enableBlink": "Auto Blink",
         "lookAtMode": "Look At Mode",
+        "lookAt": {
+            "mouse": "Follow Mouse",
+            "camera": "Follow Camera",
+            "none": "Disabled"
+        },
         "lookAtMouse": "Follow Mouse",
         "lookAtCamera": "Follow Camera",
         "lookAtNone": "Disabled",

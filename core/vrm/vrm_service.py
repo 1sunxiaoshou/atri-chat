@@ -71,8 +71,8 @@ class VRMService:
         
         # 获取 TTS 供应商信息
         tts_provider = voice_asset.provider
-        if not tts_provider or not tts_provider.enabled:
-            raise ValueError(f"TTS 供应商未配置或未启用")
+        if not tts_provider:
+            raise ValueError(f"TTS 供应商未配置")
         
         # 创建 TTS 实例（合并供应商配置和音色配置）
         config = {**tts_provider.config_payload, **voice_asset.voice_config}

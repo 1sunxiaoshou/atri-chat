@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, startTransition, useRef } from 'react';
 import { Character, Message, Model, ModelParameters } from '../../types';
 import { useChat } from '../../hooks/useChat';
-import { useVRM } from '../../hooks/useVRM';
+import { useVRM } from '@/components/vrm/logic/useVRM';
 import { useTTS } from '../../hooks/useTTS';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudioStore } from '../../store/useAudioStore';
@@ -63,19 +63,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     clearError: clearChatError
   } = useChat();
 
-  const {
-    modelUrl,
-    expression,
-    motionUrl,
-    audioElement,
-    subtitle,
-    error: vrmError,
-    playSegments,
-    startThinking,
-    clearError: clearVrmError,
-    onModelLoaded,
-    onMotionComplete,
-  } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
+      const {
+        modelUrl,
+        audioElement,
+        error: vrmError,
+        playSegments,
+        startThinking,
+        clearError: clearVrmError,
+        onModelLoaded,
+        onMotionComplete,
+      } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
 
   const {
     playingMessageId,
@@ -295,9 +292,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <VRMChatMode
                 modelUrl={modelUrl}
                 audioElement={audioElement}
-                expression={expression}
-                motionUrl={motionUrl}
-                subtitle={subtitle}
                 activeCharacterId={activeCharacter?.id}
                 onModelLoaded={onModelLoaded}
                 onMotionComplete={onMotionComplete}

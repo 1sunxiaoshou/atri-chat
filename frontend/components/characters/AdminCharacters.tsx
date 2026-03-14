@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Menu, PanelLeftOpen } from 'lucide-react';
-import { Character, Model, Provider } from '../../types';
+import { Character, Model, Provider } from '@/types';
 import { api } from '../../services/api/index';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ConfirmDialog, Button } from '../ui';
@@ -47,10 +47,10 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
       id: '', // 空字符串表示新建
       name: '',
       system_prompt: t('character.defaultSystemPrompt'), // 提供默认系统提示词
-      primary_model_id: defaultModel?.id || '', // 使用 UUID 而不是 model_id
-      primary_provider_config_id: defaultModel?.provider_config_id || undefined,
+      primary_model_id: defaultModel?.id,
+      primary_provider_config_id: defaultModel?.provider_config_id,
       avatar_id: '',
-      voice_asset_id: '',
+      voice_asset_id: undefined,
       enabled: true
     });
   };

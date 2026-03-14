@@ -308,9 +308,25 @@
         "bloomIntensity": "辉光强度",
         "depthOfField": "景深",
         "vignette": "暗角",
+        "scenePresets": "场景预设",
+        "preset": {
+            "natural": "自然",
+            "cyber": "赛博",
+            "studio": "工作室",
+            "night": "夜晚"
+        },
+        "interactionBehavior": "交互行为",
+        "displaySettings": "显示设置",
+        "backgroundBlur": "背景模糊",
+        "advancedSettings": "高级渲染",
         "characterSettings": "角色设置",
         "enableBlink": "自动眨眼",
         "lookAtMode": "视线跟随",
+        "lookAt": {
+            "mouse": "跟随鼠标",
+            "camera": "跟随相机",
+            "none": "禁用"
+        },
         "lookAtMouse": "跟随鼠标",
         "lookAtCamera": "跟随相机",
         "lookAtNone": "禁用",

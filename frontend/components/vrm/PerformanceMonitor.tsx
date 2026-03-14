@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getMotionCacheStats } from '@/hooks/r3f/useMotionController';
+import { getMotionCacheStats } from '@/components/vrm/hooks';
 
 export interface PerformanceStats {
     // 基础性能
@@ -108,8 +108,11 @@ export function PerformanceMonitor({ onUpdate }: { onUpdate: (stats: Performance
                 audioContextCount: 0, // 需要从外部传入
             };
 
-            onUpdate(stats);
-        }
+                // 手动重置统计信息，以便下一帧重新计数
+                gl.info.reset();
+
+                onUpdate(stats);
+            }
     });
 
     return null; // 不渲染任何 3D 内容

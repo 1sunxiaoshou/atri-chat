@@ -6,23 +6,24 @@ import {
     useLipSync,
     useAutoBlink,
     useAutoLookAt,
-} from '@/hooks/r3f';
-import { useMotionController } from '@/hooks/r3f/useMotionController';
+} from '@/components/vrm/hooks';
+import { useMotionController } from '@/components/vrm/hooks/useMotionController';
+import { useVRMStore } from '@/store/vrm/useVRMStore';
 
 interface CharacterProps {
     /** VRM 模型 URL */
     url: string;
-    /** 表情名称 */
+    /** 表情名称 (可选覆盖 Store) */
     expression?: string;
-    /** 动作文件 URL (.vrma) */
+    /** 动作文件 URL (.vrma) (可选覆盖 Store) */
     motionUrl?: string | null;
     /** 音频元素（用于口型同步） */
     audioElement?: HTMLAudioElement | null;
     /** 是否启用口型同步 */
     enableLipSync?: boolean;
-    /** 是否启用自动眨眼 */
+    /** 是否启用自动眨眼 (可选覆盖 Store) */
     enableBlink?: boolean;
-    /** 视线跟随模式 */
+    /** 视线跟随模式 (可选覆盖 Store) */
     lookAtMode?: 'mouse' | 'camera' | 'none';
     /** 是否循环播放动作 */
     loopMotion?: boolean;
@@ -42,17 +43,28 @@ interface CharacterProps {
  */
 export function Character({
     url,
-    expression,
-    motionUrl,
+    expression: propExpression,
+    motionUrl: propMotionUrl,
     audioElement,
-    enableLipSync = false,
-    enableBlink = true,
-    lookAtMode = 'mouse',
+    enableLipSync = true,
+    enableBlink: propEnableBlink,
+    lookAtMode: propLookAtMode,
     loopMotion = true,
     onMotionComplete,
     onModelLoaded,
     fadeDuration = 0.3,
 }: CharacterProps) {
+    // 从 Store 获取配置和运行时状态
+    const { enableBlink: storeEnableBlink, lookAtMode: storeLookAtMode } = useVRMStore((state) => state.config);
+    const { expression: storeExpression, motionUrl: storeMotionUrl } = useVRMStore((state) => state.runtime);
+
+    // 优先使用 Prop，其次使用 Store
+    const expression = propExpression !== undefined ? propExpression : storeExpression;
+    const motionUrl = propMotionUrl !== undefined ? propMotionUrl : storeMotionUrl;
+    const enableBlink = propEnableBlink !== undefined ? propEnableBlink : storeEnableBlink;
+    const lookAtMode = propLookAtMode !== undefined ? propLookAtMode : storeLookAtMode;
+    // ...
+
     // 加载 VRM 模型
     const vrm = useVRMLoader(url);
 
@@ -87,7 +99,7 @@ export function Character({
     }, [vrm]);
 
     // 初始化各个功能模块
-    const lipSyncRef = useLipSync(vrm, audioElement, enableLipSync);
+    const lipSyncRef = useLipSync(vrm, audioElement, enableLipSync && !!audioElement);
     const blinkRef = useAutoBlink(vrm, enableBlink);
     const motionController = useMotionController(vrm, mixerRef.current);
     const lookAtRef = useAutoLookAt(vrm, lookAtMode);
@@ -117,7 +129,7 @@ export function Character({
                 vrm.humanoid?.resetNormalizedPose();
             }
         }
-    }, [motionUrl, loopMotion, motionController, vrm]);
+    }, [motionUrl, loopMotion, motionController, vrm, fadeDuration]);
 
     // 模型位置自适应：居中 + 底部对齐地面 + 面向相机
     useEffect(() => {
@@ -142,7 +154,7 @@ export function Character({
         hasAdjustedPosition.current = true;
     }, [vrm]);
 
-    // 表情控制（通过 props 驱动）
+    // 表情控制（通过 store 驱动）
     useEffect(() => {
         if (vrm && vrm.expressionManager && expression) {
             // 重置所有表情

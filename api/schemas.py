@@ -86,7 +86,6 @@ class TTSUpdateRequest(BaseModel):
     voice_role: str = Field(..., description="语音角色")
     api_key: Optional[str] = Field(None, description="API密钥")
     access_url: Optional[str] = Field(None, description="访问URL")
-    enabled: bool = Field(True, description="是否启用")
 
 
 

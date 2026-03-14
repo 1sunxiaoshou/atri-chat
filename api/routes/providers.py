@@ -381,8 +381,8 @@ async def sync_provider_models(
         try:
             available_models = provider_template.list_models(provider_instance_config)
         except Exception as e:
-            logger.error("同步模型失败 [Config ID: {provider_id}]: {}", str(e))
-            raise HTTPException(status_code=400, detail=str(e))
+            logger.exception(f"同步模型失败 [Config ID: {id}]")
+            raise HTTPException(status_code=400, detail=str(e) or f"同步失败: {type(e).__name__}")
         
         # 统计信息
         added_count = 0

@@ -119,7 +119,6 @@ TTSProvider (供应商)
 | provider_type  | String   | 供应商类型 (openai/gpt_sovits/azure) |
 | name           | String   | 供应商名称                           |
 | config_payload | JSON     | 供应商级别配置 (API Key、服务地址等) |
-| enabled        | Boolean  | 是否启用                             |
 | created_at     | DateTime | 创建时间                             |
 | updated_at     | DateTime | 更新时间                             |
 
@@ -133,8 +132,7 @@ TTSProvider (供应商)
   "config_payload": {
     "api_key": "sk-xxx",
     "base_url": "https://api.openai.com/v1"
-  },
-  "enabled": true
+  }
 }
 ```
 
@@ -145,8 +143,7 @@ TTSProvider (供应商)
   "name": "GPT-SoVITS 本地服务",
   "config_payload": {
     "api_url": "http://localhost:9880"
-  },
-  "enabled": true
+  }
 }
 ```
 
@@ -263,8 +260,7 @@ POST /api/v1/tts-providers
   "config_payload": {
     "api_key": "sk-xxx",
     "base_url": "https://api.openai.com/v1"
-  },
-  "enabled": true
+  }
 }
 ```
 

@@ -1,64 +1,36 @@
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, Environment } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Bloom, Vignette } from '@react-three/postprocessing';
-import { ReactNode } from 'react';
-import { VRMRenderConfig } from '../../VRMRenderSettings';
+import { ReactNode, Suspense } from 'react';
+import { useVRMStore } from '../../../../store/vrm/useVRMStore';
 import { GenshinControls } from '../core/GenshinControls';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface AIStageProps {
     children: ReactNode;
-    /** 渲染配置（可选，使用默认值） */
-    config?: Partial<VRMRenderConfig>;
     /** 是否启用轨道控制（默认 true） */
     enableControls?: boolean;
-    /** @deprecated 使用 config.environment 代替 */
-    environment?: 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'studio' | 'city' | 'park' | 'lobby';
-    /** @deprecated 使用 config.enablePostProcessing 代替 */
-    enablePostProcessing?: boolean;
-    /** @deprecated 使用 config.bloomIntensity 代替 */
-    bloomIntensity?: number;
-    /** @deprecated 使用 config.enableDepthOfField 代替 */
-    depthOfFieldEnabled?: boolean;
 }
 
 /**
  * AI 沉浸式场景预设 - 用于聊天界面
  * 提供电影级环境光、接触阴影和后处理特效
  * 
- * 支持通过 config 参数动态配置所有渲染特性
+ * 现在通过 useVRMStore 自动同步所有渲染配置
  */
 export function AIStage({
     children,
-    config,
     enableControls = true,
-    // 向后兼容的旧参数
-    environment = 'apartment',
-    enablePostProcessing = true,
-    bloomIntensity = 0.5,
-    depthOfFieldEnabled = true,
 }: AIStageProps) {
-    // 合并配置（优先使用 config，其次使用旧参数）
-    const finalConfig = {
-        environment: config?.environment ?? environment,
-        showEnvironmentBackground: config?.showEnvironmentBackground ?? true,
-        backgroundBlurriness: config?.backgroundBlurriness ?? 0.2,
-        backgroundIntensity: config?.backgroundIntensity ?? 1.0,
-        enableMainLight: config?.enableMainLight ?? true,
-        mainLightIntensity: config?.mainLightIntensity ?? 1.5,
-        enableAmbientLight: config?.enableAmbientLight ?? true,
-        ambientLightIntensity: config?.ambientLightIntensity ?? 0.5,
-        enableRimLight: config?.enableRimLight ?? true,
-        rimLightIntensity: config?.rimLightIntensity ?? 0.3,
-        enableShadows: config?.enableShadows ?? false,
-        enableContactShadows: config?.enableContactShadows ?? true,
-        enablePostProcessing: config?.enablePostProcessing ?? enablePostProcessing,
-        enableBloom: config?.enableBloom ?? true,
-        enableDepthOfField: config?.enableDepthOfField ?? depthOfFieldEnabled,
-        enableVignette: config?.enableVignette ?? true,
-        bloomIntensity: config?.bloomIntensity ?? bloomIntensity,
-    };
+    // 从 Store 获取全局配置
+    const finalConfig = useVRMStore((state) => state.config);
+    const { isDark } = useTheme();
 
     return (
         <>
+            {/* 始终提供一个底色，防止渲染过程中的黑屏或残留 */}
+            <color attach="background" args={[
+                isDark ? '#020617' : '#f8fafc'
+            ]} />
             {/* 主光源 - 模拟自然光 */}
             {finalConfig.enableMainLight && (
                 <directionalLight
@@ -94,6 +66,15 @@ export function AIStage({
                 />
             )}
 
+            {/* 核心环境贴图 (HDR/IBL) - 增加错误保护和本地加载隔离 */}
+            <Suspense fallback={null}>
+                <Environment
+                    preset={finalConfig.environment}
+                    background={finalConfig.showEnvironmentBackground}
+                    blur={finalConfig.backgroundBlurriness}
+                />
+            </Suspense>
+
             {children}
 
             {/* 原神风格轨道控制器 - 360度自由旋转 + 地面碰撞 */}
@@ -111,7 +92,7 @@ export function AIStage({
 
             {/* 电影级后处理特效 */}
             {finalConfig.enablePostProcessing && (
-                <EffectComposer>
+                <EffectComposer multisampling={4}>
                     <>
                         {finalConfig.enableDepthOfField && (
                             <DepthOfField

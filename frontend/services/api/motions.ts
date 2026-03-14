@@ -1,6 +1,5 @@
 import { httpClient } from './base';
-import { ApiResponse, Motion, MotionBinding } from '../../types';
-import { CharacterMotionBindings } from '../../types/motion';
+import { ApiResponse, Motion, CharacterMotionBindings } from '@/types';
 
 /**
  * 动作资产相关 API
