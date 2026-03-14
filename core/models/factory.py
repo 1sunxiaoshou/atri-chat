@@ -8,10 +8,12 @@
 
 注意：不再负责数据访问，配置由 ModelService 通过 Repository 获取。
 """
+from datetime import datetime
 from typing import Optional, Any, Dict, List
-from .config import ModelConfig, ProviderMetadata, ProviderConfig
+from langchain.chat_models import init_chat_model
+
+from .config import ModelConfig, ProviderMetadata, ProviderConfig, ModelType
 from .providers.base import BaseProvider
-from . import providers
 from ..logger import get_logger
 
 logger = get_logger(__name__)
@@ -20,60 +22,48 @@ logger = get_logger(__name__)
 class ModelFactory:
     """模型工厂
     
-    使用供应商插件化架构管理不同供应商的模型创建逻辑。
-    所有供应商配置统一存储在数据库，通过 provider_type 路由到对应的 Provider 实现类。
-    
-    注意：Factory 不再持有 storage，所有配置由调用者（ModelService）提供。
+    职责：
+    1. 统一使用 LangChain 的 init_chat_model 创建 Chat 实例
+    2. 提供 ParameterAdapter 功能，自动适配跨供应商参数（如“思考模式”）
+    3. 管理 Provider 模板，用于模型列表同步和发现逻辑
     """
     
+
     def __init__(self):
-        """初始化模型工厂（无状态）"""
-        self._provider_templates: Dict[str, providers.BaseProvider] = {}
+        """初始化模型工厂"""
+        self._provider_templates: Dict[str, BaseProvider] = {}
         self._register_provider_templates()
     
     def _register_provider_templates(self):
-        """注册供应商模板（Provider 实现类）"""
-        self.register_provider_template(providers.OpenAIProvider())
-        self.register_provider_template(providers.AnthropicProvider())
-        self.register_provider_template(providers.GoogleProvider())
-        self.register_provider_template(providers.QwenProvider())
-        self.register_provider_template(providers.OllamaProvider())
-        self.register_provider_template(providers.MistralProvider())
-        self.register_provider_template(providers.DeepSeekProvider())
-        self.register_provider_template(providers.CohereProvider())
-        self.register_provider_template(providers.GroqProvider())
-        self.register_provider_template(providers.XAIProvider())
-    
-    def get_available_templates(self) -> List[str]:
-        """获取所有可用的供应商模板类型"""
-        return list(self._provider_templates.keys())
-    
-    def register_provider_template(self, provider: providers.BaseProvider) -> None:
-        """注册供应商模板
+        """从 providers.yaml 加载供应商配置"""
+        import yaml
+        import os
         
-        Args:
-            provider: 供应商实例
-        """
+        yaml_path = os.path.join(os.path.dirname(__file__), "providers.yaml")
+        try:
+            with open(yaml_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                for p_data in data.get("providers", []):
+                    # 转换字典到 ProviderMetadata 对象
+                    metadata = ProviderMetadata(**p_data)
+                    # 创建通用的 BaseProvider 实例
+                    self.register_provider_template(BaseProvider(metadata))
+            logger.info(f"成功从 YAML 加载了 {len(self._provider_templates)} 个供应商模板")
+        except Exception as e:
+            logger.error(f"加载 providers.yaml 失败: {e}")
+            # Fallback (可选，这里我们可以留空让系统报错，或者加个最基础的 OpenAI)
+    
+    def register_provider_template(self, provider: BaseProvider) -> None:
         self._provider_templates[provider.metadata.provider_id] = provider
-    
+
     def get_provider_template(self, provider_type: str) -> Optional[BaseProvider]:
-        """根据供应商类型获取 Provider 实现类
-        
-        Args:
-            provider_type: 供应商类型 (openai, anthropic, google, qwen, ollama)
-        
-        Returns:
-            Provider 实例，如果模板不存在则返回 None
-        """
         return self._provider_templates.get(provider_type)
-    
+
     def get_all_template_metadata(self) -> Dict[str, ProviderMetadata]:
-        """获取所有供应商模板的元数据"""
         return {
-            template_id: provider.metadata
-            for template_id, provider in self._provider_templates.items()
+            tid: p.metadata for tid, p in self._provider_templates.items()
         }
-    
+
     def create_model(
         self,
         model_config: ModelConfig,
@@ -81,54 +71,85 @@ class ModelFactory:
         provider_type: str,
         **kwargs
     ) -> Optional[Any]:
-        """根据配置创建模型实例
-        
-        注意：配置由调用者提供（通过 Repository 获取），Factory 只负责创建。
-        
-        Args:
-            model_config: 模型配置对象
-            provider_config: 供应商配置对象
-            provider_type: 供应商类型（openai, anthropic 等）
-            **kwargs: 动态参数（temperature, max_tokens等），会覆盖配置中的默认值
-            
-        Returns:
-            模型实例（LangChain ChatModel）
-            
-        Raises:
-            ValueError: 当模板类型不支持或创建失败时
         """
-        # 根据 provider_type 获取 Provider 实现类
+        统一模型创建逻辑
+        """
+        # 1. 只有 CHAT 类型走 init_chat_model
+        if model_config.model_type != ModelType.CHAT:
+            provider_template = self.get_provider_template(provider_type)
+            if provider_template:
+                return provider_template.create_model(model_config, provider_config, **kwargs)
+            raise ValueError(f"暂不支持的模型类型: {model_config.model_type}")
+
+        # 2. 标准化参数适配
+        final_params = self._standardize_parameters(
+            model_config=model_config,
+            provider_config=provider_config,
+            run_kwargs=kwargs
+        )
+
+        # 3. 确定供应商标识
         provider_template = self.get_provider_template(provider_type)
-        if not provider_template:
-            logger.error(f"不支持的供应商类型: {provider_type}")
-            raise ValueError(f"不支持的供应商类型: {provider_type}")
-        
-        # 使用 Provider 实例化模型
+        lc_provider = provider_template.metadata.lc_id if provider_template else provider_type
+
         try:
-            model = provider_template.create_model(model_config, provider_config, **kwargs)
-            if model is None:
-                logger.error(f"模型创建失败: {model_config.provider_config_id}/{model_config.model_id}")
-                raise ValueError(f"模型创建失败，请检查配置")
-            
-            return model
-        except Exception:
-            logger.exception(
-                "创建模型时出错",
-                extra={
-                    "provider_config_id": model_config.provider_config_id,
-                    "model_id": model_config.model_id
-                }
+            # 4. 使用 LangChain 万能工厂实例化
+            # 开启 output_version="v1" 以便统一流式思考内容的输出格式
+            model = init_chat_model(
+                model=model_config.model_id,
+                model_provider=lc_provider,
+                output_version="v1",
+                **final_params
             )
-            raise ValueError(f"创建模型时出错: {str(e)}")
-    
-    def validate_provider_type(self, provider_type: str) -> bool:
-        """验证供应商类型是否有效
+            return model
+        except Exception as e:
+            logger.exception(f"init_chat_model 创建失败: {provider_type}/{model_config.model_id}")
+            # 回退到 Provider 模板尝试创建（兼容 init_chat_model 不支持的供应商）
+            provider_template = self.get_provider_template(provider_type)
+            if provider_template:
+                return provider_template.create_model(model_config, provider_config, **kwargs)
+            raise e
+
+    def _standardize_parameters(
+        self, 
+        model_config: ModelConfig, 
+        provider_config: ProviderConfig, 
+        run_kwargs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """参数适配器：将 UI/DB 参数映射到供应商特定的参数"""
+        # 基础连接配置 (api_key, base_url 等)
+        params = provider_config.config_payload.copy()
         
-        Args:
-            provider_type: 供应商类型
+        # 合理合并：运行参数 > 模型默认参数
+        combined_params = {**model_config.parameters, **run_kwargs}
+        
+        # 处理通用参数
+        for k in ["temperature", "max_tokens", "top_p", "stream"]:
+            if k in combined_params:
+                params[k] = combined_params[k]
+
+        # 核心：跨厂商“思考能力 (Reasoning/Thinking)”适配
+        thinking = combined_params.get("thinking")
+        if (thinking and thinking.get("enabled")) or model_config.has_reasoning:
+            # 如果配置开启了思考，或者模型本身就是强推理模型
+            provider_id = provider_template.metadata.provider_id if provider_template else provider_type
+            budget = thinking.get("budget", 16000) if thinking else 16000
             
-        Returns:
-            是否有效
-        """
+            if provider_id == "anthropic":
+                # Anthropic 官方支持格式 (2024-10+)
+                params["thinking"] = {"type": "enabled", "budget_tokens": budget}
+            elif "openai" in provider_id or "o1" in model_config.model_id:
+                # OpenAI o1 格式 (或兼容的提供商)
+                params["reasoning_effort"] = combined_params.get("reasoning_effort", "high")
+            elif provider_id == "google":
+                # Google Thinking 格式
+                params["thinking_config"] = {"include_thoughts": True, "thinking_budget": budget}
+            elif any(p in provider_id for p in ["qwen", "deepseek"]):
+                # 国内厂商通常兼容 OpenAI 但带私有字段（如 enable_thinking）
+                params["enable_thinking"] = True
+
+        return params
+
+    def validate_provider_type(self, provider_type: str) -> bool:
         return provider_type in self._provider_templates
 

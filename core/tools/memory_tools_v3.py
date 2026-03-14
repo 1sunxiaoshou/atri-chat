@@ -6,6 +6,9 @@ from typing import Optional
 from langchain.tools import tool, ToolRuntime
 from ..middleware import AgentContext
 from ..config import get_settings
+from ..logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ==================== 路径管理 ====================
@@ -163,6 +166,7 @@ def memory_read(
         # 路径安全错误
         return f"✗ {str(e)}"
     except Exception as e:
+        logger.exception("memory_read 工具执行失败")
         return f"✗ 读取失败: {str(e)}"
 
 
@@ -250,6 +254,7 @@ def memory_write(
         # 路径安全错误
         return f"✗ {str(e)}"
     except Exception as e:
+        logger.exception("memory_write 工具执行失败")
         return f"✗ 写入失败: {str(e)}"
 
 
@@ -320,6 +325,7 @@ def memory_search(
         # 路径安全错误
         return f"✗ {str(e)}"
     except Exception as e:
+        logger.exception("memory_search 工具执行失败")
         return f"✗ 搜索失败: {str(e)}"
 
 
@@ -379,6 +385,7 @@ def memory_list(
         # 路径安全错误
         return f"✗ {str(e)}"
     except Exception as e:
+        logger.exception("memory_list 工具执行失败")
         return f"✗ 列出失败: {str(e)}"
 
 

@@ -321,7 +321,13 @@ async def get_provider_models(
                 "provider_config_id": m.provider_config_id,
                 "model_id": m.model_id,
                 "model_type": m.model_type,
-                "capabilities": m.capabilities,
+                "has_vision": m.has_vision,
+                "has_audio": m.has_audio,
+                "has_video": m.has_video,
+                "has_reasoning": m.has_reasoning,
+                "has_tool_use": m.has_tool_use,
+                "has_document": m.has_document,
+                "has_structured_output": m.has_structured_output,
                 "context_window": m.context_window,
                 "max_output": m.max_output,
                 "enabled": m.enabled,
@@ -352,105 +358,22 @@ async def sync_provider_models(
 ):
     """同步供应商模型列表"""
     try:
-        agent_manager = get_agent_coordinator()
+        from core.services.sync_service import ModelSyncService
+        from core.dependencies import get_model_factory
         
-        # 获取供应商配置
-        provider = db.query(ProviderConfigORM).filter(
-            ProviderConfigORM.id == id
-        ).first()
-        
-        if not provider:
-            raise HTTPException(status_code=404, detail="供应商不存在")
-        
-        # 获取 Provider 实例
-        provider_template = agent_manager.model_factory.get_provider_template(provider.provider_type)
-        if not provider_template:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"不支持的供应商模板类型: {provider.provider_type}"
-            )
-        
-        # 构造 ProviderConfig
-        from core import ProviderConfig
-        provider_instance_config = ProviderConfig(
-            provider_id=provider.id,
-            config_payload=provider.config_payload
-        )
-        
-        # 调用 list_models 获取可用模型
-        try:
-            available_models = provider_template.list_models(provider_instance_config)
-        except Exception as e:
-            logger.exception(f"同步模型失败 [Config ID: {id}]")
-            raise HTTPException(status_code=400, detail=str(e) or f"同步失败: {type(e).__name__}")
-        
-        # 统计信息
-        added_count = 0
-        updated_count = 0
-        skipped_count = 0
-        failed_count = 0
-        errors = []
-        
-        # 遍历所有模型
-        for model_info in available_models:
-            try:
-                # 检查模型是否已存在
-                existing_model = db.query(ModelORM).filter(
-                    ModelORM.provider_config_id == id,
-                    ModelORM.model_id == model_info.model_id
-                ).first()
-                
-                if existing_model:
-                    if update_existing:
-                        # 更新已存在的模型
-                        existing_model.model_type = model_info.type.value
-                        existing_model.capabilities = [c.value for c in model_info.capabilities]
-                        existing_model.context_window = model_info.context_window
-                        existing_model.max_output = model_info.max_output
-                        updated_count += 1
-                    else:
-                        # 跳过已存在的模型
-                        skipped_count += 1
-                else:
-                    # 添加新模型
-                    new_model = ModelORM(
-                        provider_config_id=id,
-                        model_id=model_info.model_id,
-                        model_type=model_info.type.value,
-                        capabilities=[c.value for c in model_info.capabilities],
-                        context_window=model_info.context_window,
-                        max_output=model_info.max_output,
-                        enabled=False  # 新模型默认禁用
-                    )
-                    db.add(new_model)
-                    added_count += 1
-                    
-            except Exception as e:
-                failed_count += 1
-                errors.append(f"{model_info.model_id}: {str(e)}")
-        
-        # 提交所有更改
-        db.commit()
+        sync_service = ModelSyncService(db, get_model_factory())
+        stats = sync_service.sync_provider_models(id, update_existing)
         
         return ResponseModel(
             code=200,
-            message=f"同步完成: 新增 {added_count} 个，更新 {updated_count} 个，跳过 {skipped_count} 个，失败 {failed_count} 个",
-            data={
-                "config_id": id,
-                "total": len(available_models),
-                "added": added_count,
-                "updated": updated_count,
-                "skipped": skipped_count,
-                "failed": failed_count,
-                "errors": errors if errors else None
-            }
+            message=f"同步完成: 新增 {stats['added']} 个，更新 {stats['updated']} 个，跳过 {stats['skipped']} 个，失败 {stats['failed']} 个",
+            data=stats
         )
-    except HTTPException:
-        raise
-    except Exception:
-        db.rollback()
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
         logger.exception("同步模型过程异常")
-        raise HTTPException(status_code=500, detail="同步失败")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{id}/available-models", response_model=ResponseModel)
@@ -494,7 +417,13 @@ async def list_available_models(
                 "model_id": m.model_id,
                 "type": m.type.value,
                 "nickname": m.nickname,
-                "capabilities": [c.value for c in m.capabilities],
+                "has_vision": m.has_vision,
+                "has_audio": m.has_audio,
+                "has_video": m.has_video,
+                "has_reasoning": m.has_reasoning,
+                "has_tool_use": m.has_tool_use,
+                "has_document": m.has_document,
+                "has_structured_output": m.has_structured_output,
                 "context_window": m.context_window,
                 "max_output": m.max_output
             }

@@ -4,7 +4,11 @@ import shutil
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from core.config import get_settings, AppSettings
+from core.logger import get_logger
 from api.schemas import ResponseModel
+
+
+logger = get_logger(__name__)
 
 
 router = APIRouter()
@@ -57,4 +61,5 @@ async def upload_portrait(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("上传系统出现内部异常")
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")

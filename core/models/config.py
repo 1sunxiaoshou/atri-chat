@@ -10,23 +10,24 @@ class ModelType(str, Enum):
     RERANK = "rerank"
 
 
-class ModelCapability(str, Enum):
-    VISION = "vision"  # 图像理解能力
-    DOCUMENT = "document"  # 文档理解能力
-    VIDEO = "video"  # 视频理解能力
-    AUDIO = "audio"  # 音频理解能力
-    REASONING = "reasoning"  # 推理能力（深度思考）
-    TOOL_USE = "tool_use"  # 工具调用/函数调用能力
-    WEB_SEARCH = "web_search"  # 网络搜索能力
-
-
 class ProviderModelInfo(BaseModel):
     model_id: str = Field(..., description="模型ID")
     type: ModelType = Field(default=ModelType.CHAT, description="模型类型")
     nickname: Optional[str] = Field(default=None, description="模型昵称")
-    capabilities: List[ModelCapability] = Field(default_factory=list, description="模型能力列表")
+    
+    # 核心能力布尔值
+    has_vision: bool = Field(default=False, description="是否支持视觉/图像输入")
+    has_audio: bool = Field(default=False, description="是否支持音频输入")
+    has_video: bool = Field(default=False, description="是否支持视频输入")
+    has_reasoning: bool = Field(default=False, description="是否支持深度推理 (Reasoning)")
+    has_tool_use: bool = Field(default=False, description="是否支持工具/函数调用")
+    has_document: bool = Field(default=False, description="是否支持文档分析")
+    has_structured_output: bool = Field(default=False, description="是否支持结构化输出")
+    
     context_window: Optional[int] = Field(default=None, description="上下文窗口大小")
     max_output: Optional[int] = Field(default=None, description="最大输出token数")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="模型默认初始化参数")
+    meta: Dict[str, Any] = Field(default_factory=dict, description="存储模型完整的元数据 (Profile)")
 
 
 class ProviderConfig(BaseModel):
@@ -40,23 +41,26 @@ class ModelConfig(BaseModel):
     model_id: str = Field(..., description="模型内部 UUID")
     provider_config_id: int = Field(..., description="供应商配置内部 ID")
     model_type: ModelType = Field(..., description="模型类型: chat, embedding, rerank")
-    capabilities: List[ModelCapability] = Field(default_factory=list, description="模型能力列表")
+    
+    # 核心能力布尔值
+    has_vision: bool = Field(default=False)
+    has_audio: bool = Field(default=False)
+    has_video: bool = Field(default=False)
+    has_reasoning: bool = Field(default=False)
+    has_tool_use: bool = Field(default=False)
+    has_document: bool = Field(default=False)
+    has_structured_output: bool = Field(default=False)
+    
     context_window: Optional[int] = Field(default=None, description="上下文窗口大小")
     max_output: Optional[int] = Field(default=None, description="最大输出token数")
     enabled: bool = Field(default=True, description="是否启用")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="模型默认初始化参数")
+    meta: Dict[str, Any] = Field(default_factory=dict, description="存储模型完整的元数据 (Profile)")
 
     def __str__(self) -> str:
-        caps = ", ".join([c.value for c in self.capabilities])
         return (
-            f"ModelConfig(\n"
-            f"  model_id           = {self.model_id!r},\n"
-            f"  provider_config_id = {self.provider_config_id!r},\n"
-            f"  model_type   = {self.model_type.value!r},\n"
-            f"  capabilities = [{caps}],\n"
-            f"  context_window = {self.context_window},\n"
-            f"  max_output   = {self.max_output},\n"
-            f"  enabled      = {self.enabled}\n"
-            f")"
+            f"ModelConfig(model_id={self.model_id}, "
+            f"type={self.model_type}, enabled={self.enabled})"
         )
 
     def __repr__(self) -> str:
@@ -90,6 +94,38 @@ class ProviderMetadata(BaseModel):
     provider_id: str = Field(..., description="供应商ID")
     name: str = Field(..., description="供应商名称")
     description: str = Field(..., description="供应商描述")
+    lc_id: str = Field(default="openai", description="LangChain model_provider 标识")
+    discovery: str = Field(default="openai", description="发现协议: openai, ollama, google, none")
     config_fields: List[ConfigField] = Field(default_factory=list, description="可配置字段列表")
     provider_options_schema: Optional[Dict[str, Any]] = Field(default=None, description="供应商特定参数的 Schema")
     common_parameters_schema: Optional[Dict[str, Any]] = Field(default=None, description="通用模型参数的 Schema")
+
+    @classmethod
+    def get_default_common_params(cls) -> Dict[str, Any]:
+        """获取默认的通用参数 Schema"""
+        return {
+            "temperature": {
+                "type": "slider",
+                "label": "温度",
+                "description": "控制输出的随机性。较低的值使输出更确定，较高的值使输出更有创造性",
+                "min": 0, "max": 2, "step": 0.1, "default": 0.7,
+                "applicable_model_types": ["chat"],
+                "order": 1
+            },
+            "max_tokens": {
+                "type": "slider",
+                "label": "最大输出",
+                "description": "生成的最大 token 数量",
+                "min": 1, "max": 128000, "step": 1, "default": 4096,
+                "applicable_model_types": ["chat"],
+                "order": 2
+            },
+            "top_p": {
+                "type": "slider",
+                "label": "Top P",
+                "description": "核采样参数",
+                "min": 0, "max": 1, "step": 0.01, "default": 1.0,
+                "applicable_model_types": ["chat"],
+                "order": 3
+            }
+        }

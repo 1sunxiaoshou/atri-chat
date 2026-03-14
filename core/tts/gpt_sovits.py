@@ -2,8 +2,11 @@
 import httpx
 from typing import Optional, Dict, Any, AsyncGenerator
 
+from core.logger import get_logger
 from .base import TTSBase
 from .registry import TTSRegistry
+
+logger = get_logger(__name__)
 
 
 @TTSRegistry.register("gpt_sovits", "GPT-SoVITS")
@@ -184,6 +187,7 @@ class GPTSoVITSTTS(TTSBase):
                 "message": f"连接超时: {self.api_url}"
             }
         except Exception as e:
+            logger.exception("GPT-SoVITS 测试连接失败")
             return {
                 "success": False,
                 "message": f"测试失败: {str(e)}"

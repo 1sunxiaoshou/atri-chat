@@ -246,10 +246,21 @@ class Model(Base):
     # 模型信息
     model_id: Mapped[str] = mapped_column(String(255), nullable=False)
     model_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # chat/embedding/rerank
-    capabilities: Mapped[dict] = mapped_column(JSON, nullable=False)  # JSON 数组
+    
+    # 核心能力布尔值（显式列，方便筛选）
+    has_vision: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    has_audio: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    has_video: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    has_reasoning: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    has_tool_use: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    has_document: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    has_structured_output: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
     context_window: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     max_output: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    parameters: Mapped[dict] = mapped_column(JSON, default={}, nullable=False)  # 模型初始化的默认参数映射
+    meta: Mapped[dict] = mapped_column(JSON, default={}, nullable=False)  # 存储模型完整的元数据 (Profile)
     
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

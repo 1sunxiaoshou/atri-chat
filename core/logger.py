@@ -51,15 +51,13 @@ def setup_logging(
             "<level>{level: <8}</level> | "
             "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
             "<level>{message}</level>"
-            "<level>{exception}</level>"
         )
         console_level = "DEBUG"
     else:
         console_format = (
             "{time:YYYY-MM-DD HH:mm:ss} | "
             "{level: <8} | "
-            "{name}:{function}:{line} - {message}\n"
-            "{exception}"
+            "{name}:{function}:{line} - {message}"
         )
         console_level = "WARNING"
 

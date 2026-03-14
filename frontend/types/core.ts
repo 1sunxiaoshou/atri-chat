@@ -31,6 +31,7 @@ export interface Model {
   context_window?: number;
   max_output?: number;
   enabled: boolean;
+  parameters?: Record<string, any>;
 }
 
 // 4. Characters

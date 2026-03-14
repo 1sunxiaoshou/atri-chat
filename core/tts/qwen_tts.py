@@ -3,8 +3,11 @@ import os
 from typing import Optional, Dict, Any, AsyncGenerator
 import httpx
 
+from core.logger import get_logger
 from .base import TTSBase
 from .registry import TTSRegistry
+
+logger = get_logger(__name__)
 
 
 @TTSRegistry.register("qwen_tts", "Qwen3-TTS")
@@ -381,6 +384,7 @@ class QwenTTS(TTSBase):
                 "message": f"HTTP 错误 {e.response.status_code}: {e.response.text}"
             }
         except Exception as e:
+            logger.exception("Qwen-TTS 测试连接失败")
             return {
                 "success": False,
                 "message": f"测试失败: {str(e)}"
