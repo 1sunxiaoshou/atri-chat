@@ -138,60 +138,61 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
 
                 const canvas = glRef.current.domElement;
 
-                // 如果需要特定尺寸，创建临时 canvas
-                if (width !== canvas.width || height !== canvas.height) {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = width;
-                    tempCanvas.height = height;
-                    const ctx = tempCanvas.getContext('2d');
+                // If the canvas has transparency, we might want to add a white background
+                // for the screenshot if the target format doesn't support transparency well
+                // or if a solid background is desired.
+                const attributes = glRef.current.getContext().getContextAttributes();
+                const needsBackground = attributes?.alpha ?? false;
 
-                    if (!ctx) {
-                        reject(new Error('Failed to get canvas context'));
-                        return;
-                    }
+                // Create a temporary canvas for rendering the screenshot
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const ctx = tempCanvas.getContext('2d');
 
-                    // 计算裁剪区域，实现 object-cover 效果（居中裁剪）
-                    const sourceWidth = canvas.width;
-                    const sourceHeight = canvas.height;
-                    const sourceAspect = sourceWidth / sourceHeight;
-                    const targetAspect = width / height;
-
-                    let sX, sY, sW, sH;
-
-                    if (sourceAspect > targetAspect) {
-                        // 源比例更宽，裁剪左右
-                        sW = sourceHeight * targetAspect;
-                        sH = sourceHeight;
-                        sX = (sourceWidth - sW) / 2;
-                        sY = 0;
-                    } else {
-                        // 源比例更高，裁剪上下
-                        sW = sourceWidth;
-                        sH = sourceWidth / targetAspect;
-                        sX = 0;
-                        sY = (sourceHeight - sH) / 2;
-                    }
-
-                    // 绘制并裁剪
-                    ctx.drawImage(canvas, sX, sY, sW, sH, 0, 0, width, height);
-
-                    tempCanvas.toBlob((blob) => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Failed to create blob'));
-                        }
-                    }, 'image/jpeg', 0.9);
-                } else {
-                    // 直接使用原始 canvas
-                    canvas.toBlob((blob: Blob | null) => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Failed to create blob'));
-                        }
-                    }, 'image/jpeg', 0.9);
+                if (!ctx) {
+                    reject(new Error('Failed to get canvas context'));
+                    return;
                 }
+
+                // Fill with white background if needed
+                if (needsBackground) {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, width, height);
+                }
+
+                // Calculate crop area for object-cover effect (center crop)
+                const sourceWidth = canvas.width;
+                const sourceHeight = canvas.height;
+                const sourceAspect = sourceWidth / sourceHeight;
+                const targetAspect = width / height;
+
+                let sX, sY, sW, sH;
+
+                if (sourceAspect > targetAspect) {
+                    // Source is wider, crop left/right
+                    sW = sourceHeight * targetAspect;
+                    sH = sourceHeight;
+                    sX = (sourceWidth - sW) / 2;
+                    sY = 0;
+                } else {
+                    // Source is taller, crop top/bottom
+                    sW = sourceWidth;
+                    sH = sourceWidth / targetAspect;
+                    sX = 0;
+                    sY = (sourceHeight - sH) / 2;
+                }
+
+                // Draw and crop
+                ctx.drawImage(canvas, sX, sY, sW, sH, 0, 0, width, height);
+
+                tempCanvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Failed to create blob'));
+                    }
+                }, 'image/webp', 0.9); // Use image/webp for screenshots
             });
         },
         playMotion: (url: string, loop: boolean = true, fadeDuration: number = 0.5) => {

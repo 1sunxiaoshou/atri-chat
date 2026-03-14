@@ -101,9 +101,10 @@ class ModelFactory:
                 output_version="v1",
                 **final_params
             )
+            
             return model
         except Exception as e:
-            logger.exception(f"init_chat_model 创建失败: {provider_type}/{model_config.model_id}")
+            logger.error(f"init_chat_model 创建失败: {provider_type}/{model_config.model_id}: {e}")
             # 回退到 Provider 模板尝试创建（兼容 init_chat_model 不支持的供应商）
             provider_template = self.get_provider_template(provider_type)
             if provider_template:

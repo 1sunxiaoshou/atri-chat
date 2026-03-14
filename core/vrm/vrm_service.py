@@ -114,9 +114,9 @@ class VRMService:
                             "size": len(audio_bytes)
                         }
                     )
-                except Exception:
-                    logger.exception(
-                        "TTS 生成失败",
+                except Exception as e:
+                    logger.error(
+                        f"TTS 生成失败: {e}",
                         extra={"index": index, "text": clean_text}
                     )
                     # 继续处理，但没有音频

@@ -39,6 +39,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const [editingProvider, setEditingProvider] = useState<Partial<Provider> | null>(null);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<Partial<Model> | null>(null);
+  const [selectedCapabilities, setSelectedCapabilities] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -63,14 +64,36 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const [showEnabledOnly, setShowEnabledOnly] = useState(false);
 
   const filteredModels = models.filter(m => {
+    // 1. 供应商过滤
     if (selectedProvider !== null && m.provider_config_id !== selectedProvider) return false;
+    
+    // 2. 搜索过滤
     if (searchQuery && !m.model_id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    
+    // 3. 启用状态过滤
     if (showEnabledOnly && !m.enabled) return false;
-    if (activeCategory === 'all') return true;
-    if (['chat', 'embedding', 'rerank'].includes(activeCategory)) {
-      return m.model_type === activeCategory;
+    
+    // 4. 分类过滤 (Chat/Embedding/Rerank)
+    if (activeCategory !== 'all' && m.model_type !== activeCategory) return false;
+    
+    // 5. 核心能力过滤 (Multi-select AND logic)
+    if (selectedCapabilities.size > 0) {
+      const capabilityMap: Record<string, keyof Model> = {
+        'vision': 'has_vision',
+        'audio': 'has_audio',
+        'video': 'has_video',
+        'reasoning': 'has_reasoning',
+        'tool_use': 'has_tool_use',
+        'document': 'has_document',
+      };
+      
+      for (const capKey of selectedCapabilities) {
+        const modelKey = capabilityMap[capKey];
+        if (modelKey && !m[modelKey]) return false;
+      }
     }
-    return m.capabilities.includes(activeCategory);
+    
+    return true;
   });
 
   const getProviderModelCount = (providerConfigId: number) => {
@@ -160,7 +183,13 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
         provider_config_id: selectedProvider || 0,
         model_id: '',
         model_type: 'chat',
-        capabilities: [],
+        has_vision: false,
+        has_audio: false,
+        has_video: false,
+        has_reasoning: false,
+        has_tool_use: false,
+        has_document: false,
+        has_structured_output: false,
         enabled: true
       });
     }
@@ -198,7 +227,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     const newEnabled = !model.enabled;
     // 乐观更新：立即应用 UI 变化
     updateModelStatus(model.id, newEnabled);
-    
+
     try {
       await modelsApi.toggleModel(model.id, newEnabled, model);
     } catch (error) {
@@ -236,6 +265,15 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
     }
   };
 
+  const handleToggleCapability = (cap: string) => {
+    setSelectedCapabilities(prev => {
+      const next = new Set(prev);
+      if (next.has(cap)) next.delete(cap);
+      else next.add(cap);
+      return next;
+    });
+  };
+
   return (
     <div className="flex h-full bg-background overflow-hidden animate-in fade-in duration-500">
       {/* Sidebar: Providers - 占20%宽度 */}
@@ -266,6 +304,8 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
               isSyncing={isSyncing}
               showEnabledOnly={showEnabledOnly}
               onToggleEnabledFilter={() => setShowEnabledOnly(!showEnabledOnly)}
+              selectedCapabilities={selectedCapabilities}
+              onToggleCapability={handleToggleCapability}
             />
 
             <ModelTable

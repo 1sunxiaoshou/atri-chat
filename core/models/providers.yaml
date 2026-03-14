@@ -57,16 +57,16 @@ providers:
     lc_id: "ollama"
     discovery: "ollama"
     config_fields:
-      - field_name: "base_url"
-        field_type: "string"
-        default_value: "http://localhost:11434"
       - field_name: "api_key"
         field_type: "string"
         required: false
         sensitive: true
+      - field_name: "base_url"
+        field_type: "string"
+        default_value: "http://localhost:11434"
 
   - provider_id: "qwen"
-    name: "Qwen (DashScope)"
+    name: "Qwen"
     description: "阿里通义千问"
     lc_id: "openai"
     discovery: "openai"
@@ -92,3 +92,253 @@ providers:
       - field_name: "base_url"
         field_type: "string"
         default_value: "https://api.groq.com/openai/v1"
+
+  - provider_id: "azure_openai"
+    name: "Azure OpenAI"
+    description: "Microsoft Azure 上的 OpenAI 服务"
+    lc_id: "azure_openai"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "azure_endpoint"
+        field_type: "string"
+        required: true
+        description: "Azure OpenAI 资源端点"
+      - field_name: "azure_deployment"
+        field_type: "string"
+        required: true
+        description: "部署名称"
+      - field_name: "api_version"
+        field_type: "string"
+        default_value: "2023-12-01-preview"
+        description: "API 版本"
+
+  - provider_id: "azure_ai"
+    name: "Azure AI"
+    description: "Microsoft Azure AI 服务"
+    lc_id: "azure_ai"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "endpoint"
+        field_type: "string"
+        required: true
+
+  - provider_id: "google_vertexai"
+    name: "Google Vertex AI"
+    description: "Google Cloud Vertex AI 平台"
+    lc_id: "google_vertexai"
+    discovery: "none"
+    config_fields:
+      - field_name: "project_id"
+        field_type: "string"
+        required: true
+        description: "Google Cloud 项目 ID"
+      - field_name: "location"
+        field_type: "string"
+        default_value: "us-central1"
+        description: "Vertex AI 区域"
+      - field_name: "credentials"
+        field_type: "string"
+        required: false
+        sensitive: true
+        description: "Google Cloud 凭证 JSON（可选，默认使用环境变量）"
+
+  - provider_id: "bedrock"
+    name: "AWS Bedrock"
+    description: "Amazon Bedrock 托管服务"
+    lc_id: "bedrock"
+    discovery: "none"
+    config_fields:
+      - field_name: "aws_access_key_id"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "aws_secret_access_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "region_name"
+        field_type: "string"
+        default_value: "us-east-1"
+      - field_name: "aws_session_token"
+        field_type: "string"
+        required: false
+        sensitive: true
+        description: "临时凭证 token（可选）"
+
+  - provider_id: "bedrock_converse"
+    name: "AWS Bedrock Converse"
+    description: "Amazon Bedrock Converse API"
+    lc_id: "bedrock_converse"
+    discovery: "none"
+    config_fields:
+      - field_name: "aws_access_key_id"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "aws_secret_access_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "region_name"
+        field_type: "string"
+        default_value: "us-east-1"
+      - field_name: "aws_session_token"
+        field_type: "string"
+        required: false
+        sensitive: true
+        description: "临时凭证 token（可选）"
+
+  - provider_id: "cohere"
+    name: "Cohere"
+    description: "Cohere 生成式 AI 平台"
+    lc_id: "cohere"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Cohere API Key"
+
+  - provider_id: "fireworks"
+    name: "Fireworks AI"
+    description: "Fireworks 推理平台"
+    lc_id: "fireworks"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Fireworks API Key"
+
+  - provider_id: "together"
+    name: "Together AI"
+    description: "Together 分布式推理平台"
+    lc_id: "together"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Together API Key"
+
+  - provider_id: "mistralai"
+    name: "Mistral AI"
+    description: "Mistral 开源模型平台"
+    lc_id: "mistralai"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Mistral API Key"
+
+  - provider_id: "huggingface"
+    name: "Hugging Face"
+    description: "Hugging Face 推理 API"
+    lc_id: "huggingface"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Hugging Face API Token"
+      - field_name: "repo_id"
+        field_type: "string"
+        required: true
+        description: "模型仓库 ID（如 meta-llama/Llama-2-7b）"
+
+  - provider_id: "google_anthropic_vertex"
+    name: "Google Vertex AI (Anthropic)"
+    description: "Google Vertex AI 上的 Anthropic Claude 模型"
+    lc_id: "google_anthropic_vertex"
+    discovery: "none"
+    config_fields:
+      - field_name: "project_id"
+        field_type: "string"
+        required: true
+        description: "Google Cloud 项目 ID"
+      - field_name: "location"
+        field_type: "string"
+        default_value: "us-central1"
+        description: "Vertex AI 区域"
+      - field_name: "credentials"
+        field_type: "string"
+        required: false
+        sensitive: true
+        description: "Google Cloud 凭证 JSON（可选）"
+
+  - provider_id: "ibm"
+    name: "IBM Watson"
+    description: "IBM Watson 生成式 AI"
+    lc_id: "ibm"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "url"
+        field_type: "string"
+        required: true
+        description: "IBM Watson API 端点 URL"
+
+  - provider_id: "nvidia"
+    name: "NVIDIA AI Endpoints"
+    description: "NVIDIA 加速推理端点"
+    lc_id: "nvidia"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "NVIDIA API Key"
+
+  - provider_id: "xai"
+    name: "xAI (Grok)"
+    description: "xAI Grok 模型"
+    lc_id: "xai"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "xAI API Key"
+
+  - provider_id: "perplexity"
+    name: "Perplexity AI"
+    description: "Perplexity 搜索增强 AI"
+    lc_id: "perplexity"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Perplexity API Key"
+
+  - provider_id: "upstage"
+    name: "Upstage"
+    description: "Upstage 韩国 AI 平台"
+    lc_id: "upstage"
+    discovery: "none"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+        description: "Upstage API Key"

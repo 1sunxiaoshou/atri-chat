@@ -69,7 +69,7 @@ class MessageService:
             }, ensure_ascii=False)
             
         except Exception as e:
-            logger.exception("流式处理失败")
+            logger.error(f"流式处理失败: {e}")
             raise
     
     def _get_payload_from_event(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:

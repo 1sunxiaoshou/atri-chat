@@ -308,7 +308,7 @@ class GenieTTS(TTSBase):
                 "message": f"HTTP 错误 {e.response.status_code}: {e.response.text}"
             }
         except Exception as e:
-            logger.exception("Genie-TTS 测试连接失败")
+            logger.error(f"Genie-TTS 测试连接失败: {e}")
             return {
                 "success": False,
                 "message": f"测试失败: {str(e)}"
@@ -337,7 +337,7 @@ class GenieTTS(TTSBase):
                     "message": result.get("message", "角色已卸载")
                 }
         except Exception as e:
-            logger.exception("卸载角色语音资源失败")
+            logger.error(f"卸载角色语音资源失败: {e}")
             return {
                 "success": False,
                 "message": f"卸载失败: {str(e)}"
@@ -358,7 +358,7 @@ class GenieTTS(TTSBase):
                     "message": result.get("message", "所有任务已停止")
                 }
         except Exception as e:
-            logger.exception("停止 TTS 任务失败")
+            logger.error(f"停止 TTS 任务失败: {e}")
             return {
                 "success": False,
                 "message": f"停止失败: {str(e)}"
@@ -380,7 +380,7 @@ class GenieTTS(TTSBase):
                     "message": result.get("message", "缓存已清除")
                 }
         except Exception as e:
-            logger.exception("清除 TTS 缓存失败")
+            logger.error(f"清除 TTS 缓存失败: {e}")
             return {
                 "success": False,
                 "message": f"清除失败: {str(e)}"

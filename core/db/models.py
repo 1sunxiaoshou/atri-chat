@@ -258,7 +258,7 @@ class Model(Base):
 
     context_window: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     max_output: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     parameters: Mapped[dict] = mapped_column(JSON, default={}, nullable=False)  # 模型初始化的默认参数映射
     meta: Mapped[dict] = mapped_column(JSON, default={}, nullable=False)  # 存储模型完整的元数据 (Profile)
     
@@ -364,7 +364,7 @@ class Character(Base):
 
 class CharacterMotionBinding(Base):
     """角色-动作绑定表
-
+ 
     多对多关系，支持分类
     """
     __tablename__ = "character_motion_bindings"

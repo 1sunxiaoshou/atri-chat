@@ -69,6 +69,18 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
 
     const displayImageUrl = getDisplayImageUrl();
 
+    // 从 has_* 字段生成能力标签
+    const getCapabilityTags = (model: Model): string[] => {
+        const tags: string[] = [];
+        if (model.has_vision) tags.push('Vision');
+        if (model.has_audio) tags.push('Audio');
+        if (model.has_video) tags.push('Video');
+        if (model.has_reasoning) tags.push('Reasoning');
+        if (model.has_tool_use) tags.push('Tool Use');
+        if (model.has_document) tags.push('Document');
+        return tags;
+    };
+
     // 转换模型列表为 HierarchicalItem 格式
     const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
         return models.map(model => {
@@ -77,7 +89,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
                 id: model.id,
                 label: model.model_id,
                 category: provider?.name || `Provider #${model.provider_config_id}`,
-                tags: model.capabilities || []
+                tags: getCapabilityTags(model)
             };
         });
     }, [models, providers]);

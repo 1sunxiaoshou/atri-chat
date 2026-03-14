@@ -108,7 +108,7 @@ async def download_sensevoice_model_async(
 
     except Exception as e:
         DOWNLOAD_PROGRESS["error"] = str(e)
-        logger.exception("ASR 模型下载中断")
+        logger.error(f"ASR 模型下载中断: {e}")
         # 如果是中途失败，不清理目录，允许用户下次重试（简单的本地存在检查跳过下载可后续优化）
         raise RuntimeError(str(e))
         

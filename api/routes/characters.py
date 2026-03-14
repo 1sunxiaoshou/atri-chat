@@ -125,8 +125,8 @@ async def list_characters(
             "data": data
         }
         
-    except Exception:
-        logger.exception("获取角色列表失败")
+    except Exception as e:
+        logger.error(f"获取角色列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取列表失败")
 
 
@@ -201,8 +201,8 @@ async def get_character(
         
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取角色详情失败")
+    except Exception as e:
+        logger.error(f"获取角色详情失败: {e}")
         raise HTTPException(status_code=500, detail="获取详情失败")
 
 
@@ -305,9 +305,9 @@ async def create_character(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("创建角色失败")
+        logger.error(f"创建角色失败: {e}")
         raise HTTPException(status_code=500, detail="创建失败")
 
 
@@ -376,7 +376,7 @@ async def update_character(
                     else:
                         logger.info(f"旧立绘文件被 {other_users} 个其他角色使用,跳过删除")
                 except Exception as e:
-                    logger.exception("删除旧立绘文件失败")
+                    logger.error(f"删除旧立绘文件失败: {e}")
                     # 不影响更新操作,只记录错误
         else:
             # 没有更新立绘URL,正常更新其他字段
@@ -413,9 +413,9 @@ async def update_character(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新角色失败")
+        logger.error(f"更新角色失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -464,7 +464,7 @@ async def delete_character(
                 else:
                     logger.info(f"立绘文件被 {other_users} 个其他角色使用,跳过删除")
             except Exception as e:
-                logger.exception("删除立绘文件失败")
+                logger.error(f"删除立绘文件失败: {e}")
                 # 不影响角色删除,只记录错误
         
         return {
@@ -477,7 +477,7 @@ async def delete_character(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("从数据库删除角色记录失败")
+        logger.error(f"从数据库删除角色记录失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")

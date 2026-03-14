@@ -76,9 +76,9 @@ async def create_model(
         raise HTTPException(status_code=400, detail="模型已存在")
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("创建模型失败")
+        logger.error(f"创建模型失败: {e}")
         raise HTTPException(status_code=500, detail="创建失败")
 
 
@@ -126,8 +126,8 @@ async def get_model(
         )
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取模型失败")
+    except Exception as e:
+        logger.error(f"获取模型失败: {e}")
         raise HTTPException(status_code=500, detail="获取模型详情失败")
 
 
@@ -193,8 +193,8 @@ async def list_models(
             message="获取成功",
             data=data
         )
-    except Exception:
-        logger.exception("列出模型失败")
+    except Exception as e:
+        logger.error(f"列出模型失败: {e}")
         raise HTTPException(status_code=500, detail="列出失败")
 
 
@@ -257,9 +257,9 @@ async def update_model(
         )
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新模型失败")
+        logger.error(f"更新模型失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -293,9 +293,9 @@ async def delete_model(
         )
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("删除模型失败")
+        logger.error(f"删除模型失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")
 
 
@@ -359,6 +359,6 @@ async def get_model_parameter_schema(
         )
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取模型参数 Schema 失败")
+    except Exception as e:
+        logger.error(f"获取模型参数 Schema 失败: {e}")
         raise HTTPException(status_code=500, detail="获取参数 Schema 失败")

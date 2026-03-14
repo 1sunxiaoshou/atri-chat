@@ -87,8 +87,8 @@ async def list_avatars(
             "data": data
         }
         
-    except Exception:
-        logger.exception("获取形象列表失败")
+    except Exception as e:
+        logger.error(f"获取形象列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取列表失败")
 
 
@@ -132,8 +132,8 @@ async def get_avatar(
         
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("获取形象详情失败")
+    except Exception as e:
+        logger.error(f"获取形象详情失败: {e}")
         raise HTTPException(status_code=500, detail="获取详情失败")
 
 
@@ -181,9 +181,9 @@ async def update_avatar(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("更新形象失败")
+        logger.error(f"更新形象失败: {e}")
         raise HTTPException(status_code=500, detail="更新失败")
 
 
@@ -277,7 +277,7 @@ async def upload_avatar(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
         # 清理文件
         if 'file_path' in locals() and file_path.exists():
@@ -285,7 +285,7 @@ async def upload_avatar(
         if 'thumbnail_file_path' in locals() and thumbnail_file_path.exists():
             thumbnail_file_path.unlink(missing_ok=True)
         
-        logger.exception("上传形象过程发生异常")
+        logger.error(f"上传形象过程发生异常: {e}")
         raise HTTPException(status_code=500, detail="上传失败")
 
 
@@ -332,7 +332,7 @@ async def delete_avatar(
                     thumbnail_file_path.unlink()
                     deleted_files.append("thumbnail")
         except Exception as e:
-            logger.exception("清理物理文件失败")
+            logger.error(f"清理物理文件失败: {e}")
             
         # 删除数据库记录
         db.delete(avatar)
@@ -348,7 +348,7 @@ async def delete_avatar(
         
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         db.rollback()
-        logger.exception("从数据库删除形象记录失败")
+        logger.error(f"从数据库删除形象记录失败: {e}")
         raise HTTPException(status_code=500, detail="删除失败")

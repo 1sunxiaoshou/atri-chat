@@ -14,9 +14,15 @@ class BaseProvider:
         """供应商元数据"""
         return self._metadata
     
+    def get_common_parameters_schema(self) -> Dict[str, Any]:
+        """获取通用参数 Schema"""
+        if self._metadata.common_parameters_schema:
+            return self._metadata.common_parameters_schema
+        return ProviderMetadata.get_default_common_params()
+
     def get_parameters_schema(self, model_id: str, has_reasoning: bool) -> Dict[str, Any]:
         """获取适用于特定模型的参数 Schema"""
-        schema = ProviderMetadata.get_default_common_params()
+        schema = self.get_common_parameters_schema().copy()
         
         # 如果模型支持推理，增加推理相关参数
         if has_reasoning:
