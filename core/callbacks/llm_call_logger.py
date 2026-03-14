@@ -175,10 +175,7 @@ class LLMCallLogger(BaseCallbackHandler):
                 "error_type": type(error).__name__,
             })
             
-            logger.error(f"=== LLM 调用失败 (run_id: {run_id}) ===")
-            logger.error(f"耗时: {duration_ms}ms")
-            logger.error(f"错误类型: {type(error).__name__}")
-            logger.error(f"错误: {error}")
+            logger.exception(f"LLM 调用失败详情")
             logger.error(f"=== 调用结束 ===")
             
             self.calls.append(self.current_call)
@@ -245,10 +242,7 @@ class LLMCallLogger(BaseCallbackHandler):
                     "error_type": type(error).__name__,
                 })
                 
-                logger.error(f"=== 工具调用失败: {tool_call['tool_name']} (run_id: {run_id}) ===")
-                logger.error(f"耗时: {duration_ms}ms")
-                logger.error(f"错误类型: {type(error).__name__}")
-                logger.error(f"错误: {error}")
+                logger.exception(f"工具调用失败详情")
                 break
     
     def get_call_logs(self) -> str:

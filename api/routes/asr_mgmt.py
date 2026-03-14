@@ -45,9 +45,9 @@ async def get_asr_status(settings: AppSettings = Depends(get_settings)):
                 "download_precision": progress_info["precision"]
             }
         )
-    except Exception as e:
-        logger.error("获取 ASR 状态失败: {}", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取 ASR 状态失败")
+        raise HTTPException(status_code=500, detail="获取状态异常")
 
 @router.post("/download", response_model=ResponseModel)
 async def trigger_download(
@@ -76,9 +76,9 @@ async def trigger_download(
             message="下载任务已启动",
             data={"precision": req.precision}
         )
-    except Exception as e:
-        logger.error("触发 ASR 下载失败: {}", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("触发 ASR 下载失败")
+        raise HTTPException(status_code=500, detail="任务触发失败")
 
 @router.delete("/clear", response_model=ResponseModel)
 async def clear_asr_models(
@@ -104,6 +104,6 @@ async def clear_asr_models(
             message="资源清理成功" if success else "资源目录不存在或已清理",
             data={"success": success}
         )
-    except Exception as e:
-        logger.error("清理 ASR 资源失败: {}", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("清理 ASR 资源失败")
+        raise HTTPException(status_code=500, detail="清理失败")

@@ -229,5 +229,5 @@ class QwenProvider(BaseProvider):
             logger.debug(f"从 API 获取模型信息: {model_id}, context_window: {context_window}, max_output: {max_output}")
             return self._infer_model_info(model_id, context_window, max_output)
         except Exception as e:
-            logger.warning("无法从 API 获取模型信息 {model_id}: {}，使用默认推断", str(e))
+            logger.warning("无法从 API 获取模型信息 {model_id}，使用默认推断", exc_info=True)
             return self._infer_model_info(model_id, None, None)

@@ -89,9 +89,9 @@ async def list_providers(
             "data": data
         }
         
-    except Exception as e:
-        logger.error("获取 TTS 供应商列表失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取 TTS 供应商列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败")
 
 
 @router.get("/{provider_id}", summary="获取 TTS 供应商详情", response_model=ResponseModel)
@@ -133,9 +133,9 @@ async def get_provider(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取 TTS 供应商详情失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取 TTS 供应商详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败")
 
 
 @router.post("", summary="创建 TTS 供应商", response_model=ResponseModel)
@@ -181,10 +181,10 @@ async def create_provider(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("创建 TTS 供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("创建 TTS 供应商失败")
+        raise HTTPException(status_code=500, detail="创建失败")
 
 
 @router.put("/{provider_id}", summary="更新 TTS 供应商", response_model=ResponseModel)
@@ -229,10 +229,10 @@ async def update_provider(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("更新 TTS 供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("更新 TTS 供应商失败")
+        raise HTTPException(status_code=500, detail="更新失败")
 
 
 @router.delete("/{provider_id}", summary="删除 TTS 供应商", response_model=ResponseModel)
@@ -280,10 +280,10 @@ async def delete_provider(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("删除 TTS 供应商失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("删除 TTS 供应商失败")
+        raise HTTPException(status_code=500, detail="删除失败")
 
 
 @router.get("/types/list", summary="获取支持的供应商类型列表", response_model=ResponseModel)
@@ -333,9 +333,9 @@ async def get_provider_template(provider_type: str) -> Dict[str, Any]:
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error("获取配置模板失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取配置模板失败")
+        raise HTTPException(status_code=500, detail="获取模板失败")
 
 
 @router.post("/{provider_id}/test", summary="测试 TTS 供应商配置", response_model=ResponseModel)
@@ -369,8 +369,8 @@ async def test_provider(
         }
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("测试 TTS 供应商失败: {}", str(e), exc_info=True)
+    except Exception:
+        logger.exception("测试 TTS 供应商失败")
         return {
             "code": 500,
             "message": f"测试失败: {str(e)}",

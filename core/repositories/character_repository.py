@@ -3,7 +3,10 @@ import json
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 from core.db import Character, Motion, CharacterMotionBinding
+from core.logger import get_logger
 from .base import BaseRepository
+
+logger = get_logger(__name__)
 
 
 # 默认资源定义（防止数据库为空）
@@ -54,6 +57,7 @@ class CharacterRepository(BaseRepository[Character]):
             if character.avatar.available_expressions:
                 return json.loads(character.avatar.available_expressions)
         except (json.JSONDecodeError, TypeError):
+            logger.warning(f"角色 {character_id} 的形象表情数据解析失败，使用默认列表", exc_info=True)
             pass
         
         return DEFAULT_EXPRESSIONS

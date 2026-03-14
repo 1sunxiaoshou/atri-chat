@@ -336,7 +336,7 @@ class GenieTTS(TTSBase):
                     "message": result.get("message", "角色已卸载")
                 }
         except Exception as e:
-            logger.error(f"卸载角色失败", extra={"error": str(e)})
+            logger.exception("卸载角色语音资源失败")
             return {
                 "success": False,
                 "message": f"卸载失败: {str(e)}"
@@ -357,7 +357,7 @@ class GenieTTS(TTSBase):
                     "message": result.get("message", "所有任务已停止")
                 }
         except Exception as e:
-            logger.error(f"停止任务失败", extra={"error": str(e)})
+            logger.exception("停止 TTS 任务失败")
             return {
                 "success": False,
                 "message": f"停止失败: {str(e)}"
@@ -379,7 +379,7 @@ class GenieTTS(TTSBase):
                     "message": result.get("message", "缓存已清除")
                 }
         except Exception as e:
-            logger.error(f"清除缓存失败", extra={"error": str(e)})
+            logger.exception("清除 TTS 缓存失败")
             return {
                 "success": False,
                 "message": f"清除失败: {str(e)}"

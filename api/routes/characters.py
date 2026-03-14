@@ -125,9 +125,9 @@ async def list_characters(
             "data": data
         }
         
-    except Exception as e:
-        logger.error("获取角色列表失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取角色列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败")
 
 
 @router.get("/characters/{character_id}", summary="获取角色详情", response_model=ResponseModel)
@@ -201,9 +201,9 @@ async def get_character(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("获取角色详情失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("获取角色详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败")
 
 
 @router.post("/characters", summary="创建角色", response_model=ResponseModel)
@@ -305,10 +305,10 @@ async def create_character(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("创建角色失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("创建角色失败")
+        raise HTTPException(status_code=500, detail="创建失败")
 
 
 @router.patch("/characters/{character_id}", summary="更新角色", response_model=ResponseModel)
@@ -376,7 +376,7 @@ async def update_character(
                     else:
                         logger.info(f"旧立绘文件被 {other_users} 个其他角色使用,跳过删除")
                 except Exception as e:
-                    logger.error("删除旧立绘文件失败: {}", str(e), exc_info=True)
+                    logger.exception("删除旧立绘文件失败")
                     # 不影响更新操作,只记录错误
         else:
             # 没有更新立绘URL,正常更新其他字段
@@ -413,10 +413,10 @@ async def update_character(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("更新角色失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("更新角色失败")
+        raise HTTPException(status_code=500, detail="更新失败")
 
 
 @router.delete("/characters/{character_id}", summary="删除角色", response_model=ResponseModel)
@@ -464,7 +464,7 @@ async def delete_character(
                 else:
                     logger.info(f"立绘文件被 {other_users} 个其他角色使用,跳过删除")
             except Exception as e:
-                logger.error("删除立绘文件失败: {}", str(e), exc_info=True)
+                logger.exception("删除立绘文件失败")
                 # 不影响角色删除,只记录错误
         
         return {
@@ -477,7 +477,7 @@ async def delete_character(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        logger.error("删除角色失败: {}", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("从数据库删除角色记录失败")
+        raise HTTPException(status_code=500, detail="删除失败")
