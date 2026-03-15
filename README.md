@@ -84,7 +84,7 @@ git clone https://github.com/1sunxiaoshou/atri-chat.git
 cd atri-chat
 
 # 可选：检查环境依赖与一键管理菜单
-uv run build.py --check
+uv run build.py --clean  # 或直接运行 uv run build.py 进入菜单
 
 # 启动开发环境（自动启动前端 Vite 服务、后端 FastAPI 服务及 Tauri 视窗）
 cd frontend

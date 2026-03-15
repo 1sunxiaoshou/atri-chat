@@ -28,6 +28,17 @@ class Colors:
     END = '\033[0m'
     BOLD = '\033[1m'
 
+def get_project_version():
+    """从 pyproject.toml 获取版本号"""
+    try:
+        with open("pyproject.toml", "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith("version ="):
+                    return line.split("=")[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return "1.0.0"
+
 def print_header(msg):
     print(f"\n{Colors.BOLD}{Colors.HEADER}{'='*70}{Colors.END}")
     print(f"{Colors.BOLD}{Colors.HEADER}{msg.center(70)}{Colors.END}")
@@ -142,10 +153,9 @@ def build_app(formats=None):
     if not run_command(cmd, cwd="frontend"): return False
     return True
 
-def collect_release(formats):
+def collect_release(formats, version):
     """整理发布包"""
     print_step(3, "整理发布包")
-    version = "1.0.0" 
     release_root = Path("release_package")
     remove_dir(release_root)
     release_root.mkdir(parents=True, exist_ok=True)
@@ -155,7 +165,7 @@ def collect_release(formats):
     
     if "portable" in formats:
         print("正在创建便携版...")
-        portable_dir = release_root / f"ATRI_Chat_v{version}_Portable"
+        portable_dir = release_root / f"AtriChat_{version}_Portable_Folder"
         portable_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(tauri_release_dir / "atri-chat.exe", portable_dir / "ATRI Chat.exe")
         
@@ -167,11 +177,13 @@ def collect_release(formats):
         
         (portable_dir / "README.txt").write_text("ATRI Chat 便携版\n单文件绿色启动，数据保存在同级 data 目录。", encoding="utf-8")
         
-        zip_path = release_root / f"ATRI_Chat_v{version}_Portable.zip"
+        zip_name = f"AtriChat_{version}_Portable.zip"
+        zip_path = release_root / zip_name
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             for f in portable_dir.rglob("*"):
                 zf.write(f, f.relative_to(portable_dir.parent))
-        print_success(f"便携版 ZIP 已生成")
+        remove_dir(portable_dir) # 清理临时目录
+        print_success(f"便携版 ZIP 已生成: {zip_name}")
 
     if "installer" in formats:
         print("正在搜寻安装程序...")
@@ -180,11 +192,15 @@ def collect_release(formats):
             print_warning("未发现安装程序")
         else:
             for setup in setup_files:
-                shutil.copy2(setup, release_root / f"ATRI_Chat_v{version}_{setup.name}")
-                print_success(f"安装程序已就绪: {setup.name}")
+                ext = setup.suffix
+                target_name = f"AtriChat_{version}_Setup{ext}"
+                shutil.copy2(setup, release_root / target_name)
+                print_success(f"安装程序已就绪: {target_name}")
 
 def show_menu():
-    print_header("ATRI Chat 构建管理中心 (极简发布版)")
+    print_header("ATRI Chat 构建管理中心")
+    current_ver = get_project_version()
+
     print(f"{Colors.BOLD}1. 任务路径：{Colors.END}")
     print("   [1] 📂 完整打包 (生成全量发布包)")
     print("   [2] 🚀 仅打后端 (快速更新 Sidecar)")
@@ -196,19 +212,24 @@ def show_menu():
     if choice == '3': return ["--clean"]
     if choice == '2': return ["--only-backend"]
     
-    print(f"\n{Colors.BOLD}2. 发布计划：{Colors.END}")
+    print(f"\n{Colors.BOLD}2. 发布版本：{Colors.END}")
+    ver_input = input(f"   请输入版本号 [默认 {current_ver}]: ").strip()
+    ver = ver_input if ver_input else current_ver
+
+    print(f"\n{Colors.BOLD}3. 发布计划：{Colors.END}")
     print("   [1] 🌟 全量分发 (安装包 + 便携版)")
     print("   [2] 💿 仅安装版")
     print("   [3] 📦 仅便携版")
     f_choice = input(f"{Colors.BOLD}请选择 (1-3, 默认1): {Colors.END}").strip()
     fmt = {"1": "all", "2": "installer", "3": "portable"}.get(f_choice, "all")
-    return ["--format", fmt]
+    return ["--format", fmt, "--app-version", ver]
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--format", choices=["all", "portable", "installer"], default="all")
     parser.add_argument("--only-backend", action="store_true")
     parser.add_argument("--clean", action="store_true")
+    parser.add_argument("--app-version", help="指定发布版本号")
     
     args = parser.parse_args(show_menu()) if len(sys.argv) == 1 else parser.parse_args()
     
@@ -219,8 +240,11 @@ def main():
             remove_dir(d)
         return
 
+    # 确定版本号
+    version = args.app_version if args.app_version else get_project_version()
+
     kill_existing_processes()
-    print_header("ATRI Chat 生产流水线启动")
+    print_header(f"ATRI Chat 生产流水线启动 (版本: {version})")
     start_time = time.time()
     
     if not build_backend(): sys.exit(1)
@@ -228,7 +252,7 @@ def main():
 
     target_formats = ["portable", "installer"] if args.format == "all" else [args.format]
     if not build_app(formats=target_formats): sys.exit(1)
-    collect_release(formats=target_formats)
+    collect_release(formats=target_formats, version=version)
     
     elapsed = time.time() - start_time
     print_header(f"构建成功! 耗时: {int(elapsed//60)}分 {int(elapsed%60)}秒")
