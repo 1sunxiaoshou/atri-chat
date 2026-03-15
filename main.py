@@ -1,9 +1,9 @@
-"""FastAPI 主应用入口 - 显式引导引导架构"""
-import sys
 import os
+import sys
 import time
 import threading
 from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 import psutil
 
@@ -60,22 +60,31 @@ async def lifespan(app: FastAPI):
     logger = get_logger(__name__)
     logger.info("系统正在启动...")
     
-    # 5. 引导阶段 D：初始化数据库 (注入 URL)
-    from core.db import init_db
-    # 注意：init_db 内部会通过 get_settings() 取 app_db_url
-    # 在这里可以增加额外的初始化检查
-    init_db()
+    # 5/6/7. 引导阶段：并行初始化组件 (提高启动效率)
+    import asyncio
     
-    # 6. 引导阶段 E：异步组件启动
-    from core.dependencies import init_checkpointer
-    await init_checkpointer()
+    async def task_db():
+        from core.db import init_db
+        init_db()
+        
+    async def task_checkpointer():
+        from core.dependencies import init_checkpointer
+        await init_checkpointer()
+
+    async def task_coordinator():
+        logger.info("预热 agent_coordinator...")
+        from core.dependencies import get_agent_coordinator
+        # 在线程中运行同步初始化，避免阻塞主循环
+        await asyncio.to_thread(get_agent_coordinator)
+
+    # 启动并行初始化
+    await asyncio.gather(
+        task_db(),
+        task_checkpointer(),
+        task_coordinator()
+    )
     
-    # 7. 引导阶段 F：各服务预热
-    logger.info("预热 agent_coordinator...")
-    from core.dependencies import get_agent_coordinator
-    get_agent_coordinator()
-    
-    logger.success(f"✓ ATRI Backend Service is ready on port {settings.backend_port}")
+    logger.success(f"[OK] ATRI Backend Service is ready on port {settings.backend_port}")
     logger.info(f"Environment: {settings.env} | PID: {os.getpid()} | Parent PID: {os.getppid()}")
 
     yield

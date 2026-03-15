@@ -18,12 +18,49 @@ class Environment(str, Enum):
 def get_base_dir() -> Path:
     """获取应用根目录（绝对路径）
     
-    兼容 PyInstaller 打包后的路径定位。
+    智能识别三种模式：
+    1. 开发环境：返回源码根目录。
+    2. 绿色便携版：返回 .exe 同级目录。
+    3. 系统安装版：返回 %APPDATA%/ATRI-Chat 目录，确保 Windows 权限兼容性。
     """
     if getattr(sys, 'frozen', False):
-        # 打包后，返回 .exe 所在的目录
-        return Path(sys.executable).parent.resolve()
-    # 开发环境，返回项目源码根目录
+        # 获取当前运行的二进制文件所在目录
+        # 注意：Sidecar 模式下，它通常位于 .../ATRI Chat/binaries/
+        exe_dir = Path(sys.executable).parent.resolve()
+        
+        # 1. 路径规范化处理：如果我们在 binaries 子目录里，向上追溯到应用主根目录
+        app_root = exe_dir.parent if exe_dir.name.lower() == "binaries" else exe_dir
+        
+        # 2. 判断是否为“系统安装模式”
+        # 获取常见的受限系统路径
+        appdata_local = os.environ.get('LOCALAPPDATA', '')
+        program_files = os.environ.get('ProgramFiles', '')
+        program_files_x86 = os.environ.get('ProgramFiles(x86)', '')
+        
+        # 典型的 Tauri 安装路径：
+        # - 用户安装: %LOCALAPPDATA%/atri-chat
+        # - 系统安装: %ProgramFiles%/ATRI Chat
+        is_in_system_dir = False
+        str_app_root = str(app_root).lower()
+        
+        if appdata_local and str_app_root.startswith(appdata_local.lower()):
+            # 这里的逻辑是：如果用户在本地 AppData 下运行，通常是自动更新安装的路径
+            is_in_system_dir = True
+        elif program_files and str_app_root.startswith(program_files.lower()):
+            is_in_system_dir = True
+        elif program_files_x86 and str_app_root.startswith(program_files_x86.lower()):
+            is_in_system_dir = True
+
+        # 3. 根据模式返回基准路径
+        if is_in_system_dir:
+            # 安装模式：将数据统一归口到 AppData/Roaming 下，确保 100% 有写入权限
+            roaming_data = Path(os.environ.get('APPDATA', '')).resolve() / "ATRI-Chat"
+            return roaming_data
+        
+        # 便携模式：直接使用程序同级目录
+        return app_root
+        
+    # 开发环境：返回项目源码根目录 (atri-backend/core/config.py -> atri-backend/)
     return Path(__file__).parent.parent.resolve()
 
 

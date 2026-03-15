@@ -147,9 +147,6 @@ export interface VRMRenderConfig {
 
   // 环境设置
   environment: 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'studio' | 'city' | 'park' | 'lobby';
-  showEnvironmentBackground: boolean;
-  backgroundBlurriness: number;
-  backgroundIntensity: number;
 
   // 光照设置
   enableMainLight: boolean;
@@ -171,6 +168,9 @@ export interface VRMRenderConfig {
 
   // 强度调节
   bloomIntensity: number;
+
+  // 背景控制 (自定义图片)
+  backgroundImage: string;
 
   // VRM 角色行为设置
   enableBlink: boolean;
@@ -235,10 +235,8 @@ export const DEFAULT_VRM_RENDER_CONFIG: VRMRenderConfig = {
   enableAmbientLight: true,
   enableRimLight: true,
 
-  // 背景控制 (全局)
-  showEnvironmentBackground: true,
-  backgroundBlurriness: 0.1,
-  backgroundIntensity: 1.0,
+  // 背景控制 (始终使用自定义图片)
+  backgroundImage: 'BG_AronaRoom.jpg',
 
   // 强度参数 (全局初始值)
   bloomIntensity: 0.5,

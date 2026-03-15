@@ -4,6 +4,7 @@ import { ReactNode, Suspense } from 'react';
 import { useVRMStore } from '../../../../store/vrm/useVRMStore';
 import { GenshinControls } from '../core/GenshinControls';
 import { useTheme } from '@/contexts/ThemeContext';
+import { BackgroundSystem } from '../core/BackgroundSystem';
 
 interface AIStageProps {
     children: ReactNode;
@@ -67,14 +68,22 @@ export function AIStage({
                 />
             )}
 
-            {/* 核心环境贴图 (HDR/IBL) - 增加错误保护和本地加载隔离 */}
+            {/* 1. 环境光照 (Preset) - 始终提供环境光感，但不负责背景 */}
             <Suspense fallback={null}>
                 <Environment
                     preset={finalConfig.environment}
-                    background={finalConfig.showEnvironmentBackground}
-                    blur={finalConfig.backgroundBlurriness}
+                    background={false}
                 />
             </Suspense>
+
+            {/* 2. 背景贴图系统 - 始终启用并自动处理比例 */}
+            {finalConfig.backgroundImage && (
+                <Suspense fallback={null}>
+                    <BackgroundSystem 
+                        url={`/BG/${finalConfig.backgroundImage}`} 
+                    />
+                </Suspense>
+            )}
 
             {children}
 

@@ -91,26 +91,17 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                     <span>{t('vrm.displaySettings') || '显示设置'}</span>
                 </div>
 
-                <ToggleItem
-                    label={t('vrm.showBackground')}
-                    checked={config.showEnvironmentBackground}
-                    onChange={(checked) => setRenderConfig({ showEnvironmentBackground: checked })}
-                />
-
-                <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-gray-400">
-                        <span>{t('vrm.backgroundBlur')}</span>
-                        <span>{config.backgroundBlurriness.toFixed(1)}</span>
-                    </div>
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={config.backgroundBlurriness}
-                        onChange={(e) => setRenderConfig({ backgroundBlurriness: parseFloat(e.target.value) })}
-                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    />
+                <div className="space-y-1.5">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest">{t('vrm.selectBackground') || '选择背景'}</div>
+                    <select
+                        value={config.backgroundImage}
+                        onChange={(e) => setRenderConfig({ backgroundImage: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-gray-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer hover:bg-white/10 transition-colors"
+                    >
+                        <option value="BG_AronaRoom.jpg">Arona Room (Out)</option>
+                        <option value="BG_AronaRoom_In.jpg">Arona Room (In)</option>
+                        <option value="BG_GameDevRoom.jpg">Game Dev Room</option>
+                    </select>
                 </div>
             </div>
 

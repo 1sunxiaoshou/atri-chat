@@ -318,6 +318,8 @@
         "interactionBehavior": "交互行为",
         "displaySettings": "显示设置",
         "backgroundBlur": "背景模糊",
+        "customBackground": "自定义背景图",
+        "selectBackground": "选择背景",
         "advancedSettings": "高级渲染",
         "characterSettings": "角色设置",
         "enableBlink": "自动眨眼",

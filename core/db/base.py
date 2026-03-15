@@ -19,9 +19,14 @@ _SessionLocal = None
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_conn, connection_record):
-    """启用 SQLite 外键约束"""
+    """启用 SQLite 高性能配置"""
     cursor = dbapi_conn.cursor()
+    # 启用外键
     cursor.execute("PRAGMA foreign_keys=ON")
+    # 启用 WAL 模式 (极大提升并发读写性能)
+    cursor.execute("PRAGMA journal_mode=WAL")
+    # 设置同步级别为 NORMAL (兼顾性能与安全)
+    cursor.execute("PRAGMA synchronous=NORMAL")
     cursor.close()
 
 
