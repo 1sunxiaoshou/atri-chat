@@ -47,20 +47,20 @@ npm run dev
 
 ### 统一构建工具用法
 ```bash
-# 查看所有可用选项
-python build.py --help
+# 执行完整流水线（交互模式，会提示输入版本号）
+uv run build.py
 
-# 执行完整流水线：环境检查 -> 后端打包 -> 前端构建 -> Tauri 编译 -> 生成发布 ZIP
-python build.py --all
+# 命令行指定版本打包完整版
+uv run build.py --format all --app-version 1.0.1
 
-# 清理历史构建产物
-python build.py --clean
+# 仅清理构建产物
+uv run build.py --clean
 ```
 
-### 构建产物说明
-执行完成后，根目录会生成：
-- `release_package/ATRI Chat/`：解压即用的绿色版文件夹。
-- `ATRI_Chat_v1.0.0_Release.zip`：可直接发放给用户的发行包。
+### 构建产出说明
+执行完成后，根目录的 `release_package/` 文件夹下会生成：
+- `AtriChat_{version}_Setup.exe`：安装版程序。
+- `AtriChat_{version}_Portable.zip`：绿色便携版压缩包。
 
 ---
 

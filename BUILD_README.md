@@ -4,162 +4,82 @@
 
 ### 方式一：交互式菜单（推荐）
 
+直接运行脚本，按照提示输入版本号及选择模式：
+
 ```bash
 uv run build.py
 ```
 
-然后根据菜单选择需要的操作。
-
 ### 方式二：命令行参数
 
+适用于 CI/CD 或自动化脚本：
+
 ```bash
-# 打包完整版（标准版 + 便携版）
-uv run build.py --all
+# 执行完整流水线（默认生成安装包和便携版）
+uv run build.py --format all
 
-# 只打包标准版（安装包）
-uv run build.py --installer
+# 指定版本号打包
+uv run build.py --format all --app-version 1.1.0
 
-# 只打包便携版
-uv run build.py --portable
+# 仅打包安装程序 (Setup.exe)
+uv run build.py --format installer
 
-# 只打包后端
-uv run build.py --backend
+# 仅打包便携版 (Portable.zip)
+uv run build.py --format portable
 
-# 只构建前端
-uv run build.py --frontend
+# 快速更新后端 (仅打包后端并复制到 Sidecar)
+uv run build.py --only-backend
 
-# 清理构建文件
+# 清理构建缓存及产物
 uv run build.py --clean
-
-# 检查环境
-uv run build.py --check
 ```
 
 ---
 
-## 菜单选项说明
+## 主要功能说明
 
-### 1. 只打包后端
-- 使用 PyInstaller 打包 Python 后端
-- 生成 `dist/atri-backend.exe`
-- 自动复制到 `frontend/src-tauri/binaries/`
-- 耗时：约 1-2 分钟
+### 1. 自动读取版本号
+脚本会默认尝试从根目录的 `pyproject.toml` 中读取 `version` 字段。您可以通过命令行 `--app-version` 或菜单交互手动覆盖。
 
-### 2. 只构建前端
-- 使用 Vite 构建 React 前端
-- 生成 `frontend/dist/`
-- 耗时：约 30 秒
+### 2. 后端 Sidecar 打包
+- 使用 PyInstaller 将 Python 后端代码极致压缩为单文件。
+- 自动处理重命名并放置到 `frontend/src-tauri/binaries/` 下，供 Tauri 调用。
 
-### 3. 打包标准版（安装包）
-- 完整流程：后端 → 前端 → Tauri 安装包
-- 生成 NSIS 安装程序
-- 数据存储在系统 AppData 目录
-- 耗时：约 5-10 分钟
+### 3. 便携版 (Portable)
+- **命名格式**：`AtriChat_{version}_Portable.zip`
+- **特性**：解压即用，所有数据（数据库、离线模型、配置）均存储在程序同级目录，实现真正的一键热迁移。
 
-### 4. 打包便携版
-- 完整流程：后端 → 前端 → Tauri → 便携版打包
-- 生成 ZIP 压缩包和文件夹
-- 数据存储在应用程序目录
-- 耗时：约 5-10 分钟
-
-### 5. 打包完整版（标准版 + 便携版）
-- 同时生成标准版和便携版
-- 推荐用于正式发布
-- 耗时：约 5-10 分钟
-
-### 6. 清理构建文件
-- 删除所有构建产物
-- 包括：build/、dist/、portable_release/ 等
-- 用于重新开始干净的构建
-
-### 7. 检查环境
-- 检查所需工具是否安装
-- Python、uv、Node.js、npm、Rust
+### 4. 安装程序 (Installer)
+- **命名格式**：`AtriChat_{version}_Setup.exe`
+- **特性**：标准的 Windows 安装向导，适合在个人电脑上长期安装使用。
 
 ---
 
-## 生成的文件
+## 构建产出
 
-### 标准版
-```
-frontend/src-tauri/target/release/bundle/nsis/
-└── ATRI Chat_1.0.0_x64-setup.exe  (约 100-120 MB)
-```
-- 数据位置：`%APPDATA%\com.atri.chat\data`
-- 安装方式：标准 Windows 安装程序
-- 适合：个人电脑长期使用
+打包完成后，所有文件将存放在根目录的 `release_package/` 文件夹中：
 
-### 便携版
-```
-portable_release/                   (文件夹，可直接使用)
-├── ATRI Chat.exe
-├── binaries/
-│   └── atri-backend-*.exe
-├── portable.txt
-└── README.txt
-
-ATRI_Chat_v1.0.0_Portable.zip      (压缩包，约 90 MB)
-```
-- 数据位置：`.\data`（应用程序目录）
-- 使用方式：解压即用
-- 适合：U 盘携带、临时使用
-
----
-
-## 开发模式
-
-### 启动开发环境
-
-```bash
-cd frontend
-npm run tauri:dev
-```
-
-- ✅ 自动启动前端开发服务器
-- ✅ 自动启动 Tauri 窗口
-- ✅ 自动启动后端进程
-- ✅ 支持热重载
-
----
-
-## 环境要求
-
-### 开发环境
-- Windows 10/11
-- Python 3.12+
-- Node.js 18+
-- Rust 1.77+
-- uv (Python 包管理器)
-
-### 检查环境
-```bash
-uv run build.py --check
-```
+| 文件名 | 类型 | 适用场景 |
+| :--- | :--- | :--- |
+| `AtriChat_1.0.1_Setup.exe` | 安装包 | 快速安装到系统，支持开始菜单、卸载等管理。 |
+| `AtriChat_1.0.1_Portable.zip` | 压缩包 | 绿色免安装，适合存放在 U 盘或快速迁移数据。 |
 
 ---
 
 ## 常见问题
 
-### Q: 打包失败怎么办？
-A: 
-1. 先运行 `uv run build.py --check` 检查环境
-2. 运行 `uv run build.py --clean` 清理旧文件
-3. 重新打包
+### Q: 打包前需要修改哪些版本号？
+A: 虽然 `build.py` 支持指定版本，但为了保持一致性，建议在正式发布前统一修改：
+- `pyproject.toml` (后端版本) -> **脚本默认读取此处**
+- `frontend/package.json` (前端版本)
+- `frontend/src-tauri/tauri.conf.json` (Tauri 定义的版本)
 
-### Q: 如何只更新后端？
-A: 
-```bash
-uv run build.py --backend
-```
+### Q: 后端更新后需要重新打全量包吗？
+A: 如果只是后端代码改动，可以运行 `python build.py --only-backend`。这会更新 `Sidecar` 文件。如果您运行的是开发模式，Tauri 会自动调用新的 Sidecar。
 
-### Q: 标准版和便携版有什么区别？
-A: 
-- 标准版：安装到系统，数据在 `%APPDATA%`
-- 便携版：解压即用，数据在应用程序目录
+### Q: 构建速度慢？
+A: 首次构建由于需要下载 Rust 编译环境及 Node 依赖会较慢。后续构建开启了增量编译，速度会有明显提升。建议定期运行 `--clean` 以解决某些由于缓存引起的诡异报错。
 
-详见 `docs/便携版与标准版说明.md`
-
-### Q: 打包需要多长时间？
 A: 
 - 只打包后端：1-2 分钟
 - 只构建前端：30 秒

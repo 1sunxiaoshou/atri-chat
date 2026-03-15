@@ -1,6 +1,6 @@
 [project]
 name = "atri-chat"
-version = "0.1.0"
+version = "1.0.1"
 description = "多角色 AI Agent 系统，支持多模型供应商、语音识别和语音合成"
 readme = "README.md"
 license = { text = "MIT" }
