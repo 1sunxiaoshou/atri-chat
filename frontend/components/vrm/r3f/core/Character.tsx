@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import {
     useVRMLoader,
@@ -90,18 +90,29 @@ export function Character({
         }
     }, [vrm, motionUrl]);
 
-    // 创建 AnimationMixer
-    const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-    useEffect(() => {
-        if (vrm && !mixerRef.current) {
-            mixerRef.current = new THREE.AnimationMixer(vrm.scene);
-        }
+    // 为当前模型创建唯一的 AnimationMixer
+    const mixer = useMemo(() => {
+        if (!vrm) return null;
+        return new THREE.AnimationMixer(vrm.scene);
     }, [vrm]);
+
+    // 清理旧的 Mixer (当 vrm 改变或组件卸载时)
+    useEffect(() => {
+        return () => {
+            if (mixer) {
+                mixer.stopAllAction();
+                if (vrm?.scene) {
+                    mixer.uncacheRoot(vrm.scene);
+                }
+            }
+        };
+    }, [mixer, vrm]);
+
 
     // 初始化各个功能模块
     const lipSyncRef = useLipSync(vrm, audioElement, enableLipSync && !!audioElement);
     const blinkRef = useAutoBlink(vrm, enableBlink);
-    const motionController = useMotionController(vrm, mixerRef.current);
+    const motionController = useMotionController(vrm, mixer);
     const lookAtRef = useAutoLookAt(vrm, lookAtMode);
 
     // 注册动作完成回调
@@ -122,14 +133,14 @@ export function Character({
             });
         } else if (motionUrl === null) {
             // 如果 motionUrl 明确为 null，重置模型姿态到 T-Pose
-            if (vrm && mixerRef.current) {
+            if (vrm && mixer) {
                 // 停止所有动作
-                mixerRef.current.stopAllAction();
+                mixer.stopAllAction();
                 // 重置 VRM 的姿态
                 vrm.humanoid?.resetNormalizedPose();
             }
         }
-    }, [motionUrl, loopMotion, motionController, vrm, fadeDuration]);
+    }, [motionUrl, loopMotion, motionController, vrm, fadeDuration, mixer]);
 
     // 模型位置自适应：居中 + 底部对齐地面 + 面向相机
     useEffect(() => {

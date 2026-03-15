@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { ReactNode } from 'react';
+import * as THREE from 'three';
 
 interface VRMCanvasProps {
     children: ReactNode;
@@ -36,10 +37,14 @@ export function VRMCanvas({
                 preserveDrawingBuffer: true,
                 failIfMajorPerformanceCaveat: false,
                 powerPreference: 'high-performance',
+                // 解决模型“变透明”的关键：确保色调映射正确
+                toneMapping: THREE.ACESFilmicToneMapping,
+                toneMappingExposure: 1.0,
             }}
             onCreated={({ gl }) => {
-                // 1. 禁用自动重置，以便我们可以在 useFrame 中读取到完整的上一帧统计信息
+                // 1. 禁用自动重置
                 gl.info.autoReset = false;
+
 
                 // 2. 静默处理 WebGL 上下文丢失
                 gl.domElement.addEventListener('webglcontextlost', (event) => {
