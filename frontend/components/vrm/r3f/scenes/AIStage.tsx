@@ -1,15 +1,16 @@
-import { ContactShadows, Environment } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Bloom, Vignette } from '@react-three/postprocessing';
 import { ReactNode, Suspense } from 'react';
 import { useVRMStore } from '../../../../store/vrm/useVRMStore';
 import { GenshinControls } from '../core/GenshinControls';
-import { useTheme } from '@/contexts/ThemeContext';
 import { BackgroundSystem } from '../core/BackgroundSystem';
 
 interface AIStageProps {
     children: ReactNode;
     /** 是否启用轨道控制（默认 true） */
     enableControls?: boolean;
+    /** 是否启用背景系统（默认 true） */
+    showBackground?: boolean;
 }
 
 /**
@@ -21,38 +22,37 @@ interface AIStageProps {
 export function AIStage({
     children,
     enableControls = true,
+    showBackground = true,
 }: AIStageProps) {
     // 从 Store 获取全局配置
     const finalConfig = useVRMStore((state) => state.config);
-    const { isDark } = useTheme();
 
     return (
         <>
-            {/* 始终提供一个底色，防止渲染过程中的黑屏或残留 */}
-            <color attach="background" args={[
-                isDark ? '#020617' : '#f8fafc'
-            ]} />
-            {/* 主光源 - 模拟自然光 */}
-            {finalConfig.enableMainLight && (
-                <directionalLight
-                    position={[5, 5, 5]}
-                    intensity={finalConfig.mainLightIntensity}
-                    castShadow={finalConfig.enableShadows}
-                />
-            )}
+            {/* 主光源 - 侧前方 */}
+            <directionalLight
+                position={[3, 5, 4]}
+                intensity={finalConfig.mainLightIntensity}
+                castShadow={finalConfig.enableShadows}
+            />
 
-            {/* 补光 - 减少阴影 */}
-            {finalConfig.enableAmbientLight && (
-                <ambientLight intensity={finalConfig.ambientLightIntensity} />
-            )}
+            {/* 环境半球光 - 天空与地面漫反射 */}
+            <hemisphereLight 
+                intensity={finalConfig.ambientLightIntensity} 
+                color="#ffffff" 
+                groundColor="#444444" 
+            />
 
-            {/* 边缘光 - 增加立体感 */}
-            {finalConfig.enableRimLight && (
-                <directionalLight
-                    position={[-5, 3, -5]}
-                    intensity={finalConfig.rimLightIntensity}
-                />
-            )}
+            {/* 边缘光/补光 - 增加轮廓感 */}
+            <directionalLight
+                position={[-3, 2, -2]}
+                intensity={finalConfig.rimLightIntensity}
+            />
+
+
+
+
+
 
             {/* 高质量接触阴影 - 进一步微调以避免显眼的“地板”边缘 */}
             {finalConfig.enableContactShadows && (
@@ -68,22 +68,17 @@ export function AIStage({
                 />
             )}
 
-            {/* 1. 环境光照 (Preset) - 始终提供环境光感，但不负责背景 */}
+            {/* 环境光照已彻底移除，改由全局光照倍数控制明亮度 */}
+
+            {/* 2. 背景贴图系统 - 始终渲染以处理可能的背景清理 */}
+
             <Suspense fallback={null}>
-                <Environment
-                    preset={finalConfig.environment}
-                    background={false}
+                <BackgroundSystem
+                    url={showBackground && finalConfig.backgroundImage && finalConfig.backgroundImage !== 'none'
+                        ? `/BG/${finalConfig.backgroundImage}`
+                        : 'none'}
                 />
             </Suspense>
-
-            {/* 2. 背景贴图系统 - 始终启用并自动处理比例 */}
-            {finalConfig.backgroundImage && (
-                <Suspense fallback={null}>
-                    <BackgroundSystem 
-                        url={`/BG/${finalConfig.backgroundImage}`} 
-                    />
-                </Suspense>
-            )}
 
             {children}
 

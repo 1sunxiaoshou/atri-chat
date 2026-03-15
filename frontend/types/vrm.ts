@@ -134,27 +134,14 @@ export function parseMarkedText(markedText: string): { text: string; markups: Ti
 // ============================================
 
 /**
- * 场景预设模式
- */
-export type VRMSceneMode = 'studio' | 'natural' | 'cyber' | 'night';
-
-/**
  * VRM 渲染配置接口
  */
 export interface VRMRenderConfig {
-  // 渲染模式
-  sceneMode: VRMSceneMode;
-
-  // 环境设置
-  environment: 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'studio' | 'city' | 'park' | 'lobby';
-
-  // 光照设置
-  enableMainLight: boolean;
+  // 光照设置 (基于物理强度)
   mainLightIntensity: number;
-  enableAmbientLight: boolean;
   ambientLightIntensity: number;
-  enableRimLight: boolean;
   rimLightIntensity: number;
+
 
   // 阴影设置
   enableShadows: boolean;
@@ -171,73 +158,39 @@ export interface VRMRenderConfig {
 
   // 背景控制 (自定义图片)
   backgroundImage: string;
+  showEnvironmentBackground: boolean;
 
   // VRM 角色行为设置
   enableBlink: boolean;
   lookAtMode: 'mouse' | 'camera' | 'none';
 }
 
-/**
- * 场景预设配置集
- */
-export const VRM_PRESETS: Record<VRMSceneMode, Partial<VRMRenderConfig>> = {
-  studio: {
-    sceneMode: 'studio',
-    environment: 'studio',
-    mainLightIntensity: 1.0,
-    ambientLightIntensity: 0.8,
-    rimLightIntensity: 0.0,
-  },
-  natural: {
-    sceneMode: 'natural',
-    environment: 'forest',
-    mainLightIntensity: 1.5,
-    ambientLightIntensity: 0.5,
-    rimLightIntensity: 0.4,
-  },
-  cyber: {
-    sceneMode: 'cyber',
-    environment: 'night',
-    mainLightIntensity: 0.5,
-    ambientLightIntensity: 0.3,
-    rimLightIntensity: 1.2,
-  },
-  night: {
-    sceneMode: 'night',
-    environment: 'apartment',
-    mainLightIntensity: 0.8,
-    ambientLightIntensity: 0.4,
-    rimLightIntensity: 0.5,
-  }
-};
 
 /**
  * 默认 VRM 渲染配置
  */
 export const DEFAULT_VRM_RENDER_CONFIG: VRMRenderConfig = {
-  ...VRM_PRESETS.natural as VRMRenderConfig,
-  sceneMode: 'natural',
-  
-  // 交互控制 (全局)
-  enableBlink: true,
-  lookAtMode: 'mouse',
+  // 基础光照 (强度数值)
+  mainLightIntensity: 4.0,
+  ambientLightIntensity: 2.5,
+  rimLightIntensity: 2.0,
 
-  // 资源/效能开关 (全局)
-  enablePostProcessing: false, 
+
+  // 渲染/阴影
+  enableShadows: false,
+  enableContactShadows: true,
+  enablePostProcessing: false,
   enableBloom: true,
   enableDepthOfField: false,
   enableVignette: true,
-  enableShadows: false,
-  enableContactShadows: true,
-  
-  // 灯光开关 (状态粘滞)
-  enableMainLight: true,
-  enableAmbientLight: true,
-  enableRimLight: true,
-
-  // 背景控制 (始终使用自定义图片)
-  backgroundImage: 'BG_AronaRoom.jpg',
-
-  // 强度参数 (全局初始值)
   bloomIntensity: 0.5,
+
+  // 背景
+  backgroundImage: 'BG_AronaRoom.jpg',
+  showEnvironmentBackground: true,
+
+  // 行为
+  enableBlink: true,
+  lookAtMode: 'mouse',
 };
+

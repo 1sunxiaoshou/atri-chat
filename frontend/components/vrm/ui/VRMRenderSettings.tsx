@@ -1,4 +1,4 @@
-import { LayoutGrid, Eye, Sparkles, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,46 +12,67 @@ export function VRMRenderSettings({ className }: { className?: string }) {
     const { t } = useLanguage();
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
     
-    const { config, setRenderConfig, applySceneMode } = useVRMStore();
+    const { config, setRenderConfig } = useVRMStore();
 
     return (
         <div className={cn(
             "bg-black/80 backdrop-blur-sm rounded-lg p-4 text-xs font-mono space-y-3 border border-white/10 shadow-lg min-w-[240px]",
             className
         )}>
-            {/* 1. 场景预设 (核心层) */}
-            <div className="space-y-2">
+            {/* 1. 光照控制 (核心渲染层) */}
+            <div className="space-y-3">
                 <div className="flex items-center gap-2 text-gray-400 font-semibold mb-1">
-                    <LayoutGrid className="w-3 h-3" />
-                    <span>{t('vrm.scenePresets') || '场景预设'}</span>
+                    <Sparkles className="w-3 h-3 text-yellow-500" />
+                    <span>{t('vrm.lightingSettings') || '光照调节'}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                    {(['natural', 'cyber', 'studio', 'night'] as const).map((mode) => (
-                        <button
-                            key={mode}
-                            onClick={() => applySceneMode(mode)}
-                            className={cn(
-                                "py-2 px-3 rounded border transition-all text-center capitalize",
-                                config.sceneMode === mode 
-                                    ? "bg-blue-500/20 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
-                                    : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:border-white/20"
-                            )}
-                        >
-                            {t(`vrm.preset.${mode}`) || mode}
-                        </button>
-                    ))}
+                
+                {/* 主光源控制 */}
+                <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[10px] text-gray-400">
+                        <span>{t('vrm.mainLight') || '主光源'}</span>
+                        <span className="text-blue-400 font-bold">{config.mainLightIntensity.toFixed(1)}</span>
+                    </div>
+                    <input
+                        type="range" min="0" max="10" step="0.1"
+                        value={config.mainLightIntensity}
+                        onChange={(e) => setRenderConfig({ mainLightIntensity: parseFloat(e.target.value) })}
+                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
+                </div>
+
+                {/* 环境补光控制 */}
+                <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[10px] text-gray-400">
+                        <span>{t('vrm.ambientLight') || '环境补光'}</span>
+                        <span className="text-emerald-400 font-bold">{config.ambientLightIntensity.toFixed(1)}</span>
+                    </div>
+                    <input
+                        type="range" min="0" max="5" step="0.1"
+                        value={config.ambientLightIntensity}
+                        onChange={(e) => setRenderConfig({ ambientLightIntensity: parseFloat(e.target.value) })}
+                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
+                </div>
+
+                {/* 边缘补光控制 */}
+                <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[10px] text-gray-400">
+                        <span>{t('vrm.rimLight') || '边缘补光'}</span>
+                        <span className="text-purple-400 font-bold">{config.rimLightIntensity.toFixed(1)}</span>
+                    </div>
+                    <input
+                        type="range" min="0" max="5" step="0.1"
+                        value={config.rimLightIntensity}
+                        onChange={(e) => setRenderConfig({ rimLightIntensity: parseFloat(e.target.value) })}
+                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                    />
                 </div>
             </div>
 
             <div className="border-t border-white/10" />
 
-            {/* 2. 交互行为 (展现层) */}
+            {/* 2. 交互与背景 (展现层) */}
             <div className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-400 font-semibold">
-                    <Eye className="w-3 h-3" />
-                    <span>{t('vrm.interactionBehavior') || '交互行为'}</span>
-                </div>
-                
                 <ToggleItem
                     label={t('vrm.enableBlink')}
                     checked={config.enableBlink}
@@ -60,7 +81,7 @@ export function VRMRenderSettings({ className }: { className?: string }) {
 
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
-                        <span>{t('vrm.lookAtMode')}</span>
+                        <span>{t('vrm.lookAtMode') || '视线跟随'}</span>
                         <span className="text-blue-400 font-bold">{config.lookAtMode}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-1">
@@ -80,30 +101,22 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                         ))}
                     </div>
                 </div>
-            </div>
-
-            <div className="border-t border-white/10" />
-
-            {/* 3. 画面显示 (视觉层) */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-400 font-semibold text-[10px]">
-                    <ImageIcon className="w-3 h-3" />
-                    <span>{t('vrm.displaySettings') || '显示设置'}</span>
-                </div>
 
                 <div className="space-y-1.5">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-widest">{t('vrm.selectBackground') || '选择背景'}</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest">{t('vrm.selectBackground') || '场景背景'}</div>
                     <select
-                        value={config.backgroundImage}
+                        value={config.backgroundImage || 'none'}
                         onChange={(e) => setRenderConfig({ backgroundImage: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-gray-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer hover:bg-white/10 transition-colors"
                     >
+                        <option value="none">{t('vrm.background.none') || '无背景'}</option>
                         <option value="BG_AronaRoom.jpg">Arona Room (Out)</option>
                         <option value="BG_AronaRoom_In.jpg">Arona Room (In)</option>
                         <option value="BG_GameDevRoom.jpg">Game Dev Room</option>
                     </select>
                 </div>
             </div>
+
 
             <div className="border-t border-white/10" />
 
@@ -127,6 +140,9 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                             checked={config.enablePostProcessing}
                             onChange={(checked) => setRenderConfig({ enablePostProcessing: checked })}
                         />
+
+
+
                         
                         <div className="space-y-1">
                             <div className="flex justify-between text-[10px] text-gray-400">
@@ -158,6 +174,7 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                         </div>
                     </div>
                 )}
+
             </div>
         </div>
     );

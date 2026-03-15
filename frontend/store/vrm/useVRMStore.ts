@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { VRMRenderConfig, DEFAULT_VRM_RENDER_CONFIG, VRMSceneMode, VRM_PRESETS } from '../../types/vrm';
+import { VRMRenderConfig, DEFAULT_VRM_RENDER_CONFIG } from '../../types/vrm';
 
 /**
  * VRM 运行时状态（非持久化）
@@ -21,7 +21,6 @@ interface VRMStore {
     // 渲染配置 (持久化)
     config: VRMRenderConfig;
     setRenderConfig: (updates: Partial<VRMRenderConfig>) => void;
-    applySceneMode: (mode: VRMSceneMode) => void;
     resetRenderConfig: () => void;
 
     // 运行时状态 (不持久化)
@@ -48,17 +47,10 @@ export const useVRMStore = create<VRMStore>()(
                 config: { ...state.config, ...updates }
             })),
             
-            applySceneMode: (mode) => set((state) => ({
-                config: { 
-                    ...state.config, 
-                    ...VRM_PRESETS[mode],
-                    sceneMode: mode 
-                }
-            })),
-            
             resetRenderConfig: () => set({
                 config: DEFAULT_VRM_RENDER_CONFIG
             }),
+
 
             // 2. 运行时状态
             runtime: {
