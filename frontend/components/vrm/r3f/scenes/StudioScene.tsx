@@ -1,5 +1,7 @@
 import { Grid, OrbitControls, PerspectiveCamera, Bounds } from '@react-three/drei';
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
+import { useVRMStore } from '../../../../store/vrm/useVRMStore';
+import { BackgroundSystem } from '../core/BackgroundSystem';
 
 interface StudioSceneProps {
     children: ReactNode;
@@ -36,6 +38,8 @@ export function StudioScene({
     autoRotate = false,
     autoRotateSpeed = 2.0,
 }: StudioSceneProps) {
+    const config = useVRMStore((state) => state.config);
+
     return (
         <>
             {/* 相机设置 - 与旧组件一致 */}
@@ -46,6 +50,15 @@ export function StudioScene({
                 near={0.1}
                 far={20}
             />
+
+            {/* 自定义背景系统 - 始终显示 */}
+            {config.backgroundImage && (
+                <Suspense fallback={null}>
+                    <BackgroundSystem 
+                        url={`/BG/${config.backgroundImage}`} 
+                    />
+                </Suspense>
+            )}
 
             {/* 主光源 - 与旧组件一致 */}
             <directionalLight

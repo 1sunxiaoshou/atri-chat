@@ -11,7 +11,6 @@ from typing import Union, Optional, Dict, Any
 
 import sherpa_onnx
 import soundfile as sf
-import soxr
 
 from core.logger import get_logger
 
@@ -99,9 +98,11 @@ class SenseVoiceASR:
         if len(audio_data.shape) > 1:
             audio_data = audio_data[:, 0]
         
-        # soxr 自动重采样到 16000Hz
+        # 使用 scipy 自动重采样到 16000Hz
         if sample_rate != 16000:
-            audio_data = soxr.resample(audio_data, sample_rate, 16000)
+            from scipy.signal import resample
+            num_samples = int(len(audio_data) * 16000 / sample_rate)
+            audio_data = resample(audio_data, num_samples).astype("float32")
             sample_rate = 16000
             
         return audio_data, sample_rate

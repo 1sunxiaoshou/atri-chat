@@ -11,6 +11,7 @@
 from datetime import datetime
 from typing import Optional, Any, Dict, List
 from langchain.chat_models import init_chat_model
+from langchain_qwq import ChatQwen
 
 from .config import ModelConfig, ProviderMetadata, ProviderConfig, ModelType
 from .providers.base import BaseProvider
@@ -85,6 +86,7 @@ class ModelFactory:
         final_params = self._standardize_parameters(
             model_config=model_config,
             provider_config=provider_config,
+            provider_type=provider_type,
             run_kwargs=kwargs
         )
 
@@ -93,7 +95,16 @@ class ModelFactory:
         lc_provider = provider_template.metadata.lc_id if provider_template else provider_type
 
         try:
-            # 4. 使用 LangChain 万能工厂实例化
+            # 4. 特殊供应商手动实例化 (init_chat_model 不支持或需要原生支持的)
+            if provider_type == "qwen":
+                model = ChatQwen(
+                    model=model_config.model_id,
+                    **final_params
+                )
+                logger.info(f"使用 ChatQwen 独立驱动创建成功: {model_config.model_id}")
+                return model
+
+            # 5. 使用 LangChain 万能工厂实例化其他模型
             # 开启 output_version="v1" 以便统一流式思考内容的输出格式
             model = init_chat_model(
                 model=model_config.model_id,
@@ -115,6 +126,7 @@ class ModelFactory:
         self, 
         model_config: ModelConfig, 
         provider_config: ProviderConfig, 
+        provider_type: str,
         run_kwargs: Dict[str, Any]
     ) -> Dict[str, Any]:
         """参数适配器：将 UI/DB 参数映射到供应商特定的参数"""
@@ -133,6 +145,7 @@ class ModelFactory:
         thinking = combined_params.get("thinking")
         if (thinking and thinking.get("enabled")) or model_config.has_reasoning:
             # 如果配置开启了思考，或者模型本身就是强推理模型
+            provider_template = self.get_provider_template(provider_type)
             provider_id = provider_template.metadata.provider_id if provider_template else provider_type
             budget = thinking.get("budget", 16000) if thinking else 16000
             

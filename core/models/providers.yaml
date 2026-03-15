@@ -17,7 +17,35 @@ providers:
 
   - provider_id: "deepseek"
     name: "DeepSeek"
-    description: "深度求索，高性价比推理模型"
+    description: "深度求索，支持原生 DeepSeek 驱动"
+    lc_id: "deepseek"
+    discovery: "openai"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "api_base"
+        field_type: "string"
+        default_value: "https://api.deepseek.com"
+
+  - provider_id: "qwen"
+    name: "Qwen"
+    description: "阿里通义千问 (使用 ChatQwen 独立驱动)"
+    lc_id: "qwen" # 在工厂中被特殊处理
+    discovery: "openai"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "base_url"
+        field_type: "string"
+        default_value: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+  - provider_id: "siliconflow"
+    name: "SiliconFlow"
+    description: "硅基流动，高性价比大模型集成平台"
     lc_id: "openai"
     discovery: "openai"
     config_fields:
@@ -27,13 +55,27 @@ providers:
         sensitive: true
       - field_name: "base_url"
         field_type: "string"
-        default_value: "https://api.deepseek.com/v1"
+        default_value: "https://api.siliconflow.cn/v1"
+
+  - provider_id: "openrouter"
+    name: "OpenRouter"
+    description: "OpenRouter 聚合网关"
+    lc_id: "openai"
+    discovery: "openai"
+    config_fields:
+      - field_name: "api_key"
+        field_type: "string"
+        required: true
+        sensitive: true
+      - field_name: "base_url"
+        field_type: "string"
+        default_value: "https://openrouter.ai/api/v1"
 
   - provider_id: "anthropic"
     name: "Anthropic"
-    description: "Claude 系列模型，具备极强的推理与多模态能力"
+    description: "Claude 系列模型"
     lc_id: "anthropic"
-    discovery: "none" # Anthropic doesn't have a public models list API easily accessible via OpenAI compat
+    discovery: "none"
     config_fields:
       - field_name: "api_key"
         field_type: "string"
@@ -42,7 +84,7 @@ providers:
 
   - provider_id: "google"
     name: "Google Gemini"
-    description: "Google Generative AI (Gemini)"
+    description: "Google AI Studio Gemini API"
     lc_id: "google_genai"
     discovery: "google"
     config_fields:
@@ -57,184 +99,24 @@ providers:
     lc_id: "ollama"
     discovery: "ollama"
     config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: false
-        sensitive: true
       - field_name: "base_url"
         field_type: "string"
         default_value: "http://localhost:11434"
 
-  - provider_id: "qwen"
-    name: "Qwen"
-    description: "阿里通义千问"
-    lc_id: "openai"
-    discovery: "openai"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "base_url"
-        field_type: "string"
-        default_value: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-
   - provider_id: "groq"
     name: "Groq"
     description: "极速推理引擎"
-    lc_id: "openai"
+    lc_id: "groq"
     discovery: "openai"
     config_fields:
       - field_name: "api_key"
         field_type: "string"
         required: true
         sensitive: true
-      - field_name: "base_url"
-        field_type: "string"
-        default_value: "https://api.groq.com/openai/v1"
-
-  - provider_id: "azure_openai"
-    name: "Azure OpenAI"
-    description: "Microsoft Azure 上的 OpenAI 服务"
-    lc_id: "azure_openai"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "azure_endpoint"
-        field_type: "string"
-        required: true
-        description: "Azure OpenAI 资源端点"
-      - field_name: "azure_deployment"
-        field_type: "string"
-        required: true
-        description: "部署名称"
-      - field_name: "api_version"
-        field_type: "string"
-        default_value: "2023-12-01-preview"
-        description: "API 版本"
-
-  - provider_id: "azure_ai"
-    name: "Azure AI"
-    description: "Microsoft Azure AI 服务"
-    lc_id: "azure_ai"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "endpoint"
-        field_type: "string"
-        required: true
-
-  - provider_id: "google_vertexai"
-    name: "Google Vertex AI"
-    description: "Google Cloud Vertex AI 平台"
-    lc_id: "google_vertexai"
-    discovery: "none"
-    config_fields:
-      - field_name: "project_id"
-        field_type: "string"
-        required: true
-        description: "Google Cloud 项目 ID"
-      - field_name: "location"
-        field_type: "string"
-        default_value: "us-central1"
-        description: "Vertex AI 区域"
-      - field_name: "credentials"
-        field_type: "string"
-        required: false
-        sensitive: true
-        description: "Google Cloud 凭证 JSON（可选，默认使用环境变量）"
-
-  - provider_id: "bedrock"
-    name: "AWS Bedrock"
-    description: "Amazon Bedrock 托管服务"
-    lc_id: "bedrock"
-    discovery: "none"
-    config_fields:
-      - field_name: "aws_access_key_id"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "aws_secret_access_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "region_name"
-        field_type: "string"
-        default_value: "us-east-1"
-      - field_name: "aws_session_token"
-        field_type: "string"
-        required: false
-        sensitive: true
-        description: "临时凭证 token（可选）"
-
-  - provider_id: "bedrock_converse"
-    name: "AWS Bedrock Converse"
-    description: "Amazon Bedrock Converse API"
-    lc_id: "bedrock_converse"
-    discovery: "none"
-    config_fields:
-      - field_name: "aws_access_key_id"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "aws_secret_access_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "region_name"
-        field_type: "string"
-        default_value: "us-east-1"
-      - field_name: "aws_session_token"
-        field_type: "string"
-        required: false
-        sensitive: true
-        description: "临时凭证 token（可选）"
-
-  - provider_id: "cohere"
-    name: "Cohere"
-    description: "Cohere 生成式 AI 平台"
-    lc_id: "cohere"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-        description: "Cohere API Key"
-
-  - provider_id: "fireworks"
-    name: "Fireworks AI"
-    description: "Fireworks 推理平台"
-    lc_id: "fireworks"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-        description: "Fireworks API Key"
-
-  - provider_id: "together"
-    name: "Together AI"
-    description: "Together 分布式推理平台"
-    lc_id: "together"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-        description: "Together API Key"
 
   - provider_id: "mistralai"
     name: "Mistral AI"
-    description: "Mistral 开源模型平台"
+    description: "Mistral 官方平台"
     lc_id: "mistralai"
     discovery: "none"
     config_fields:
@@ -242,74 +124,10 @@ providers:
         field_type: "string"
         required: true
         sensitive: true
-        description: "Mistral API Key"
-
-  - provider_id: "huggingface"
-    name: "Hugging Face"
-    description: "Hugging Face 推理 API"
-    lc_id: "huggingface"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-        description: "Hugging Face API Token"
-      - field_name: "repo_id"
-        field_type: "string"
-        required: true
-        description: "模型仓库 ID（如 meta-llama/Llama-2-7b）"
-
-  - provider_id: "google_anthropic_vertex"
-    name: "Google Vertex AI (Anthropic)"
-    description: "Google Vertex AI 上的 Anthropic Claude 模型"
-    lc_id: "google_anthropic_vertex"
-    discovery: "none"
-    config_fields:
-      - field_name: "project_id"
-        field_type: "string"
-        required: true
-        description: "Google Cloud 项目 ID"
-      - field_name: "location"
-        field_type: "string"
-        default_value: "us-central1"
-        description: "Vertex AI 区域"
-      - field_name: "credentials"
-        field_type: "string"
-        required: false
-        sensitive: true
-        description: "Google Cloud 凭证 JSON（可选）"
-
-  - provider_id: "ibm"
-    name: "IBM Watson"
-    description: "IBM Watson 生成式 AI"
-    lc_id: "ibm"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-      - field_name: "url"
-        field_type: "string"
-        required: true
-        description: "IBM Watson API 端点 URL"
-
-  - provider_id: "nvidia"
-    name: "NVIDIA AI Endpoints"
-    description: "NVIDIA 加速推理端点"
-    lc_id: "nvidia"
-    discovery: "none"
-    config_fields:
-      - field_name: "api_key"
-        field_type: "string"
-        required: true
-        sensitive: true
-        description: "NVIDIA API Key"
 
   - provider_id: "xai"
     name: "xAI (Grok)"
-    description: "xAI Grok 模型"
+    description: "xAI (Grok) 官方服务"
     lc_id: "xai"
     discovery: "none"
     config_fields:
@@ -317,28 +135,31 @@ providers:
         field_type: "string"
         required: true
         sensitive: true
-        description: "xAI API Key"
 
   - provider_id: "perplexity"
-    name: "Perplexity AI"
-    description: "Perplexity 搜索增强 AI"
-    lc_id: "perplexity"
+    name: "Perplexity"
+    description: "Perplexity 搜索模型"
+    lc_id: "openai"
     discovery: "none"
     config_fields:
       - field_name: "api_key"
         field_type: "string"
         required: true
         sensitive: true
-        description: "Perplexity API Key"
+      - field_name: "base_url"
+        field_type: "string"
+        default_value: "https://api.perplexity.ai"
 
-  - provider_id: "upstage"
-    name: "Upstage"
-    description: "Upstage 韩国 AI 平台"
-    lc_id: "upstage"
-    discovery: "none"
+  - provider_id: "together"
+    name: "Together AI"
+    description: "Together AI 推理平台"
+    lc_id: "openai"
+    discovery: "openai"
     config_fields:
       - field_name: "api_key"
         field_type: "string"
         required: true
         sensitive: true
-        description: "Upstage API Key"
+      - field_name: "base_url"
+        field_type: "string"
+        default_value: "https://api.together.xyz/v1"

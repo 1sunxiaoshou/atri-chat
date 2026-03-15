@@ -318,6 +318,8 @@
         "interactionBehavior": "Interaction Behavior",
         "displaySettings": "Display Settings",
         "backgroundBlur": "Background Blur",
+        "customBackground": "Custom Background",
+        "selectBackground": "Select Background",
         "advancedSettings": "Advanced Rendering",
         "characterSettings": "Character Settings",
         "enableBlink": "Auto Blink",
