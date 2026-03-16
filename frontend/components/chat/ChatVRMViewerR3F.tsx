@@ -2,7 +2,6 @@ import React, { Suspense, useState, useMemo } from 'react';
 import { VRMCanvas } from '../vrm/r3f/core/VRMCanvas';
 import { AIStage } from '../vrm/r3f/scenes/AIStage';
 import { Character } from '../vrm/r3f/core/Character';
-import { PerformanceMonitor, PerformanceOverlay, PerformanceStats } from '../vrm/PerformanceMonitor';
 import { VRMRenderSettings } from '../vrm/ui/VRMRenderSettings';
 import { cn } from '@/utils/cn';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -38,8 +37,6 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
     const renderConfig = useVRMStore((state) => state.config);
     const { subtitle } = useVRMStore((state) => state.runtime);
 
-    // 性能监控状态（本地控制）
-    const [isPerformanceVisible, setIsPerformanceVisible] = useState(false);
     const [showRenderSettings, setShowRenderSettings] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -54,48 +51,23 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
         onModelLoaded?.();
     }, [onModelLoaded]);
 
-    const [perfStats, setPerfStats] = useState<PerformanceStats>({
-        fps: 0,
-        frameTime: 0,
-        memory: 0,
-        heapTotal: 0,
-        memoryGrowth: 0,
-        cachedModels: 0,
-        cachedMotions: 0,
-        cachedBindings: 0,
-        motionCacheSize: 20,
-        motionCacheHitRate: 0,
-        geometries: 0,
-        textures: 0,
-        materials: 0,
-        programs: 0,
-        drawCalls: 0,
-        triangles: 0,
-        activeAnimations: 0,
-        currentMotion: '',
-        audioContextCount: 0,
-    });
 
-    // 使用 useMemo 缓存 VRMCanvas 内容，避免性能监控更新导致重新渲染
+
+    // 使用 useMemo 缓存 VRMCanvas 内容
     const vrmCanvasContent = useMemo(() => (
-        <>
-            <Suspense fallback={null}>
-                <AIStage enableControls={true}>
-                    <Character
-                        url={modelUrl}
-                        audioElement={audioElement}
-                        enableLipSync={true}
-                        loopMotion={false}
-                        onModelLoaded={handleInternalModelLoaded}
-                        onMotionComplete={onMotionComplete}
-                    />
-                </AIStage>
-            </Suspense>
-
-            {/* 性能监控（内部组件） */}
-            {isPerformanceVisible && <PerformanceMonitorInternal onUpdate={setPerfStats} />}
-        </>
-    ), [modelUrl, audioElement, isPerformanceVisible, handleInternalModelLoaded, onMotionComplete]);
+        <Suspense fallback={null}>
+            <AIStage enableControls={true}>
+                <Character
+                    url={modelUrl}
+                    audioElement={audioElement}
+                    enableLipSync={true}
+                    loopMotion={false}
+                    onModelLoaded={handleInternalModelLoaded}
+                    onMotionComplete={onMotionComplete}
+                />
+            </AIStage>
+        </Suspense>
+    ), [modelUrl, audioElement, handleInternalModelLoaded, onMotionComplete]);
 
     return (
         <div className={cn(
@@ -121,27 +93,8 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
                 {vrmCanvasContent}
             </VRMCanvas>
 
-            {/* 性能监控 UI */}
-            {isPerformanceVisible && <PerformanceOverlay stats={perfStats} />}
-
             {/* 右上角按钮组 */}
             <div className="absolute top-4 right-4 z-20 flex gap-2">
-                {/* 性能监控按钮 */}
-                <button
-                    onClick={() => setIsPerformanceVisible(!isPerformanceVisible)}
-                    className={cn(
-                        "p-2 rounded-lg transition-colors",
-                        "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-                        "border border-white/10 shadow-lg",
-                        isPerformanceVisible && "bg-blue-500/80 hover:bg-blue-500"
-                    )}
-                    title={t('settings.enablePerformanceMonitor')}
-                >
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </button>
-
                 {/* 渲染设置按钮 */}
                 <button
                     onClick={() => setShowRenderSettings(!showRenderSettings)}
@@ -159,6 +112,7 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
                     </svg>
                 </button>
             </div>
+
 
             {/* 渲染设置面板 */}
             {showRenderSettings && (
@@ -187,12 +141,6 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
     );
 });
 
-/**
- * 内部性能监控组件
- * 在 R3F Canvas 内部运行
- */
-function PerformanceMonitorInternal({ onUpdate }: { onUpdate: (stats: any) => void }) {
-    return <PerformanceMonitor onUpdate={onUpdate} />;
-}
+
 
 export default ChatVRMViewerR3F;
