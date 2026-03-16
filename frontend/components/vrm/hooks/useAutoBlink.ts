@@ -41,7 +41,7 @@ export function useAutoBlink(
 
                 if (isBlinkingRef.current) {
                     // 眨眼动画进行中
-                    blinkProgressRef.current += delta * 10; // 眨眼速度
+                    blinkProgressRef.current += delta * 6; // 眨眼速度
 
                     if (blinkProgressRef.current < 1) {
                         // 闭眼阶段

@@ -101,7 +101,6 @@ class ModelFactory:
                     model=model_config.model_id,
                     **final_params
                 )
-                logger.info(f"使用 ChatQwen 独立驱动创建成功: {model_config.model_id}")
                 return model
 
             # 5. 使用 LangChain 万能工厂实例化其他模型
