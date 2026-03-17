@@ -13,7 +13,7 @@ interface AdminMotionsProps {
 }
 
 // 默认 VRM 模型用于动作预览
-const DEFAULT_VRM_MODEL = '/defaults/mox.vrm';
+const DEFAULT_VRM_MODEL = '/defaults/defaults.vrm';
 
 type ModalType = 'upload' | 'edit';
 
@@ -123,8 +123,13 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 if (vrmAnimations && vrmAnimations.length > 0) {
                     const duration = vrmAnimations[0].duration;
                     const durationMs = Math.round(duration * 1000);
-                    setFormDurationMs(durationMs);
-                    console.log(t('vrm.motion.autoDetectedDuration'), durationMs, 'ms');
+                    if (!isNaN(durationMs)) {
+                        setFormDurationMs(durationMs);
+                        console.log(t('vrm.motion.autoDetectedDuration'), durationMs, 'ms');
+                    } else {
+                        setFormDurationMs(2500);
+                        console.log('Detected invalid duration, using default 2500ms');
+                    }
                 }
 
                 URL.revokeObjectURL(url);
@@ -150,7 +155,9 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 formData.append('file', formFile);
                 formData.append('name', formName);
                 if (formDescription) formData.append('description', formDescription);
-                if (formDurationMs) formData.append('duration_ms', String(formDurationMs));
+                if (formDurationMs !== undefined && !isNaN(formDurationMs)) {
+                    formData.append('duration_ms', String(formDurationMs));
+                }
                 if (formTags) formData.append('tags', formTags);
 
                 await api.uploadVRMAnimation(formData);

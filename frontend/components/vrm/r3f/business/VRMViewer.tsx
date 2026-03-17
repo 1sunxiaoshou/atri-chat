@@ -110,7 +110,7 @@ export const VRMViewer = forwardRef<VRMViewerHandle, VRMViewerProps>(({
     const glRef = useRef<THREE.WebGLRenderer | null>(null);
     const [internalMotionUrl, setInternalMotionUrl] = useState<string | null>(motionUrl || null);
     const [internalLoopMotion, setInternalLoopMotion] = useState<boolean>(loopMotion);
-    const [internalFadeDuration, setInternalFadeDuration] = useState<number>(0.3);
+    const [internalFadeDuration, setInternalFadeDuration] = useState<number>(0.7);
 
     // 同步外部 motionUrl 的变化
     useEffect(() => {

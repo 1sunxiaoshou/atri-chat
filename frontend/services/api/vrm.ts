@@ -80,9 +80,10 @@ export const vrmApi = {
    */
   uploadVRMAnimation: async (formData: FormData): Promise<ApiResponse<any>> => {
     const name = formData.get('name') as string;
-    const duration_ms = parseInt(formData.get('duration_ms') as string);
+    const duration_raw = formData.get('duration_ms') as string;
+    const duration_ms = duration_raw ? parseInt(duration_raw) : undefined;
     const file = formData.get('file') as File;
-    return motionsApi.uploadMotion(file, name, duration_ms);
+    return motionsApi.uploadMotion(file, name, isNaN(duration_ms as number) ? undefined : duration_ms);
   },
 
   /**

@@ -21,12 +21,14 @@ export const motionsApi = {
     uploadMotion: async (
         file: File,
         name: string,
-        duration_ms: number
+        duration_ms?: number
     ): Promise<ApiResponse<Motion>> => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('name', name);
-        formData.append('duration_ms', duration_ms.toString());
+        if (duration_ms !== undefined && !isNaN(duration_ms)) {
+            formData.append('duration_ms', duration_ms.toString());
+        }
         return httpClient.post<Motion>('/motions/upload', formData);
     },
 
