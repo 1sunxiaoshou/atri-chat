@@ -52,7 +52,7 @@ export function Character({
     loopMotion = true,
     onMotionComplete,
     onModelLoaded,
-    fadeDuration = 0.3,
+    fadeDuration = 0.7,
 }: CharacterProps) {
     // 从 Store 获取配置和运行时状态
     const { enableBlink: storeEnableBlink, lookAtMode: storeLookAtMode } = useVRMStore((state) => state.config);

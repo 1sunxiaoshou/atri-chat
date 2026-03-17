@@ -7,7 +7,7 @@ import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 
 interface PlayOptions {
     loop?: boolean;
-    fadeDuration?: number; // 过渡时间，默认 0.5秒
+    fadeDuration?: number; // 过渡时间，默认 0.7秒
     force?: boolean; // 强制重新播放，即使是相同的 URL
 }
 
@@ -111,7 +111,7 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
     const play = useCallback(async (url: string, options: PlayOptions = {}) => {
         if (!vrm || !mixer || !loaderRef.current) return;
 
-        const { loop = true, fadeDuration = 0.5, force = false } = options;
+        const { loop = true, fadeDuration = 0.7, force = false } = options;
 
         // 避免重复播放同一个动作（除非强制重新播放）
         if (currentUrlRef.current === url && !force) return;

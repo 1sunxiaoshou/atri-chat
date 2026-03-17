@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from core.dependencies import get_db
 from core.db import Motion
+from core.db.utils import check_motion_references
 from core.config import get_settings, AppSettings
 from core.logger import get_logger
 from api.schemas import ResponseModel
