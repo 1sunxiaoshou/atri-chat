@@ -285,7 +285,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder={t('character.motion')}
+                        placeholder={t('admin.voiceName')}
                     />
                 </div>
 
