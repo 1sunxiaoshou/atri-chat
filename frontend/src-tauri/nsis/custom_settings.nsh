@@ -1,42 +1,51 @@
 ; ==========================================================
 ; ATRI Chat 自定义 NSIS 脚本
-; 负责完善安装与卸载逻辑，特别是用户数据的清理。
+; 仅保留必要的轻量扩展：
+; - 卸载前尽量停止相关进程
+; - 卸载前询问是否删除用户数据
+; - 卸载后按用户确认清理数据目录
 ; ==========================================================
 
-; ----------------------------------------------------------
-; 1. 语言字符串定义 (支持多语言弹窗)
-; ----------------------------------------------------------
+Var DeleteUserData
 
-; 默认字符串 (英文)
-LangString DESC_DeleteData ${LANG_ENGLISH} "Do you want to delete all user data (chat history, models, and settings)? This cannot be undone."
-LangString TITLE_DeleteData ${LANG_ENGLISH} "Clean User Data"
+; 英文
+LangString DESC_DeleteData ${LANG_ENGLISH} "Do you also want to delete local user data (chat history, downloaded models, and settings)? This cannot be undone."
+LangString TITLE_DeleteData ${LANG_ENGLISH} "Remove Local Data"
+LangString DETAIL_StopProcesses ${LANG_ENGLISH} "Stopping ATRI Chat processes..."
+LangString DETAIL_DeleteData ${LANG_ENGLISH} "Removing local user data..."
+LangString DETAIL_DeleteDataDone ${LANG_ENGLISH} "Local user data removed."
 
 ; 简体中文
-LangString DESC_DeleteData ${LANG_CHINESE} "是否要删除所有用户数据（聊天记录、模型文件和设置）？此操作不可撤销。"
-LangString TITLE_DeleteData ${LANG_CHINESE} "清理用户数据"
+LangString DESC_DeleteData ${LANG_CHINESE} "是否同时删除本机用户数据（聊天记录、已下载模型和设置）？此操作不可撤销。"
+LangString TITLE_DeleteData ${LANG_CHINESE} "删除本机数据"
+LangString DETAIL_StopProcesses ${LANG_CHINESE} "正在停止 ATRI Chat 相关进程..."
+LangString DETAIL_DeleteData ${LANG_CHINESE} "正在删除本机用户数据..."
+LangString DETAIL_DeleteDataDone ${LANG_CHINESE} "本机用户数据删除完成。"
 
-; ----------------------------------------------------------
-; 2. 卸载扩展逻辑 (customUninstStep)
-; ----------------------------------------------------------
-!macro NSIS_HOOK_POSTUNINSTALL
-  ; 这里的逻辑会在卸载的最后阶段执行
+!macro NSIS_HOOK_PREUNINSTALL
+  StrCpy $DeleteUserData "0"
 
-  ; 1. 尝试结束正在运行的进程 (防止文件锁定导致删除失败)
-  DetailPrint "正在停止 ATRI Chat 相关进程..."
+  DetailPrint "$(DETAIL_StopProcesses)"
   nsExec::Exec 'taskkill /F /IM "ATRI Chat.exe" /T'
   nsExec::Exec 'taskkill /F /IM "atri-backend-x86_64-pc-windows-msvc.exe" /T'
-  Sleep 1000 ; 等待一秒让系统释放句柄
-  
-  ; 2. 弹出询问对话框
-  MessageBox MB_YESNO|MB_ICONQUESTION "$(DESC_DeleteData)" IDNO done
-  
-  ; 3. 清理用户数据
-  DetailPrint "正在清理用户数据目录..."
-  
-  ; 删除 AppData/Roaming 下的数据文件夹 (包含 data, db, logs 等)
-  RMDir /r "$APPDATA\ATRI-Chat"
+  Sleep 1000
 
-  DetailPrint "用户数据清理完成。"
+  MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "$(DESC_DeleteData)" /SD IDNO IDYES choose_delete
+  Goto done
+
+choose_delete:
+  StrCpy $DeleteUserData "1"
+
+done:
+!macroend
+
+!macro NSIS_HOOK_POSTUNINSTALL
+  StrCmp $DeleteUserData "1" 0 done
+  IfFileExists "$LOCALAPPDATA\ATRI-Chat\*.*" 0 done
+
+  DetailPrint "$(DETAIL_DeleteData)"
+  RMDir /r "$LOCALAPPDATA\ATRI-Chat"
+  DetailPrint "$(DETAIL_DeleteDataDone)"
 
 done:
 !macroend

@@ -1,6 +1,6 @@
 [package]
 name = "atri-chat"
-version = "1.0.0"
+version = "1.0.1"
 description = "ATRI Chat - AI Agent System"
 authors = ["ATRI Chat Team"]
 license = "MIT"

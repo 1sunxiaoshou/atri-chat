@@ -185,7 +185,7 @@ wheels = [
 [[package]]
 name = "atri-chat"
 version = "1.0.1"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "fastapi", extra = ["standard"] },
@@ -208,6 +208,8 @@ dependencies = [
     { name = "langgraph-checkpoint-sqlite" },
     { name = "loguru" },
     { name = "psutil" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "pypinyin" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
@@ -216,6 +218,8 @@ dependencies = [
     { name = "sherpa-onnx" },
     { name = "sherpa-onnx-core" },
     { name = "soundfile" },
+    { name = "sqlalchemy" },
+    { name = "typing-extensions" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -230,17 +234,20 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "black" },
+    { name = "pyinstaller" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aiosqlite", specifier = ">=0.21.0" },
-    { name = "black", marker = "extra == 'dev'", specifier = ">=25.12.0" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.124.1" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "langchain", specifier = ">=1.2.0" },
+    { name = "aiosqlite" },
+    { name = "black", marker = "extra == 'dev'" },
+    { name = "fastapi", extras = ["standard"] },
+    { name = "httpx" },
+    { name = "langchain" },
     { name = "langchain-anthropic" },
     { name = "langchain-cohere" },
     { name = "langchain-deepseek" },
@@ -254,30 +261,37 @@ requires-dist = [
     { name = "langchain-qwq" },
     { name = "langchain-upstage" },
     { name = "langchain-xai" },
-    { name = "langgraph", specifier = ">=1.0.1" },
+    { name = "langgraph" },
     { name = "langgraph-checkpoint-sqlite" },
-    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "loguru" },
     { name = "psutil" },
-    { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.19.0" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyinstaller", marker = "extra == 'dev'" },
     { name = "pypinyin" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "python-multipart", specifier = ">=0.0.20" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.8" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+    { name = "python-dotenv" },
+    { name = "python-multipart" },
+    { name = "pyyaml" },
+    { name = "ruff", marker = "extra == 'dev'" },
     { name = "scipy" },
-    { name = "sherpa-onnx", specifier = ">=1.12.29" },
-    { name = "sherpa-onnx-core", specifier = ">=1.12.29" },
+    { name = "sherpa-onnx" },
+    { name = "sherpa-onnx-core" },
     { name = "soundfile" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.38.0" },
+    { name = "sqlalchemy" },
+    { name = "typing-extensions" },
+    { name = "uvicorn", extras = ["standard"] },
 ]
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "black" },
+    { name = "pyinstaller" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
 ]
 
 [[package]]

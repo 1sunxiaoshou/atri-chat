@@ -1,17 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "atri-chat"
 version = "1.0.1"
 description = "多角色 AI Agent 系统，支持多模型供应商、语音识别和语音合成"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.12"
+authors = [
+    { name = "atri-chat contributors" },
+]
+keywords = ["fastapi", "langchain", "langgraph", "tauri", "vrm", "tts", "asr"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     # Web 框架
-    "fastapi[standard]>=0.124.1",
-    "uvicorn[standard]>=0.38.0",
+    "fastapi[standard]",
+    "uvicorn[standard]",
+    # 核心配置与数据模型
+    "pydantic",
+    "pydantic-settings",
+    "typing-extensions",
     # AI 框架核心
-    "langchain>=1.2.0",
-    "langgraph>=1.0.1",
+    "langchain",
+    "langgraph",
     "langgraph-checkpoint-sqlite",
     # 核心驱动 (轻量级)
     "langchain-openai",
@@ -29,33 +49,74 @@ dependencies = [
     "langchain-perplexity",
     "langchain-upstage",
     # 数据库
-    "aiosqlite>=0.21.0",
+    "sqlalchemy",
+    "aiosqlite",
     # 工具
-    "httpx>=0.28.1",
-    "loguru>=0.7.3",
-    "python-multipart>=0.0.20",
-    "pyyaml>=6.0.3",
-    "python-dotenv>=1.2.1",
+    "httpx",
+    "loguru",
+    "python-multipart",
+    "pyyaml",
+    "python-dotenv",
     "pypinyin",
     "psutil",
     "scipy",
     # 语音识别
-    "sherpa-onnx>=1.12.29",
-    "sherpa-onnx-core>=1.12.29",
+    "sherpa-onnx",
+    "sherpa-onnx-core",
     "soundfile",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-asyncio>=1.3.0",
-    "black>=25.12.0",
-    "ruff>=0.14.8",
-    "pyinstaller>=6.19.0",
+    "black",
+    "pyinstaller",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
 ]
+
+[project.urls]
+Homepage = "https://github.com/1sunxiaoshou/atri-chat"
+Repository = "https://github.com/1sunxiaoshou/atri-chat"
+Issues = "https://github.com/1sunxiaoshou/atri-chat/issues"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-asyncio>=1.3.0",
+    "black",
+    "pyinstaller",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
 ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["api*", "core*"]
+exclude = ["data*", "docs*", "examples*", "frontend*", "logs*", "test*", "计划*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "frontend",
+    "data",
+    "logs",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["test"]
+python_files = ["test_*.py"]

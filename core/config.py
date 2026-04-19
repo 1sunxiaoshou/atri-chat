@@ -1,134 +1,91 @@
-"""系统配置与路径管理中枢"""
+"""系统配置与路径管理中枢。"""
+
+from __future__ import annotations
+
 import os
-import sys
-from enum import Enum
-from pathlib import Path
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
+
 from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-class Environment(str, Enum):
-    """环境枚举"""
-    DEVELOPMENT = "development"
-    PRODUCTION = "production"
-    STAGING = "staging"
-
-
-def get_base_dir() -> Path:
-    """获取应用根目录（绝对路径）
-    
-    智能识别三种模式：
-    1. 开发环境：返回源码根目录。
-    2. 绿色便携版：返回 .exe 同级目录。
-    3. 系统安装版：返回 %APPDATA%/ATRI-Chat 目录，确保 Windows 权限兼容性。
-    """
-    if getattr(sys, 'frozen', False):
-        # 获取当前运行的二进制文件所在目录
-        # 注意：Sidecar 模式下，它通常位于 .../ATRI Chat/binaries/
-        exe_dir = Path(sys.executable).parent.resolve()
-        
-        # 1. 路径规范化处理：如果我们在 binaries 子目录里，向上追溯到应用主根目录
-        app_root = exe_dir.parent if exe_dir.name.lower() == "binaries" else exe_dir
-        
-        # 2. 判断是否为“系统安装模式”
-        # 获取常见的受限系统路径
-        appdata_local = os.environ.get('LOCALAPPDATA', '')
-        program_files = os.environ.get('ProgramFiles', '')
-        program_files_x86 = os.environ.get('ProgramFiles(x86)', '')
-        
-        # 典型的 Tauri 安装路径：
-        # - 用户安装: %LOCALAPPDATA%/atri-chat
-        # - 系统安装: %ProgramFiles%/ATRI Chat
-        is_in_system_dir = False
-        str_app_root = str(app_root).lower()
-        
-        if appdata_local and str_app_root.startswith(appdata_local.lower()):
-            # 这里的逻辑是：如果用户在本地 AppData 下运行，通常是自动更新安装的路径
-            is_in_system_dir = True
-        elif program_files and str_app_root.startswith(program_files.lower()):
-            is_in_system_dir = True
-        elif program_files_x86 and str_app_root.startswith(program_files_x86.lower()):
-            is_in_system_dir = True
-
-        # 3. 根据模式返回基准路径
-        if is_in_system_dir:
-            # 安装模式：将数据统一归口到 AppData/Roaming 下，确保 100% 有写入权限
-            roaming_data = Path(os.environ.get('APPDATA', '')).resolve() / "ATRI-Chat"
-            return roaming_data
-        
-        # 便携模式：直接使用程序同级目录
-        return app_root
-        
-    # 开发环境：返回项目源码根目录 (atri-backend/core/config.py -> atri-backend/)
-    return Path(__file__).parent.parent.resolve()
+from .runtime import (
+    AppEnv,
+    RuntimeLayout,
+    resolve_runtime_layout,
+)
 
 
 class AppSettings(BaseSettings):
-    """应用全局配置（单点事实源）"""
-    
-    # 1. 基础环境配置
-    env: str = Field(default=Environment.DEVELOPMENT.value, alias="ENV")
-    backend_port: int = Field(default=9099, alias="BACKEND_PORT")
-    
-    # 2. 根目录（自动计算，支持通过 BASE_DIR 环境变量注入）
-    base_dir: Path = Field(default_factory=get_base_dir, alias="BASE_DIR")
-    
-    # 3. 日志与调试
-    log_level: str | None = Field(default=None, alias="LOG_LEVEL")
-    enable_http_logging: bool = Field(default=True, alias="ENABLE_HTTP_LOGGING")
-    enable_llm_call_logger: bool = Field(default=False, alias="ENABLE_LLM_CALL_LOGGER")
+    """应用全局配置（单点事实源）。"""
 
-    # 4. 路径计算属性 (分层结构优化)
-    
+    app_env: str = Field(default=AppEnv.DEVELOPMENT.value)
+    runtime_mode: str = Field(default="development")
+    backend_port: int = Field(
+        default=9099,
+        validation_alias="ATRI_BACKEND_PORT",
+    )
+
+    app_root: Path | None = None
+    data_root: Path | None = None
+    logs_root: Path | None = None
+
+    log_level: str | None = Field(
+        default=None,
+        validation_alias="LOG_LEVEL",
+    )
+    enable_http_logging: bool = Field(
+        default=True,
+        validation_alias="ENABLE_HTTP_LOGGING",
+    )
+    enable_llm_call_logger: bool = Field(
+        default=False,
+        validation_alias="ENABLE_LLM_CALL_LOGGER",
+    )
+
     @property
     def data_dir(self) -> Path:
-        """数据存放根目录"""
-        return self.base_dir / "data"
+        """数据存放根目录。"""
+        return self.data_root
 
     @property
     def logs_dir(self) -> Path:
-        """日志存放目录"""
-        return self.base_dir / "logs"
+        """日志存放目录。"""
+        return self.logs_root
 
     @property
     def db_dir(self) -> Path:
-        """数据库存放目录"""
+        """数据库存放目录。"""
         return self.data_dir / "sqlite"
 
     @property
     def models_dir(self) -> Path:
-        """AI 模型根目录"""
+        """AI 模型根目录。"""
         return self.data_dir / "models"
     
     @property
     def memory_dir(self) -> Path:
-        """长期记忆存储目录"""
+        """长期记忆存储目录。"""
         return self.data_dir / "memory"
     
     @property
     def asr_models_dir(self) -> Path:
-        """SenseVoice ASR 模型存放目录"""
+        """SenseVoice ASR 模型存放目录。"""
         return self.models_dir / "asr"
 
     @property
     def assets_dir(self) -> Path:
-        """应用资产根目录 (原 uploads)"""
+        """应用资产根目录 (原 uploads)。"""
         return self.data_dir / "assets"
 
     @property
     def images_dir(self) -> Path:
-        """图片资产 (包括头像/立绘)"""
+        """图片资产 (包括头像/立绘)。"""
         return self.assets_dir / "images"
 
     @property
-    def avatars_dir(self) -> Path:
-        """兼容性别名"""
-        return self.images_dir
-
-    @property
     def vrm_dir(self) -> Path:
-        """VRM 相关资产根目录"""
+        """VRM 相关资产根目录。"""
         return self.assets_dir / "vrm"
 
     @property
@@ -137,14 +94,13 @@ class AppSettings(BaseSettings):
 
     @property
     def vrm_motions_dir(self) -> Path:
-        """VRM 动作/动画文件"""
+        """VRM 动作/动画文件。"""
         return self.vrm_dir / "motions"
 
     @property
     def vrm_thumbnails_dir(self) -> Path:
         return self.vrm_dir / "thumbnails"
 
-    # 5. 数据库连接字符串与路径
     @property
     def app_db_url(self) -> str:
         db_url = os.getenv("DATABASE_URL")
@@ -160,30 +116,33 @@ class AppSettings(BaseSettings):
     def checkpoints_db_path(self) -> str:
         return str(self.db_dir / "checkpoints.db")
 
-    # 6. 配置加载规则
     model_config = SettingsConfigDict(
-        env_file='.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     @model_validator(mode='after')
-    def set_default_log_level(self) -> 'AppSettings':
-        """根据环境设置默认日志级别"""
+    def finalize_settings(self) -> "AppSettings":
+        """规范化环境并补齐派生路径。"""
+        layout: RuntimeLayout = resolve_runtime_layout()
+        self.app_env = layout.app_env.value
+        self.runtime_mode = layout.mode.value
+        self.app_root = layout.app_root
+        self.data_root = layout.data_root
+        self.logs_root = layout.logs_root
+
         if not self.log_level:
-            if self.env.lower() == Environment.PRODUCTION.value:
+            if self.app_env == AppEnv.PRODUCTION.value:
                 self.log_level = "WARNING"
-            elif self.env.lower() == Environment.STAGING.value:
-                self.log_level = "INFO"
             else:
                 self.log_level = "DEBUG"
         else:
             self.log_level = self.log_level.upper()
         return self
 
-    # 7. 显式初始化辅助方法
     def ensure_directories(self):
-        """显式创建所有必要的系统目录"""
+        """显式创建所有必要的系统目录。"""
         dirs = [
             self.data_dir,
             self.db_dir,
@@ -204,5 +163,5 @@ class AppSettings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> AppSettings:
-    """获取全站唯一的配置单例"""
+    """获取全站唯一的配置单例。"""
     return AppSettings()
