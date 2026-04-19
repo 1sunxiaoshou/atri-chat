@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
     setup_logging(
         log_level=settings.log_level,
         log_dir=settings.logs_dir,
-        is_development=(settings.env == "development")
+        is_development=(settings.app_env == "development")
     )
     
     # 获取 logger 实例
@@ -85,7 +85,10 @@ async def lifespan(app: FastAPI):
     )
     
     logger.success(f"[OK] ATRI Backend Service is ready on port {settings.backend_port}")
-    logger.info(f"Environment: {settings.env} | PID: {os.getpid()} | Parent PID: {os.getppid()}")
+    logger.info(
+        f"Environment: {settings.app_env} | Runtime Mode: {settings.runtime_mode} | "
+        f"Data Root: {settings.data_dir} | PID: {os.getpid()} | Parent PID: {os.getppid()}"
+    )
 
     yield
     

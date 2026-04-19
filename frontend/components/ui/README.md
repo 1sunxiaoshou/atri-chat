@@ -547,7 +547,7 @@ document.documentElement.classList.toggle('dark');
 ## 获取帮助
 
 - 查看 `/style-guide` 页面获取实时示例
-- 阅读 `DEVELOPMENT_GUIDE.md` 了解完整开发规范
+- 阅读 [`docs/01-入门/开发指南.md`](../../../docs/01-入门/开发指南.md) 了解完整开发规范
 - 参考现有组件的使用方式（如 `AdminCharacters.tsx`）
 
 ---

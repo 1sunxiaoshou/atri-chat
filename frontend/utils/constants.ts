@@ -27,7 +27,7 @@ export const getApiBaseUrl = async (): Promise<string> => {
       return `http://localhost:${port}`;
     } catch (e) {
       console.error("Failed to fetch backend port from Tauri, falling back to 9099", e);
-      const backendPort = import.meta.env.BACKEND_PORT || import.meta.env.VITE_BACKEND_PORT || '9099';
+      const backendPort = import.meta.env.VITE_BACKEND_PORT || '9099';
       return `http://localhost:${backendPort}`;
     }
   }
@@ -38,7 +38,7 @@ export const getApiBaseUrl = async (): Promise<string> => {
   }
 
   // 4. 开发环境默认值
-  const backendPort = import.meta.env.BACKEND_PORT || import.meta.env.VITE_BACKEND_PORT || '9099';
+  const backendPort = import.meta.env.VITE_BACKEND_PORT || '9099';
   return `http://localhost:${backendPort}`;
 };
 

@@ -55,7 +55,7 @@
           "SimpChinese",
           "English"
         ],
-        "displayLanguageSelector": true,
+        "displayLanguageSelector": false,
         "installerHooks": "nsis/custom_settings.nsh"
       }
     },
