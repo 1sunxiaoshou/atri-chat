@@ -28,7 +28,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     for (const k of keys) {
       value = value?.[k];
-      if (value === undefined) break;
+      if (value === undefined) {break;}
     }
 
     let text = typeof value === 'string' ? value : key;

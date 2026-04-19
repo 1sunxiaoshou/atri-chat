@@ -10,6 +10,16 @@ export class HttpClient {
   constructor() {}
 
   /**
+   * 从响应头中提取链路追踪元数据
+   */
+  private getResponseMeta(response: Response): Pick<ApiResponse<unknown>, 'request_id' | 'process_time'> {
+    return {
+      request_id: response.headers.get('X-Request-ID') || undefined,
+      process_time: response.headers.get('X-Process-Time') || undefined
+    };
+  }
+
+  /**
    * 构建完整的 URL
    * @param endpoint - API 端点
    * @returns 完整的 URL
@@ -64,6 +74,8 @@ export class HttpClient {
    * @returns 统一格式的 API 响应
    */
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    const responseMeta = this.getResponseMeta(response);
+
     if (!response.ok) {
       const errorType = this.categorizeError(response.status);
       const errorText = await response.text();
@@ -103,19 +115,30 @@ export class HttpClient {
       Logger.error(`API 请求失败: ${response.url}`, new Error(errorMessage), {
         status: response.status,
         errorType,
+        request_id: responseMeta.request_id,
+        process_time: responseMeta.process_time,
         details: errorDetails
       }, LogCategory.API);
 
       return {
         code: response.status,
         message: errorMessage,
-        data: errorDetails as T
+        data: errorDetails as T,
+        ...responseMeta
       };
     }
 
     const jsonData = await response.json();
-    Logger.debug('API 响应成功', { url: response.url, data: jsonData }, LogCategory.API);
-    return jsonData;
+    Logger.debug('API 响应成功', {
+      url: response.url,
+      status: response.status,
+      request_id: responseMeta.request_id,
+      process_time: responseMeta.process_time
+    }, LogCategory.API);
+    return {
+      ...jsonData,
+      ...responseMeta
+    };
   }
 
   /**
@@ -147,7 +170,9 @@ export class HttpClient {
       return {
         code: 0,
         message: friendlyMessage,
-        data: {} as T
+        data: {} as T,
+        request_id: undefined,
+        process_time: undefined
       };
     }
   }

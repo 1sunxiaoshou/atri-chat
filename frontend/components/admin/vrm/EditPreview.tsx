@@ -16,7 +16,7 @@ export const VRMEditPreview: React.FC<{
     const hasChanges = name.trim() !== avatar.name && name.trim() !== '';
 
     const handleSave = async () => {
-        if (!hasChanges) return onClose();
+        if (!hasChanges) {return onClose();}
         setIsSaving(true);
         try { await onSave(avatar.id, name.trim()); onClose(); } finally { setIsSaving(false); }
     };

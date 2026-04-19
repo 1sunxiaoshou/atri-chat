@@ -107,7 +107,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // autoPlay：监听 messages，新增 assistant 消息时自动播放 TTS
   useEffect(() => {
-    if (!autoPlay || vrmDisplayMode === 'vrm' || messages.length === 0) return;
+    if (!autoPlay || vrmDisplayMode === 'vrm' || messages.length === 0) {return;}
 
     // 找最后一条 assistant 消息
     const lastMsg = messages[messages.length - 1];
@@ -130,9 +130,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setGlobalToast({ success: false, message: error });
       const timer = setTimeout(() => {
         setGlobalToast(null);
-        if (chatError) clearChatError();
-        if (vrmError) clearVrmError();
-        if (ttsError) clearTtsError();
+        if (chatError) {clearChatError();}
+        if (vrmError) {clearVrmError();}
+        if (ttsError) {clearTtsError();}
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -175,7 +175,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // 使用startTransition将消息发送标记为低优先级更新
       // 这样VRM渲染不会被阻塞
       startTransition(() => {
-        if (!activeModel) return;
+        if (!activeModel) {return;}
         
         sendMessage(
           activeConversationId,
@@ -214,7 +214,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // 优化：MessageList相关的回调只在非VRM模式下创建
   const handleCopyMessage = useCallback(async (messageId: string | number, content: string) => {
-    if (vrmDisplayMode === 'vrm') return; // VRM模式下不需要
+    if (vrmDisplayMode === 'vrm') {return;} // VRM模式下不需要
 
     try {
       await navigator.clipboard.writeText(content);
@@ -226,7 +226,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [vrmDisplayMode, t]);
 
   const handlePlayTTS = useCallback(async (messageId: string | number, text: string) => {
-    if (vrmDisplayMode === 'vrm') return; // VRM模式下不需要
+    if (vrmDisplayMode === 'vrm') {return;} // VRM模式下不需要
 
     // 传递当前角色 ID，使用角色绑定的音色
     await playTTS(messageId, text, activeCharacter?.id);

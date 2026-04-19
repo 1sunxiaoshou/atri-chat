@@ -43,7 +43,7 @@ export function GenshinControls({
 
     // 每帧检查地面碰撞并调整距离
     useFrame(() => {
-        if (!controlsRef.current) return;
+        if (!controlsRef.current) {return;}
 
         // 更新目标点
         targetVector.current.set(...target);

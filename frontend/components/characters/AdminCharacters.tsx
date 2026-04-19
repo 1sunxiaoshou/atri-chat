@@ -58,7 +58,15 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
   const handleSave = async (character: Character, motionBindings?: any[]) => {
     if (!character.id) {
       // 创建新角色
-      const { id, created_at, updated_at, avatar, voice_asset, primary_model, ...newCharData } = character;
+      const {
+        id: _id,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        avatar: _avatar,
+        voice_asset: _voiceAsset,
+        primary_model: _primaryModel,
+        ...newCharData
+      } = character;
 
       // 清理空字符串字段，避免后端验证失败
       const cleanedData: any = { ...newCharData };
@@ -92,17 +100,17 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
     } else {
       // 更新现有角色
       const originalChar = characters.find(c => c.id === character.id);
-      if (!originalChar) return;
+      if (!originalChar) {return;}
 
       const updateData: Partial<Character> = {};
-      if (character.name !== originalChar.name) updateData.name = character.name;
-      if (character.system_prompt !== originalChar.system_prompt) updateData.system_prompt = character.system_prompt;
-      if (character.primary_model_id !== originalChar.primary_model_id) updateData.primary_model_id = character.primary_model_id;
-      if (character.primary_provider_config_id !== originalChar.primary_provider_config_id) updateData.primary_provider_config_id = character.primary_provider_config_id;
-      if (character.avatar_id !== originalChar.avatar_id) updateData.avatar_id = character.avatar_id;
-      if (character.voice_asset_id !== originalChar.voice_asset_id) updateData.voice_asset_id = character.voice_asset_id;
-      if (character.portrait_url !== originalChar.portrait_url) updateData.portrait_url = character.portrait_url;
-      if (character.enabled !== originalChar.enabled) updateData.enabled = character.enabled;
+      if (character.name !== originalChar.name) {updateData.name = character.name;}
+      if (character.system_prompt !== originalChar.system_prompt) {updateData.system_prompt = character.system_prompt;}
+      if (character.primary_model_id !== originalChar.primary_model_id) {updateData.primary_model_id = character.primary_model_id;}
+      if (character.primary_provider_config_id !== originalChar.primary_provider_config_id) {updateData.primary_provider_config_id = character.primary_provider_config_id;}
+      if (character.avatar_id !== originalChar.avatar_id) {updateData.avatar_id = character.avatar_id;}
+      if (character.voice_asset_id !== originalChar.voice_asset_id) {updateData.voice_asset_id = character.voice_asset_id;}
+      if (character.portrait_url !== originalChar.portrait_url) {updateData.portrait_url = character.portrait_url;}
+      if (character.enabled !== originalChar.enabled) {updateData.enabled = character.enabled;}
 
       if (Object.keys(updateData).length > 0) {
         await api.updateCharacter(character.id, updateData);

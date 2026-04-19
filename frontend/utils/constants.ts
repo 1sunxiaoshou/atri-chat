@@ -68,7 +68,7 @@ export const initApiConfig = async () => {
  * @param path - 资源路径，如 /static/images/avatar.jpg
  */
 export const buildResourceUrl = (path: string | undefined): string => {
-  if (!path) return '';
+  if (!path) {return '';}
 
   // 已经是完整 URL
   if (path.startsWith('http://') || path.startsWith('https://')) {

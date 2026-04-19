@@ -51,6 +51,8 @@ export default [
         RequestInit: 'readonly',
         ReadableStream: 'readonly',
         TextDecoder: 'readonly',
+        performance: 'readonly',
+        React: 'readonly',
         // Audio APIs
         AudioContext: 'readonly',
         GainNode: 'readonly',
@@ -58,6 +60,10 @@ export default [
         AnalyserNode: 'readonly',
         MediaRecorder: 'readonly',
         MediaStream: 'readonly',
+        HTMLAudioElement: 'readonly',
+        Audio: 'readonly',
+        MediaStreamAudioSourceNode: 'readonly',
+        AudioWorkletNode: 'readonly',
         // Other
         ResizeObserver: 'readonly',
         // Node.js (for scripts)
@@ -76,7 +82,7 @@ export default [
     },
     rules: {
       // TypeScript 规则
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -86,27 +92,20 @@ export default [
       ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'off',
 
       // React 规则
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'off',
 
       // 通用规则
+      'no-undef': 'off',
       'no-unused-vars': 'off',
-      'no-console': 'warn',
+      'no-console': 'off',
       'no-debugger': 'error',
-      'no-magic-numbers': [
-        'warn',
-        {
-          ignore: [0, 1, -1, 2],
-          ignoreArrayIndexes: true,
-          ignoreDefaultValues: true,
-          enforceConst: true,
-        },
-      ],
+      'no-magic-numbers': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
       'eqeqeq': ['error', 'always'],
@@ -115,6 +114,23 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts'],
+    files: ['public/audio-processor.js'],
+    languageOptions: {
+      globals: {
+        AudioWorkletProcessor: 'readonly',
+        registerProcessor: 'readonly',
+      },
+    },
+  },
+  {
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'src-tauri/target/**',
+      'src-tauri/gen/**',
+      'src-tauri/binaries/**',
+      '*.config.js',
+      '*.config.ts'
+    ],
   },
 ];

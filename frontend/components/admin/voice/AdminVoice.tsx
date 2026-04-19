@@ -111,8 +111,8 @@ const AdminVoice: React.FC = () => {
     };
 
     const filteredVoices = voices.filter(v => {
-        if (selectedProviderId && v.provider_id !== selectedProviderId) return false;
-        if (searchQuery && !v.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        if (selectedProviderId && v.provider_id !== selectedProviderId) {return false;}
+        if (searchQuery && !v.name.toLowerCase().includes(searchQuery.toLowerCase())) {return false;}
         return true;
     });
 

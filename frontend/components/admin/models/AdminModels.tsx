@@ -65,16 +65,16 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
 
   const filteredModels = models.filter(m => {
     // 1. 供应商过滤
-    if (selectedProvider !== null && m.provider_config_id !== selectedProvider) return false;
+    if (selectedProvider !== null && m.provider_config_id !== selectedProvider) {return false;}
     
     // 2. 搜索过滤
-    if (searchQuery && !m.model_id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !m.model_id.toLowerCase().includes(searchQuery.toLowerCase())) {return false;}
     
     // 3. 启用状态过滤
-    if (showEnabledOnly && !m.enabled) return false;
+    if (showEnabledOnly && !m.enabled) {return false;}
     
     // 4. 分类过滤 (Chat/Embedding/Rerank)
-    if (activeCategory !== 'all' && m.model_type !== activeCategory) return false;
+    if (activeCategory !== 'all' && m.model_type !== activeCategory) {return false;}
     
     // 5. 核心能力过滤 (Multi-select AND logic)
     if (selectedCapabilities.size > 0) {
@@ -89,7 +89,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       
       for (const capKey of selectedCapabilities) {
         const modelKey = capabilityMap[capKey];
-        if (modelKey && !m[modelKey]) return false;
+        if (modelKey && !m[modelKey]) {return false;}
       }
     }
     
@@ -122,7 +122,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   };
 
   const handleSaveProvider = async () => {
-    if (!editingProvider || !editingProvider.name) return;
+    if (!editingProvider || !editingProvider.name) {return;}
 
     try {
       if (editingProvider.id) {
@@ -169,7 +169,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       type: 'danger',
       onConfirm: async () => {
         await providersApi.deleteProvider(configId);
-        if (selectedProvider === configId) setSelectedProvider(null);
+        if (selectedProvider === configId) {setSelectedProvider(null);}
         await onRefresh();
       }
     });
@@ -197,7 +197,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   };
 
   const handleSaveModel = async () => {
-    if (!editingModel || !editingModel.model_id || !editingModel.provider_config_id) return;
+    if (!editingModel || !editingModel.model_id || !editingModel.provider_config_id) {return;}
     const existing = models.find(m => m.provider_config_id === editingModel.provider_config_id && m.model_id === editingModel.model_id);
     if (existing) {
       await modelsApi.updateModel(existing.id, editingModel as Model);
@@ -230,7 +230,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
 
     try {
       await modelsApi.toggleModel(model.id, newEnabled, model);
-    } catch (error) {
+    } catch {
       // 出错时回滚
       updateModelStatus(model.id, !newEnabled);
       setToast({ success: false, message: t('admin.operationFailed') });
@@ -239,7 +239,7 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   };
 
   const handleSyncModels = async () => {
-    if (!selectedProvider || isSyncing) return;
+    if (!selectedProvider || isSyncing) {return;}
     setIsSyncing(true);
     try {
       const response = await modelsApi.syncProviderModels(selectedProvider, false);
@@ -253,10 +253,10 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       let resultMessage = total === 0
         ? t('admin.noModelsFound')
         : t('admin.syncResult', { added, updated: updated > 0 ? t('admin.updated', { count: updated }) : '' });
-      if (failed > 0) resultMessage += t('admin.failed', { count: failed });
+      if (failed > 0) {resultMessage += t('admin.failed', { count: failed });}
       setToast({ success: isSuccess, message: resultMessage });
       setTimeout(() => setToast(null), 3000);
-      if (isSuccess || added > 0) await onRefresh();
+      if (isSuccess || added > 0) {await onRefresh();}
     } catch (error: any) {
       setToast({ success: false, message: error.message || t('admin.unknownError') });
       setTimeout(() => setToast(null), 3000);
@@ -268,8 +268,8 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
   const handleToggleCapability = (cap: string) => {
     setSelectedCapabilities(prev => {
       const next = new Set(prev);
-      if (next.has(cap)) next.delete(cap);
-      else next.add(cap);
+      if (next.has(cap)) {next.delete(cap);}
+      else {next.add(cap);}
       return next;
     });
   };

@@ -56,7 +56,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
         }
     };
 
-    if (!model) return null;
+    if (!model) {return null;}
 
     const toggleCapability = (capabilityKey: string) => {
         const currentValue = (model as any)[capabilityKey] || false;

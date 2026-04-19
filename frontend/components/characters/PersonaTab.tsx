@@ -34,7 +34,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file) {return;}
 
         if (!file.type.startsWith('image/')) {
             alert(t('character.selectImageFile'));
@@ -72,12 +72,12 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
     // 从 has_* 字段生成能力标签
     const getCapabilityTags = (model: Model): string[] => {
         const tags: string[] = [];
-        if (model.has_vision) tags.push('Vision');
-        if (model.has_audio) tags.push('Audio');
-        if (model.has_video) tags.push('Video');
-        if (model.has_reasoning) tags.push('Reasoning');
-        if (model.has_tool_use) tags.push('Tool Use');
-        if (model.has_document) tags.push('Document');
+        if (model.has_vision) {tags.push('Vision');}
+        if (model.has_audio) {tags.push('Audio');}
+        if (model.has_video) {tags.push('Video');}
+        if (model.has_reasoning) {tags.push('Reasoning');}
+        if (model.has_tool_use) {tags.push('Tool Use');}
+        if (model.has_document) {tags.push('Document');}
         return tags;
     };
 

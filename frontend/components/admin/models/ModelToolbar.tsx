@@ -150,7 +150,7 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
                                     <div className="my-2 h-px bg-border/50" />
                                     <button
                                         onClick={() => {
-                                            if (showEnabledOnly) onToggleEnabledFilter();
+                                            if (showEnabledOnly) {onToggleEnabledFilter();}
                                             selectedCapabilities.forEach(c => onToggleCapability(c));
                                             setIsFilterOpen(false);
                                         }}

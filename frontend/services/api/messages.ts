@@ -164,7 +164,7 @@ export const messagesApi = {
     let buffer = '';
 
     // VRM 模式下收集所有段的文本
-    let vrmSegments: string[] = [];
+    const vrmSegments: string[] = [];
     const isVrmMode = body.display_mode === 'vrm';
 
     // SSE 消息处理器（策略模式）
@@ -210,14 +210,14 @@ export const messagesApi = {
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {break;}
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
+            if (!line.startsWith('data: ')) {continue;}
 
             try {
               const data = JSON.parse(line.slice(6));
@@ -230,7 +230,7 @@ export const messagesApi = {
                 };
               }
 
-              if (data.done) break;
+              if (data.done) {break;}
 
               handleMessage(data);
 

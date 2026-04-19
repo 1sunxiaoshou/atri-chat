@@ -118,7 +118,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Sample-Rate", "X-Channels", "X-Bit-Depth"],
+    expose_headers=[
+        "X-Sample-Rate",
+        "X-Channels",
+        "X-Bit-Depth",
+        "X-Request-ID",
+        "X-Process-Time",
+    ],
     max_age=3600,
 )
 

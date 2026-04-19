@@ -76,10 +76,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   const onDragStart = (e: React.DragEvent, item: Character) => { setDraggedItem(item); e.dataTransfer.effectAllowed = 'move'; };
   const onDragOver = (e: React.DragEvent, targetItem: Character) => {
     e.preventDefault();
-    if (!draggedItem || draggedItem.id === targetItem.id) return;
+    if (!draggedItem || draggedItem.id === targetItem.id) {return;}
     const fromIndex = localCharacters.findIndex(c => c.id === draggedItem.id);
     const toIndex = localCharacters.findIndex(c => c.id === targetItem.id);
-    if (fromIndex === -1 || toIndex === -1) return;
+    if (fromIndex === -1 || toIndex === -1) {return;}
     const newList = [...localCharacters];
     newList.splice(fromIndex, 1);
     newList.splice(toIndex, 0, draggedItem);
@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <button
                   key={char.id}
-                  ref={el => { if (el) itemsRef.current.set(char.id, el); }}
+                  ref={el => { if (el) {itemsRef.current.set(char.id, el);} }}
                   draggable
                   onDragStart={(e) => onDragStart(e, char)}
                   onDragOver={(e) => onDragOver(e, char)}

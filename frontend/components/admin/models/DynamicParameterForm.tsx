@@ -15,7 +15,7 @@ export const DynamicParameterForm: React.FC<DynamicParameterFormProps> = ({
   onChange,
   title
 }) => {
-  if (Object.keys(schema).length === 0) return null;
+  if (Object.keys(schema).length === 0) {return null;}
 
   const renderField = (key: string, field: ParameterSchema) => {
     const value = values[key] ?? field.default;

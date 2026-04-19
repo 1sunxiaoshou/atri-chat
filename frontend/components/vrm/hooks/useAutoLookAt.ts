@@ -56,7 +56,7 @@ export function useAutoLookAt(
 
         // 鼠标移动监听
         const handleMouseMove = (event: MouseEvent) => {
-            if (currentModeRef.current !== 'mouse') return;
+            if (currentModeRef.current !== 'mouse') {return;}
 
             // 直接使用事件的 clientX/Y 和窗口尺寸，避免频繁调用 getBoundingClientRect
             const canvas = gl.domElement;
@@ -73,7 +73,7 @@ export function useAutoLookAt(
 
         controllerRef.current = {
             update: (delta: number) => {
-                if (!vrm.lookAt) return;
+                if (!vrm.lookAt) {return;}
 
                 const mode = currentModeRef.current;
 

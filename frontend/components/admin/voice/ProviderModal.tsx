@@ -113,7 +113,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
     };
 
     const isFormValid = () => {
-        if (!providerType || !name.trim()) return false;
+        if (!providerType || !name.trim()) {return false;}
 
         // 校验动态配置项中的必填项
         for (const key of Object.keys(formData)) {
