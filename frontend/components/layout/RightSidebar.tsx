@@ -2,12 +2,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { Model, ModelParameters, ModelParameterSchemaResponse, ParameterSchema, Provider } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { modelsApi } from '../../services/api/models';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelector';
 import ParameterField from './ParameterField';
 import { useAudioStore } from '../../store/useAudioStore';
 import { useDataStore } from '../../store/useDataStore';
+import { getEnabledCapabilities } from '../../utils/modelCapabilities';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -53,33 +55,36 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       return;
     }
 
+    let cancelled = false;
     setIsLoadingSchema(true);
-    fetch(`/api/v1/models/${activeModel.id}/parameter-schema`)
-      .then(response => {
-        if (!response.ok) {throw new Error('Failed to fetch parameter schema');}
-        return response.json();
-      })
+
+    modelsApi.getParameterSchema(activeModel.id)
       .then(result => {
+        if (cancelled) {return;}
+        if (result.code !== 200) {
+          throw new Error(result.message || 'Failed to fetch parameter schema');
+        }
         setParameterSchema(result.data);
-        setIsLoadingSchema(false);
       })
       .catch(error => {
-        console.error('Error fetching parameter schema:', error);
-        setIsLoadingSchema(false);
+        if (!cancelled) {
+          console.error('Error fetching parameter schema:', error);
+          setParameterSchema(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingSchema(false);
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeModel?.id]);
 
   // 从 has_* 字段生成能力标签
-  const getCapabilityTags = (model: Model): string[] => {
-    const tags: string[] = [];
-    if (model.has_vision) {tags.push('Vision');}
-    if (model.has_audio) {tags.push('Audio');}
-    if (model.has_video) {tags.push('Video');}
-    if (model.has_reasoning) {tags.push('Reasoning');}
-    if (model.has_tool_use) {tags.push('Tool Use');}
-    if (model.has_document) {tags.push('Document');}
-    return tags;
-  };
+  const getCapabilityTags = (model: Model): string[] => getEnabledCapabilities(model, t).map(({ label }) => label);
 
   // 转换模型列表为 HierarchicalItem 格式
   const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
@@ -88,7 +93,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       return {
         id: model.id,
         label: model.model_id,
-        category: provider?.name || `Provider #${model.provider_config_id}`,
+        category: provider?.name || t('admin.providerFallback', { id: model.provider_config_id }),
         tags: getCapabilityTags(model)
       };
     });
@@ -141,7 +146,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-border bg-muted/5">
           <div className="flex-1 min-w-0 mr-4">
             <h3 className="text-lg font-bold text-foreground tracking-tight truncate">{t('chat.settings.title')}</h3>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium mt-1">Parameters Configuration</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium mt-1">{t('chat.settings.parametersConfiguration')}</p>
           </div>
           <Button
             variant="ghost"
@@ -168,7 +173,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             >
               {activeModel ? (
                 <span className="truncate">
-                  {providers.find((p: Provider) => p.id === activeModel.provider_config_id)?.name || `Provider #${activeModel.provider_config_id}`} / {activeModel.model_id}
+                  {providers.find((p: Provider) => p.id === activeModel.provider_config_id)?.name || t('admin.providerFallback', { id: activeModel.provider_config_id })} / {activeModel.model_id}
                 </span>
               ) : (
                 <span>{t('chat.settings.selectModel')}</span>

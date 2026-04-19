@@ -1,8 +1,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Sidebar from './components/layout/Sidebar';
-import ChatInterface from './components/chat/ChatInterface';
 import Toast, { ToastMessage } from './components/ui/Toast';
 
+const ChatInterface = React.lazy(() => import('./components/chat/ChatInterface'));
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 const SettingsView = React.lazy(() => import('./components/settings/SettingsView'));
 const AdminCharacters = React.lazy(() => import('./components/characters/AdminCharacters').then(m => ({ default: m.AdminCharacters })));
@@ -252,7 +252,7 @@ const App: React.FC = () => {
                 size="icon"
                 onClick={() => setIsMobileSidebarOpen(true)}
                 className="lg:hidden absolute top-4 left-4 h-10 w-10 text-muted-foreground hover:text-foreground"
-                aria-label="Open menu"
+                aria-label={t('app.openMenu')}
               >
                 <Menu size={20} />
               </Button>

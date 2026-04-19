@@ -90,7 +90,7 @@ const GeneralSettings: React.FC = () => {
                     value={language}
                     onChange={(val) => setLanguage(val as any)}
                     options={[
-                      { label: 'English', value: 'en' },
+                      { label: t('settings.english'), value: 'en' },
                       { label: t('settings.simplifiedChinese'), value: 'zh' }
                     ]}
                     className="w-full max-w-md"

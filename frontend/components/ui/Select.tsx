@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { cn } from "../../utils/cn"
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface SelectOption {
   label: string;
@@ -22,12 +23,14 @@ const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   options,
-  placeholder = 'Select...',
+  placeholder,
   className,
   disabled = false
 }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resolvedPlaceholder = placeholder ?? t('ui.selectPlaceholder');
 
   const selectedOption = options.find(opt => opt.value === value);
 
@@ -74,7 +77,7 @@ const Select: React.FC<SelectProps> = ({
               {selectedOption.label}
             </span>
           ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
+            <span className="text-muted-foreground">{resolvedPlaceholder}</span>
           )}
         </span>
         <ChevronDown size={14} className={cn("text-muted-foreground transition-transform opacity-50", isOpen && "rotate-180")} />
@@ -110,7 +113,7 @@ const Select: React.FC<SelectProps> = ({
               ))
             )}
             {options.length === 0 && (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">No options</div>
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">{t('ui.noOptions')}</div>
             )}
           </div>
         </div>

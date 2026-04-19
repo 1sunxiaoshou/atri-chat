@@ -13,6 +13,12 @@ export function VRMRenderSettings({ className }: { className?: string }) {
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
     
     const { config, setRenderConfig } = useVRMStore();
+    const backgroundOptions = [
+        { value: 'none', label: t('vrm.background.none') },
+        { value: 'BG_AronaRoom.jpg', label: t('vrm.background.aronaRoomOut') },
+        { value: 'BG_AronaRoom_In.jpg', label: t('vrm.background.aronaRoomIn') },
+        { value: 'BG_GameDevRoom.jpg', label: t('vrm.background.gameDevRoom') },
+    ];
 
     return (
         <div className={cn(
@@ -23,13 +29,13 @@ export function VRMRenderSettings({ className }: { className?: string }) {
             <div className="space-y-3">
                 <div className="flex items-center gap-2 text-gray-400 font-semibold mb-1">
                     <Sparkles className="w-3 h-3 text-yellow-500" />
-                    <span>{t('vrm.lightingSettings') || '光照调节'}</span>
+                    <span>{t('vrm.lightingSettings')}</span>
                 </div>
                 
                 {/* 主光源控制 */}
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] text-gray-400">
-                        <span>{t('vrm.mainLight') || '主光源'}</span>
+                        <span>{t('vrm.mainLight')}</span>
                         <span className="text-blue-400 font-bold">{config.mainLightIntensity.toFixed(1)}</span>
                     </div>
                     <input
@@ -43,7 +49,7 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                 {/* 环境补光控制 */}
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] text-gray-400">
-                        <span>{t('vrm.ambientLight') || '环境补光'}</span>
+                        <span>{t('vrm.ambientLight')}</span>
                         <span className="text-emerald-400 font-bold">{config.ambientLightIntensity.toFixed(1)}</span>
                     </div>
                     <input
@@ -57,7 +63,7 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                 {/* 边缘补光控制 */}
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] text-gray-400">
-                        <span>{t('vrm.rimLight') || '边缘补光'}</span>
+                        <span>{t('vrm.rimLight')}</span>
                         <span className="text-purple-400 font-bold">{config.rimLightIntensity.toFixed(1)}</span>
                     </div>
                     <input
@@ -81,8 +87,8 @@ export function VRMRenderSettings({ className }: { className?: string }) {
 
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
-                        <span>{t('vrm.lookAtMode') || '视线跟随'}</span>
-                        <span className="text-blue-400 font-bold">{config.lookAtMode}</span>
+                        <span>{t('vrm.lookAtMode')}</span>
+                        <span className="text-blue-400 font-bold">{t(`vrm.lookAt.${config.lookAtMode}`)}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-1">
                         {(['mouse', 'camera', 'none'] as const).map((m) => (
@@ -96,23 +102,24 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                                         : "bg-white/5 border-white/5 text-gray-500 hover:text-gray-300"
                                 )}
                             >
-                                {t(`vrm.lookAt.${m}`) || m}
+                                {t(`vrm.lookAt.${m}`)}
                             </button>
                         ))}
                     </div>
                 </div>
 
                 <div className="space-y-1.5">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-widest">{t('vrm.selectBackground') || '场景背景'}</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest">{t('vrm.selectBackground')}</div>
                     <select
                         value={config.backgroundImage || 'none'}
                         onChange={(e) => setRenderConfig({ backgroundImage: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-gray-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer hover:bg-white/10 transition-colors"
                     >
-                        <option value="none">{t('vrm.background.none') || '无背景'}</option>
-                        <option value="BG_AronaRoom.jpg">Arona Room (Out)</option>
-                        <option value="BG_AronaRoom_In.jpg">Arona Room (In)</option>
-                        <option value="BG_GameDevRoom.jpg">Game Dev Room</option>
+                        {backgroundOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -128,7 +135,7 @@ export function VRMRenderSettings({ className }: { className?: string }) {
                 >
                     <div className="flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
-                        <span>{t('vrm.advancedSettings') || '高级渲染'}</span>
+                        <span>{t('vrm.advancedSettings')}</span>
                     </div>
                     {isAdvancedOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
@@ -162,12 +169,12 @@ export function VRMRenderSettings({ className }: { className?: string }) {
 
                         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                             <ToggleItem
-                                label={t('vrm.shadows') || '阴影'}
+                                label={t('vrm.shadows')}
                                 checked={config.enableContactShadows}
                                 onChange={(checked) => setRenderConfig({ enableContactShadows: checked })}
                             />
                             <ToggleItem
-                                label={t('vrm.bloom') || '辉光'}
+                                label={t('vrm.bloom')}
                                 checked={config.enableBloom}
                                 onChange={(checked) => setRenderConfig({ enableBloom: checked })}
                             />

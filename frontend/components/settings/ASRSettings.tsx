@@ -167,7 +167,7 @@ const ASRSettings: React.FC = () => {
 
                                     <div className="space-y-3 mb-6">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg font-bold text-foreground">FP32</span>
+                                            <span className="text-lg font-bold text-foreground">{t('settings.fp32')}</span>
                                             {status?.fp32_ready ? (
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                                                     <CheckCircle2 size={10} /> {t('settings.ready')}
@@ -253,7 +253,7 @@ const ASRSettings: React.FC = () => {
 
                                     <div className="space-y-3 mb-6">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg font-bold text-foreground">INT8</span>
+                                            <span className="text-lg font-bold text-foreground">{t('settings.int8')}</span>
                                             {status?.int8_ready ? (
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                                                     <CheckCircle2 size={10} /> {t('settings.ready')}
@@ -379,7 +379,7 @@ const ASRSettings: React.FC = () => {
                 onClose={() => setShowClearConfirm(false)}
                 onConfirm={() => handleClearAssets()}
                 title={t('settings.clearAssets')}
-                description={t('settings.confirmClearAssets').replace('{precision}', showClearConfirm === 'fp32' ? 'FP32' : 'INT8')}
+                description={t('settings.confirmClearAssets').replace('{precision}', showClearConfirm === 'fp32' ? t('settings.fp32') : t('settings.int8'))}
                 confirmText={t('admin.delete')}
                 cancelText={t('admin.cancel')}
                 type="danger"

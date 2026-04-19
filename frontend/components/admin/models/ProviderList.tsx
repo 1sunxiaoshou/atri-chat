@@ -4,6 +4,7 @@ import { Provider } from '../../../types';
 import { ProviderIcon } from '@/src/components/ProviderIcon';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface ProviderListProps {
     providers: Provider[];
@@ -24,10 +25,12 @@ export const ProviderList: React.FC<ProviderListProps> = ({
     onAddProvider,
     getModelCount,
 }) => {
+    const { t } = useLanguage();
+
     return (
         <aside className="w-full h-full flex flex-col border-r border-border bg-muted/20">
             <div className="h-16 px-4 border-b border-border flex justify-between items-center bg-background">
-                <h3 className="text-sm font-bold text-foreground">模型供应商</h3>
+                <h3 className="text-sm font-bold text-foreground">{t('admin.providersTitle')}</h3>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                     {providers.length}
                 </span>
@@ -107,7 +110,7 @@ export const ProviderList: React.FC<ProviderListProps> = ({
             <div className="p-4 border-t border-border bg-background">
                 <Button onClick={onAddProvider} className="w-full" size="sm">
                     <Plus size={16} className="mr-2" />
-                    添加供应商
+                    {t('admin.addProvider')}
                 </Button>
             </div>
         </aside>

@@ -9,9 +9,9 @@ from api.schemas import (
     ProviderConfigRequest, 
     ProviderConfigUpdateRequest
 )
-from core.dependencies import get_db, get_agent_coordinator
+from core.dependencies import get_db, get_model_factory
 from core.db import ProviderConfig as ProviderConfigORM, Model as ModelORM
-from core import ProviderConfig, ModelConfig
+from core.models.config import ProviderConfig
 from core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,15 +39,15 @@ async def create_provider(
     }
     """
     try:
-        agent_manager = get_agent_coordinator()
+        model_factory = get_model_factory()
         
         # 确定模板类型
         provider_type = req.provider_type or "openai"
         
         # 验证模板类型并获取模板
-        template = agent_manager.model_factory.get_provider_template(provider_type)
+        template = model_factory.get_provider_template(provider_type)
         if not template:
-            available = agent_manager.model_factory.get_available_templates()
+            available = model_factory.get_available_templates()
             raise HTTPException(
                 status_code=400,
                 detail=f"无效的 provider_type: {provider_type}，可用模板: {', '.join(available)}"
@@ -99,8 +99,8 @@ async def get_provider(
             raise HTTPException(status_code=404, detail="供应商不存在")
         
         # 获取模板元数据
-        agent_manager = get_agent_coordinator()
-        template = agent_manager.model_factory.get_provider_template(provider.provider_type)
+        model_factory = get_model_factory()
+        template = model_factory.get_provider_template(provider.provider_type)
         
         return ResponseModel(
             code=200,
@@ -140,8 +140,8 @@ async def list_providers(
         ).offset(skip).limit(limit).all()
         
         # 一次性获取所有模板元数据（而不是在循环中逐个获取）
-        agent_manager = get_agent_coordinator()
-        all_templates = agent_manager.model_factory.get_all_template_metadata()
+        model_factory = get_model_factory()
+        all_templates = model_factory.get_all_template_metadata()
         
         data = []
         for p in providers:
@@ -189,10 +189,10 @@ async def update_provider(
 
         # 如果更新了 provider_type，验证
         if req.provider_type:
-            agent_manager = get_agent_coordinator()
-            template = agent_manager.model_factory.get_provider_template(req.provider_type)
+            model_factory = get_model_factory()
+            template = model_factory.get_provider_template(req.provider_type)
             if not template:
-                available = agent_manager.model_factory.get_available_templates()
+                available = model_factory.get_available_templates()
                 raise HTTPException(
                     status_code=400,
                     detail=f"无效的 provider_type: {req.provider_type}，可用模板: {', '.join(available)}"
@@ -268,8 +268,8 @@ async def list_provider_templates():
     返回可用的供应商模板列表，用于创建供应商时指定 provider_type
     """
     try:
-        agent_manager = get_agent_coordinator()
-        templates = agent_manager.model_factory.get_all_template_metadata()
+        model_factory = get_model_factory()
+        templates = model_factory.get_all_template_metadata()
         
         data = [
             {
@@ -383,7 +383,7 @@ async def list_available_models(
 ):
     """获取供应商所有可用的模型列表（从 API 获取）"""
     try:
-        agent_manager = get_agent_coordinator()
+        model_factory = get_model_factory()
         
         # 获取供应商配置
         provider = db.query(ProviderConfigORM).filter(
@@ -394,7 +394,7 @@ async def list_available_models(
             raise HTTPException(status_code=404, detail="供应商不存在")
         
         # 获取 Provider 实例
-        provider_template = agent_manager.model_factory.get_provider_template(provider.provider_type)
+        provider_template = model_factory.get_provider_template(provider.provider_type)
         if not provider_template:
             raise HTTPException(
                 status_code=400, 
@@ -402,7 +402,6 @@ async def list_available_models(
             )
         
         # 构造 ProviderConfig
-        from core import ProviderConfig
         provider_instance_config = ProviderConfig(
             provider_id=provider.id,
             config_payload=provider.config_payload

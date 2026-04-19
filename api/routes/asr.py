@@ -1,10 +1,13 @@
 """ASR 路由 - 使用 SenseVoice-Small ONNX"""
+from typing import TYPE_CHECKING, Optional, Literal
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
-from typing import Optional, Literal
 from api.schemas import ResponseModel
-from core.asr import SenseVoiceASR
 from core.dependencies import get_asr
 from core.logger import get_logger
+
+if TYPE_CHECKING:
+    from core.asr.sensevoice import SenseVoiceASR
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -17,7 +20,7 @@ async def transcribe_audio(
     file: UploadFile = File(..., description="音频文件（建议 WAV 格式，16kHz 采样率）"),
     language: Optional[LanguageType] = Form(default="auto"),
     use_int8: Optional[str] = Form(default="false"), # 改为接收 str 以处理前端传参
-    asr: SenseVoiceASR = Depends(get_asr)
+    asr: "SenseVoiceASR" = Depends(get_asr)
 ):
     """语音转文本 (纯异步非阻塞)"""
     try:

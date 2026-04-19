@@ -8,8 +8,6 @@ import re
 import io
 from pathlib import Path
 from typing import Union, Optional, Dict, Any
-
-import sherpa_onnx
 import soundfile as sf
 
 from core.logger import get_logger
@@ -59,6 +57,8 @@ class SenseVoiceASR:
     def _init_recognizer(self, use_int8: bool, language: str):
         """底层 sherpa-onnx 实例化"""
         try:
+            import sherpa_onnx
+
             model_file = str(self.model_dir / ("model_q8.onnx" if use_int8 else "model.onnx"))
             tokens_file = str(self.model_dir / "tokens.txt")
             

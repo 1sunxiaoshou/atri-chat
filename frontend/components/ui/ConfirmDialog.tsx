@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Info, X, CheckCircle2 } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from "../../utils/cn"
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -23,13 +24,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   title,
   description,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   type = 'warning',
   isLoading = false,
   closeOnOverlayClick = true,
 }) => {
+  const { t } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
+  const resolvedConfirmText = confirmText ?? t('ui.confirm');
+  const resolvedCancelText = cancelText ?? t('ui.cancel');
 
   useEffect(() => {
     if (isOpen) {
@@ -124,7 +128,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               onClick={onClose}
               disabled={isLoading}
             >
-              {cancelText}
+              {resolvedCancelText}
             </Button>
             <Button
               variant={style.variant}
@@ -134,7 +138,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               }}
               loading={isLoading}
             >
-              {confirmText}
+              {resolvedConfirmText}
             </Button>
           </div>
         </div>

@@ -77,15 +77,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Header & Tabs */}
       <header className="bg-background border-b border-border px-4 lg:px-2">
         <div className="h-16 md:h-18 flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenMobileSidebar}
-            className="lg:hidden"
-            aria-label="Open menu"
-          >
-            <Menu size={20} />
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenMobileSidebar}
+              className="lg:hidden"
+              aria-label={t('app.openMenu')}
+            >
+              <Menu size={20} />
+            </Button>
 
           {/* Desktop Show Sidebar Button */}
           <div

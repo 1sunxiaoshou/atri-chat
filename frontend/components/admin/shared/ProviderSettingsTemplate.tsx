@@ -257,7 +257,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">正在获取供应商配置...</p>
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">{t('admin.loadingProviderConfig')}</p>
       </div>
     );
   }
@@ -280,7 +280,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
       <div className="flex flex-col h-full space-y-6">
         {/* Provider Selector */}
         <div className="space-y-2">
-            <label className="text-sm font-bold text-foreground">选择服务商</label>
+            <label className="text-sm font-bold text-foreground">{t('admin.selectProviderLabel')}</label>
             <Select
               value={selectedProviderId}
               onChange={handleProviderChange}

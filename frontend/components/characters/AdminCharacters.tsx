@@ -147,7 +147,7 @@ export const AdminCharacters: React.FC<AdminCharactersProps> = ({
                   size="icon"
                   onClick={onOpenMobileSidebar}
                   className="lg:hidden"
-                  aria-label="Open menu"
+                  aria-label={t('app.openMenu')}
                 >
                   <Menu size={20} />
                 </Button>

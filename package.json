@@ -1,0 +1,19 @@
+{
+  "name": "atri-chat-root",
+  "private": true,
+  "version": "1.0.1",
+  "scripts": {
+    "frontend:install": "npm install --prefix frontend",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "type-check": "npm --prefix frontend run type-check",
+    "lint": "npm --prefix frontend run lint",
+    "lint:fix": "npm --prefix frontend run lint:fix",
+    "check-i18n": "npm --prefix frontend run check-i18n",
+    "clean-i18n": "npm --prefix frontend run clean-i18n",
+    "tauri": "npm --prefix frontend run tauri",
+    "tauri:dev": "npm --prefix frontend run tauri:dev",
+    "tauri:build": "npm --prefix frontend run tauri:build"
+  }
+}

@@ -89,7 +89,7 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
                             label={t('admin.providerName')}
                             value={provider.name || ''}
                             onChange={(e) => onChange({ ...provider, name: e.target.value })}
-                            placeholder="e.g. My OpenAI"
+                            placeholder={t('admin.providerNameExample')}
                             required
                         />
                         <div className="space-y-1.5">

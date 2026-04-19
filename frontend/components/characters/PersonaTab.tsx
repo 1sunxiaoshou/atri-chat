@@ -5,6 +5,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { buildAvatarUrl } from '../../utils/url';
 import { Input, Button } from '../ui';
 import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelector';
+import { getEnabledCapabilities } from '../../utils/modelCapabilities';
 
 interface PersonaTabProps {
     character: Character;
@@ -70,16 +71,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
     const displayImageUrl = getDisplayImageUrl();
 
     // 从 has_* 字段生成能力标签
-    const getCapabilityTags = (model: Model): string[] => {
-        const tags: string[] = [];
-        if (model.has_vision) {tags.push('Vision');}
-        if (model.has_audio) {tags.push('Audio');}
-        if (model.has_video) {tags.push('Video');}
-        if (model.has_reasoning) {tags.push('Reasoning');}
-        if (model.has_tool_use) {tags.push('Tool Use');}
-        if (model.has_document) {tags.push('Document');}
-        return tags;
-    };
+    const getCapabilityTags = (model: Model): string[] => getEnabledCapabilities(model, t).map(({ label }) => label);
 
     // 转换模型列表为 HierarchicalItem 格式
     const hierarchicalModels = useMemo<HierarchicalItem[]>(() => {
@@ -88,7 +80,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
             return {
                 id: model.id,
                 label: model.model_id,
-                category: provider?.name || `Provider #${model.provider_config_id}`,
+                category: provider?.name || t('admin.providerFallback', { id: model.provider_config_id }),
                 tags: getCapabilityTags(model)
             };
         });
@@ -108,7 +100,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
     const currentModel = models.find(m => m.id === character.primary_model_id);
     const currentProvider = currentModel ? providers.find(p => p.id === currentModel.provider_config_id) : null;
     const currentModelName = currentModel
-        ? `${currentProvider?.name || `Provider #${currentModel.provider_config_id}`} / ${currentModel.model_id}`
+        ? `${currentProvider?.name || t('admin.providerFallback', { id: currentModel.provider_config_id })} / ${currentModel.model_id}`
         : t('admin.notSelected');
 
     // 获取当前选中语音的显示名称
@@ -177,7 +169,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
                     <Input
                         value={character.name}
                         onChange={(e) => onChange({ ...character, name: e.target.value })}
-                        placeholder="e.g. Coding Assistant"
+                        placeholder={t('character.characterNameExample')}
                         required
                         className="h-12 rounded-xl text-lg bg-background border-border focus:bg-background"
                     />
@@ -226,7 +218,7 @@ export const PersonaTab: React.FC<PersonaTabProps> = ({
                     <textarea
                         value={character.system_prompt}
                         onChange={(e) => onChange({ ...character, system_prompt: e.target.value })}
-                        placeholder="你是一个友好、乐于助人的AI助手..."
+                        placeholder={t('character.defaultSystemPrompt')}
                         className="w-full flex-1 min-h-[220px] bg-muted/30 border border-border text-foreground rounded-xl p-5 text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none custom-scrollbar"
                     />
                     <p className="text-[10px] text-muted-foreground italic mt-2">

@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 import psutil
 
 # 1. 唯一一次执行的副作用：加载 .env。
-# 这是后续所有配置的基础。
-load_dotenv()
+# 这是后续所有配置的基础，但不能覆盖 Tauri 在启动时注入的运行时端口。
+load_dotenv(override=False)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -71,24 +71,31 @@ async def lifespan(app: FastAPI):
         from core.dependencies import init_checkpointer
         await init_checkpointer()
 
-    async def task_coordinator():
-        logger.info("预热 agent_coordinator...")
-        from core.dependencies import get_agent_coordinator
-        # 在线程中运行同步初始化，避免阻塞主循环
-        await asyncio.to_thread(get_agent_coordinator)
-
     # 启动并行初始化
     await asyncio.gather(
         task_db(),
         task_checkpointer(),
-        task_coordinator()
     )
-    
+
+    async def warm_agent_coordinator():
+        """将重量级协调器预热移出关键启动路径，避免首屏等待。"""
+        try:
+            await asyncio.sleep(1.5)
+            logger.info("后台预热 agent_coordinator...")
+            from core.dependencies import get_agent_coordinator
+            coordinator = get_agent_coordinator()
+            await coordinator.warm_up()
+            logger.debug("agent_coordinator 预热完成")
+        except Exception:
+            logger.exception("agent_coordinator 预热失败")
+
     logger.success(f"[OK] ATRI Backend Service is ready on port {settings.backend_port}")
     logger.info(
         f"Environment: {settings.app_env} | Runtime Mode: {settings.runtime_mode} | "
         f"Data Root: {settings.data_dir} | PID: {os.getpid()} | Parent PID: {os.getppid()}"
     )
+
+    asyncio.create_task(warm_agent_coordinator())
 
     yield
     

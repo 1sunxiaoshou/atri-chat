@@ -8,10 +8,7 @@
 
 注意：不再负责数据访问，配置由 ModelService 通过 Repository 获取。
 """
-from datetime import datetime
 from typing import Optional, Any, Dict, List
-from langchain.chat_models import init_chat_model
-from langchain_qwq import ChatQwen
 
 from .config import ModelConfig, ProviderMetadata, ProviderConfig, ModelType
 from .providers.base import BaseProvider
@@ -65,6 +62,10 @@ class ModelFactory:
             tid: p.metadata for tid, p in self._provider_templates.items()
         }
 
+    def get_available_templates(self) -> List[str]:
+        """返回当前已注册的模板类型列表。"""
+        return sorted(self._provider_templates.keys())
+
     def create_model(
         self,
         model_config: ModelConfig,
@@ -97,6 +98,8 @@ class ModelFactory:
         try:
             # 4. 特殊供应商手动实例化 (init_chat_model 不支持或需要原生支持的)
             if provider_type == "qwen":
+                from langchain_qwq import ChatQwen
+
                 model = ChatQwen(
                     model=model_config.model_id,
                     **final_params
@@ -105,6 +108,8 @@ class ModelFactory:
 
             # 5. 使用 LangChain 万能工厂实例化其他模型
             # 开启 output_version="v1" 以便统一流式思考内容的输出格式
+            from langchain.chat_models import init_chat_model
+
             model = init_chat_model(
                 model=model_config.model_id,
                 model_provider=lc_provider,

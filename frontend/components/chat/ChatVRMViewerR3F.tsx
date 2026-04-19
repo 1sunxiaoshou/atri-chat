@@ -80,7 +80,7 @@ export const ChatVRMViewerR3F = React.memo(function ChatVRMViewerR3F({
                 isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
             )}>
                 <p className="text-muted-foreground text-sm font-medium tracking-[0.2em] uppercase animate-pulse">
-                    {t('vrm.avatar.loadingModel') || 'Loading AI Model...'}
+                    {t('vrm.avatar.loadingModel')}
                 </p>
                 <div className="mt-4 w-32 h-[1px] bg-gradient-to-r from-transparent via-muted-foreground/30 to-transparent" />
             </div>

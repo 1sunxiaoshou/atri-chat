@@ -159,7 +159,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 ring-2 ring-primary/50"
                   : "bg-muted text-muted-foreground hover:bg-sidebar-hover hover:text-foreground"
               )}
-              title="All Characters"
+              title={t('sidebar.allCharacters')}
             >
               <Users size={18} />
             </button>
@@ -299,7 +299,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
 
                   <span className="flex-1 text-[13px] truncate font-medium">
-                    {conv.title || "New Chat"}
+                    {conv.title || t('sidebar.newChat')}
                   </span>
 
                   <button

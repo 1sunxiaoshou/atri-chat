@@ -13,6 +13,39 @@ APP_DIR_NAME = "ATRI-Chat"
 PORTABLE_MARKER = "portable.mode"
 BINARIES_DIR_NAME = "binaries"
 RESOURCES_DIR_NAME = "resources"
+RUNTIME_MODE_ENV = "ATRI_RUNTIME_MODE"
+APP_ENV_ENV = "ATRI_APP_ENV"
+APP_ROOT_ENV = "ATRI_APP_ROOT"
+DATA_ROOT_ENV = "ATRI_DATA_ROOT"
+LOGS_ROOT_ENV = "ATRI_LOGS_ROOT"
+
+
+def normalize_windows_path(path: str | Path) -> Path:
+    """移除 Windows verbatim 路径前缀，避免下游 SQLite/日志库兼容性问题。"""
+    raw = str(path)
+    if os.name == "nt":
+        if raw.startswith("\\\\?\\UNC\\"):
+            return Path("\\\\" + raw[8:])
+        if raw.startswith("\\\\?\\"):
+            return Path(raw[4:])
+    return Path(raw)
+
+
+def build_runtime_layout(
+    app_env: AppEnv,
+    mode: RuntimeMode,
+    app_root: str | Path,
+    data_root: str | Path,
+    logs_root: str | Path,
+) -> "RuntimeLayout":
+    """构造统一的运行时布局，并在入口处完成路径规整。"""
+    return RuntimeLayout(
+        app_env=app_env,
+        mode=mode,
+        app_root=normalize_windows_path(app_root).resolve(),
+        data_root=normalize_windows_path(data_root).resolve(),
+        logs_root=normalize_windows_path(logs_root).resolve(),
+    )
 
 
 class AppEnv(str, Enum):
@@ -43,14 +76,14 @@ class RuntimeLayout:
 
 def get_project_root() -> Path:
     """返回仓库根目录。"""
-    return Path(__file__).resolve().parent.parent
+    return normalize_windows_path(Path(__file__).resolve().parent.parent)
 
 
 def get_local_data_home() -> Path:
     """返回本地用户数据根目录。"""
     local_appdata = os.environ.get("LOCALAPPDATA")
     if local_appdata:
-        return Path(local_appdata).resolve() / APP_DIR_NAME
+        return normalize_windows_path(local_appdata).resolve() / APP_DIR_NAME
     return get_project_root()
 
 
@@ -70,26 +103,50 @@ def resolve_logs_root(runtime_mode: RuntimeMode, app_root: Path) -> Path:
 
 def resolve_runtime_layout() -> RuntimeLayout:
     """根据实际运行情况判定目录策略。"""
+    env_layout = resolve_runtime_layout_from_env()
+    if env_layout is not None:
+        return env_layout
+
     if not getattr(sys, "frozen", False):
         app_root = get_project_root().resolve()
         mode = RuntimeMode.DEVELOPMENT
-        return RuntimeLayout(
+        return build_runtime_layout(
             app_env=AppEnv.DEVELOPMENT,
             mode=mode,
             app_root=app_root,
-            data_root=resolve_data_root(mode, app_root).resolve(),
-            logs_root=resolve_logs_root(mode, app_root).resolve(),
+            data_root=resolve_data_root(mode, app_root),
+            logs_root=resolve_logs_root(mode, app_root),
         )
 
-    executable = Path(sys.executable).resolve()
+    executable = normalize_windows_path(sys.executable).resolve()
     app_root = resolve_packaged_app_root(executable)
     mode = detect_packaged_mode(app_root)
-    return RuntimeLayout(
+    return build_runtime_layout(
         app_env=AppEnv.PRODUCTION,
         mode=mode,
         app_root=app_root,
-        data_root=resolve_data_root(mode, app_root).resolve(),
-        logs_root=resolve_logs_root(mode, app_root).resolve(),
+        data_root=resolve_data_root(mode, app_root),
+        logs_root=resolve_logs_root(mode, app_root),
+    )
+
+
+def resolve_runtime_layout_from_env() -> RuntimeLayout | None:
+    """优先使用桌面壳注入的运行时布局，确保前后端共享同一套目录策略。"""
+    runtime_mode = os.environ.get(RUNTIME_MODE_ENV)
+    app_env = os.environ.get(APP_ENV_ENV)
+    app_root = os.environ.get(APP_ROOT_ENV)
+    data_root = os.environ.get(DATA_ROOT_ENV)
+    logs_root = os.environ.get(LOGS_ROOT_ENV)
+
+    if not all([runtime_mode, app_env, app_root, data_root, logs_root]):
+        return None
+
+    return build_runtime_layout(
+        app_env=AppEnv(app_env),
+        mode=RuntimeMode(runtime_mode),
+        app_root=app_root,
+        data_root=data_root,
+        logs_root=logs_root,
     )
 
 

@@ -3,6 +3,8 @@ import { Edit2, Trash, PackageSearch, Eye, FileText, Video, Mic, Brain, Wrench, 
 import { Model } from '../../../types';
 import { Button } from '../../ui';
 import { cn } from '../../../utils/cn';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { getEnabledCapabilities } from '../../../utils/modelCapabilities';
 
 interface ModelTableProps {
     models: Model[];
@@ -26,34 +28,23 @@ export const ModelTable: React.FC<ModelTableProps> = ({
     onDeleteModel,
     onToggleModel,
 }) => {
-    // 获取模型的能力列表
-    const getModelCapabilities = (model: Model): Array<{ key: string; label: string }> => {
-        const capabilities: Array<{ key: string; label: string }> = [];
-
-        if (model.has_vision) {capabilities.push({ key: 'has_vision', label: 'Vision' });}
-        if (model.has_audio) {capabilities.push({ key: 'has_audio', label: 'Audio' });}
-        if (model.has_video) {capabilities.push({ key: 'has_video', label: 'Video' });}
-        if (model.has_reasoning) {capabilities.push({ key: 'has_reasoning', label: 'Reasoning' });}
-        if (model.has_tool_use) {capabilities.push({ key: 'has_tool_use', label: 'Tool Use' });}
-        if (model.has_document) {capabilities.push({ key: 'has_document', label: 'Document' });}
-        return capabilities;
-    };
+    const { t } = useLanguage();
 
     return (
         <div className="flex-1 overflow-auto custom-scrollbar">
             <table className="w-full text-left text-sm">
                 <thead className="bg-muted/50 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                     <tr>
-                        <th className="pl-6 pr-4 py-3 font-medium text-muted-foreground">模型 ID</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground">能力</th>
-                        <th className="px-4 py-3 font-medium text-muted-foreground w-20">状态</th>
+                        <th className="pl-6 pr-4 py-3 font-medium text-muted-foreground">{t('admin.modelId')}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">{t('admin.capabilities')}</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground w-20">{t('admin.status')}</th>
                         <th className="pl-4 pr-6 py-3 w-20"></th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                     {models.length > 0 ? (
                         models.map((model) => {
-                            const capabilities = getModelCapabilities(model);
+                            const capabilities = getEnabledCapabilities(model, t);
                             return (
                                 <tr
                                     key={model.id}
@@ -86,7 +77,7 @@ export const ModelTable: React.FC<ModelTableProps> = ({
                                                     );
                                                 })
                                             ) : (
-                                                <span className="text-xs text-muted-foreground">无能力</span>
+                                                <span className="text-xs text-muted-foreground">{t('admin.noCapabilities')}</span>
                                             )}
                                         </div>
                                     </td>
@@ -136,9 +127,9 @@ export const ModelTable: React.FC<ModelTableProps> = ({
                                     <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                                         <PackageSearch size={32} className="text-muted-foreground" />
                                     </div>
-                                    <p className="font-medium text-foreground mb-1">未找到模型</p>
+                                    <p className="font-medium text-foreground mb-1">{t('admin.noModelsFound')}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        尝试调整搜索条件或分类筛选
+                                        {t('admin.adjustModelFilters')}
                                     </p>
                                 </div>
                             </td>

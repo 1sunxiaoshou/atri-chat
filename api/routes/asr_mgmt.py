@@ -1,13 +1,16 @@
 """ASR 管理路由 - 模型状态与下载控制"""
+from typing import TYPE_CHECKING, Literal
+
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
 from api.schemas import ResponseModel
-from core.asr import SenseVoiceASR
 from core.asr.model_downloader import get_model_info, delete_model_assets, get_download_progress, download_sensevoice_model_async, reset_download_progress
 from core.dependencies import get_asr
 from core.logger import get_logger
 from core.config import get_settings, AppSettings
+
+if TYPE_CHECKING:
+    from core.asr.sensevoice import SenseVoiceASR
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -84,7 +87,7 @@ async def trigger_download(
 async def clear_asr_models(
     precision: str = "all",
     settings: AppSettings = Depends(get_settings),
-    asr: SenseVoiceASR = Depends(get_asr)
+    asr: "SenseVoiceASR" = Depends(get_asr)
 ):
     """清理 ASR 模型资源"""
     try:

@@ -1,32 +1,36 @@
 """FastAPI 依赖注入"""
 from __future__ import annotations
 
-from typing import Generator, Optional
+from typing import TYPE_CHECKING, Any, Generator
 from functools import lru_cache
 import aiosqlite
 from sqlalchemy.orm import Session
 
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from .store import SqliteStore
-from .db import get_session as get_db_session
-from .agent_coordinator import AgentCoordinator
 from .config import get_settings
 
+if TYPE_CHECKING:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+    from .agent_coordinator import AgentCoordinator
+    from .asr.sensevoice import SenseVoiceASR
+    from .prompts.prompt_manager import PromptManager
+    from .store import SqliteStore
 
 # ==================== 全局变量 ====================
-_checkpointer_instance: Optional[AsyncSqliteSaver] = None
+_checkpointer_instance: Any = None
 _aiosqlite_conn = None
 
 
 # ==================== 单例获取器 ====================
 
 @lru_cache()
-def get_store() -> SqliteStore:
+def get_store() -> "SqliteStore":
     """获取 SqliteStore 单例"""
+    from .store import SqliteStore
+
     settings = get_settings()
     return SqliteStore(db_path=settings.store_db_path)
 
-def get_checkpointer() -> AsyncSqliteSaver:
+def get_checkpointer() -> "AsyncSqliteSaver":
     """获取 AsyncSqliteSaver 单例"""
     global _checkpointer_instance
     if _checkpointer_instance is None:
@@ -34,10 +38,11 @@ def get_checkpointer() -> AsyncSqliteSaver:
     return _checkpointer_instance
 
 
-async def init_checkpointer() -> AsyncSqliteSaver:
+async def init_checkpointer() -> "AsyncSqliteSaver":
     """初始化 AsyncSqliteSaver (生命周期引导时调用)"""
     global _checkpointer_instance, _aiosqlite_conn
-    
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
     settings = get_settings()
     # 创建 aiosqlite 连接
     _aiosqlite_conn = await aiosqlite.connect(settings.checkpoints_db_path)
@@ -85,11 +90,23 @@ def get_model_factory() -> "ModelFactory":
 
 
 @lru_cache()
-def get_agent_coordinator() -> AgentCoordinator:
+def get_prompt_manager() -> "PromptManager":
+    """获取 PromptManager 单例。"""
+    from .prompts import PromptManager
+
+    return PromptManager()
+
+
+@lru_cache()
+def get_agent_coordinator() -> "AgentCoordinator":
     """获取 AgentCoordinator 单例"""
+    from .agent_coordinator import AgentCoordinator
+
     return AgentCoordinator(
         store=get_store(),
-        checkpointer=get_checkpointer()
+        checkpointer=get_checkpointer(),
+        model_factory=get_model_factory(),
+        prompt_manager=get_prompt_manager(),
     )
 
 
@@ -107,10 +124,12 @@ def get_asr_engine() -> "SenseVoiceASR":
 
 def get_db() -> Generator[Session, None, None]:
     """FastAPI 依赖：获取 SQLAlchemy Session"""
+    from .db import get_session as get_db_session
+
     yield from get_db_session()
 
 
-def get_agent() -> Generator[AgentCoordinator, None, None]:
+def get_agent() -> Generator["AgentCoordinator", None, None]:
     """FastAPI 依赖：获取 AgentCoordinator"""
     yield get_agent_coordinator()
 

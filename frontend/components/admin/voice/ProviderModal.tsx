@@ -179,7 +179,7 @@ const ProviderModal: React.FC<ProviderModalProps> = ({
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g., My GPT-SoVITS"
+                        placeholder={t('admin.ttsProviderNameExample')}
                     />
 
                     <div className="space-y-1.5">

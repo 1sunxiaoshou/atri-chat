@@ -5,6 +5,7 @@ import { cn } from '../../../utils/cn';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { modelsApi } from '../../../services/api';
 import { DynamicParameterForm } from './DynamicParameterForm';
+import { getCapabilityDefinitions } from '../../../utils/modelCapabilities';
 
 interface ModelModalProps {
     isOpen: boolean;
@@ -13,15 +14,6 @@ interface ModelModalProps {
     onSave: () => void;
     onChange: (model: Partial<Model>) => void;
 }
-
-const allCapabilities = [
-    { key: 'has_vision', label: 'Vision' },
-    { key: 'has_document', label: 'Document' },
-    { key: 'has_video', label: 'Video' },
-    { key: 'has_audio', label: 'Audio' },
-    { key: 'has_reasoning', label: 'Reasoning' },
-    { key: 'has_tool_use', label: 'Tool Use' },
-];
 
 export const ModelModal: React.FC<ModelModalProps> = ({
     isOpen,
@@ -33,6 +25,10 @@ export const ModelModal: React.FC<ModelModalProps> = ({
     const { t } = useLanguage();
     const [schema, setSchema] = useState<ModelParameterSchemaResponse | null>(null);
     const [isLoadingSchema, setIsLoadingSchema] = useState(false);
+    const allCapabilities = getCapabilityDefinitions(t).map(({ modelKey, label }) => ({
+        key: modelKey,
+        label,
+    }));
 
     useEffect(() => {
         if (isOpen && model?.id) {
@@ -99,7 +95,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
                             label={t('admin.modelId')}
                             value={model.model_id || ''}
                             onChange={(e) => onChange({ ...model, model_id: e.target.value })}
-                            placeholder="e.g. gpt-4"
+                            placeholder={t('admin.modelIdExample')}
                         />
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium">{t('admin.modelType')}</label>

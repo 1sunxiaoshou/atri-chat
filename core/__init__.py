@@ -1,43 +1,10 @@
-"""核心模块"""
+"""核心模块轻量导出。
+
+仅保留低成本的数据模型导出，避免通过 ``from core import ...`` 在启动阶段
+意外拉起 Agent、Store、Factory 等重型依赖链。
+"""
+
 from .models.config import ModelConfig, ProviderConfig, ModelType
-from .models.factory import ModelFactory
 
-from .store import SqliteStore
-from .agent_coordinator import AgentCoordinator
-
-# Repository 层
-from .repositories import (
-    BaseRepository,
-    ProviderRepository,
-    ModelRepository,
-    CharacterRepository,
-    ConversationRepository,
-    MessageRepository,
-)
-
-# Service 层
-from .services.model_service import ModelService
-
-__all__ = [
-    # 配置和工厂
-    "ModelConfig",
-    "ProviderConfig",
-    "ModelType",
-    "ModelFactory",
-    # 存储
-    "SqliteStore",
-    # 协调器
-    "AgentCoordinator",
-    
-    # Repository 层
-    "BaseRepository",
-    "ProviderRepository",
-    "ModelRepository",
-    "CharacterRepository",
-    "ConversationRepository",
-    "MessageRepository",
-    
-    # Service 层
-    "ModelService",
-]
+__all__ = ["ModelConfig", "ProviderConfig", "ModelType"]
 

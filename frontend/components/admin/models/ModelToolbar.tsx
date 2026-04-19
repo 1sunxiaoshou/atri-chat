@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, RefreshCw, Plus, Filter, Check } from 'lucide-react';
 import { Button, Input } from '../../ui';
 import { cn } from '../../../utils/cn';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { getCapabilityDefinitions } from '../../../utils/modelCapabilities';
 
 interface Category {
     id: string;
@@ -23,15 +25,6 @@ interface ModelToolbarProps {
     onToggleCapability: (cap: string) => void;
 }
 
-const filterOptions = [
-    { key: 'vision', label: 'Vision' },
-    { key: 'audio', label: 'Audio' },
-    { key: 'video', label: 'Video' },
-    { key: 'reasoning', label: 'Reasoning' },
-    { key: 'tool_use', label: 'Tool Use' },
-    { key: 'document', label: 'Document' },
-];
-
 export const ModelToolbar: React.FC<ModelToolbarProps> = ({
     searchQuery,
     onSearchChange,
@@ -46,8 +39,13 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
     selectedCapabilities,
     onToggleCapability,
 }) => {
+    const { t } = useLanguage();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const filterRef = useRef<HTMLDivElement>(null);
+    const filterOptions = getCapabilityDefinitions(t).map(({ filterKey, label }) => ({
+        key: filterKey,
+        label,
+    }));
 
     // 点击外部关闭滤镜菜单
     useEffect(() => {
@@ -69,7 +67,7 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                 <Input
                     type="text"
-                    placeholder="Search models..."
+                    placeholder={t('admin.searchModel')}
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
                     className="pl-9 h-9"
@@ -101,7 +99,7 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
                         variant={hasActiveFilters ? "default" : "outline"}
                         size="icon"
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
-                        title="Filter Options"
+                        title={t('admin.filterOptions')}
                         className={cn(
                             "transition-all",
                             hasActiveFilters && "bg-primary text-primary-foreground border-primary"
@@ -117,20 +115,20 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
                     {isFilterOpen && (
                         <div className="absolute right-0 mt-2 w-56 p-2 bg-popover border border-border rounded-xl shadow-xl z-50 animate-in fade-in zoom-in duration-200">
                             <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                Status
+                                {t('admin.status')}
                             </div>
                             <button
                                 onClick={onToggleEnabledFilter}
                                 className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
                             >
-                                <span>Enabled Only</span>
+                                <span>{t('admin.enabledOnly')}</span>
                                 {showEnabledOnly && <Check size={14} className="text-primary" />}
                             </button>
 
                             <div className="my-2 h-px bg-border/50" />
 
                             <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                Capabilities
+                                {t('admin.capabilities')}
                             </div>
                             <div className="space-y-0.5">
                                 {filterOptions.map((opt) => (
@@ -156,7 +154,7 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
                                         }}
                                         className="w-full px-3 py-2 text-xs text-center text-primary font-medium hover:bg-primary/5 rounded-lg transition-colors"
                                     >
-                                        Clear All Filters
+                                        {t('admin.clearAllFilters')}
                                     </button>
                                 </>
                             )}
@@ -169,11 +167,11 @@ export const ModelToolbar: React.FC<ModelToolbarProps> = ({
                     size="icon"
                     onClick={onSync}
                     disabled={isSyncing}
-                    title="Sync Models"
+                    title={t('admin.syncModels')}
                 >
                     <RefreshCw size={16} className={cn(isSyncing && "animate-spin")} />
                 </Button>
-                <Button size="icon" onClick={onAddModel} title="Add Model">
+                <Button size="icon" onClick={onAddModel} title={t('admin.addModel')}>
                     <Plus size={16} />
                 </Button>
             </div>

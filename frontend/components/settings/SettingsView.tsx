@@ -45,7 +45,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         size="icon"
                         onClick={onOpenMobileSidebar}
                         className="lg:hidden"
-                        aria-label="Open menu"
+                        aria-label={t('app.openMenu')}
                     >
                         <Menu size={20} />
                     </Button>

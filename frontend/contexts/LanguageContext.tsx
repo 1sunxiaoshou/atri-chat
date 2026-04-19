@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import zhTranslations from '../locales/zh.json';
 import enTranslations from '../locales/en.json';
 
@@ -19,8 +19,23 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const LANGUAGE_STORAGE_KEY = 'language';
+
+function getDefaultLanguage(): Language {
+  const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  if (storedLanguage === 'zh' || storedLanguage === 'en') {
+    return storedLanguage;
+  }
+
+  return navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('zh');
+  const [language, setLanguage] = useState<Language>(getDefaultLanguage);
+
+  useEffect(() => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  }, [language]);
 
   const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');

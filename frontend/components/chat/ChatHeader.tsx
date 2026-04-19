@@ -92,7 +92,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               {activeCharacter?.name || t('chat.selectCharacter')}
             </h2>
             <p className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-tight opacity-70">
-              {activeModel?.model_id || 'AI Assistant'}
+              {activeModel?.model_id || t('chat.aiAssistant')}
             </p>
           </div>
         </div>
@@ -107,8 +107,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             onChange={(mode) => handleDisplayModeChange(mode as 'normal' | 'vrm' | 'live2d')}
             options={[
               { label: t('chat.normal'), value: 'normal' },
-              { label: 'VRM', value: 'vrm' },
-              { label: 'Live2D', value: 'live2d' }
+              { label: t('chat.vrmMode'), value: 'vrm' },
+              { label: t('chat.live2dMode'), value: 'live2d' }
             ]}
             variant="segmented"
             className="w-[180px] lg:w-[220px]"

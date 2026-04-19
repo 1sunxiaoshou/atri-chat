@@ -58,19 +58,19 @@ export const VRMEditPreview: React.FC<{
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     className="w-full bg-background border border-border text-foreground text-base focus:ring-2 focus:ring-primary focus:border-primary rounded-lg px-4 py-2.5 outline-none transition-all placeholder:text-muted-foreground"
-                                    placeholder="输入角色名称..."
+                                    placeholder={t('character.enterCharacterName')}
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">模型路径</label>
+                                <label className="text-sm font-medium text-muted-foreground">{t('character.modelPath')}</label>
                                 <div className="text-xs text-muted-foreground font-mono bg-muted/50 rounded-lg px-3 py-2 break-all">
                                     {avatar.model_path}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">角色 ID</label>
+                                <label className="text-sm font-medium text-muted-foreground">{t('character.characterId')}</label>
                                 <div className="text-xs text-muted-foreground font-mono bg-muted/50 rounded-lg px-3 py-2 break-all">
                                     {avatar.id}
                                 </div>

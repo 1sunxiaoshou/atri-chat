@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 SLOW_THRESHOLD_MS = 1000
 
 # 忽略的路径（静态资源、健康检查等）
-IGNORED_PATHS = {"/favicon.ico", "/health", "/static"}
+IGNORED_PATHS = {"/favicon.ico", "/health", "/api/v1/health", "/static"}
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
