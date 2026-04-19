@@ -52,7 +52,7 @@ export const VRMUploadPreview: React.FC<{
     }, [previewUrl, t]);
 
     const handleSave = async () => {
-        if (!file || !name.trim() || !thumbnail) return;
+        if (!file || !name.trim() || !thumbnail) {return;}
         setIsSaving(true);
         try {
             await onSave({ file, name: name.trim(), thumbnail, expressions });

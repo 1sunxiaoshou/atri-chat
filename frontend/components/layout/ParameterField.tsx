@@ -17,7 +17,7 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
 }) => {
     const renderField = () => {
         switch (schema.type) {
-            case 'slider':
+            case 'slider': {
                 const isAuto = value === undefined || value === null;
                 const displayValue = isAuto ? schema.default : value;
                 const initialSliderValue = isAuto ? (schema.max ?? 128000) : displayValue;
@@ -46,6 +46,7 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
                         />
                     </div>
                 );
+            }
 
             case 'number':
                 return (

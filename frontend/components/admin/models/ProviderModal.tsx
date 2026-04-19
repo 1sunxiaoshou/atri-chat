@@ -23,14 +23,14 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
 }) => {
     const { t } = useLanguage();
 
-    if (!provider) return null;
+    if (!provider) {return null;}
 
     const isEditing = !!provider.id;
     const currentTemplate = providerTemplates.find(t => t.provider_type === (provider.provider_type || 'openai'));
 
     // 将后端的 config_fields 转换为 ProviderSettingsForm 需要的 Record<string, ConfigField> 格式
     const constructFormData = () => {
-        if (!currentTemplate?.config_fields) return {};
+        if (!currentTemplate?.config_fields) {return {};}
 
         const formData: Record<string, any> = {};
         currentTemplate.config_fields.forEach((field: any) => {
@@ -54,8 +54,8 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
     };
 
     const isFormValid = () => {
-        if (!provider.name?.trim()) return false;
-        if (!provider.provider_type && !providerTemplates[0]?.provider_type) return false;
+        if (!provider.name?.trim()) {return false;}
+        if (!provider.provider_type && !providerTemplates[0]?.provider_type) {return false;}
 
         // 校验动态配置项中的必填项
         if (currentTemplate?.config_fields) {

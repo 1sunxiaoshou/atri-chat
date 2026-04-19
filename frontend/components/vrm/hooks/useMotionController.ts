@@ -1,9 +1,8 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { VRM } from '@pixiv/three-vrm';
-import { createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+import { createVRMAnimationClip, VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 
 interface PlayOptions {
     loop?: boolean;
@@ -24,7 +23,7 @@ class LRUCache<K, V> {
     }
 
     get(key: K): V | undefined {
-        if (!this.cache.has(key)) return undefined;
+        if (!this.cache.has(key)) {return undefined;}
 
         // 移到最后（最近使用）
         const value = this.cache.get(key)!;
@@ -109,12 +108,12 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
     // 核心播放逻辑：带缓存和交叉融合
     // ==========================================
     const play = useCallback(async (url: string, options: PlayOptions = {}) => {
-        if (!vrm || !mixer || !loaderRef.current) return;
+        if (!vrm || !mixer || !loaderRef.current) {return;}
 
         const { loop = true, fadeDuration = 0.7, force = false } = options;
 
         // 避免重复播放同一个动作（除非强制重新播放）
-        if (currentUrlRef.current === url && !force) return;
+        if (currentUrlRef.current === url && !force) {return;}
 
         latestRequestedUrlRef.current = url;
 
@@ -143,7 +142,7 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
                     const gltf = await loaderRef.current.loadAsync(url);
 
                     // 加载完成后，如果业务层已经请求了别的动作，则丢弃当前加载
-                    if (latestRequestedUrlRef.current !== url) return;
+                    if (latestRequestedUrlRef.current !== url) {return;}
 
                     // 从 userData 中获取 VRM 动画
                     const vrmAnimations = gltf.userData.vrmAnimations;
@@ -171,7 +170,7 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
             }
         }
 
-        if (!clip) return;
+        if (!clip) {return;}
 
         // 2. 创建 Action
         const newAction = mixer.clipAction(clip);
@@ -224,7 +223,7 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
                         if (oldClip && mixer) {
                             mixer.uncacheAction(oldClip);
                         }
-                    } catch (error) {
+                    } catch {
                         // 忽略清理错误
                     }
                 }
@@ -247,7 +246,7 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
     // 监听动画播放结束事件
     // ==========================================
     useEffect(() => {
-        if (!mixer) return;
+        if (!mixer) {return;}
 
         const handleFinished = (event: any) => {
             // 确保是当前正在播放的动作结束了 (针对 loop: false 的动作)
@@ -275,10 +274,10 @@ export function useMotionController(vrm: VRM | null, mixer: THREE.AnimationMixer
     // 预加载动作到缓存
     // ==========================================
     const preload = useCallback(async (url: string) => {
-        if (!vrm || !loaderRef.current) return;
+        if (!vrm || !loaderRef.current) {return;}
 
         const cacheKey = `${url}::${vrm.scene.uuid}`;
-        if (globalClipCache.has(cacheKey)) return;
+        if (globalClipCache.has(cacheKey)) {return;}
 
         try {
             const originalWarn = console.warn;

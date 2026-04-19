@@ -141,7 +141,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
     };
 
     const handleModalSubmit = async () => {
-        if (!modal.type) return;
+        if (!modal.type) {return;}
         setIsSubmitting(true);
 
         try {
@@ -154,11 +154,11 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
                 const formData = new FormData();
                 formData.append('file', formFile);
                 formData.append('name', formName);
-                if (formDescription) formData.append('description', formDescription);
+                if (formDescription) {formData.append('description', formDescription);}
                 if (formDurationMs !== undefined && !isNaN(formDurationMs)) {
                     formData.append('duration_ms', String(formDurationMs));
                 }
-                if (formTags) formData.append('tags', formTags);
+                if (formTags) {formData.append('tags', formTags);}
 
                 await api.uploadVRMAnimation(formData);
                 await fetchMotions();
@@ -259,7 +259,7 @@ export const AdminMotions: React.FC<AdminMotionsProps> = ({ onMotionsChange }) =
 
     // 过滤动作列表
     const filteredMotions = motions.filter(motion => {
-        if (!searchQuery) return true;
+        if (!searchQuery) {return true;}
         const query = searchQuery.toLowerCase();
         return (
             motion.name.toLowerCase().includes(query) ||

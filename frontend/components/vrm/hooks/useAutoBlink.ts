@@ -37,7 +37,7 @@ export function useAutoBlink(
 
         controllerRef.current = {
             update: (delta: number) => {
-                if (!vrm.expressionManager) return;
+                if (!vrm.expressionManager) {return;}
 
                 if (isBlinkingRef.current) {
                     // 眨眼动画进行中

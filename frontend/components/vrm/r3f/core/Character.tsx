@@ -92,7 +92,7 @@ export function Character({
 
     // 为当前模型创建唯一的 AnimationMixer
     const mixer = useMemo(() => {
-        if (!vrm) return null;
+        if (!vrm) {return null;}
         return new THREE.AnimationMixer(vrm.scene);
     }, [vrm]);
 
@@ -144,7 +144,7 @@ export function Character({
 
     // 模型位置自适应：居中 + 底部对齐地面 + 面向相机
     useEffect(() => {
-        if (!vrm || hasAdjustedPosition.current) return;
+        if (!vrm || hasAdjustedPosition.current) {return;}
 
         // 计算模型边界盒
         const box = new THREE.Box3().setFromObject(vrm.scene);
@@ -177,7 +177,7 @@ export function Character({
 
     // 全局唯一高频更新循环
     useFrame((_state, delta) => {
-        if (!vrm) return;
+        if (!vrm) {return;}
 
         // 1. 核心 VRM 更新（骨骼、物理、表情）
         vrm.update(delta);

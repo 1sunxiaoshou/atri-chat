@@ -19,8 +19,8 @@ interface CharacterMotionBindings {
  * 随机选择动作
  */
 function selectMotionByWeight(bindings: any[]): any {
-  if (bindings.length === 0) return null;
-  if (bindings.length === 1) return bindings[0];
+  if (bindings.length === 0) {return null;}
+  if (bindings.length === 1) {return bindings[0];}
 
   // 随机选择一个动作
   const randomIndex = Math.floor(Math.random() * bindings.length);
@@ -226,7 +226,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
    * 加载 VRM 模型
    */
   const loadModel = useCallback(async (avatarId: string, characterId?: string) => {
-    if (!isVRMMode) return;
+    if (!isVRMMode) {return;}
 
     try {
       setRuntime({ isLoading: true, error: null });
@@ -325,7 +325,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     }
 
     const segment = playQueueRef.current[currentSegmentIndexRef.current];
-    if (!segment) return;
+    if (!segment) {return;}
 
     // 解析标记文本
     const { text, markups } = parseMarkedText(segment.marked_text);
@@ -488,7 +488,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
    * 播放 VRM 动画片段（队列追加模式）
    */
   const playSegments = useCallback(async (segments: AudioSegment[]) => {
-    if (!isVRMMode || segments.length === 0) return;
+    if (!isVRMMode || segments.length === 0) {return;}
 
     // 停止闲置计时器
     stopIdleTimer();
@@ -513,7 +513,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
    * 开始思考状态
    */
   const startThinking = useCallback(async () => {
-    if (!isVRMMode) return;
+    if (!isVRMMode) {return;}
 
     // 停止闲置计时器
     stopIdleTimer();

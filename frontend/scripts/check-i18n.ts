@@ -75,7 +75,7 @@ function flattenKeys(obj: Record<string, any>, prefix = ''): Set<string> {
 
 // 递归获取所有文件
 function getAllFiles(dir: string, fileList: string[] = []): string[] {
-    if (!fs.existsSync(dir)) return fileList;
+    if (!fs.existsSync(dir)) {return fileList;}
 
     const files = fs.readdirSync(dir);
     files.forEach(file => {

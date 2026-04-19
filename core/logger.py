@@ -1,13 +1,30 @@
 """日志系统配置 - 显式引导架构"""
+from __future__ import annotations
+
 import sys
 from pathlib import Path
-from loguru import logger
-from typing import Optional
+from typing import Any, Optional
+
+from loguru import logger as _base_logger
 
 
 # ============================================================
 # 1. 哑配置部分 (仅定义格式，不触碰 IO)
 # ============================================================
+
+ERROR_LEVEL_NO = 40
+
+
+def _normalize_stdlib_extra(record: dict[str, Any]):
+    """兼容标准 logging 风格的 extra={"key": "value"} 写法。"""
+    nested_extra = record["extra"].pop("extra", None)
+    if isinstance(nested_extra, dict):
+        for key, value in nested_extra.items():
+            record["extra"].setdefault(key, value)
+    record["extra"].setdefault("request_id", "-")
+
+
+logger = _base_logger.patch(_normalize_stdlib_extra)
 
 def _safe_print(msg: str):
     """在日志系统完全启动前的保险输出"""
@@ -16,6 +33,21 @@ def _safe_print(msg: str):
             print(msg)
         except Exception:
             pass
+
+
+def _format_access_record(record: dict[str, Any]) -> str:
+    """访问日志保持单行可读格式。"""
+    extra = record["extra"]
+    duration_ms = extra.get("duration_ms", extra.get("duration", "-"))
+    return (
+        f"{record['time'].strftime('%Y-%m-%d %H:%M:%S')} | "
+        f"{extra.get('ip', '-'):<15} | "
+        f"[{extra.get('request_id', '-')}] | "
+        f"{extra.get('method', '-'):<6} "
+        f"{extra.get('path', '-'):<60} | "
+        f"{extra.get('status_code', '-'):>3} | "
+        f"{duration_ms:>5}ms\n"
+    )
 
 
 # ============================================================
@@ -77,8 +109,17 @@ def setup_logging(
             # 基础应用日志
             logger.add(
                 log_dir / "app.log",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
+                format=(
+                    "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
+                    "{level: <8} | "
+                    "[{extra[request_id]}] | "
+                    "{name}:{function}:{line} - {message}"
+                ),
                 level=log_level,
+                filter=lambda record: (
+                    record["level"].no < ERROR_LEVEL_NO
+                    and record["extra"].get("channel") != "access"
+                ),
                 rotation="100 MB",
                 retention="7 days",
                 encoding="utf-8",
@@ -87,7 +128,12 @@ def setup_logging(
             
             logger.add(
                 log_dir / "error.log",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
+                format=(
+                    "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
+                    "{level: <8} | "
+                    "[{extra[request_id]}] | "
+                    "{name}:{function}:{line} - {message}"
+                ),
                 level="ERROR",
                 rotation="100 MB",
                 retention="30 days",
@@ -100,9 +146,9 @@ def setup_logging(
             # 访问日志（由中间件调用，通过 extra 过滤）
             logger.add(
                 log_dir / "access.log",
-                format=lambda r: f"{r['time'].strftime('%Y-%m-%d %H:%M:%S')} | {r['extra'].get('ip', '-'):<15} | [{r['extra'].get('request_id', '-')}] | {r['extra'].get('method', '-'):<6} {r['extra'].get('path', '-'):<60} | {r['extra'].get('status_code', '-')} | {r['extra'].get('duration', '-'):>5}ms\n",
+                format=_format_access_record,
                 level="INFO",
-                filter=lambda record: record["extra"].get("is_access", False),
+                filter=lambda record: record["extra"].get("channel") == "access",
                 rotation="50 MB",
                 retention="7 days",
                 encoding="utf-8",
@@ -116,5 +162,5 @@ def setup_logging(
 
 
 def get_logger(name: str = None):
-    """获取绑定的 logger 实例"""
-    return logger.bind(name=name or __name__)
+    """获取 logger 实例。保留 name 参数以兼容现有调用。"""
+    return logger

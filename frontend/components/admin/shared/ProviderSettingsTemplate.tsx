@@ -72,7 +72,7 @@ export const ProviderSettingsForm: React.FC<ProviderSettingsFormProps> = ({
     <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
       {configKeys.map((key) => {
         const fieldConfig = formData[key];
-        if (!fieldConfig || typeof fieldConfig !== 'object' || !('type' in fieldConfig)) return null;
+        if (!fieldConfig || typeof fieldConfig !== 'object' || !('type' in fieldConfig)) {return null;}
 
         const { type, label, description, required, placeholder, options, min, max, step, value, sensitive } = fieldConfig;
         const displayLabel = label || key; // 如果没有 label，使用 key 作为展示名称
@@ -208,7 +208,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
   };
 
   const handleTestConnection = async () => {
-    if (!selectedProviderId) return;
+    if (!selectedProviderId) {return;}
     setTesting(true);
     setTestResult(null);
     try {
@@ -233,7 +233,7 @@ const ProviderSettingsTemplate: React.FC<ProviderSettingsTemplateProps> = ({
 
       if (result.success) {
         setSaveResult(result);
-        if (onConfigSaved) await onConfigSaved();
+        if (onConfigSaved) {await onConfigSaved();}
         setTimeout(() => setSaveResult(null), 3000);
 
         if (selectedProviderId) {

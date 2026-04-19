@@ -88,7 +88,7 @@ const ASRSettings: React.FC = () => {
     };
 
     const handleClearAssets = async () => {
-        if (!showClearConfirm) return;
+        if (!showClearConfirm) {return;}
         setMgmtActionLoading(true);
         try {
             const response = await asrApi.clearAssets(showClearConfirm);

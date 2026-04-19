@@ -94,7 +94,7 @@ export function useLipSync(
         // 创建控制器
         controllerRef.current = {
             update: (_delta: number) => {
-                if (!vrm.expressionManager) return;
+                if (!vrm.expressionManager) {return;}
 
                 let volume = 0;
 

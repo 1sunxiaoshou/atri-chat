@@ -45,15 +45,15 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   fetchCharacters: async (force = false) => {
     // 如果已经有数据且不是强制刷新，直接返回
-    if (!force && get().characters.length > 0) return;
+    if (!force && get().characters.length > 0) {return;}
     // 如果已有相同请求在处理中，合并请求
-    if (inflight['characters']) return inflight['characters'];
+    if (inflight['characters']) {return inflight['characters'];}
 
     set(state => ({ loading: { ...state.loading, characters: true } }));
     const promise = (async () => {
       try {
         const res = await charactersApi.getCharacters();
-        if (res.code === 200) set({ characters: res.data });
+        if (res.code === 200) {set({ characters: res.data });}
       } catch (error) {
         console.error('Failed to fetch characters:', error);
       } finally {
@@ -66,14 +66,14 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   fetchModels: async (force = false) => {
-    if (!force && get().models.length > 0) return;
-    if (inflight['models']) return inflight['models'];
+    if (!force && get().models.length > 0) {return;}
+    if (inflight['models']) {return inflight['models'];}
 
     set(state => ({ loading: { ...state.loading, models: true } }));
     const promise = (async () => {
       try {
         const res = await modelsApi.getModels(false);
-        if (res.code === 200) set({ models: res.data });
+        if (res.code === 200) {set({ models: res.data });}
       } catch (error) {
         console.error('Failed to fetch models:', error);
       } finally {
@@ -86,14 +86,14 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   fetchProviders: async (force = false) => {
-    if (!force && get().providers.length > 0) return;
-    if (inflight['providers']) return inflight['providers'];
+    if (!force && get().providers.length > 0) {return;}
+    if (inflight['providers']) {return inflight['providers'];}
 
     set(state => ({ loading: { ...state.loading, providers: true } }));
     const promise = (async () => {
       try {
         const res = await providersApi.getProviders();
-        if (res.code === 200) set({ providers: res.data });
+        if (res.code === 200) {set({ providers: res.data });}
       } catch (error) {
         console.error('Failed to fetch providers:', error);
       } finally {
@@ -106,14 +106,14 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   fetchTemplates: async (force = false) => {
-    if (!force && get().providerTemplates.length > 0) return;
-    if (inflight['templates']) return inflight['templates'];
+    if (!force && get().providerTemplates.length > 0) {return;}
+    if (inflight['templates']) {return inflight['templates'];}
 
     set(state => ({ loading: { ...state.loading, templates: true } }));
     const promise = (async () => {
       try {
         const res = await providersApi.getProviderTemplates();
-        if (res.code === 200) set({ providerTemplates: res.data });
+        if (res.code === 200) {set({ providerTemplates: res.data });}
       } catch (error) {
         console.error('Failed to fetch templates:', error);
       } finally {

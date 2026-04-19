@@ -50,7 +50,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
     }, [character.id]);
 
     const loadMotionBindings = async () => {
-        if (!character.id) return;
+        if (!character.id) {return;}
 
         try {
             const response = await motionBindingsApi.getCharacterBindings(character.id);
@@ -148,7 +148,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
     };
 
     const handleMotionSelect = (item: HierarchicalItem) => {
-        if (!currentMotionCategory) return;
+        if (!currentMotionCategory) {return;}
 
         onLocalBindingsChange((prevBindings: LocalMotionBinding[]) => {
             // 移除该类别的所有旧绑定
@@ -168,7 +168,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
     };
 
     const handleMultiMotionSelect = (items: HierarchicalItem[]) => {
-        if (!currentMotionCategory || currentMotionCategory !== 'reply') return;
+        if (!currentMotionCategory || currentMotionCategory !== 'reply') {return;}
 
         onLocalBindingsChange((prevBindings: LocalMotionBinding[]) => {
             // 添加新选择的绑定（选择器已过滤掉已存在的，无需去重）
@@ -192,7 +192,7 @@ export const AssetsTab: React.FC<AssetsTabProps> = ({
     // 播放动作预览
     const playMotionPreview = (motionId: string, shouldLoop: boolean = true) => {
         const motion = motions.find(m => m.id === motionId);
-        if (!motion || !vrmViewerRef.current) return;
+        if (!motion || !vrmViewerRef.current) {return;}
 
         // 如果点击了正在播放的动作，切换到待机动作
         if (currentPreviewMotionId === motionId) {

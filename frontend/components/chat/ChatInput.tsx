@@ -39,7 +39,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({
 
   // 发送消息处理
   const handleSend = React.useCallback(() => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim()) {return;}
 
     const message = inputValue.trim();
     clearInput(); // 清空输入框

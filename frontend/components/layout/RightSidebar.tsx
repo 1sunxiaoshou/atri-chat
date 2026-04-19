@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, RotateCcw, Volume2, VolumeX } from 'lucide-react';
-import { Model, ModelParameters, ModelParameterSchemaResponse } from '../../types';
+import { Model, ModelParameters, ModelParameterSchemaResponse, ParameterSchema, Provider } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
@@ -8,7 +8,6 @@ import HierarchicalSelector, { HierarchicalItem } from '../ui/HierarchicalSelect
 import ParameterField from './ParameterField';
 import { useAudioStore } from '../../store/useAudioStore';
 import { useDataStore } from '../../store/useDataStore';
-import { Provider } from '../../types';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -57,7 +56,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     setIsLoadingSchema(true);
     fetch(`/api/v1/models/${activeModel.id}/parameter-schema`)
       .then(response => {
-        if (!response.ok) throw new Error('Failed to fetch parameter schema');
+        if (!response.ok) {throw new Error('Failed to fetch parameter schema');}
         return response.json();
       })
       .then(result => {
@@ -73,12 +72,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   // 从 has_* 字段生成能力标签
   const getCapabilityTags = (model: Model): string[] => {
     const tags: string[] = [];
-    if (model.has_vision) tags.push('Vision');
-    if (model.has_audio) tags.push('Audio');
-    if (model.has_video) tags.push('Video');
-    if (model.has_reasoning) tags.push('Reasoning');
-    if (model.has_tool_use) tags.push('Tool Use');
-    if (model.has_document) tags.push('Document');
+    if (model.has_vision) {tags.push('Vision');}
+    if (model.has_audio) {tags.push('Audio');}
+    if (model.has_video) {tags.push('Video');}
+    if (model.has_reasoning) {tags.push('Reasoning');}
+    if (model.has_tool_use) {tags.push('Tool Use');}
+    if (model.has_document) {tags.push('Document');}
     return tags;
   };
 
@@ -218,7 +217,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           ) : parameterSchema ? (
             <div className="space-y-4">
               {/* Provider Parameters (思考类参数) - 显示在最前面 */}
-              {(Object.entries(parameterSchema.provider_parameters) as [string, any][]).map(([key, schema]) => (
+              {(Object.entries(parameterSchema.provider_parameters) as [string, ParameterSchema][]).map(([key, schema]) => (
                 <ParameterField
                   key={key}
                   name={key}
@@ -234,7 +233,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               )}
 
               {/* Common Parameters (通用参数) */}
-              {(Object.entries(parameterSchema.common_parameters) as [string, any][]).map(([key, schema]) => (
+              {(Object.entries(parameterSchema.common_parameters) as [string, ParameterSchema][]).map(([key, schema]) => (
                 <ParameterField
                   key={key}
                   name={key}

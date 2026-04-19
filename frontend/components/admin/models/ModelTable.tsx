@@ -30,12 +30,12 @@ export const ModelTable: React.FC<ModelTableProps> = ({
     const getModelCapabilities = (model: Model): Array<{ key: string; label: string }> => {
         const capabilities: Array<{ key: string; label: string }> = [];
 
-        if (model.has_vision) capabilities.push({ key: 'has_vision', label: 'Vision' });
-        if (model.has_audio) capabilities.push({ key: 'has_audio', label: 'Audio' });
-        if (model.has_video) capabilities.push({ key: 'has_video', label: 'Video' });
-        if (model.has_reasoning) capabilities.push({ key: 'has_reasoning', label: 'Reasoning' });
-        if (model.has_tool_use) capabilities.push({ key: 'has_tool_use', label: 'Tool Use' });
-        if (model.has_document) capabilities.push({ key: 'has_document', label: 'Document' });
+        if (model.has_vision) {capabilities.push({ key: 'has_vision', label: 'Vision' });}
+        if (model.has_audio) {capabilities.push({ key: 'has_audio', label: 'Audio' });}
+        if (model.has_video) {capabilities.push({ key: 'has_video', label: 'Video' });}
+        if (model.has_reasoning) {capabilities.push({ key: 'has_reasoning', label: 'Reasoning' });}
+        if (model.has_tool_use) {capabilities.push({ key: 'has_tool_use', label: 'Tool Use' });}
+        if (model.has_document) {capabilities.push({ key: 'has_document', label: 'Document' });}
         return capabilities;
     };
 

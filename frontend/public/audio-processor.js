@@ -21,7 +21,7 @@ class RecorderProcessor extends AudioWorkletProcessor {
         };
     }
 
-    process(inputs, outputs, parameters) {
+    process(inputs) {
         const input = inputs[0];
 
         if (input.length > 0) {
