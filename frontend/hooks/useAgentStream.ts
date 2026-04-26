@@ -27,7 +27,7 @@ const toStreamInputMessage = (message: BaseMessage) => ({
 });
 
 export const useAgentStream = (conversationId: string | number) => {
-  const [historyMessages, setHistoryMessages] = useState<BaseMessage[]>([]);
+  const [messages, setMessages] = useState<BaseMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [customEvents, setCustomEvents] = useState<AgentStreamCustomEvent[]>([]);
   const [streamingReasoning, setStreamingReasoning] = useState('');
@@ -91,19 +91,22 @@ export const useAgentStream = (conversationId: string | number) => {
       const response = await api.getMessages(targetConversationId);
       if (response.code === HTTP_STATUS.OK) {
         const messagesData = Array.isArray(response.data) ? response.data : [];
-        setHistoryMessages(messagesData);
+        messagesRef.current = messagesData;
+        setMessages(messagesData);
         Logger.debug(`useAgentStream 加载了 ${messagesData.length} 条消息`);
         return;
       }
 
       const errorMsg = response.message || '加载消息失败';
       setError(errorMsg);
-      setHistoryMessages([]);
+      messagesRef.current = [];
+      setMessages([]);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '加载消息失败';
       Logger.error('useAgentStream 加载消息失败', err instanceof Error ? err : undefined);
       setError(errorMsg);
-      setHistoryMessages([]);
+      messagesRef.current = [];
+      setMessages([]);
     }
   }, []);
 
@@ -111,7 +114,8 @@ export const useAgentStream = (conversationId: string | number) => {
     switchThread(String(conversationId));
     setStreamingReasoning('');
     setCustomEvents([]);
-    setHistoryMessages([]);
+    messagesRef.current = [];
+    setMessages([]);
     void loadMessages(conversationId);
   }, [conversationId, loadMessages, switchThread]);
 
@@ -153,7 +157,10 @@ export const useAgentStream = (conversationId: string | number) => {
       id: userMessageId,
       content: trimmed,
     });
-    const inputMessages = [...messagesRef.current, optimisticHumanMessage].map(toStreamInputMessage);
+    const nextMessages = mergeMessages(messagesRef.current, [optimisticHumanMessage]);
+    messagesRef.current = nextMessages;
+    setMessages(nextMessages);
+    const inputMessages = nextMessages.map(toStreamInputMessage);
 
     await submit(
       {
@@ -161,9 +168,8 @@ export const useAgentStream = (conversationId: string | number) => {
       },
       {
         context: streamContext as unknown as Record<string, unknown>,
-        optimisticValues: (previous) => ({
-          ...previous,
-          messages: [...(previous?.messages ?? []), optimisticHumanMessage],
+        optimisticValues: () => ({
+          messages: nextMessages,
         }),
         onError: (streamError) => {
           const message = streamError instanceof Error ? streamError.message : '消息发送失败';
@@ -175,14 +181,17 @@ export const useAgentStream = (conversationId: string | number) => {
 
   const streamMessages = liveMessages as BaseMessage[];
 
-  const messages = useMemo(
-    () => mergeMessages(historyMessages, streamMessages),
-    [historyMessages, streamMessages],
-  );
-
   useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+    if (streamMessages.length === 0) {
+      return;
+    }
+
+    setMessages((previous) => {
+      const merged = mergeMessages(previous, streamMessages);
+      messagesRef.current = merged;
+      return merged;
+    });
+  }, [streamMessages]);
 
   const clearError = useCallback(() => {
     setError(null);
