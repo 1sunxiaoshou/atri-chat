@@ -119,6 +119,8 @@ export interface ToolCall {
 
 export interface AgentStreamContext {
   conversation_id: string;
+  turn_id?: string;
+  user_message_id?: string;
   character_id: string;
   model_id: string;
   provider_config_id: number;
@@ -151,6 +153,7 @@ export interface AgentStreamCustomEvent {
 
 export interface AgentStreamMetadataEvent {
   conversation_id: string;
+  turn_id?: string;
   thread_id: string;
   usage?: Record<string, unknown>;
 }
@@ -209,11 +212,15 @@ export interface CapabilityEvent {
 export interface Message {
   message_id: number | string; // 支持数字 ID 和临时字符串 ID
   conversation_id: number | string; // 支持两种类型
-  message_type: 'user' | 'assistant';
+  turn_id?: string;
+  lc_message_id?: string;
+  message_type: 'user' | 'assistant' | 'tool';
   content: string;
   reasoning?: string; // 思维链内容
   status?: string; // 工具调用状态
   tool_calls?: ToolCall[]; // 消息相关的工具调用
+  tool_call_id?: string;
+  tool_name?: string;
   created_at: string;
   generating?: boolean; // 是否正在生成（流式响应时）
 }

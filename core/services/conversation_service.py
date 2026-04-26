@@ -1,5 +1,6 @@
 """会话管理服务 (ORM 版本)"""
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import Conversation, Message
@@ -42,7 +43,18 @@ class ConversationService:
 
         return conversation
 
-    def save_message(self, conversation_id: str, role: str, content: str):
+    def save_message(
+        self,
+        conversation_id: str,
+        role: str,
+        content: str,
+        *,
+        turn_id: str | None = None,
+        lc_message_id: str | None = None,
+        tool_call_id: str | None = None,
+        tool_name: str | None = None,
+        raw_json: dict | None = None,
+    ):
         """保存消息
 
         Args:
@@ -52,10 +64,30 @@ class ConversationService:
         """
         try:
             message = Message(
-                conversation_id=conversation_id, message_type=role, content=content
+                conversation_id=conversation_id,
+                message_type=role,
+                content=content,
+                turn_id=turn_id,
+                lc_message_id=lc_message_id,
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                raw_json=raw_json,
             )
             self.db.add(message)
             self.db.commit()
+            return message
+        except IntegrityError:
+            self.db.rollback()
+            if lc_message_id:
+                return (
+                    self.db.query(Message)
+                    .filter(
+                        Message.conversation_id == conversation_id,
+                        Message.lc_message_id == lc_message_id,
+                    )
+                    .first()
+                )
+            raise
         except Exception as e:
             self.db.rollback()
             logger.error(f"保存消息失败: {e}")

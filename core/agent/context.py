@@ -12,6 +12,9 @@ class AgentContext:
 
     character_id: str
     conversation_id: str | None = None
+    turn_id: str | None = None
+    user_message_id: str | None = None
+    pre_run_message_ids: set[str] = field(default_factory=set)
     enable_vrm: bool = False
     model_id: str = "gpt-4o"
     provider_config_id: int = 1

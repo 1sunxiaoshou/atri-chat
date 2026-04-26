@@ -226,6 +226,8 @@ class AgentStreamContext(BaseModel):
     """前端 useStream 自定义 transport 的上下文。"""
 
     conversation_id: str = Field(..., description="会话ID（UUID）")
+    turn_id: str | None = Field(None, description="本轮对话ID（UUID）")
+    user_message_id: str | None = Field(None, description="用户消息ID（UUID）")
     character_id: str = Field(..., description="角色ID（UUID）")
     model_id: str = Field(..., description="模型ID")
     provider_config_id: int = Field(..., description="供应商配置内部 ID")
@@ -252,10 +254,14 @@ class AgentStreamRequest(BaseModel):
 class MessageResponse(BaseModel):
     """消息响应"""
 
-    message_id: int
+    message_id: str
     conversation_id: str
+    turn_id: str | None = None
+    lc_message_id: str | None = None
     message_type: str
     content: str
+    tool_call_id: str | None = None
+    tool_name: str | None = None
     created_at: str
 
 

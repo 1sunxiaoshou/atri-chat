@@ -10,8 +10,6 @@ interface AgentStreamState extends Record<string, unknown> {
   messages: unknown[];
 }
 
-const STREAM_ASSISTANT_TEMP_ID = 'stream-assistant-temp';
-
 const getMessageKind = (message: BaseMessage): string => {
   const candidate = message as BaseMessage & { type?: string; getType?: () => string };
   if (typeof candidate.getType === 'function') {
@@ -234,9 +232,13 @@ export const useAgentStream = (conversationId: string | number) => {
     vrmDataRef.current = _onVrmData;
     setError(null);
     setStreamingReasoning('');
+    const turnId = crypto.randomUUID();
+    const userMessageId = crypto.randomUUID();
 
     const streamContext: AgentStreamContext = {
       conversation_id: String(targetConversationId),
+      turn_id: turnId,
+      user_message_id: userMessageId,
       character_id: character.id,
       model_id: model.model_id,
       provider_config_id: model.provider_config_id,
@@ -249,13 +251,13 @@ export const useAgentStream = (conversationId: string | number) => {
     };
 
     const optimisticHumanMessage = new HumanMessage({
-      id: `${STREAM_ASSISTANT_TEMP_ID}-${crypto.randomUUID()}`,
+      id: userMessageId,
       content: trimmed,
     });
 
     await submit(
       {
-        messages: [{ type: 'human', content: trimmed }],
+        messages: [{ type: 'human', id: userMessageId, content: trimmed }],
       },
       {
         context: streamContext as unknown as Record<string, unknown>,

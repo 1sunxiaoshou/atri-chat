@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Sequence
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
@@ -84,6 +85,8 @@ class AgentCoordinator:
         *,
         user_message: str,
         conversation_id: str,
+        turn_id: str | None = None,
+        user_message_id: str | None = None,
         character_id: str,
         model_id: str,
         provider_config_id: int,
@@ -94,7 +97,7 @@ class AgentCoordinator:
         **model_kwargs,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """暴露给 useStream 端点的原始 LangGraph 流式事件。"""
-        from langchain_core.messages import AIMessageChunk, BaseMessage
+        from langchain_core.messages import AIMessageChunk, HumanMessage
 
         from ..callbacks import LLMCallLogger, TokenUsageCallback
         from ..config import get_settings
@@ -102,7 +105,6 @@ class AgentCoordinator:
         from ..services.model_service import ModelService
         from ..tools import get_action_tools
         from ..tools.memory_tools_v3 import get_memory_tools_v3
-        from ..utils.message_utils import extract_text_from_content
         from .context import AgentContext
 
         enable_vrm = output_mode == "vrm"
@@ -110,10 +112,36 @@ class AgentCoordinator:
         model_service = ModelService(db_session, self.model_factory)
 
         conversation_service.validate_conversation(conversation_id)
+        turn_id = turn_id or str(uuid4())
+        user_message_id = user_message_id or str(uuid4())
+
+        agent = await self.runtime.get_or_create_agent()
+        runtime_config: dict[str, Any] = {
+            **(config or {}),
+            "configurable": {
+                "thread_id": str(conversation_id),
+                **((config or {}).get("configurable") or {}),
+            },
+        }
+
+        pre_run_message_ids: set[str] = set()
+        try:
+            state = await agent.aget_state(runtime_config)
+            messages = (state.values or {}).get("messages", [])
+            pre_run_message_ids = {
+                str(message_id)
+                for message in messages
+                if (message_id := getattr(message, "id", None))
+            }
+        except Exception as e:
+            logger.debug(f"读取运行前消息状态失败，将跳过预过滤: {e}")
 
         context = AgentContext(
             character_id=character_id,
             conversation_id=conversation_id,
+            turn_id=turn_id,
+            user_message_id=user_message_id,
+            pre_run_message_ids=pre_run_message_ids,
             enable_vrm=enable_vrm,
             model_id=model_id,
             provider_config_id=provider_config_id,
@@ -144,16 +172,6 @@ class AgentCoordinator:
             },
         )
 
-        agent = await self.runtime.get_or_create_agent()
-
-        runtime_config: dict[str, Any] = {
-            **(config or {}),
-            "configurable": {
-                "thread_id": str(conversation_id),
-                **((config or {}).get("configurable") or {}),
-            },
-        }
-
         token_callback = TokenUsageCallback()
         runtime_config["callbacks"] = [token_callback]
 
@@ -163,13 +181,20 @@ class AgentCoordinator:
             runtime_config["callbacks"].append(llm_logger)
             logger.debug("LLM 调用日志记录器已启用")
 
-        full_response = ""
-
         try:
             conversation_service.save_message(
                 conversation_id=conversation_id,
                 role="user",
                 content=user_message,
+                turn_id=turn_id,
+                lc_message_id=user_message_id,
+                raw_json={
+                    "type": "human",
+                    "data": {
+                        "id": user_message_id,
+                        "content": user_message,
+                    },
+                },
             )
             new_title = conversation_service.auto_title(conversation_id, user_message)
             if new_title:
@@ -182,7 +207,7 @@ class AgentCoordinator:
 
         try:
             async for part in agent.astream(
-                {"messages": [{"role": "user", "content": user_message}]},
+                {"messages": [HumanMessage(id=user_message_id, content=user_message)]},
                 config=runtime_config,
                 context=context,
                 stream_mode=list(stream_modes or ["messages", "updates", "custom"]),
@@ -208,8 +233,6 @@ class AgentCoordinator:
                         else None
                     )
                     if node == "model" and isinstance(token, AIMessageChunk):
-                        full_response += extract_text_from_content(token.content)
-
                         additional_kwargs = (
                             getattr(token, "additional_kwargs", {}) or {}
                         )
@@ -226,9 +249,6 @@ class AgentCoordinator:
                                     "content": reasoning,
                                 },
                             }
-                    elif node == "model" and isinstance(token, BaseMessage):
-                        full_response += extract_text_from_content(token.content)
-
                 normalized_part = {
                     "type": part_type,
                     "data": payload,
@@ -237,17 +257,11 @@ class AgentCoordinator:
                     normalized_part["ns"] = namespace
                 yield normalized_part
 
-            if full_response:
-                conversation_service.save_message(
-                    conversation_id=conversation_id,
-                    role="assistant",
-                    content=full_response,
-                )
-
             yield {
                 "type": "metadata",
                 "data": {
                     "conversation_id": conversation_id,
+                    "turn_id": turn_id,
                     "thread_id": str(runtime_config["configurable"]["thread_id"]),
                     "usage": token_callback.get_summary(),
                 },

@@ -2,7 +2,7 @@
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
@@ -100,10 +100,65 @@ def get_session() -> Generator[Session, None, None]:
         db.close()
 
 
+def _ensure_message_schema(engine):
+    """Apply lightweight SQLite-compatible schema updates for messages."""
+    inspector = inspect(engine)
+    if "messages" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("messages")}
+    columns_to_add = {
+        "turn_id": "VARCHAR(36)",
+        "lc_message_id": "VARCHAR(255)",
+        "tool_call_id": "VARCHAR(255)",
+        "tool_name": "VARCHAR(255)",
+        "raw_json": "JSON",
+    }
+
+    with engine.begin() as conn:
+        for column, ddl_type in columns_to_add.items():
+            if column not in existing_columns:
+                logger.info(f"正在升级 messages 表字段: {column}")
+                conn.execute(
+                    text(f"ALTER TABLE messages ADD COLUMN {column} {ddl_type}")
+                )
+
+        indexes = {
+            index["name"]
+            for index in inspector.get_indexes("messages")
+            if index.get("name")
+        }
+        if "ix_messages_turn_id" not in indexes:
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_messages_turn_id ON messages (turn_id)"
+                )
+            )
+        if "ix_messages_lc_message_id" not in indexes:
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_messages_lc_message_id "
+                    "ON messages (lc_message_id)"
+                )
+            )
+        if "ix_messages_tool_call_id" not in indexes:
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_messages_tool_call_id "
+                    "ON messages (tool_call_id)"
+                )
+            )
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                "uq_messages_conversation_lc_message "
+                "ON messages (conversation_id, lc_message_id)"
+            )
+        )
+
+
 def init_db():
     """初始化数据库（创建所有表）"""
-    from sqlalchemy import inspect
-
     engine = get_engine()
     inspector = inspect(engine)
     existing_tables = inspector.get_table_names()
@@ -119,6 +174,8 @@ def init_db():
         logger.info(f"正在创建数据库表: {', '.join(tables_to_create)}")
         Base.metadata.create_all(bind=engine)
         logger.success("✓ 数据库表创建完成")
+
+    _ensure_message_schema(engine)
 
 
 def drop_all_tables():

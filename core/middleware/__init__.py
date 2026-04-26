@@ -11,11 +11,13 @@ if TYPE_CHECKING:
     from .dynamic_model import select_model_and_params
     from .dynamic_prompt import build_character_prompt
     from .dynamic_tools import filter_tools_by_mode
+    from .persist_messages import persist_agent_messages
 
 __all__ = [
     "select_model_and_params",
     "build_character_prompt",
     "filter_tools_by_mode",
+    "persist_agent_messages",
     "AgentContext",
 ]
 
@@ -38,4 +40,8 @@ def __getattr__(name: str):
         from .dynamic_tools import filter_tools_by_mode
 
         return filter_tools_by_mode
+    if name == "persist_agent_messages":
+        from .persist_messages import persist_agent_messages
+
+        return persist_agent_messages
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -23,6 +23,7 @@ class AgentRuntimeFactory:
             AgentContext,
             build_character_prompt,
             filter_tools_by_mode,
+            persist_agent_messages,
             select_model_and_params,
         )
         from ..tools import get_action_tools
@@ -42,6 +43,7 @@ class AgentRuntimeFactory:
                 select_model_and_params,
                 build_character_prompt,
                 filter_tools_by_mode,
+                persist_agent_messages,
             ],
             context_schema=AgentContext,
             checkpointer=self.checkpointer,

@@ -52,6 +52,8 @@ def _build_request_payload(display_mode: str = "text") -> dict[str, Any]:
         },
         "context": {
             "conversation_id": "conv-001",
+            "turn_id": "turn-001",
+            "user_message_id": "msg-user-001",
             "character_id": "char-001",
             "model_id": "qwen3.5-flash",
             "provider_config_id": 1,
@@ -114,7 +116,7 @@ def test_agent_stream_emits_official_v2_style_events():
 
     assert events[0] == (
         "metadata",
-        {"conversation_id": "conv-001", "thread_id": "conv-001"},
+        {"conversation_id": "conv-001", "turn_id": "turn-001", "thread_id": "conv-001"},
     )
 
     event_names = [name for name, _ in events]
@@ -181,5 +183,5 @@ def test_agent_stream_accepts_vrm_mode_custom_events():
 
     assert events[0] == (
         "metadata",
-        {"conversation_id": "conv-001", "thread_id": "conv-001"},
+        {"conversation_id": "conv-001", "turn_id": "turn-001", "thread_id": "conv-001"},
     )

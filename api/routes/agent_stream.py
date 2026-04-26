@@ -100,6 +100,8 @@ async def agent_stream(
 ):
     """官方 useStream 的自定义 transport 入口。"""
     user_message = _extract_user_message(req)
+    turn_id = req.context.turn_id or str(uuid4())
+    user_message_id = req.context.user_message_id or str(uuid4())
     thread_id = ((req.config or {}).get("configurable") or {}).get(
         "thread_id"
     ) or req.context.conversation_id
@@ -159,6 +161,7 @@ async def agent_stream(
             "metadata",
             {
                 "conversation_id": req.context.conversation_id,
+                "turn_id": turn_id,
                 "thread_id": str(thread_id),
             },
         )
@@ -167,6 +170,8 @@ async def agent_stream(
             async for part in agent_manager.stream_runtime_events(
                 user_message=user_message,
                 conversation_id=req.context.conversation_id,
+                turn_id=turn_id,
+                user_message_id=user_message_id,
                 character_id=req.context.character_id,
                 model_id=req.context.model_id,
                 provider_config_id=req.context.provider_config_id,

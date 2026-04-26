@@ -149,7 +149,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 >
                   <MarkdownContent
                     content={message.content}
-                    messageType={message.message_type}
+                    messageType={isUser ? 'user' : 'assistant'}
                     t={t}
                   />
                 </Suspense>
@@ -168,7 +168,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         )}
 
         {/* Message Actions (底部工具栏) */}
-        {!isUser && (
+        {!isUser && message.content && (
           <div className="flex gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <Button
               variant="ghost"

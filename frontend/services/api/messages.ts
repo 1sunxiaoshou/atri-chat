@@ -22,10 +22,14 @@ export const messagesApi = {
     if (response.code === HTTP_STATUS.OK && response.data && response.data.messages) {
       // 将后端的 id 字段映射为前端的 message_id
       const messages = response.data.messages.map((msg: any) => ({
-        message_id: msg.id,
+        message_id: msg.lc_message_id || msg.id,
         conversation_id: msg.conversation_id,
+        turn_id: msg.turn_id,
+        lc_message_id: msg.lc_message_id,
         message_type: msg.message_type,
         content: msg.content,
+        tool_call_id: msg.tool_call_id,
+        tool_name: msg.tool_name,
         created_at: msg.created_at,
         generating: msg.generating
       }));

@@ -2,6 +2,8 @@
 
 import builtins
 
+from sqlalchemy.exc import IntegrityError
+
 from core.db import Message
 
 from .base import BaseRepository
@@ -53,7 +55,24 @@ class MessageRepository(BaseRepository[Message]):
         """创建消息"""
         message = Message(**data)
         self.db.add(message)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            lc_message_id = data.get("lc_message_id")
+            conversation_id = data.get("conversation_id")
+            if lc_message_id and conversation_id:
+                existing = (
+                    self.db.query(Message)
+                    .filter(
+                        Message.conversation_id == conversation_id,
+                        Message.lc_message_id == lc_message_id,
+                    )
+                    .first()
+                )
+                if existing:
+                    return existing
+            raise
         self.db.refresh(message)
         return message
 

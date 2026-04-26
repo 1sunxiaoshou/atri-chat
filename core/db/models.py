@@ -527,6 +527,13 @@ class Message(Base):
     """消息表"""
 
     __tablename__ = "messages"
+    __table_args__ = (
+        UniqueConstraint(
+            "conversation_id",
+            "lc_message_id",
+            name="uq_messages_conversation_lc_message",
+        ),
+    )
 
     # 主键
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
@@ -542,8 +549,17 @@ class Message(Base):
     # 消息内容
     message_type: Mapped[str] = mapped_column(
         String(50), nullable=False
-    )  # user/assistant/system
+    )  # user/assistant/tool/system
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    turn_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    lc_message_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    tool_call_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    tool_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    raw_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(
