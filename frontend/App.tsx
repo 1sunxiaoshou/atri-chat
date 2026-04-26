@@ -43,8 +43,10 @@ const App: React.FC = () => {
   // Toast State
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
+  const getConversationId = (conversation: Conversation) => conversation.id || conversation.conversation_id || null;
+
   // Computed state
-  const activeConversation = conversations.find(c => (c.id || c.conversation_id) === activeConversationId);
+  const activeConversation = conversations.find(c => getConversationId(c) === activeConversationId);
   const activeCharacter = characters.find(c => c.id === activeConversation?.character_id) || null;
 
   // Local state for temporary model override in chat
@@ -107,13 +109,13 @@ const App: React.FC = () => {
       if (res.code === 200) {
         setConversations(res.data);
         // If we just switched characters and have conversations, pick the first one
-        if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => (c.id || c.conversation_id) === activeConversationId))) {
-          setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
+        if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => getConversationId(c) === activeConversationId))) {
+          setActiveConversationId(getConversationId(res.data[0]));
         } else if (charId && res.data.length === 0) {
           setActiveConversationId(null);
         } else if (!charId && res.data.length > 0 && res.data[0] && !activeConversationId) {
           // Fallback for 'All' view if nothing selected
-          setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
+          setActiveConversationId(getConversationId(res.data[0]));
         }
       } else {
         // Handle API error (e.g. character deleted)
@@ -143,7 +145,7 @@ const App: React.FC = () => {
     const res = await conversationsApi.createConversation(defaultCharId);
     if (res.code === 200) {
       setConversations(prev => [res.data, ...prev]);
-      setActiveConversationId(res.data.id || res.data.conversation_id || null);
+      setActiveConversationId(getConversationId(res.data));
 
       // If we are currently filtering by a DIFFERENT character, switch filter to this new one
       if (selectedCharacterId && selectedCharacterId !== res.data.character_id) {
@@ -162,7 +164,7 @@ const App: React.FC = () => {
 
   const handleDeleteConversation = async (id: string | number) => {
     await conversationsApi.deleteConversation(id);
-    setConversations(prev => prev.filter(c => (c.id || c.conversation_id) !== id));
+    setConversations(prev => prev.filter(c => getConversationId(c) !== id));
     if (activeConversationId === id) {
       setActiveConversationId(null);
     }
@@ -235,10 +237,21 @@ const App: React.FC = () => {
           activeConversationId ? (
             <ChatInterface
               activeConversationId={activeConversationId}
+              activeConversationTitle={activeConversation?.title}
               activeCharacter={activeCharacter}
               activeModel={activeModel}
               onUpdateModel={handleUpdateModel}
-              onConversationUpdated={() => loadConversations(selectedCharacterId)}
+              onConversationUpdated={(update) => {
+                if (!update.title) {
+                  return;
+                }
+
+                setConversations(prev => prev.map(conversation => (
+                  getConversationId(conversation) === update.conversationId
+                    ? { ...conversation, title: update.title }
+                    : conversation
+                )));
+              }}
               onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
               onShowSidebar={() => setIsLeftSidebarHidden(false)}
               isSidebarHidden={isLeftSidebarHidden}

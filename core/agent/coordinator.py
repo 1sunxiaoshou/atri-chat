@@ -196,12 +196,7 @@ class AgentCoordinator:
                     },
                 },
             )
-            new_title = conversation_service.auto_title(conversation_id, user_message)
-            if new_title:
-                yield {
-                    "type": "custom",
-                    "data": {"type": "title_update", "title": new_title},
-                }
+            conversation_service.auto_title(conversation_id, user_message)
         except Exception as e:
             logger.error(f"前期消息处理失败: {e}")
 

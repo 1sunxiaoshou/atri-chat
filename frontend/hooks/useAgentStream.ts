@@ -20,12 +20,18 @@ const mergeMessages = (historyMessages: BaseMessage[], streamMessages: BaseMessa
   return [...merged.values()];
 };
 
+const toStreamInputMessage = (message: BaseMessage) => ({
+  type: message.getType(),
+  id: message.id,
+  content: message.content,
+});
+
 export const useAgentStream = (conversationId: string | number) => {
   const [historyMessages, setHistoryMessages] = useState<BaseMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [customEvents, setCustomEvents] = useState<AgentStreamCustomEvent[]>([]);
   const [streamingReasoning, setStreamingReasoning] = useState('');
-  const titleUpdateRef = useRef<((title: string) => void) | undefined>(undefined);
+  const messagesRef = useRef<BaseMessage[]>([]);
   const vrmDataRef = useRef<((data: unknown) => void) | undefined>(undefined);
 
   const transport = useMemo(
@@ -47,10 +53,6 @@ export const useAgentStream = (conversationId: string | number) => {
 
       if (customEvent.type === 'reasoning' && typeof customEvent.content === 'string') {
         setStreamingReasoning((previous) => previous + customEvent.content);
-      }
-
-      if (customEvent.type === 'title_update' && typeof customEvent.title === 'string') {
-        titleUpdateRef.current?.(customEvent.title);
       }
 
       if (customEvent.type === 'vrm.perform_actions') {
@@ -120,14 +122,12 @@ export const useAgentStream = (conversationId: string | number) => {
     model: Model,
     modelParameters?: ModelParameters,
     _onVrmData?: (data: unknown) => void,
-    onTitleUpdate?: (title: string) => void,
   ) => {
     const trimmed = content.trim();
     if (!trimmed) {
       return;
     }
 
-    titleUpdateRef.current = onTitleUpdate;
     vrmDataRef.current = _onVrmData;
     setError(null);
     setStreamingReasoning('');
@@ -153,10 +153,11 @@ export const useAgentStream = (conversationId: string | number) => {
       id: userMessageId,
       content: trimmed,
     });
+    const inputMessages = [...messagesRef.current, optimisticHumanMessage].map(toStreamInputMessage);
 
     await submit(
       {
-        messages: [{ type: 'human', id: userMessageId, content: trimmed }],
+        messages: inputMessages,
       },
       {
         context: streamContext as unknown as Record<string, unknown>,
@@ -178,6 +179,10 @@ export const useAgentStream = (conversationId: string | number) => {
     () => mergeMessages(historyMessages, streamMessages),
     [historyMessages, streamMessages],
   );
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const clearError = useCallback(() => {
     setError(null);

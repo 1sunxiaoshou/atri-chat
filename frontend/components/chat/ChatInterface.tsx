@@ -21,10 +21,11 @@ import { cn } from '../../utils/cn';
 
 interface ChatInterfaceProps {
   activeConversationId: string | number;
+  activeConversationTitle?: string;
   activeCharacter: Character | null;
   activeModel: Model | null;
   onUpdateModel: (modelId: string) => void;
-  onConversationUpdated?: () => void;
+  onConversationUpdated?: (update: { conversationId: string | number; title: string }) => void;
   onOpenMobileSidebar?: () => void;
   onShowSidebar?: () => void;
   isSidebarHidden?: boolean;
@@ -33,6 +34,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   activeConversationId,
+  activeConversationTitle,
   activeCharacter,
   activeModel,
   onUpdateModel,
@@ -83,6 +85,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     playTTS,
     clearError: clearTtsError
   } = useTTS();
+
+  const buildAutoTitle = useCallback((message: string) => {
+    const title = message.replace(/\n/g, ' ').trim();
+    return title.length > 30 ? `${title.slice(0, 30)}...` : title;
+  }, []);
 
   useEffect(() => {
     if (activeConversationId) {
@@ -179,6 +186,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         return newSet;
       });
 
+      if (activeConversationTitle === 'New Chat') {
+        onConversationUpdated?.({
+          conversationId: activeConversationId,
+          title: buildAutoTitle(content),
+        });
+      }
+
       // 如果是VRM模式，立即开始思考动作（高优先级）
       if (vrmDisplayMode === 'vrm' && startThinking) {
         startThinking();
@@ -226,9 +240,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
               }
             }
-          },
-          () => {
-            onConversationUpdated?.();
           }
         );
       });
@@ -239,6 +250,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     activeCharacter,
     activeModel,
     activeConversationId,
+    activeConversationTitle,
     modelParameters,
     vrmDisplayMode,
     startThinking,
@@ -248,6 +260,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setGlobalToast,
     activeCharacter?.id,
     onConversationUpdated,
+    buildAutoTitle,
     t
   ]);
 
