@@ -18,7 +18,7 @@ from core.dependencies import get_agent, get_db
 from core.logger import get_logger
 
 if TYPE_CHECKING:
-    from core.agent_coordinator import AgentCoordinator
+    from core.agent.coordinator import AgentCoordinator
 
 
 logger = get_logger(__name__)

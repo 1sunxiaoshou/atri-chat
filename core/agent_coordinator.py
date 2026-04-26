@@ -8,10 +8,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
-import threading
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence
+from collections.abc import AsyncGenerator, Sequence
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
 
@@ -34,7 +33,13 @@ class AgentCoordinator:
     - 使用 Repository 模式进行数据访问
     """
 
-    def __init__(self, store, checkpointer, model_factory: "ModelFactory", prompt_manager: "PromptService"):
+    def __init__(
+        self,
+        store,
+        checkpointer,
+        model_factory: ModelFactory,
+        prompt_manager: PromptService,
+    ):
         """初始化协调器。
 
         Args:
@@ -51,9 +56,15 @@ class AgentCoordinator:
         self.prompt_manager = prompt_manager
 
         self.message_service = MessageService()
+        from .agent.factory import AgentRuntimeFactory
+        from .agent.runtime import AgentRuntime
 
-        self._agent = None
-        self._agent_lock = threading.Lock()
+        self.runtime = AgentRuntime(
+            AgentRuntimeFactory(
+                store=self.store,
+                checkpointer=self.checkpointer,
+            )
+        )
 
     def _create_agent(self):
         """创建 Agent（使用动态中间件）。
@@ -62,51 +73,15 @@ class AgentCoordinator:
         1. 使用占位模型，实际模型会在运行时通过中间件动态替换
         2. callbacks 在运行时通过 config 传递，而不是在创建时固定
         """
-        from langchain.agents import create_agent
-        from langchain_openai import ChatOpenAI
-
-        from .middleware import (
-            AgentContext,
-            build_character_prompt,
-            filter_tools_by_mode,
-            select_model_and_params,
-        )
-        from .tools import get_action_tools
-        from .tools.memory_tools_v3 import get_memory_tools_v3
-
-        all_tools = [
-            *get_memory_tools_v3(),
-            *get_action_tools(),
-        ]
-
-        placeholder_model = ChatOpenAI(model="gpt-4o", api_key="placeholder")
-
-        return create_agent(
-            model=placeholder_model,
-            tools=all_tools,
-            middleware=[
-                select_model_and_params,
-                build_character_prompt,
-                filter_tools_by_mode,
-            ],
-            context_schema=AgentContext,
-            checkpointer=self.checkpointer,
-            store=self.store,
-        )
+        return self.runtime.create_agent()
 
     def _get_or_create_agent(self):
         """线程安全地获取 Agent 单例。"""
-        if self._agent is not None:
-            return self._agent
-
-        with self._agent_lock:
-            if self._agent is None:
-                self._agent = self._create_agent()
-        return self._agent
+        return self.runtime.get_or_create_agent_sync()
 
     async def warm_up(self):
         """在后台预热 Agent。"""
-        await asyncio.to_thread(self._get_or_create_agent)
+        await self.runtime.warm_up()
 
     async def send_message(
         self,
@@ -120,9 +95,9 @@ class AgentCoordinator:
         **model_kwargs,
     ) -> AsyncGenerator[str, None]:
         """统一的消息发送接口。"""
+        from .agent.context import AgentContext
         from .callbacks import LLMCallLogger, TokenUsageCallback
         from .config import get_settings
-        from .middleware import AgentContext
         from .repositories import CharacterRepository
         from .services import ConversationService, get_output_strategy
         from .services.model_service import ModelService
@@ -156,9 +131,15 @@ class AgentCoordinator:
             *get_memory_tools_v3(),
             *get_action_tools(),
         ]
-        tool_count = len([t for t in all_tools if not t.name.startswith("vrm_") or enable_vrm])
+        tool_count = len(
+            [t for t in all_tools if not t.name.startswith("vrm_") or enable_vrm]
+        )
+        mode_label = "VRM" if enable_vrm else "文本"
         logger.info(
-            f"Agent配置: 模型={provider_config_id}/{model_id}, 模式={'VRM' if enable_vrm else '文本'}, 工具数={tool_count}",
+            (
+                f"Agent配置: 模型={provider_config_id}/{model_id}, "
+                f"模式={mode_label}, 工具数={tool_count}"
+            ),
             extra={
                 "character_id": character_id,
                 "conversation_id": conversation_id,
@@ -171,7 +152,7 @@ class AgentCoordinator:
             message_service=self.message_service,
         )
 
-        agent = await asyncio.to_thread(self._get_or_create_agent)
+        agent = await self.runtime.get_or_create_agent()
 
         config = {"configurable": {"thread_id": str(conversation_id)}}
 
@@ -196,7 +177,10 @@ class AgentCoordinator:
             )
             new_title = conversation_service.auto_title(conversation_id, user_message)
             if new_title:
-                yield json.dumps({"type": "title_update", "title": new_title}, ensure_ascii=False)
+                yield json.dumps(
+                    {"type": "title_update", "title": new_title},
+                    ensure_ascii=False,
+                )
         except Exception as e:
             logger.error(f"前期消息处理失败: {e}")
 
@@ -251,7 +235,10 @@ class AgentCoordinator:
         except Exception as e:
             logger.error(f"消息处理失败: {e}")
             error_msg = f"{type(e).__name__}: {str(e)}".strip(": ")
-            yield json.dumps({"type": "error", "message": error_msg}, ensure_ascii=False)
+            yield json.dumps(
+                {"type": "error", "message": error_msg},
+                ensure_ascii=False,
+            )
 
     async def stream_runtime_events(
         self,
@@ -270,9 +257,9 @@ class AgentCoordinator:
         """暴露给 useStream 端点的原始 LangGraph 流式事件。"""
         from langchain_core.messages import BaseMessage
 
+        from .agent.context import AgentContext
         from .callbacks import LLMCallLogger, TokenUsageCallback
         from .config import get_settings
-        from .middleware import AgentContext
         from .services import ConversationService, get_output_strategy
         from .services.model_service import ModelService
         from .tools import get_action_tools
@@ -303,15 +290,13 @@ class AgentCoordinator:
         if enable_vrm:
             tool_count = len(all_tools)
         else:
-            tool_count = len(
-                [
-                    t
-                    for t in all_tools
-                    if t.name.startswith("memory_")
-                ]
-            )
+            tool_count = len([t for t in all_tools if t.name.startswith("memory_")])
+        mode_label = "vrm" if enable_vrm else "text"
         logger.info(
-            f"Agent Stream配置: 模型={provider_config_id}/{model_id}, 模式={'vrm' if enable_vrm else 'text'}, 工具数={tool_count}",
+            (
+                f"Agent Stream配置: 模型={provider_config_id}/{model_id}, "
+                f"模式={mode_label}, 工具数={tool_count}"
+            ),
             extra={
                 "character_id": character_id,
                 "conversation_id": conversation_id,
@@ -319,7 +304,7 @@ class AgentCoordinator:
             },
         )
 
-        agent = await asyncio.to_thread(self._get_or_create_agent)
+        agent = await self.runtime.get_or_create_agent()
 
         runtime_config: dict[str, Any] = {
             **(config or {}),
@@ -348,7 +333,10 @@ class AgentCoordinator:
             )
             new_title = conversation_service.auto_title(conversation_id, user_message)
             if new_title:
-                yield {"type": "custom", "data": {"type": "title_update", "title": new_title}}
+                yield {
+                    "type": "custom",
+                    "data": {"type": "title_update", "title": new_title},
+                }
         except Exception as e:
             logger.error(f"前期消息处理失败: {e}")
 
@@ -385,19 +373,31 @@ class AgentCoordinator:
                     payload = part.get("data")
                     namespace = part.get("ns")
 
-                    if part_type == "messages" and isinstance(payload, tuple) and len(payload) == 2:
+                    if (
+                        part_type == "messages"
+                        and isinstance(payload, tuple)
+                        and len(payload) == 2
+                    ):
                         token, _metadata = payload
                         if isinstance(token, BaseMessage):
                             full_response += extract_text_from_content(token.content)
 
-                            additional_kwargs = getattr(token, "additional_kwargs", {}) or {}
+                            additional_kwargs = (
+                                getattr(token, "additional_kwargs", {}) or {}
+                            )
                             reasoning = (
                                 additional_kwargs.get("reasoning_content")
                                 or additional_kwargs.get("thought")
                                 or additional_kwargs.get("thinking")
                             )
                             if reasoning:
-                                yield {"type": "custom", "data": {"type": "reasoning", "content": reasoning}}
+                                yield {
+                                    "type": "custom",
+                                    "data": {
+                                        "type": "reasoning",
+                                        "content": reasoning,
+                                    },
+                                }
 
                     normalized_part = {
                         "type": part_type,
