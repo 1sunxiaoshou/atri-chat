@@ -1,423 +1,93 @@
 # TTS 架构
 
-## 概述
+本文档说明当前 TTS 模块的实现边界、数据模型和维护入口。
 
-本文档说明当前 TTS 模块的分层设计、配置拆分方式和数据模型。
+## 当前模型
 
-新的 TTS 架构采用三层设计：**供应商 (Provider) → 音色 (Voice) → 角色 (Character)**
+TTS 使用三层结构：
 
-这种设计将供应商级别的配置（如 API Key、服务地址）与具体的音色配置（如 voice_id、参考音频）分离，使得管理更加灵活和清晰。
-
-**重构状态：✅ 已完成**
-- TTSFactory 已迁移到 ORM
-- 删除了旧的 TTSConfigService
-- 所有 API 使用新的 ORM 模型
-- 支持角色级别的音色绑定
-- 配置分离清晰明确
-
----
-
-## 配置分离说明
-
-### 配置级别
-
-TTS 配置分为两个级别：
-
-1. **供应商级别（Provider）**
-   - 存储位置：`TTSProvider.config_payload`
-   - 内容：API 地址、API Key、认证信息等
-   - 特点：一个供应商可以有多个音色
-
-2. **音色级别（Voice）**
-   - 存储位置：`VoiceAsset.voice_config`
-   - 内容：参考音频、参考文本、语言设置、音色 ID 等
-   - 特点：一个音色可以被多个角色使用
-
-### 配置模板格式
-
-每个 TTS 实现类提供配置模板，使用 `level` 字段标记配置级别：
-
-```python
-{
-    "api_url": {
-        "type": "string",
-        "label": "API地址",
-        "description": "服务地址",
-        "required": True,
-        "level": "provider"  # 供应商级别
-    },
-    "refer_wav_path": {
-        "type": "file",
-        "label": "参考音频",
-        "description": "参考音频文件",
-        "required": True,
-        "level": "voice"  # 音色级别
-    }
-}
+```text
+供应商 TTS Provider
+ -> 音色 Voice Asset
+ -> 角色 Character
 ```
 
-### 使用流程
+含义：
 
-1. **前端获取模板**
-   ```
-   GET /api/v1/tts-providers/types/{provider_type}/template
-   ```
+- 供应商保存服务级配置，如 API Key、Base URL、服务类型。
+- 音色保存 voice id、参考音频、音色参数等资产级配置。
+- 角色通过 `voice_asset_id` 绑定音色。
 
-2. **前端根据 level 分离配置**
-   - `level="provider"` → 创建/更新供应商时使用
-   - `level="voice"` → 创建/更新音色时使用
+## 主要代码
 
-3. **后端自动合并配置**
-   ```python
-   # 使用角色音色时
-   config = {**provider.config_payload, **voice_asset.voice_config}
-   tts = TTSFactory().create_tts(provider_type, config)
-   ```
+| 路径 | 职责 |
+|---|---|
+| `core/tts/base.py` | TTS 抽象基类 |
+| `core/tts/registry.py` | 供应商类型注册 |
+| `core/tts/factory.py` | TTS 实例创建与缓存 |
+| `core/tts/synthesis.py` | 按角色合成语音文件 |
+| `api/routes/tts.py` | 合成与状态接口 |
+| `api/routes/tts_providers.py` | TTS 供应商管理 |
+| `api/routes/voice_assets.py` | 音色资产管理 |
+| `frontend/services/api/tts.ts` | 前端 TTS API |
+| `frontend/hooks/useTTS.ts` | 前端播放侧 Hook |
 
-### 配置示例
+## 数据表
 
-**GPT-SoVITS 供应商配置：**
-```json
-{
-  "api_url": "http://localhost:9880"
-}
+| 表 | 用途 |
+|---|---|
+| `tts_providers` | TTS 供应商配置 |
+| `assets_voices_v2` | 音色资产 |
+| `characters.voice_asset_id` | 角色绑定音色 |
+
+兼容字段：
+
+- `characters.voice_config_id` 是旧字段，仅用于兼容读取，不作为新功能入口。
+
+## API
+
+| 路径 | 用途 |
+|---|---|
+| `GET /api/v1/tts/status` | 查询 TTS 状态 |
+| `POST /api/v1/tts/synthesize` | 合成语音 |
+| `/api/v1/tts-providers` | TTS 供应商 CRUD |
+| `/api/v1/voice-assets` | 音色资产 CRUD |
+
+## 支持的供应商
+
+当前供应商类型由 `core/tts/registry.py` 维护。新增供应商时需要：
+
+1. 实现 `core/tts/base.py` 中定义的接口。
+2. 在 registry 中注册供应商类型。
+3. 补充配置模板。
+4. 确认 `TTSFactory` 能正确创建实例。
+5. 必要时补充前端表单字段。
+
+## 合成链路
+
+普通前端播放：
+
+```text
+useTTS
+ -> POST /api/v1/tts/synthesize
+ -> TTSFactory
+ -> provider.synthesize()
+ -> 前端播放音频
 ```
 
-**GPT-SoVITS 音色配置：**
-```json
-{
-  "refer_wav_path": "/path/to/reference.wav",
-  "prompt_text": "参考文本内容",
-  "prompt_language": "zh",
-  "text_language": "zh"
-}
+VRM `say` 命令：
+
+```text
+perform_actions
+ -> synthesize_character_speech_file()
+ -> custom event 携带 audioUrl
+ -> useVRM 播放语音并同步字幕
 ```
 
----
-
-## 架构层级
-
-```
-TTSProvider (供应商)
-    ├── 供应商类型 (openai, gpt_sovits, azure, etc.)
-    ├── 供应商级别配置 (API Key, 服务地址)
-    └── VoiceAsset[] (音色列表)
-            ├── 音色名称
-            ├── 音色级别配置 (voice_id, 参考音频)
-            └── Character[] (使用该音色的角色列表)
-```
-
----
-
-## 数据库表结构
-
-### 1. `tts_providers` - TTS 供应商表
-
-存储供应商级别的配置信息。
-
-| 字段           | 类型     | 说明                                 |
-| -------------- | -------- | ------------------------------------ |
-| id             | String   | 主键 (UUID)                          |
-| provider_type  | String   | 供应商类型 (openai/gpt_sovits/azure) |
-| name           | String   | 供应商名称                           |
-| config_payload | JSON     | 供应商级别配置 (API Key、服务地址等) |
-| created_at     | DateTime | 创建时间                             |
-| updated_at     | DateTime | 更新时间                             |
-
-**示例数据：**
-
-```json
-{
-  "id": "uuid-1",
-  "provider_type": "openai",
-  "name": "OpenAI TTS",
-  "config_payload": {
-    "api_key": "sk-xxx",
-    "base_url": "https://api.openai.com/v1"
-  }
-}
-```
-
-```json
-{
-  "id": "uuid-2",
-  "provider_type": "gpt_sovits",
-  "name": "GPT-SoVITS 本地服务",
-  "config_payload": {
-    "api_url": "http://localhost:9880"
-  }
-}
-```
-
----
-
-### 2. `assets_voices_v2` - 音色资产表
-
-存储具体的音色配置，是最小的可绑定单位。
-
-| 字段         | 类型     | 说明                       |
-| ------------ | -------- | -------------------------- |
-| id           | String   | 主键 (UUID)                |
-| provider_id  | String   | 外键 → tts_providers.id    |
-| name         | String   | 音色名称                   |
-| voice_config | JSON     | 音色级别配置 (voice_id 等) |
-| created_at   | DateTime | 创建时间                   |
-| updated_at   | DateTime | 更新时间                   |
-
-**示例数据（OpenAI）：**
-
-```json
-{
-  "id": "voice-uuid-1",
-  "provider_id": "uuid-1",
-  "name": "Alloy",
-  "voice_config": {
-    "voice": "alloy",
-    "speed": 1.0
-  }
-}
-```
-
-```json
-{
-  "id": "voice-uuid-2",
-  "provider_id": "uuid-1",
-  "name": "Nova",
-  "voice_config": {
-    "voice": "nova",
-    "speed": 1.2
-  }
-}
-```
-
-**示例数据（GPT-SoVITS）：**
-
-```json
-{
-  "id": "voice-uuid-3",
-  "provider_id": "uuid-2",
-  "name": "角色A音色",
-  "voice_config": {
-    "refer_wav_path": "/path/to/reference.wav",
-    "prompt_text": "参考文本内容",
-    "prompt_language": "zh",
-    "text_language": "zh"
-  }
-}
-```
-
----
-
-### 3. `characters` - 角色表（更新）
-
-角色表新增 `voice_asset_id` 字段，引用音色资产。
-
-| 字段            | 类型   | 说明                               |
-| --------------- | ------ | ---------------------------------- |
-| id              | String | 主键 (UUID)                        |
-| name            | String | 角色名称                           |
-| avatar_id       | String | 外键 → assets_avatars.id           |
-| voice_asset_id  | String | 外键 → assets_voices_v2.id (新)    |
-| voice_config_id | String | 外键 → assets_voices.id (旧，兼容) |
-| ...             | ...    | 其他字段                           |
-
----
-
-## API 端点
-
-### TTS 供应商管理 (`/api/v1/tts-providers`)
-
-| 方法   | 端点                                          | 说明                       |
-| ------ | --------------------------------------------- | -------------------------- |
-| GET    | `/api/v1/tts-providers`                       | 列出所有供应商             |
-| GET    | `/api/v1/tts-providers/{id}`                  | 获取供应商详情             |
-| POST   | `/api/v1/tts-providers`                       | 创建供应商                 |
-| PUT    | `/api/v1/tts-providers/{id}`                  | 更新供应商                 |
-| DELETE | `/api/v1/tts-providers/{id}`                  | 删除供应商（级联删除音色） |
-| GET    | `/api/v1/tts-providers/types/list`            | 获取支持的供应商类型列表   |
-| GET    | `/api/v1/tts-providers/types/{type}/template` | 获取配置模板               |
-| POST   | `/api/v1/tts-providers/{id}/test`             | 测试供应商配置             |
-
-### 音色资产管理 (`/api/v1/voice-assets`)
-
-| 方法   | 端点                        | 说明                   |
-| ------ | --------------------------- | ---------------------- |
-| GET    | `/api/v1/voice-assets`      | 列出所有音色           |
-| GET    | `/api/v1/voice-assets/{id}` | 获取音色详情           |
-| POST   | `/api/v1/voice-assets`      | 创建音色               |
-| PUT    | `/api/v1/voice-assets/{id}` | 更新音色               |
-| DELETE | `/api/v1/voice-assets/{id}` | 删除音色（带引用检查） |
-
----
-
-## 使用示例
-
-### 1. 创建 OpenAI 供应商
-
-```bash
-POST /api/v1/tts-providers
-{
-  "provider_type": "openai",
-  "name": "OpenAI TTS",
-  "config_payload": {
-    "api_key": "sk-xxx",
-    "base_url": "https://api.openai.com/v1"
-  }
-}
-```
-
-### 2. 为供应商创建音色
-
-```bash
-POST /api/v1/voice-assets
-{
-  "provider_id": "uuid-1",
-  "name": "Alloy",
-  "voice_config": {
-    "voice": "alloy",
-    "speed": 1.0
-  }
-}
-```
-
-### 3. 创建角色并绑定音色
-
-```bash
-POST /api/v1/characters
-{
-  "name": "AI助手",
-  "avatar_id": "avatar-uuid",
-  "voice_asset_id": "voice-uuid-1",
-  "system_prompt": "你是一个友好的AI助手"
-}
-```
-
-### 4. 使用角色音色进行语音合成
-
-```bash
-POST /api/v1/tts/synthesize
-{
-  "text": "你好，我是AI助手",
-  "character_id": "character-uuid"
-}
-```
-
----
-
-## 优势
-
-### 1. 配置分离
-- 供应商级别配置（API Key）与音色配置（voice_id）分离
-- 修改 API Key 不影响音色配置
-- 一个供应商可以有多个音色
-
-### 2. 灵活性
-- 同一个供应商可以创建多个音色配置
-- 不同角色可以共享同一个音色
-- 支持动态添加新的供应商类型
-
-### 3. 可维护性
-- 清晰的层级关系
-- 级联删除：删除供应商时自动删除其音色
-- 引用保护：音色被角色使用时无法删除
-
-### 4. 扩展性
-- 新增供应商类型只需注册到 `TTSRegistry`
-- 配置模板动态生成，前端自动适配
-- 支持不同供应商的不同配置结构
-
----
-
-## 迁移指南
-
-### ✅ 重构已完成
-
-TTS 模块已完全迁移到新架构：
-
-**已完成：**
-- ✅ 数据库模型：`TTSProvider` + `VoiceAsset`
-- ✅ API 路由：`/api/v1/tts-providers` + `/api/v1/voice-assets`
-- ✅ TTSFactory：使用 ORM 加载配置
-- ✅ 删除旧代码：TTSConfigService 和 tts_settings 表
-- ✅ 角色音色绑定：支持 `character_id` 参数
-
-**使用新架构：**
-1. 通过 `/api/v1/tts-providers` 管理供应商
-2. 通过 `/api/v1/voice-assets` 管理音色
-3. 角色自动绑定 `voice_asset_id`
-4. 语音合成支持角色级别配置
-
-**数据迁移：**
-- 旧的 `tts_settings` 表已废弃
-- 需要重新配置 TTS 供应商和音色
-- 角色需要重新绑定音色资产
-
----
-
-## 支持的供应商类型
-
-当前支持的供应商类型（通过 `TTSRegistry` 注册）：
-
-- `openai` - OpenAI TTS
-- `gpt_sovits` - GPT-SoVITS
-- `azure` - Azure TTS
-- `genie_tts` - Genie TTS
-- 更多供应商可通过注册中心动态添加
-
----
-
-## 配置模板示例
-
-### OpenAI 配置模板
-
-```json
-{
-  "api_key": {
-    "type": "password",
-    "label": "API Key",
-    "required": true,
-    "sensitive": true
-  },
-  "base_url": {
-    "type": "string",
-    "label": "API 地址",
-    "default": "https://api.openai.com/v1"
-  }
-}
-```
-
-### GPT-SoVITS 配置模板
-
-```json
-{
-  "api_url": {
-    "type": "string",
-    "label": "API地址",
-    "default": "http://localhost:9880",
-    "required": true
-  },
-  "refer_wav_path": {
-    "type": "file",
-    "label": "参考音频路径",
-    "required": true,
-    "accept": ".wav,.mp3"
-  },
-  "prompt_text": {
-    "type": "string",
-    "label": "参考文本",
-    "required": true
-  }
-}
-```
-
----
-
-## 总结
-
-新的 TTS 架构通过三层设计实现了配置的清晰分离和灵活管理：
-
-1. **TTSProvider** - 管理供应商级别配置
-2. **VoiceAsset** - 管理具体音色配置（最小绑定单位）
-3. **Character** - 引用音色资产
-
-这种设计使得系统更加模块化、可维护和可扩展。
+## 维护规则
+
+- 供应商级密钥只保存在 `tts_providers.config`。
+- 音色参数只保存在 `assets_voices_v2.config`。
+- 角色只引用音色，不直接保存供应商密钥。
+- 新增 TTS 类型时优先扩展 registry，不在路由里写供应商分支。
+- 修改 TTS 数据结构时检查角色编辑页、音色管理页和 VRM `say` 命令。
