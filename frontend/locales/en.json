@@ -323,15 +323,6 @@
         "openMenu": "Open menu",
         "loading": "Loading..."
     },
-    "bootstrap": {
-        "brand": "ATRI Chat",
-        "initializingDesktop": "Initializing desktop runtime...",
-        "connectingBackend": "Connecting to local backend...",
-        "ready": "Startup complete",
-        "initFailed": "Desktop runtime initialization failed",
-        "loadingTitle": "Starting up",
-        "errorTitle": "Startup failed"
-    },
     "vrm": {
         "renderSettings": "Render Settings",
         "noModelConfigured": "No 3D Avatar Configured",

@@ -323,15 +323,6 @@
         "openMenu": "打开菜单",
         "loading": "加载中..."
     },
-    "bootstrap": {
-        "brand": "ATRI Chat",
-        "initializingDesktop": "正在初始化桌面环境...",
-        "connectingBackend": "正在连接本地服务...",
-        "ready": "启动完成",
-        "initFailed": "桌面环境初始化失败",
-        "loadingTitle": "正在启动",
-        "errorTitle": "启动失败"
-    },
     "vrm": {
         "renderSettings": "渲染设置",
         "noModelConfigured": "当前角色未配置 3D 形象",
