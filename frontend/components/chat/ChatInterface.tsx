@@ -9,6 +9,11 @@ import { runtimeApi } from '../../services/api/runtime';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import { NormalChatMode } from './NormalChatMode';
+import {
+  extractMessageText,
+  getMessageId,
+  isAssistantMessage,
+} from '../../utils/langchainMessages';
 
 const VRMChatMode = React.lazy(() => import('./VRMChatMode').then(m => ({ default: m.VRMChatMode })));
 const RightSidebar = React.lazy(() => import('../layout/RightSidebar'));
@@ -55,6 +60,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     messages,
     isTyping,
     error: streamError,
+    streamingReasoning,
     sendMessage,
     clearError: clearStreamError
   } = useAgentStream(activeConversationId);
@@ -92,8 +98,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const frame = requestAnimationFrame(() => {
       const lastMsg = messages[messages.length - 1];
-      if (lastMsg?.message_type === 'assistant') {
-        autoPlayedRef.current.add(lastMsg.message_id);
+      if (lastMsg && isAssistantMessage(lastMsg)) {
+        autoPlayedRef.current.add(getMessageId(lastMsg, messages.length - 1));
       }
       isInitialLoadRef.current = false;
     });
@@ -105,8 +111,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (autoPlay && messages.length > 0) {
       const lastMsg = messages[messages.length - 1];
-      if (lastMsg && lastMsg.message_type === 'assistant') {
-        autoPlayedRef.current.add(lastMsg.message_id);
+      if (lastMsg && isAssistantMessage(lastMsg)) {
+        autoPlayedRef.current.add(getMessageId(lastMsg, messages.length - 1));
       }
     }
   }, [autoPlay, messages.length]);
@@ -117,18 +123,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     // 找最后一条 assistant 消息
     const lastMsg = messages[messages.length - 1];
+    const lastMsgId = lastMsg ? getMessageId(lastMsg, messages.length - 1) : null;
+    const lastMsgContent = lastMsg ? extractMessageText(lastMsg.content) : '';
     if (
       !isInitialLoadRef.current && // 必须不是初次加载历史消息
       lastMsg &&
-      lastMsg.message_type === 'assistant' &&
-      lastMsg.content &&
-      !lastMsg.generating && // 不在生成中才播放
-      !autoPlayedRef.current.has(lastMsg.message_id)
+      isAssistantMessage(lastMsg) &&
+      lastMsgContent &&
+      !isTyping &&
+      lastMsgId !== null &&
+      !autoPlayedRef.current.has(lastMsgId)
     ) {
-      autoPlayedRef.current.add(lastMsg.message_id);
-      playTTS(lastMsg.message_id, lastMsg.content, activeCharacter?.id ?? undefined);
+      autoPlayedRef.current.add(lastMsgId);
+      playTTS(lastMsgId, lastMsgContent, activeCharacter?.id ?? undefined);
     }
-  }, [messages, autoPlay, vrmDisplayMode, activeCharacter, playTTS]);
+  }, [messages, autoPlay, vrmDisplayMode, activeCharacter, playTTS, isTyping]);
 
   useEffect(() => {
     const error = streamError || vrmError || ttsError;
@@ -340,6 +349,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
                 setExpandedReasoning(newExpanded);
               }}
+              isTyping={isTyping}
+              streamingReasoning={streamingReasoning}
             />
           )}
         </div>

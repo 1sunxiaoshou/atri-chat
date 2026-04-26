@@ -1,5 +1,6 @@
 import { httpClient } from './base';
-import { Message, ApiResponse, AudioMessageData } from '../../types';
+import { coerceMessageLikeToMessage, type BaseMessage, type BaseMessageLike } from '@langchain/core/messages';
+import { ApiResponse, AudioMessageData } from '../../types';
 import { HTTP_STATUS } from '../../utils/constants';
 import { Logger } from '../../utils/logger';
 
@@ -13,26 +14,12 @@ export const messagesApi = {
    */
   getMessages: async (
     conversationId: number | string
-  ): Promise<ApiResponse<Message[]>> => {
+  ): Promise<ApiResponse<BaseMessage[]>> => {
     const response = await httpClient.get<any>(`/conversations/${conversationId}/messages`);
     Logger.debug('getMessages 原始响应', { conversationId, response });
 
-    // 后端返回格式: { code, message, data: { conversation_id, messages } }
-    // 需要提取 data.messages 并映射字段
-    if (response.code === HTTP_STATUS.OK && response.data && response.data.messages) {
-      // 将后端的 id 字段映射为前端的 message_id
-      const messages = response.data.messages.map((msg: any) => ({
-        message_id: msg.lc_message_id || msg.id,
-        conversation_id: msg.conversation_id,
-        turn_id: msg.turn_id,
-        lc_message_id: msg.lc_message_id,
-        message_type: msg.message_type,
-        content: msg.content,
-        tool_call_id: msg.tool_call_id,
-        tool_name: msg.tool_name,
-        created_at: msg.created_at,
-        generating: msg.generating
-      }));
+    if (response.code === HTTP_STATUS.OK && Array.isArray(response.data)) {
+      const messages = response.data.map((msg: unknown) => coerceMessageLikeToMessage(msg as BaseMessageLike));
 
       return {
         code: response.code,

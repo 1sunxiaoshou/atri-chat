@@ -307,20 +307,27 @@ async def get_conversation_messages(
             .all()
         )
 
-        # 构建响应
-        data = {
-            "conversation_id": conversation_id,
-            "total_messages": len(conversation.messages),
-            "messages": [
-                {
-                    "id": msg.id,
-                    "message_type": msg.message_type,
-                    "content": msg.content,
-                    "created_at": msg.created_at.isoformat(),
-                }
-                for msg in messages
-            ],
-        }
+        langchain_messages = []
+        for msg in messages:
+            if not msg.raw_json:
+                logger.warning(
+                    f"跳过缺少 raw_json 的消息: conversation={conversation_id}, message={msg.id}"
+                )
+                continue
+
+            raw_type = msg.raw_json.get("type")
+            raw_data = msg.raw_json.get("data")
+            if not raw_type or not isinstance(raw_data, dict):
+                logger.warning(
+                    f"跳过 raw_json 格式无效的消息: conversation={conversation_id}, message={msg.id}"
+                )
+                continue
+
+            payload = {"type": raw_type, **raw_data}
+            payload.setdefault("id", msg.lc_message_id or msg.id)
+            langchain_messages.append(payload)
+
+        data = langchain_messages
 
         return {"code": 200, "message": "获取成功", "data": data}
 

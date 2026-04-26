@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HumanMessage, type BaseMessage } from '@langchain/core/messages';
-import { FetchStreamTransport, type ToolCallWithResult, useStream } from '@langchain/react';
-import { Character, Message, Model, ModelParameters, ToolCall, AgentStreamContext, AgentStreamCustomEvent } from '../types';
+import { FetchStreamTransport, useStream } from '@langchain/react';
+import { Character, Model, ModelParameters, AgentStreamContext, AgentStreamCustomEvent } from '../types';
 import { api, buildURL } from '../services/api';
 import { HTTP_STATUS } from '../utils/constants';
 import { Logger } from '../utils/logger';
@@ -10,124 +10,21 @@ interface AgentStreamState extends Record<string, unknown> {
   messages: unknown[];
 }
 
-const getMessageKind = (message: BaseMessage): string => {
-  const candidate = message as BaseMessage & { type?: string; getType?: () => string };
-  if (typeof candidate.getType === 'function') {
-    return candidate.getType();
-  }
-  return candidate.type ?? 'unknown';
-};
-
-const extractTextContent = (content: unknown): string => {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        if (typeof part === 'string') {
-          return part;
-        }
-        if (part && typeof part === 'object') {
-          const maybeText = (part as { text?: unknown }).text;
-          if (typeof maybeText === 'string') {
-            return maybeText;
-          }
-        }
-        return '';
-      })
-      .join('');
-  }
-
-  return '';
-};
-
-const mapToolState = (state: 'pending' | 'completed' | 'error'): ToolCall['status'] => {
-  if (state === 'pending') {
-    return 'running';
-  }
-  return state;
-};
-
-const mapToolCallsForMessage = (
-  message: BaseMessage,
-  toolCalls: ToolCallWithResult[],
-): ToolCall[] | undefined => {
-  const rawToolCalls = (message as BaseMessage & { tool_calls?: Array<{ id?: string; name?: string }> }).tool_calls;
-  if (!Array.isArray(rawToolCalls) || rawToolCalls.length === 0) {
-    return undefined;
-  }
-
-  const toolCallIds = new Set(
-    rawToolCalls
-      .map((toolCall) => toolCall.id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0),
-  );
-
-  const mapped = toolCalls
-    .filter((toolCall) => typeof toolCall.call.id === 'string' && toolCallIds.has(toolCall.call.id))
-    .map((toolCall) => ({
-      run_id: toolCall.call.id as string,
-      tool: toolCall.call.name,
-      input: toolCall.call.args,
-      output: toolCall.result?.content,
-      status: mapToolState(toolCall.state),
-    }));
-
-  return mapped.length > 0 ? mapped : undefined;
-};
-
-const toUiMessage = (
-  message: BaseMessage,
-  conversationId: string | number,
-  toolCalls: ToolCallWithResult[],
-  isStreaming: boolean,
-  streamingReasoning: string,
-): Message | null => {
-  const kind = getMessageKind(message);
-  if (kind !== 'human' && kind !== 'ai') {
-    return null;
-  }
-
-  const content = extractTextContent(message.content);
-  const messageId = message.id ?? `${conversationId}-${kind}-${content.slice(0, 24)}`;
-  const converted: Message = {
-    message_id: messageId,
-    conversation_id: conversationId,
-    message_type: kind === 'human' ? 'user' : 'assistant',
-    content,
-    created_at: new Date().toISOString(),
-  };
-
-  if (kind === 'ai') {
-    converted.tool_calls = mapToolCallsForMessage(message, toolCalls);
-    converted.generating = isStreaming;
-    if (streamingReasoning) {
-      converted.reasoning = streamingReasoning;
-    }
-  }
-
-  return converted;
-};
-
-const mergeMessages = (historyMessages: Message[], streamMessages: Message[]): Message[] => {
-  const merged = new Map<string, Message>();
+const mergeMessages = (historyMessages: BaseMessage[], streamMessages: BaseMessage[]): BaseMessage[] => {
+  const merged = new Map<string, BaseMessage>();
 
   for (const message of [...historyMessages, ...streamMessages]) {
-    merged.set(String(message.message_id), message);
+    merged.set(String(message.id ?? `${message.getType()}-${merged.size}`), message);
   }
 
   return [...merged.values()];
 };
 
 export const useAgentStream = (conversationId: string | number) => {
-  const [historyMessages, setHistoryMessages] = useState<Message[]>([]);
-  const [pendingMessages, setPendingMessages] = useState<Message[]>([]);
+  const [historyMessages, setHistoryMessages] = useState<BaseMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [customEvents, setCustomEvents] = useState<AgentStreamCustomEvent[]>([]);
   const [streamingReasoning, setStreamingReasoning] = useState('');
-  const wasLoadingRef = useRef(false);
   const titleUpdateRef = useRef<((title: string) => void) | undefined>(undefined);
   const vrmDataRef = useRef<((data: unknown) => void) | undefined>(undefined);
 
@@ -177,7 +74,6 @@ export const useAgentStream = (conversationId: string | number) => {
       const message = streamError instanceof Error ? streamError.message : '流式消息失败';
       Logger.error('Agent stream 失败', streamError instanceof Error ? streamError : undefined);
       setError(message);
-      setPendingMessages([]);
     },
   });
   const {
@@ -186,7 +82,6 @@ export const useAgentStream = (conversationId: string | number) => {
     submit,
     switchThread,
   } = stream;
-  const toolCalls = (stream as typeof stream & { toolCalls?: ToolCallWithResult[] }).toolCalls ?? [];
 
   const loadMessages = useCallback(async (targetConversationId: string | number) => {
     setError(null);
@@ -214,18 +109,9 @@ export const useAgentStream = (conversationId: string | number) => {
     switchThread(String(conversationId));
     setStreamingReasoning('');
     setCustomEvents([]);
-    setPendingMessages([]);
     setHistoryMessages([]);
     void loadMessages(conversationId);
   }, [conversationId, loadMessages, switchThread]);
-
-  useEffect(() => {
-    if (wasLoadingRef.current && !isLoading) {
-      setPendingMessages([]);
-    }
-
-    wasLoadingRef.current = isLoading;
-  }, [isLoading]);
 
   const sendMessage = useCallback(async (
     targetConversationId: string | number,
@@ -247,7 +133,6 @@ export const useAgentStream = (conversationId: string | number) => {
     setStreamingReasoning('');
     const turnId = crypto.randomUUID();
     const userMessageId = crypto.randomUUID();
-    const pendingAssistantId = `${turnId}-assistant-pending`;
 
     const streamContext: AgentStreamContext = {
       conversation_id: String(targetConversationId),
@@ -269,27 +154,6 @@ export const useAgentStream = (conversationId: string | number) => {
       content: trimmed,
     });
 
-    setPendingMessages([
-      {
-        message_id: userMessageId,
-        conversation_id: targetConversationId,
-        turn_id: turnId,
-        lc_message_id: userMessageId,
-        message_type: 'user',
-        content: trimmed,
-        created_at: new Date().toISOString(),
-      },
-      {
-        message_id: pendingAssistantId,
-        conversation_id: targetConversationId,
-        turn_id: turnId,
-        message_type: 'assistant',
-        content: '',
-        created_at: new Date().toISOString(),
-        generating: true,
-      },
-    ]);
-
     await submit(
       {
         messages: [{ type: 'human', id: userMessageId, content: trimmed }],
@@ -303,54 +167,16 @@ export const useAgentStream = (conversationId: string | number) => {
         onError: (streamError) => {
           const message = streamError instanceof Error ? streamError.message : '消息发送失败';
           setError(message);
-          setPendingMessages([]);
         },
       },
     );
   }, [submit]);
 
-  const streamMessages = useMemo(() => {
-    const converted = liveMessages
-      .map((message) => toUiMessage(message, conversationId, toolCalls, isLoading, streamingReasoning))
-      .filter((message): message is Message => message !== null);
-
-    if (!isLoading) {
-      return converted;
-    }
-
-    for (let index = converted.length - 1; index >= 0; index -= 1) {
-      const current = converted[index];
-      if (!current) {
-        continue;
-      }
-      if (current.message_type === 'assistant') {
-        current.generating = true;
-        break;
-      }
-    }
-
-    return converted;
-  }, [conversationId, isLoading, liveMessages, streamingReasoning, toolCalls]);
-
-  const visiblePendingMessages = useMemo(() => {
-    const pendingUserMessage = pendingMessages.find((message) => message.message_type === 'user');
-    const pendingUserIndex = pendingUserMessage
-      ? streamMessages.findIndex((message) => message.message_id === pendingUserMessage.message_id)
-      : -1;
-    const hasCurrentLiveAssistantMessage = pendingUserIndex >= 0
-      ? streamMessages.slice(pendingUserIndex + 1).some((message) => message.message_type === 'assistant')
-      : false;
-
-    if (!hasCurrentLiveAssistantMessage && isLoading) {
-      return pendingMessages;
-    }
-
-    return pendingMessages.filter((message) => message.message_type !== 'assistant');
-  }, [isLoading, pendingMessages, streamMessages]);
+  const streamMessages = liveMessages as BaseMessage[];
 
   const messages = useMemo(
-    () => mergeMessages(mergeMessages(historyMessages, visiblePendingMessages), streamMessages),
-    [historyMessages, streamMessages, visiblePendingMessages],
+    () => mergeMessages(historyMessages, streamMessages),
+    [historyMessages, streamMessages],
   );
 
   const clearError = useCallback(() => {
@@ -362,6 +188,7 @@ export const useAgentStream = (conversationId: string | number) => {
     isTyping: isLoading,
     error,
     customEvents,
+    streamingReasoning,
     loadMessages,
     sendMessage,
     clearError,

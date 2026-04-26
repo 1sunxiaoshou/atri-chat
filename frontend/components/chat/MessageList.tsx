@@ -1,13 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import { Message, Character } from '../../types';
+import { type BaseMessage } from '@langchain/core/messages';
+import { Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useChatStore } from '../../store/useChatStore';
 import { buildAvatarUrl } from '../../utils/url';
 import { Button } from '../ui';
 
 interface MessageListProps {
-  messages: Message[];
+  messages: BaseMessage[];
   activeCharacter: Character | null;
   children?: React.ReactNode;
 }

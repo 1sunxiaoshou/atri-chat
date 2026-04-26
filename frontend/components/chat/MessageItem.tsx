@@ -1,15 +1,24 @@
 import React, { useState, Suspense } from 'react';
 import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
-import { Message, Character } from '../../types';
+import { AIMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
+import { Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { buildAvatarUrl } from '../../utils/url';
 import { cn } from '../../utils/cn';
 import { Button } from '../ui';
+import {
+  extractMessageText,
+  getMessageId,
+  isAssistantMessage,
+  isToolResultMessage,
+  isUserMessage,
+} from '../../utils/langchainMessages';
 
 const MarkdownContent = React.lazy(() => import('./MarkdownContent'));
 
 interface MessageItemProps {
-  message: Message;
+  message: BaseMessage;
+  index: number;
   activeCharacter: Character | null;
   playingMessageId: string | number | null;
   copiedMessageId: string | number | null;
@@ -17,28 +26,39 @@ interface MessageItemProps {
   onPlayTTS: (messageId: string | number, text: string) => void;
   expandedReasoning?: Set<string | number>;
   onToggleReasoning?: (messageId: string | number) => void;
+  generating?: boolean;
+  reasoning?: string;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
   message,
+  index,
   activeCharacter,
   playingMessageId,
   copiedMessageId,
   onCopyMessage,
   onPlayTTS,
   expandedReasoning,
-  onToggleReasoning
+  onToggleReasoning,
+  generating = false,
+  reasoning,
 }) => {
   const { t } = useLanguage();
   // 默认折叠思考过程
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
 
-  const isExpanded = expandedReasoning?.has(message.message_id) ?? isReasoningExpanded;
-  const isUser = message.message_type === 'user';
+  const messageId = getMessageId(message, index);
+  const content = extractMessageText(message.content);
+  const isUser = isUserMessage(message);
+  const isAssistant = isAssistantMessage(message);
+  const isTool = isToolResultMessage(message);
+  const toolCalls = isAssistant && AIMessage.isInstance(message) ? message.tool_calls : undefined;
+  const toolName = isTool && ToolMessage.isInstance(message) ? (message.name ?? message.tool_call_id) : undefined;
+  const isExpanded = expandedReasoning?.has(messageId) ?? isReasoningExpanded;
 
   const handleToggleReasoning = () => {
     if (onToggleReasoning) {
-      onToggleReasoning(message.message_id);
+      onToggleReasoning(messageId);
     } else {
       setIsReasoningExpanded(!isReasoningExpanded);
     }
@@ -73,7 +93,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       <div className="max-w-[85%] sm:max-w-[80%] flex flex-col gap-1.5">
         
         {/* 统一的对话气泡 (所有内容都在这个气泡内) */}
-        {(message.content || message.reasoning || (message.tool_calls && message.tool_calls.length > 0) || message.status || message.generating) && (
+        {(content || reasoning || (toolCalls && toolCalls.length > 0) || isTool || generating) && (
           <div className={cn(
             "px-4 md:px-5 py-3 md:py-4 rounded-2xl shadow-sm text-sm leading-relaxed transition-all flex flex-col gap-3",
             isUser
@@ -82,33 +102,32 @@ const MessageItem: React.FC<MessageItemProps> = ({
           )}>
             
             {/* 1. 极简版工具调用 (Tool Calls) */}
-            {!isUser && message.tool_calls && message.tool_calls.length > 0 && (
+            {!isUser && toolCalls && toolCalls.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {message.tool_calls.map((tc, idx) => (
+                {toolCalls.map((tc, idx) => (
                   <div 
-                    key={tc.run_id || idx}
+                    key={tc.id || idx}
                     className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 dark:bg-muted/20 px-2.5 py-1.5 rounded-md border border-border/50"
                   >
-                    <PenTool size={12} className={tc.status === 'running' ? 'animate-pulse text-indigo-500' : ''} />
+                    <PenTool size={12} className={generating ? 'animate-pulse text-indigo-500' : ''} />
                     <span className="font-medium">
-                      {t('chat.usingTool')}: {tc.tool}
+                      {t('chat.usingTool')}: {tc.name}
                     </span>
-                    {tc.status === 'running' && <span className="animate-spin ml-1">⚙️</span>}
+                    {generating && <span className="animate-spin ml-1">⚙️</span>}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* 1.5 兼容旧版状态 (Legacy Status) */}
-            {!isUser && message.status && (!message.tool_calls || message.tool_calls.length === 0) && (
+            {!isUser && isTool && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-2.5 py-1.5 rounded-md border border-border/50 w-fit">
-                <span className={message.generating ? 'animate-spin' : ''}>⚙️</span>
-                <span>{message.status}</span>
+                <PenTool size={12} />
+                <span>{toolName ? `${t('chat.usingTool')}: ${toolName}` : t('chat.usingTool')}</span>
               </div>
             )}
 
             {/* 2. 内嵌式思考过程 (Reasoning) */}
-            {!isUser && message.reasoning && (
+            {!isUser && reasoning && (
               <div className="bg-muted/30 dark:bg-muted/10 rounded-lg border border-border/60 overflow-hidden">
                 <button
                   onClick={handleToggleReasoning}
@@ -128,14 +147,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {/* 展开后的具体思考内容 */}
                 {isExpanded && (
                   <div className="px-3 md:px-4 py-3 border-t border-border/60 text-xs text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">
-                    {message.reasoning}
+                    {reasoning}
                   </div>
                 )}
               </div>
             )}
 
             {/* 3. 正文区域 (Main Content) 或者 加载中动画 */}
-            {message.content ? (
+            {content ? (
               <div className={cn(
                 "markdown-content",
                 isUser ? "markdown-user" : "markdown-assistant"
@@ -143,12 +162,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <Suspense
                   fallback={
                     <div className="whitespace-pre-wrap break-words">
-                      {message.content}
+                      {content}
                     </div>
                   }
                 >
                   <MarkdownContent
-                    content={message.content}
+                    content={content}
                     messageType={isUser ? 'user' : 'assistant'}
                     t={t}
                   />
@@ -156,7 +175,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               </div>
             ) : (
                 // 只有在没有正文且正在生成时才显示“点点点”动画
-                message.generating && (
+                generating && (
                     <div className="flex gap-1.5 items-center h-5 px-1">
                         <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                         <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -168,17 +187,17 @@ const MessageItem: React.FC<MessageItemProps> = ({
         )}
 
         {/* Message Actions (底部工具栏) */}
-        {!isUser && message.content && (
+        {!isUser && content && (
           <div className="flex gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <Button
               variant="ghost"
               size="icon"
               className={cn(
                 "h-7 w-7 rounded-full",
-                copiedMessageId === message.message_id ? "text-emerald-500" : "text-muted-foreground hover:text-foreground"
+                copiedMessageId === messageId ? "text-emerald-500" : "text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => onCopyMessage(message.message_id, message.content)}
-              title={copiedMessageId === message.message_id ? t('chat.copied') : t('chat.copy')}
+              onClick={() => onCopyMessage(messageId, content)}
+              title={copiedMessageId === messageId ? t('chat.copied') : t('chat.copy')}
             >
               <Copy size={14} />
             </Button>
@@ -187,10 +206,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
               size="icon"
               className={cn(
                 "h-7 w-7 rounded-full",
-                playingMessageId === message.message_id ? "text-primary animate-pulse" : "text-muted-foreground hover:text-foreground"
+                playingMessageId === messageId ? "text-primary animate-pulse" : "text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => onPlayTTS(message.message_id, message.content)}
-              title={playingMessageId === message.message_id ? t('chat.stopPlaying') : t('chat.read')}
+              onClick={() => onPlayTTS(messageId, content)}
+              title={playingMessageId === messageId ? t('chat.stopPlaying') : t('chat.read')}
             >
               <Volume2 size={14} />
             </Button>

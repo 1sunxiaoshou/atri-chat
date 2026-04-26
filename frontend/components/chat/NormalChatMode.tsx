@@ -1,10 +1,12 @@
 import React from 'react';
-import { Message, Character } from '../../types';
+import { AIMessage, HumanMessage, type BaseMessage } from '@langchain/core/messages';
+import { Character } from '../../types';
 import MessageList from './MessageList';
 import MessageItem from './MessageItem';
+import { isAssistantMessage } from '../../utils/langchainMessages';
 
 interface NormalChatModeProps {
-    messages: Message[];
+    messages: BaseMessage[];
     activeCharacter: Character | null;
     playingMessageId: string | number | null;
     copiedMessageId: string | number | null;
@@ -12,6 +14,8 @@ interface NormalChatModeProps {
     onCopyMessage: (messageId: string | number, content: string) => void;
     onPlayTTS: (messageId: string | number, text: string) => void;
     onToggleReasoning: (messageId: string | number) => void;
+    isTyping: boolean;
+    streamingReasoning: string;
 }
 
 /**
@@ -28,17 +32,41 @@ export const NormalChatMode = React.memo(function NormalChatMode({
     onCopyMessage,
     onPlayTTS,
     onToggleReasoning,
+    isTyping,
+    streamingReasoning,
 }: NormalChatModeProps) {
+    const shouldShowWaiting = isTyping && HumanMessage.isInstance(messages[messages.length - 1]);
+
     return (
         <div className="flex-1">
             <MessageList
                 messages={messages}
                 activeCharacter={activeCharacter}
             >
-                {messages.map((msg) => (
+                {messages.map((msg, index) => {
+                    const isStreamingAssistant = isTyping && index === messages.length - 1 && isAssistantMessage(msg);
+                    return (
+                        <MessageItem
+                            key={msg.id ?? `${msg.getType()}-${index}`}
+                            message={msg}
+                            index={index}
+                            activeCharacter={activeCharacter}
+                            playingMessageId={playingMessageId}
+                            copiedMessageId={copiedMessageId}
+                            onCopyMessage={onCopyMessage}
+                            onPlayTTS={onPlayTTS}
+                            expandedReasoning={expandedReasoning}
+                            onToggleReasoning={onToggleReasoning}
+                            generating={isStreamingAssistant}
+                            reasoning={isStreamingAssistant ? streamingReasoning : undefined}
+                        />
+                    );
+                })}
+                {shouldShowWaiting && (
                     <MessageItem
-                        key={msg.message_id}
-                        message={msg}
+                        key="assistant-waiting"
+                        message={new AIMessage({ id: 'assistant-waiting', content: '' })}
+                        index={messages.length}
                         activeCharacter={activeCharacter}
                         playingMessageId={playingMessageId}
                         copiedMessageId={copiedMessageId}
@@ -46,8 +74,10 @@ export const NormalChatMode = React.memo(function NormalChatMode({
                         onPlayTTS={onPlayTTS}
                         expandedReasoning={expandedReasoning}
                         onToggleReasoning={onToggleReasoning}
+                        generating
+                        reasoning={streamingReasoning}
                     />
-                ))}
+                )}
             </MessageList>
         </div>
     );
@@ -61,6 +91,8 @@ export const NormalChatMode = React.memo(function NormalChatMode({
         prevProps.expandedReasoning === nextProps.expandedReasoning &&
         prevProps.onCopyMessage === nextProps.onCopyMessage &&
         prevProps.onPlayTTS === nextProps.onPlayTTS &&
-        prevProps.onToggleReasoning === nextProps.onToggleReasoning
+        prevProps.onToggleReasoning === nextProps.onToggleReasoning &&
+        prevProps.isTyping === nextProps.isTyping &&
+        prevProps.streamingReasoning === nextProps.streamingReasoning
     );
 });
