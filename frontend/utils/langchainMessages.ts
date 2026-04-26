@@ -1,9 +1,4 @@
-import {
-  AIMessage,
-  HumanMessage,
-  ToolMessage,
-  type BaseMessage,
-} from '@langchain/core/messages';
+import { type BaseMessage } from '@langchain/core/messages';
 
 export const extractMessageText = (content: unknown): string => {
   if (typeof content === 'string') {
@@ -32,8 +27,14 @@ export const getMessageId = (message: BaseMessage, fallback: string | number): s
   String(message.id ?? fallback)
 );
 
-export const isUserMessage = (message: BaseMessage): boolean => HumanMessage.isInstance(message);
+export const extractMessageReasoning = (message: BaseMessage | undefined): string => {
+  const additionalKwargs = message?.additional_kwargs as Record<string, unknown> | undefined;
+  const reasoning = additionalKwargs?.reasoning_content ?? additionalKwargs?.reasoning;
+  return typeof reasoning === 'string' ? reasoning : '';
+};
 
-export const isAssistantMessage = (message: BaseMessage): boolean => AIMessage.isInstance(message);
+export const isUserMessage = (message: BaseMessage | undefined): boolean => message?.getType() === 'human';
 
-export const isToolResultMessage = (message: BaseMessage): boolean => ToolMessage.isInstance(message);
+export const isAssistantMessage = (message: BaseMessage | undefined): boolean => message?.getType() === 'ai';
+
+export const isToolResultMessage = (message: BaseMessage | undefined): boolean => message?.getType() === 'tool';

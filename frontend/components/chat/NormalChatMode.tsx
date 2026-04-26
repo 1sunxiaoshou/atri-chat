@@ -1,9 +1,16 @@
 import React from 'react';
-import { AIMessage, HumanMessage, type BaseMessage } from '@langchain/core/messages';
+import { AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { Character } from '../../types';
 import MessageList from './MessageList';
 import MessageItem from './MessageItem';
-import { isAssistantMessage } from '../../utils/langchainMessages';
+import { isUserMessage } from '../../utils/langchainMessages';
+
+interface ChatTurn {
+    key: string;
+    messages: BaseMessage[];
+    firstIndex: number;
+    role: 'user' | 'assistant';
+}
 
 interface NormalChatModeProps {
     messages: BaseMessage[];
@@ -35,7 +42,29 @@ export const NormalChatMode = React.memo(function NormalChatMode({
     isTyping,
     streamingReasoning,
 }: NormalChatModeProps) {
-    const shouldShowWaiting = isTyping && HumanMessage.isInstance(messages[messages.length - 1]);
+    const shouldShowWaiting = isTyping && isUserMessage(messages[messages.length - 1]);
+    const turns = React.useMemo(() => {
+        const groupedTurns: ChatTurn[] = [];
+
+        messages.forEach((message, index) => {
+            const role = isUserMessage(message) ? 'user' : 'assistant';
+            const previous = groupedTurns[groupedTurns.length - 1];
+
+            if (role === 'assistant' && previous?.role === 'assistant') {
+                previous.messages.push(message);
+                return;
+            }
+
+            groupedTurns.push({
+                key: String(message.id ?? `${message.getType()}-${index}`),
+                messages: [message],
+                firstIndex: index,
+                role,
+            });
+        });
+
+        return groupedTurns;
+    }, [messages]);
 
     return (
         <div className="flex-1">
@@ -43,13 +72,18 @@ export const NormalChatMode = React.memo(function NormalChatMode({
                 messages={messages}
                 activeCharacter={activeCharacter}
             >
-                {messages.map((msg, index) => {
-                    const isStreamingAssistant = isTyping && index === messages.length - 1 && isAssistantMessage(msg);
+                {turns.map((turn, turnIndex) => {
+                    const primaryMessage = turn.messages[0];
+                    if (!primaryMessage) {
+                        return null;
+                    }
+                    const isStreamingAssistant = isTyping && turnIndex === turns.length - 1 && turn.role === 'assistant';
                     return (
                         <MessageItem
-                            key={msg.id ?? `${msg.getType()}-${index}`}
-                            message={msg}
-                            index={index}
+                            key={turn.key}
+                            message={primaryMessage}
+                            groupedMessages={turn.messages}
+                            index={turn.firstIndex}
                             activeCharacter={activeCharacter}
                             playingMessageId={playingMessageId}
                             copiedMessageId={copiedMessageId}

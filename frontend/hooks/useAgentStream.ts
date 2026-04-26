@@ -10,29 +10,13 @@ interface AgentStreamState extends Record<string, unknown> {
   messages: unknown[];
 }
 
-const mergeMessages = (historyMessages: BaseMessage[], streamMessages: BaseMessage[]): BaseMessage[] => {
-  const merged = new Map<string, BaseMessage>();
-
-  for (const message of [...historyMessages, ...streamMessages]) {
-    merged.set(String(message.id ?? `${message.getType()}-${merged.size}`), message);
-  }
-
-  return [...merged.values()];
-};
-
-const toStreamInputMessage = (message: BaseMessage) => ({
-  type: message.getType(),
-  id: message.id,
-  content: message.content,
-});
-
 export const useAgentStream = (conversationId: string | number) => {
   const [messages, setMessages] = useState<BaseMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [customEvents, setCustomEvents] = useState<AgentStreamCustomEvent[]>([]);
   const [streamingReasoning, setStreamingReasoning] = useState('');
   const messagesRef = useRef<BaseMessage[]>([]);
   const vrmDataRef = useRef<((data: unknown) => void) | undefined>(undefined);
+  const isVrmModeRef = useRef(false);
 
   const transport = useMemo(
     () =>
@@ -49,13 +33,15 @@ export const useAgentStream = (conversationId: string | number) => {
     initialValues: { messages: [] },
     onCustomEvent: (event) => {
       const customEvent = event as AgentStreamCustomEvent;
-      setCustomEvents((previous) => [...previous.slice(-49), customEvent]);
 
       if (customEvent.type === 'reasoning' && typeof customEvent.content === 'string') {
         setStreamingReasoning((previous) => previous + customEvent.content);
       }
 
       if (customEvent.type === 'vrm.perform_actions') {
+        if (!isVrmModeRef.current) {
+          return;
+        }
         vrmDataRef.current?.({
           kind: 'commands',
           commands: customEvent.commands,
@@ -65,6 +51,9 @@ export const useAgentStream = (conversationId: string | number) => {
       }
 
       if (customEvent.type === 'vrm.control_camera') {
+        if (!isVrmModeRef.current) {
+          return;
+        }
         vrmDataRef.current?.({ kind: 'camera', command: customEvent.command });
       }
 
@@ -80,7 +69,6 @@ export const useAgentStream = (conversationId: string | number) => {
   });
   const {
     isLoading,
-    messages: liveMessages,
     submit,
     switchThread,
   } = stream;
@@ -113,7 +101,6 @@ export const useAgentStream = (conversationId: string | number) => {
   useEffect(() => {
     switchThread(String(conversationId));
     setStreamingReasoning('');
-    setCustomEvents([]);
     messagesRef.current = [];
     setMessages([]);
     void loadMessages(conversationId);
@@ -133,6 +120,7 @@ export const useAgentStream = (conversationId: string | number) => {
     }
 
     vrmDataRef.current = _onVrmData;
+    isVrmModeRef.current = modelParameters?.display_mode === 'vrm';
     setError(null);
     setStreamingReasoning('');
     const turnId = crypto.randomUUID();
@@ -157,14 +145,13 @@ export const useAgentStream = (conversationId: string | number) => {
       id: userMessageId,
       content: trimmed,
     });
-    const nextMessages = mergeMessages(messagesRef.current, [optimisticHumanMessage]);
+    const nextMessages = [...messagesRef.current, optimisticHumanMessage];
     messagesRef.current = nextMessages;
     setMessages(nextMessages);
-    const inputMessages = nextMessages.map(toStreamInputMessage);
 
     await submit(
       {
-        messages: inputMessages,
+        messages: [{ type: 'human', id: userMessageId, content: trimmed }],
       },
       {
         context: streamContext as unknown as Record<string, unknown>,
@@ -179,18 +166,18 @@ export const useAgentStream = (conversationId: string | number) => {
     );
   }, [submit]);
 
-  const streamMessages = liveMessages as BaseMessage[];
+  const streamValueMessages = (stream.values as Partial<AgentStreamState>).messages;
+  const streamMessages = Array.isArray(streamValueMessages)
+    ? streamValueMessages as BaseMessage[]
+    : undefined;
 
   useEffect(() => {
-    if (streamMessages.length === 0) {
+    if (!streamMessages || streamMessages.length === 0 || messagesRef.current === streamMessages) {
       return;
     }
 
-    setMessages((previous) => {
-      const merged = mergeMessages(previous, streamMessages);
-      messagesRef.current = merged;
-      return merged;
-    });
+    messagesRef.current = streamMessages;
+    setMessages(streamMessages);
   }, [streamMessages]);
 
   const clearError = useCallback(() => {
@@ -201,7 +188,6 @@ export const useAgentStream = (conversationId: string | number) => {
     messages,
     isTyping: isLoading,
     error,
-    customEvents,
     streamingReasoning,
     loadMessages,
     sendMessage,
