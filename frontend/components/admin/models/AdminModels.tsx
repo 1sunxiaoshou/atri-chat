@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Provider, Model } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { providersApi, modelsApi } from '../../../services/api';
+import { providersApi } from '../../../services/api/providers';
+import { modelsApi } from '../../../services/api/models';
 import { useDataStore } from '../../../store/useDataStore';
 import { ConfirmDialog, Toast, ToastMessage } from '../../ui';
 import { ProviderList } from './ProviderList';
 import { ModelToolbar } from './ModelToolbar';
 import { ModelTable } from './ModelTable';
-import { ProviderModal } from './ProviderModal';
-import { ModelModal } from './ModelModal';
+
+const ProviderModal = React.lazy(() => import('./ProviderModal').then((m) => ({ default: m.ProviderModal })));
+const ModelModal = React.lazy(() => import('./ModelModal').then((m) => ({ default: m.ModelModal })));
 
 interface AdminModelsProps {
   providers: Provider[];
@@ -327,22 +329,28 @@ export const AdminModels: React.FC<AdminModelsProps> = ({
       </main>
 
       {/* Modals */}
-      <ProviderModal
-        isOpen={isProviderModalOpen}
-        onClose={() => setIsProviderModalOpen(false)}
-        provider={editingProvider}
-        providerTemplates={providerTemplates}
-        onSave={handleSaveProvider}
-        onChange={setEditingProvider}
-      />
+      <Suspense fallback={null}>
+        {isProviderModalOpen && (
+          <ProviderModal
+            isOpen={isProviderModalOpen}
+            onClose={() => setIsProviderModalOpen(false)}
+            provider={editingProvider}
+            providerTemplates={providerTemplates}
+            onSave={handleSaveProvider}
+            onChange={setEditingProvider}
+          />
+        )}
 
-      <ModelModal
-        isOpen={isModelModalOpen}
-        onClose={() => setIsModelModalOpen(false)}
-        model={editingModel}
-        onSave={handleSaveModel}
-        onChange={setEditingModel}
-      />
+        {isModelModalOpen && (
+          <ModelModal
+            isOpen={isModelModalOpen}
+            onClose={() => setIsModelModalOpen(false)}
+            model={editingModel}
+            onSave={handleSaveModel}
+            onChange={setEditingModel}
+          />
+        )}
+      </Suspense>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

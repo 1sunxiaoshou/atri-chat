@@ -197,6 +197,31 @@ class MessageRequest(BaseModel):
     thinking_config: Optional[Dict[str, Any]] = Field(None, description="思考配置(模型特定参数)")
 
 
+class AgentStreamContext(BaseModel):
+    """前端 useStream 自定义 transport 的上下文。"""
+
+    conversation_id: str = Field(..., description="会话ID（UUID）")
+    character_id: str = Field(..., description="角色ID（UUID）")
+    model_id: str = Field(..., description="模型ID")
+    provider_config_id: int = Field(..., description="供应商配置内部 ID")
+    display_mode: str = Field("text", description="显示模式: text/vrm/live2d")
+    temperature: Optional[float] = Field(None, description="温度参数")
+    max_tokens: Optional[int] = Field(None, description="最大token数")
+    top_p: Optional[float] = Field(None, description="Top-p采样参数")
+    enable_thinking: Optional[bool] = Field(None, description="是否启用深度思考")
+    thinking_config: Optional[Dict[str, Any]] = Field(None, description="思考配置(模型特定参数)")
+
+
+class AgentStreamRequest(BaseModel):
+    """useStream 自定义 transport 请求。"""
+
+    input: Optional[Dict[str, Any]] = Field(default=None, description="LangGraph 输入")
+    context: AgentStreamContext = Field(..., description="运行时上下文")
+    command: Optional[Dict[str, Any]] = Field(default=None, description="LangGraph 命令")
+    config: Optional[Dict[str, Any]] = Field(default=None, description="LangGraph 配置")
+    streamSubgraphs: Optional[bool] = Field(default=False, description="是否流式子图")
+
+
 class MessageResponse(BaseModel):
     """消息响应"""
     message_id: int
@@ -210,6 +235,16 @@ class ConversationHistoryResponse(BaseModel):
     """会话历史响应"""
     conversation_id: str
     messages: List[MessageResponse]
+
+
+class RuntimeVRMFeedbackRequest(BaseModel):
+    """前端 VRM 执行回报。"""
+
+    conversation_id: str = Field(..., description="会话ID（UUID）")
+    kind: str = Field(..., description="反馈类型")
+    ok: bool = Field(..., description="执行是否成功")
+    error: Optional[str] = Field(None, description="错误信息")
+    state: Optional[Dict[str, Any]] = Field(None, description="当前前端状态快照")
 
 
 # ==================== 音频相关 ====================
@@ -229,6 +264,4 @@ class TextToSpeechRequest(BaseModel):
     text: str = Field(..., description="要转换的文本")
     tts_provider: Optional[str] = Field(None, description="TTS提供商")
     language: Optional[str] = Field(None, description="语言代码")
-
-
 

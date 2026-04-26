@@ -1,8 +1,11 @@
 mod runtime;
 
+use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::net::TcpStream;
 use std::process::{Child, Command};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use tauri::Manager;
 
@@ -43,6 +46,45 @@ fn stop_backend(app_handle: &tauri::AppHandle) {
     }
 }
 
+fn is_backend_healthy(port: u16) -> bool {
+    let mut stream = match TcpStream::connect(("127.0.0.1", port)) {
+        Ok(stream) => stream,
+        Err(_) => return false,
+    };
+
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+    let _ = stream.set_write_timeout(Some(Duration::from_millis(500)));
+
+    if stream
+        .write_all(b"GET /api/v1/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+        .is_err()
+    {
+        return false;
+    }
+
+    let mut response = String::new();
+    if stream.read_to_string(&mut response).is_err() {
+        return false;
+    }
+
+    response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200")
+}
+
+fn wait_for_backend_ready(port: u16, timeout: Duration) -> bool {
+    let start = Instant::now();
+
+    while start.elapsed() < timeout {
+        if is_backend_healthy(port) {
+            println!("Backend health check passed on port {}", port);
+            return true;
+        }
+
+        std::thread::sleep(Duration::from_millis(250));
+    }
+
+    false
+}
+
 fn start_backend(app: &tauri::AppHandle, layout: &RuntimeLayout, port: u16) -> Option<Child> {
     let backend_launch = resolve_backend_launch(app, layout)?;
 
@@ -75,9 +117,19 @@ fn start_backend(app: &tauri::AppHandle, layout: &RuntimeLayout, port: u16) -> O
     }
 
     match command.spawn() {
-        Ok(child) => {
+        Ok(mut child) => {
             println!("Backend started successfully (PID: {})", child.id());
-            Some(child)
+
+            if wait_for_backend_ready(port, Duration::from_secs(45)) {
+                return Some(child);
+            }
+
+            eprintln!(
+                "Backend failed to become healthy within the startup timeout on port {}",
+                port
+            );
+            let _ = child.kill();
+            None
         }
         Err(err) => {
             eprintln!("Failed to start backend: {}", err);

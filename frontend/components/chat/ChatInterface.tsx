@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback, startTransition, useRef } from 'react';
-import { Character, Message, Model, ModelParameters } from '../../types';
-import { useChat } from '../../hooks/useChat';
+import { Character, Model, ModelParameters } from '../../types';
+import { useAgentStream } from '../../hooks/useAgentStream';
 import { useVRM } from '@/components/vrm/logic/useVRM';
 import { useTTS } from '../../hooks/useTTS';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAudioStore } from '../../store/useAudioStore';
+import { runtimeApi } from '../../services/api/runtime';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import { NormalChatMode } from './NormalChatMode';
-import RightSidebar from '../layout/RightSidebar';
 
 const VRMChatMode = React.lazy(() => import('./VRMChatMode').then(m => ({ default: m.VRMChatMode })));
+const RightSidebar = React.lazy(() => import('../layout/RightSidebar'));
 import { cn } from '../../utils/cn';
 
 interface ChatInterfaceProps {
@@ -53,26 +54,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const {
     messages,
     isTyping,
-    currentResponse,
-    currentReasoning,
-    currentStatus,
-    currentToolCalls,
-    error: chatError,
-    loadMessages,
+    error: streamError,
     sendMessage,
-    clearError: clearChatError
-  } = useChat();
+    clearError: clearStreamError
+  } = useAgentStream(activeConversationId);
 
-      const {
-        modelUrl,
-        audioElement,
-        error: vrmError,
-        playSegments,
-        startThinking,
-        clearError: clearVrmError,
-        onModelLoaded,
-        onMotionComplete,
-      } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
+  const {
+    modelUrl,
+    audioElement,
+    error: vrmError,
+    startThinking,
+    clearError: clearVrmError,
+    executeCommands,
+    executeCameraCommand,
+    onModelLoaded,
+    onMotionComplete,
+  } = useVRM(activeCharacter, vrmDisplayMode === 'vrm');
 
   const {
     playingMessageId,
@@ -83,17 +80,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   useEffect(() => {
     if (activeConversationId) {
-      isInitialLoadRef.current = true; // 切换会话时标记为初次加载
-      loadMessages(activeConversationId).then(() => {
-        // 等待下一帧取消初次加载标记，让那些已经存在的历史消息不要触发 autoPlay
-        requestAnimationFrame(() => {
-          isInitialLoadRef.current = false;
-        });
-      });
-      // 切换会话时重置已播放记录
+      isInitialLoadRef.current = true;
       autoPlayedRef.current = new Set();
     }
-  }, [activeConversationId, loadMessages]);
+  }, [activeConversationId]);
+
+  useEffect(() => {
+    if (!isInitialLoadRef.current) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg?.message_type === 'assistant') {
+        autoPlayedRef.current.add(lastMsg.message_id);
+      }
+      isInitialLoadRef.current = false;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [messages]);
 
   // autoPlay：开关变化时，如果是开启，则将当前最后一条消息标记为已播放，避免立即朗读历史消息
   useEffect(() => {
@@ -125,19 +131,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [messages, autoPlay, vrmDisplayMode, activeCharacter, playTTS]);
 
   useEffect(() => {
-    const error = chatError || vrmError || ttsError;
+    const error = streamError || vrmError || ttsError;
     if (error && setGlobalToast) {
       setGlobalToast({ success: false, message: error });
       const timer = setTimeout(() => {
         setGlobalToast(null);
-        if (chatError) {clearChatError();}
+        if (streamError) {clearStreamError();}
         if (vrmError) {clearVrmError();}
         if (ttsError) {clearTtsError();}
       }, 3000);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [chatError, vrmError, ttsError, clearChatError, clearVrmError, clearTtsError, setGlobalToast]);
+  }, [streamError, vrmError, ttsError, clearStreamError, clearVrmError, clearTtsError, setGlobalToast]);
 
   // 移除 handleInputChange，不再需要
 
@@ -176,7 +182,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // 这样VRM渲染不会被阻塞
       startTransition(() => {
         if (!activeModel) {return;}
-        
+
         sendMessage(
           activeConversationId,
           content,
@@ -185,12 +191,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           finalModelParams,
           (vrmData: any) => {
             if (vrmDisplayMode === 'vrm') {
-              const segments = Array.isArray(vrmData) ? vrmData : (vrmData.segments || [vrmData]);
-              playSegments(segments);
+              if (vrmData?.kind === 'commands' && Array.isArray(vrmData.commands)) {
+                executeCommands(vrmData.commands).then((result) => {
+                  runtimeApi.reportVRMFeedback({
+                    conversation_id: String(activeConversationId),
+                    kind: 'perform_actions',
+                    ok: result.ok,
+                    error: result.error,
+                    state: result.state,
+                  }).catch((error) => console.error('reportVRMFeedback failed', error));
+                });
+                return;
+              }
+
+              if (vrmData?.kind === 'camera' && vrmData.command) {
+                executeCameraCommand(vrmData.command).then((result) => {
+                  runtimeApi.reportVRMFeedback({
+                    conversation_id: String(activeConversationId),
+                    kind: 'control_camera',
+                    ok: result.ok,
+                    error: result.error,
+                    state: result.state,
+                  }).catch((error) => console.error('reportVRMFeedback failed', error));
+                });
+                return;
+              }
             }
           },
           () => {
-            // 当探测到标题更新（通常是第一条消息）时，刷新侧边栏
             onConversationUpdated?.();
           }
         );
@@ -206,9 +234,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     vrmDisplayMode,
     startThinking,
     sendMessage,
-    playSegments,
+    executeCommands,
+    executeCameraCommand,
+    setGlobalToast,
+    activeCharacter?.id,
     onConversationUpdated,
-    messages.length,
     t
   ]);
 
@@ -243,23 +273,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return [];
     }
 
-    const safeMessages = Array.isArray(messages) ? messages : [];
-    if (isTyping) {
-      const streamingMessage: Message = {
-        message_id: 'streaming-temp', // 使用固定 ID，避免每次都创建新对象
-        conversation_id: activeConversationId,
-        message_type: 'assistant',
-        content: currentResponse || '',
-        reasoning: currentReasoning || undefined,
-        status: currentStatus || undefined,
-        tool_calls: currentToolCalls.length > 0 ? currentToolCalls : undefined,
-        generating: true,
-        created_at: new Date().toISOString()
-      };
-      return [...safeMessages, streamingMessage];
-    }
-    return safeMessages;
-  }, [messages, isTyping, currentResponse, currentReasoning, currentStatus, currentToolCalls, activeConversationId, vrmDisplayMode]);
+    return Array.isArray(messages) ? messages : [];
+  }, [messages, vrmDisplayMode]);
 
   return (
     <div className="flex flex-col h-full bg-background transition-colors relative overflow-hidden">
@@ -277,14 +292,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         isSidebarHidden={isSidebarHidden}
       />
 
-      <RightSidebar
-        isOpen={isRightSidebarOpen}
-        onClose={() => setIsRightSidebarOpen(false)}
-        activeModel={activeModel}
-        modelParameters={modelParameters}
-        onUpdateModel={onUpdateModel}
-        onModelParametersChange={setModelParameters}
-      />
+      {isRightSidebarOpen && (
+        <React.Suspense fallback={null}>
+          <RightSidebar
+            isOpen={isRightSidebarOpen}
+            onClose={() => setIsRightSidebarOpen(false)}
+            activeModel={activeModel}
+            modelParameters={modelParameters}
+            onUpdateModel={onUpdateModel}
+            onModelParametersChange={setModelParameters}
+          />
+        </React.Suspense>
+      )}
 
       <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 relative custom-scrollbar">
         <div className={cn(

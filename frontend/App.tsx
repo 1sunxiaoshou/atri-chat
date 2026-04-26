@@ -7,10 +7,10 @@ const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboar
 const SettingsView = React.lazy(() => import('./components/settings/SettingsView'));
 const AdminCharacters = React.lazy(() => import('./components/characters/AdminCharacters').then(m => ({ default: m.AdminCharacters })));
 import { Conversation, ViewMode, Model } from './types';
-import { api } from './services/api/index';
+import { conversationsApi } from './services/api/conversations';
 import { useLanguage } from './contexts/LanguageContext';
 import { buildAvatarUrl } from './utils/url';
-import { Button } from './components/ui';
+import { Button } from './components/ui/Button';
 import { Plus, Sparkles, Menu, PanelLeftOpen } from 'lucide-react';
 import { cn } from './utils/cn';
 import { useDataStore } from './store/useDataStore';
@@ -103,7 +103,7 @@ const App: React.FC = () => {
 
   const loadConversations = async (charId: string | null) => {
     try {
-      const res = await api.getConversations(charId);
+      const res = await conversationsApi.getConversations(charId);
       if (res.code === 200) {
         setConversations(res.data);
         // If we just switched characters and have conversations, pick the first one
@@ -140,7 +140,7 @@ const App: React.FC = () => {
       return;
     }
 
-    const res = await api.createConversation(defaultCharId);
+    const res = await conversationsApi.createConversation(defaultCharId);
     if (res.code === 200) {
       setConversations(prev => [res.data, ...prev]);
       setActiveConversationId(res.data.id || res.data.conversation_id || null);
@@ -161,7 +161,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteConversation = async (id: string | number) => {
-    await api.deleteConversation(id);
+    await conversationsApi.deleteConversation(id);
     setConversations(prev => prev.filter(c => (c.id || c.conversation_id) !== id));
     if (activeConversationId === id) {
       setActiveConversationId(null);
@@ -230,7 +230,7 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-background transition-all duration-300">
-        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground animate-pulse">{t('app.loading')}</div>}>
+        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground">{t('app.loading')}</div>}>
         {viewMode === 'chat' ? (
           activeConversationId ? (
             <ChatInterface

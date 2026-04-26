@@ -1,4 +1,4 @@
-"""动态提示词生成中间件"""
+"""动态提示词生成中间件。"""
 from dataclasses import dataclass, field
 from langchain.agents.middleware import dynamic_prompt, ModelRequest
 from typing import Dict, Any, TYPE_CHECKING, Optional
@@ -7,7 +7,7 @@ from ..logger import get_logger
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
     from ..services.model_service import ModelService
-    from ..prompts import PromptManager
+    from ..prompts import PromptService
 
 logger = get_logger(__name__)
 
@@ -33,18 +33,13 @@ class AgentContext:
 
 @dynamic_prompt
 def build_character_prompt(request: ModelRequest) -> str:
-    """动态构建角色提示词
-    
-    根据角色ID和VRM模式动态生成系统提示词。
-    """
+    """动态构建分层后的角色提示词。"""
     context = request.runtime.context
-    
-    prompt = context.prompt_manager.build_character_prompt(
-        character_id=context.character_id,
-        include_vrm=context.enable_vrm,
-        db_session=context.db_session  # 传递数据库会话
-    )
-    
-    
-    return prompt
 
+    prompt = context.prompt_manager.build_system_prompt(
+        character_id=context.character_id,
+        mode="vrm" if context.enable_vrm else "text",
+        db_session=context.db_session,
+    )
+
+    return prompt

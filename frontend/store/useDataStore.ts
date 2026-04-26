@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Character, Model, Provider } from '../types';
-import { charactersApi, modelsApi, providersApi } from '../services/api';
+import { charactersApi } from '../services/api/characters';
+import { modelsApi } from '../services/api/models';
+import { providersApi } from '../services/api/providers';
 
 interface DataState {
   characters: Character[];

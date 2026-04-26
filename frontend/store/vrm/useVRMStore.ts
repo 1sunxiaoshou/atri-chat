@@ -10,6 +10,9 @@ interface VRMRuntimeState {
     expression: string;
     motionUrl: string | null;
     subtitle: string;
+    cameraPreset: string | null;
+    cameraAction: string | null;
+    cameraDurationMs: number | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -58,6 +61,9 @@ export const useVRMStore = create<VRMStore>()(
                 expression: 'neutral',
                 motionUrl: null,
                 subtitle: '',
+                cameraPreset: null,
+                cameraAction: null,
+                cameraDurationMs: null,
                 isLoading: false,
                 error: null,
             },

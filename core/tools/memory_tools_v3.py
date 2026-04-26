@@ -1,4 +1,10 @@
-"""长期记忆工具 V3 - 简洁统一的文档记忆系统
+"""长期记忆工具 V3。
+
+固定目录下的简洁记忆读写指令系统：
+- 每个角色拥有独立目录
+- 只接受相对路径
+- 默认操作 Markdown 文件
+- 提供 read / write / search / list 四个基础动作
 """
 from datetime import datetime
 from pathlib import Path
@@ -22,18 +28,7 @@ def _get_memory_root(character_id: str) -> Path:
 
 
 def _resolve_path(character_id: str, file_path: str) -> Path:
-    """解析文件路径（支持相对路径，严格限制在角色目录内）
-    
-    安全机制：
-    - 自动规范化路径，防止 ../ 等路径遍历攻击
-    - 确保最终路径在 data/memory/{character_id}/ 目录内
-    - AI 只需要知道相对路径，不需要知道外部结构
-    
-    Examples:
-        "user_profile" -> {root}/user_profile.md
-        "archive/2026_Q1" -> {root}/archive/2026_Q1.md
-        "../other" -> 拒绝（路径遍历）
-    """
+    """解析记忆文件路径，只允许访问角色自己的固定目录。"""
     root = _get_memory_root(character_id)
     
     # 自动添加 .md 后缀
@@ -113,23 +108,17 @@ def memory_read(
     tail_lines: Optional[int] = None,
     runtime: ToolRuntime[AgentContext] = None
 ) -> str:
-    """读取记忆文件
-    
-    支持三种读取模式：
-    1. 完整读取：memory_read(file="user_profile")
-    2. 章节读取：memory_read(file="user_profile", section="Basic Info")
-    3. 尾部读取：memory_read(file="memory_stream", tail_lines=50)
-    
-    Args:
-        file: 文件路径（相对路径，如 "user_profile" 或 "archive/2026_Q1"）
-              常用文件：user_profile, memory_stream, topics
-        section: 可选，章节名称（格式：## [章节名]）
-        tail_lines: 可选，读取最后 N 行（仅对流水账有用）
-    
-    Returns:
-        文件内容或章节内容
-    
-    注意：所有文件操作都限制在你的记忆目录内，无法访问外部文件。
+    """读取固定记忆目录中的 Markdown 文件。
+
+    常用文件：
+    - `user_profile`
+    - `memory_stream`
+    - `topics`
+
+    常见用法：
+    - 完整读取：`memory_read(file="user_profile")`
+    - 读取章节：`memory_read(file="user_profile", section="Basic Info")`
+    - 读取尾部：`memory_read(file="memory_stream", tail_lines=50)`
     """
     try:
         if not runtime or not runtime.context:
@@ -178,40 +167,15 @@ def memory_write(
     mode: str = "append",
     runtime: ToolRuntime[AgentContext] = None
 ) -> str:
-    """写入记忆文件
-    
-    支持两种写入模式：
-    1. 追加模式：memory_write(file="memory_stream", content="...", mode="append")
-    2. 替换模式：memory_write(file="user_profile", section="Basic Info", content="...", mode="replace")
-    
-    Args:
-        file: 文件路径（相对路径，如 "user_profile" 或 "archive/2026_Q1"）
-        content: 要写入的内容
-        section: 可选，章节名称（替换模式必需）
-        mode: 写入模式
-              - append: 追加到文件末尾
-              - replace: 替换指定章节（需要 section 参数）
-    
-    Returns:
-        写入结果
-    
-    Examples:
-        # 记录事件
-        memory_write(
-            file="memory_stream",
-            content="- [2026-03-07 14:30] (Chat) 用户询问记忆系统",
-            mode="append"
-        )
-        
-        # 更新档案
-        memory_write(
-            file="user_profile",
-            section="Basic Info",
-            content="- Name: 张三\\n- Career: 程序员",
-            mode="replace"
-        )
-    
-    注意：所有文件操作都限制在你的记忆目录内，无法访问外部文件。
+    """写入固定记忆目录中的 Markdown 文件。
+
+    模式：
+    - `append`：追加到文件末尾，适合 `memory_stream`
+    - `replace`：替换指定章节，适合 `user_profile` / `topics`
+
+    常见用法：
+    - `memory_write(file="memory_stream", content="...", mode="append")`
+    - `memory_write(file="user_profile", section="Basic Info", content="...", mode="replace")`
     """
     try:
         if not runtime or not runtime.context:
@@ -265,21 +229,11 @@ def memory_search(
     limit: int = 10,
     runtime: ToolRuntime[AgentContext] = None
 ) -> str:
-    """搜索记忆内容
-    
-    支持两种搜索范围：
-    1. 全局搜索：memory_search(query="创业项目")
-    2. 单文件搜索：memory_search(query="创业", file="memory_stream")
-    
-    Args:
-        query: 搜索关键词
-        file: 可选，指定搜索的文件（相对路径）
-        limit: 返回的最大结果数
-    
-    Returns:
-        搜索结果（包含文件名和匹配内容）
-    
-    注意：搜索范围限制在你的记忆目录内。
+    """搜索固定记忆目录中的内容。
+
+    常见用法：
+    - 全局搜索：`memory_search(query="创业项目")`
+    - 单文件搜索：`memory_search(query="创业", file="memory_stream")`
     """
     try:
         if not runtime or not runtime.context:
@@ -334,20 +288,11 @@ def memory_list(
     file: Optional[str] = None,
     runtime: ToolRuntime[AgentContext] = None
 ) -> str:
-    """列出记忆文件或章节
-    
-    支持三种列出模式：
-    1. 列出所有文件：memory_list()
-    2. 列出文件的章节：memory_list(file="user_profile")
-    3. 列出话题：memory_list(file="topics")
-    
-    Args:
-        file: 可选，指定文件（相对路径）
-    
-    Returns:
-        文件列表或章节列表
-    
-    注意：只能列出你的记忆目录内的文件。
+    """列出固定记忆目录中的文件或章节。
+
+    常见用法：
+    - `memory_list()`
+    - `memory_list(file="user_profile")`
     """
     try:
         if not runtime or not runtime.context:

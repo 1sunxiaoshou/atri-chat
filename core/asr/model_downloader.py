@@ -5,7 +5,6 @@ import asyncio
 from pathlib import Path
 from typing import Optional, Dict, Any
 import shutil
-import httpx
 
 from core.logger import get_logger
 
@@ -50,6 +49,7 @@ async def download_sensevoice_model_async(
 
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
+        import httpx
         
         # 模拟高权重浏览器 Header，避免被 ModelScope 拦截或返回 404
         headers = {

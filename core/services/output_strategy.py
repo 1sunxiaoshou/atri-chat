@@ -1,8 +1,8 @@
 """输出策略模块 - 处理不同模式的消息输出"""
 import json
-import re
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator
+from langchain_core.messages import ToolMessage
 from ..logger import get_logger
 from ..utils.message_utils import extract_text_from_content
 
@@ -44,10 +44,7 @@ class TextOutputStrategy(OutputStrategy):
         context,
         **kwargs
     ) -> AsyncGenerator[str, None]:
-        """流式处理文本消息，过滤 [xxx] 标签"""
-        ignoring = False  # 是否在标签内
-        accumulated = []  # 累积已过滤的文本
-        
+        """流式处理文本消息。"""
         async for chunk_json in self.message_service.run_streaming(
             agent=agent,
             user_message=user_message,
@@ -55,29 +52,9 @@ class TextOutputStrategy(OutputStrategy):
             context=context
         ):
             chunk_data = json.loads(chunk_json)
-            
-            # 只过滤 text 类型
-            if chunk_data.get("type") == "text":
-                content = chunk_data.get("content", "")
-                filtered = []
-                
-                for char in content:
-                    if char == '[':
-                        ignoring = True
-                    elif char == ']':
-                        ignoring = False
-                    elif not ignoring:
-                        filtered.append(char)
-                
-                filtered_text = ''.join(filtered)
-                chunk_data["content"] = filtered_text
-                accumulated.append(filtered_text)  # 累积
-            
-            # complete 类型用累积的文本
-            elif chunk_data.get("type") == "complete":
-                cleaned_resp = ''.join(accumulated)
-                chunk_data["full_response"] = cleaned_resp
-                logger.info(f"[TEXT] 回复: {cleaned_resp}")
+
+            if chunk_data.get("type") == "complete":
+                logger.info(f"[TEXT] 回复: {chunk_data.get('full_response', '')}")
             
             yield json.dumps(chunk_data, ensure_ascii=False)
     
@@ -87,10 +64,7 @@ class TextOutputStrategy(OutputStrategy):
 
 
 class VRMOutputStrategy(OutputStrategy):
-    """VRM输出策略 - 生成音频段"""
-    
-    def __init__(self, vrm_service):
-        self.vrm_service = vrm_service
+    """VRM输出策略 - 生成前端命令"""
     
     async def process(
         self,
@@ -100,10 +74,7 @@ class VRMOutputStrategy(OutputStrategy):
         context,
         **kwargs
     ) -> AsyncGenerator[str, None]:
-        """非流式获取回复，然后流式生成音频"""
-        character_id = context.character_id
-        db_session = context.db_session
-        
+        """非流式获取回复，并提取前端命令。"""
         # 非流式获取完整回复
         response = await agent.ainvoke(
             {"messages": [{"role": "user", "content": user_message}]},
@@ -125,30 +96,16 @@ class VRMOutputStrategy(OutputStrategy):
             "type": "full_response",
             "content": full_response
         }, ensure_ascii=False)
-        
-        # 流式生成音频段（传递 db_session）
-        segment_count = 0
-        async for segment in self.vrm_service.generate_stream(
-            full_response, 
-            character_id,
-            db_session
-        ):
-            segment_count += 1
-            yield json.dumps({"type": "vrm_segment", "data": segment}, ensure_ascii=False)
-        
-        yield json.dumps({"type": "vrm_complete", "total_segments": segment_count}, ensure_ascii=False)
+
+        action_batches, camera_commands = self._extract_frontend_commands(response)
+        for commands in action_batches:
+            yield json.dumps({"type": "vrm_commands", "commands": commands}, ensure_ascii=False)
+        for command in camera_commands:
+            yield json.dumps({"type": "camera_command", "command": command}, ensure_ascii=False)
     
     def clean_response(self, response: str) -> str:
-        """去除VRM标记，保留换行"""
-        # 按行处理，保留换行结构
-        lines = response.split('\n')
-        cleaned_lines = []
-        for line in lines:
-            # 去除标签
-            cleaned = re.sub(r'\[[^\]]+:[^\]]+\]', '', line).strip()
-            if cleaned:  # 只保留非空行
-                cleaned_lines.append(cleaned)
-        return '\n'.join(cleaned_lines)
+        """VRM 模式正文已是自然语言，无需额外清理。"""
+        return response
     
     def _extract_response(self, response) -> str:
         """从 Agent 响应中提取纯文本内容"""
@@ -162,12 +119,52 @@ class VRMOutputStrategy(OutputStrategy):
         
         return extract_text_from_content(content)
 
+    def _extract_frontend_commands(self, response) -> tuple[list[list[str]], list[dict]]:
+        messages = response.get("messages") if isinstance(response, dict) else None
+        if not messages:
+            return [], []
 
-def get_output_strategy(mode: str, message_service=None, vrm_service=None) -> OutputStrategy:
+        tool_results: dict[str, bool] = {}
+        for message in messages:
+            if isinstance(message, ToolMessage):
+                content = extract_text_from_content(message.content).strip().lower()
+                tool_results[message.tool_call_id] = content == "ok" and message.status != "error"
+
+        action_batches: list[list[str]] = []
+        camera_commands: list[dict] = []
+        for message in messages:
+            tool_calls = getattr(message, "tool_calls", None) or []
+            for tool_call in tool_calls:
+                tool_call_id = tool_call.get("id", "")
+                if not tool_results.get(tool_call_id):
+                    continue
+
+                name = tool_call.get("name")
+                args = tool_call.get("args") or {}
+                if not isinstance(args, dict):
+                    continue
+
+                if name == "perform_actions":
+                    commands = args.get("commands")
+                    if isinstance(commands, list) and commands:
+                        action_batches.append([str(command) for command in commands])
+                elif name == "control_camera":
+                    camera_commands.append(
+                        {
+                            "action": args.get("action"),
+                            "preset": args.get("preset"),
+                            "durationMs": args.get("durationMs"),
+                        }
+                    )
+
+        return action_batches, camera_commands
+
+
+def get_output_strategy(mode: str, message_service=None) -> OutputStrategy:
     """工厂方法：根据模式获取输出策略"""
     strategies = {
         "text": lambda: TextOutputStrategy(message_service),
-        "vrm": lambda: VRMOutputStrategy(vrm_service),
+        "vrm": lambda: VRMOutputStrategy(),
     }
     
     if mode not in strategies:

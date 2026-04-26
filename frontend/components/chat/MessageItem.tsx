@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
 import { Message, Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { createMarkdownComponents } from '../../utils/markdownConfig';
 import { buildAvatarUrl } from '../../utils/url';
 import { cn } from '../../utils/cn';
 import { Button } from '../ui';
+
+const MarkdownContent = React.lazy(() => import('./MarkdownContent'));
 
 interface MessageItemProps {
   message: Message;
@@ -142,13 +140,19 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 "markdown-content",
                 isUser ? "markdown-user" : "markdown-assistant"
               )}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  components={createMarkdownComponents(message.message_type, t)}
+                <Suspense
+                  fallback={
+                    <div className="whitespace-pre-wrap break-words">
+                      {message.content}
+                    </div>
+                  }
                 >
-                  {message.content}
-                </ReactMarkdown>
+                  <MarkdownContent
+                    content={message.content}
+                    messageType={message.message_type}
+                    t={t}
+                  />
+                </Suspense>
               </div>
             ) : (
                 // 只有在没有正文且正在生成时才显示“点点点”动画

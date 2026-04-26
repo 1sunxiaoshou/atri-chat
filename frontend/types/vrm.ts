@@ -52,39 +52,6 @@ export interface EmoteControllerConfig {
   transitionDuration?: number; // 表情过渡时间（秒）
 }
 
-// ============================================
-// 业务层相关类型 (VRM Service)
-// ============================================
-
-/**
- * 音频片段（后端返回的原始格式）
- */
-export interface AudioSegment {
-  sentence_index: number;
-  marked_text: string;
-  audio_url: string | null;  // 可能为 null（仅包含标记时）
-}
-
-/**
- * 解析后的音频片段（内部使用）
- */
-export interface ParsedAudioSegment {
-  sentence_index: number;
-  text: string;           // 纯文本（去除标记后）
-  marked_text: string;    // 原始带标记文本
-  audio_url: string | null; // 音频 URL（可能为 null）
-  markups: TimedMarkup[]; // 解析出的标记
-}
-
-/**
- * 时间标记
- */
-export interface TimedMarkup {
-  type: 'state' | 'action';
-  value: string;
-  isCategory?: boolean; // 是否是动作分类（需要随机选择）
-}
-
 /**
  * VRM 回调函数
  */
@@ -92,41 +59,6 @@ export interface VRMCallbacks {
   onSubtitleChange?: (text: string) => void;
   onError?: (error: string) => void;
   onLoadingChange?: (isLoading: boolean) => void;
-}
-
-// ============================================
-// 工具函数
-// ============================================
-
-/**
- * 解析带标记的文本
- * 从 "[State:happy][Action:wave] 你好！" 中提取标记和纯文本
- * 支持动作分类标记：[Action:thinking] 会从该分类中随机选择动作
- */
-export function parseMarkedText(markedText: string): { text: string; markups: TimedMarkup[] } {
-  const markups: TimedMarkup[] = [];
-
-  // 匹配 [State:xxx] 或 [Action:xxx] 格式
-  const markupRegex = /\[(State|Action):([^\]]+)\]/gi;
-  let match;
-
-  // 动作分类列表（用于判断是否是分类标记）
-  const actionCategories = ['idle', 'thinking', 'reply'];
-
-  while ((match = markupRegex.exec(markedText)) !== null) {
-    const type = match[1]!.toLowerCase() as 'state' | 'action';
-    const value = match[2]!;
-
-    // 判断是否是动作分类
-    const isCategory = type === 'action' && actionCategories.includes(value.toLowerCase());
-
-    markups.push({ type, value, isCategory });
-  }
-
-  // 去除所有标记，得到纯文本
-  const text = markedText.replace(/\[[^\]]+:[^\]]+\]/g, '').trim();
-
-  return { text, markups };
 }
 
 // ============================================
@@ -193,4 +125,3 @@ export const DEFAULT_VRM_RENDER_CONFIG: VRMRenderConfig = {
   enableBlink: true,
   lookAtMode: 'mouse',
 };
-

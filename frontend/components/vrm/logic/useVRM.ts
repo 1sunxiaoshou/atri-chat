@@ -1,9 +1,9 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { Character } from '@/types';
-import { AudioSegment, parseMarkedText } from '@/types/vrm';
 import { buildResourceUrl } from '@/utils/constants';
 import { motionBindingsApi } from '@/services/api/motions';
 import { useVRMStore } from '@/store/vrm/useVRMStore';
+import { adaptActionCommands } from './streamAdapter';
 
 /**
  * 角色动作绑定数据结构
@@ -147,11 +147,6 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
   // 音频元素引用
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 播放队列
-  const playQueueRef = useRef<AudioSegment[]>([]);
-  const isPlayingRef = useRef(false);
-  const currentSegmentIndexRef = useRef(0);
-
   // 模型加载状态标记
   const isWaitingForModelLoadRef = useRef(false);
 
@@ -233,9 +228,6 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
 
       // 停止当前播放和闲置计时器
       stopIdleTimer();
-      isPlayingRef.current = false;
-      currentSegmentIndexRef.current = 0;
-      playQueueRef.current = [];
 
       // 如果是路径格式，直接使用
       let url: string;
@@ -292,224 +284,6 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
   }, [isVRMMode, stopIdleTimer, setRuntime]);
 
   /**
-   * 播放下一个音频片段
-   */
-  const playNextSegment = useCallback(async () => {
-    // 检查是否还在播放状态
-    if (!isPlayingRef.current) {
-      return;
-    }
-
-    // 检查是否播放完成
-    if (currentSegmentIndexRef.current >= playQueueRef.current.length) {
-      // 播放完成，回到初始状态
-      isPlayingRef.current = false;
-      currentSegmentIndexRef.current = 0;
-      playQueueRef.current = [];
-      setSubtitle('');
-      // 播放完成后表情由 AI 控制，不自动重置
-
-      // 回到初始动作
-      if (character?.id) {
-        const initialMotionUrl = await getCharacterMotionUrl(motionBindingsRef, character.id, 'initial', true);
-        if (initialMotionUrl) {
-          setMotion(initialMotionUrl);
-          currentMotionCategoryRef.current = 'initial';
-          lastMotionChangeTimeRef.current = Date.now();
-
-          // 重新启动闲置计时器
-          startIdleTimer();
-        }
-      }
-      return;
-    }
-
-    const segment = playQueueRef.current[currentSegmentIndexRef.current];
-    if (!segment) {return;}
-
-    // 解析标记文本
-    const { text, markups } = parseMarkedText(segment.marked_text);
-
-    // 标记是否设置了动作
-    let hasSetMotion = false;
-
-    // 应用标记（表情和动作）- 使用 Promise.all 并行处理
-    const markupPromises = markups.map(async (markup) => {
-      if (markup.type === 'state') {
-        // 情感 → 表情
-        setExpression(markup.value.toLowerCase());
-      } else if (markup.type === 'action') {
-        // 动作标记处理
-        if (character?.id) {
-          const actionValue = markup.value.toLowerCase();
-
-          // 检查是否是动作分类标记（idle/thinking/reply）
-          const actionCategories = ['idle', 'thinking', 'reply'];
-
-          if (actionCategories.includes(actionValue)) {
-            // 分类标记：从该分类中随机选择动作
-            const motionUrl = await getCharacterMotionUrl(
-              motionBindingsRef,
-              character.id,
-              actionValue as 'idle' | 'thinking' | 'reply',
-              true  // 随机选择
-            );
-            if (motionUrl) {
-              setMotion(motionUrl);
-              currentMotionCategoryRef.current = actionValue as 'idle' | 'thinking' | 'reply';
-              lastMotionChangeTimeRef.current = Date.now();
-              hasSetMotion = true;
-            }
-          } else {
-            // 具体动作名称：从 reply 分类中查找匹配的动作
-            const motionUrl = await findMotionByName(motionBindingsRef, actionValue);
-            if (motionUrl) {
-              setMotion(motionUrl);
-              currentMotionCategoryRef.current = 'reply';
-              lastMotionChangeTimeRef.current = Date.now();
-              hasSetMotion = true;
-            }
-          }
-        }
-      }
-    });
-
-    // 等待所有标记处理完成
-    await Promise.all(markupPromises);
-
-    // 显示字幕
-    setSubtitle(text);
-
-    // 播放音频（如果有）
-    if (segment.audio_url && audioRef.current) {
-      try {
-        // 清除之前的事件监听器
-        audioRef.current.onended = null;
-        audioRef.current.onerror = null;
-
-        audioRef.current.src = segment.audio_url;
-
-        // 创建 Promise 来等待音频播放完成
-        await new Promise<void>((resolve, reject) => {
-          if (!audioRef.current) {
-            reject(new Error('Audio element not available'));
-            return;
-          }
-
-          audioRef.current.onended = () => {
-            resolve();
-          };
-
-          audioRef.current.onerror = (err) => {
-            console.error('[useVRM] Audio play error:', err);
-            reject(err);
-          };
-
-          audioRef.current.play().catch(reject);
-        });
-
-        // 再次检查播放状态（防止在音频播放期间被停止）
-        if (!isPlayingRef.current) {
-          return;
-        }
-
-        // 音频播放完成，如果设置了动作，等待动作完成
-        if (hasSetMotion) {
-          isWaitingForMotionRef.current = true;
-
-          // 创建 Promise 等待动作完成回调
-          await new Promise<void>((resolve) => {
-            motionFinishedCallbackRef.current = resolve;
-
-            // 设置超时保护（10秒），防止动作回调永远不触发
-            setTimeout(() => {
-              if (isWaitingForMotionRef.current) {
-                console.warn('[useVRM] Motion completion timeout, continuing to next segment');
-                isWaitingForMotionRef.current = false;
-                motionFinishedCallbackRef.current = null;
-                resolve();
-              }
-            }, 10000);
-          });
-
-          // 再次检查播放状态
-          if (!isPlayingRef.current) {
-            return;
-          }
-        }
-
-        // 音频和动作都播放完成，继续下一个片段
-        currentSegmentIndexRef.current++;
-        playNextSegment();
-      } catch (err) {
-        console.error('[useVRM] Audio play error:', err);
-        // 音频播放失败，继续下一个片段
-        currentSegmentIndexRef.current++;
-        playNextSegment();
-      }
-    } else {
-      // 没有音频，显示字幕 2 秒后继续
-      setTimeout(async () => {
-        // 再次检查播放状态
-        if (!isPlayingRef.current) {
-          return;
-        }
-
-        // 如果设置了动作，等待动作完成
-        if (hasSetMotion) {
-          isWaitingForMotionRef.current = true;
-
-          await new Promise<void>((resolve) => {
-            motionFinishedCallbackRef.current = resolve;
-
-            // 设置超时保护
-            setTimeout(() => {
-              if (isWaitingForMotionRef.current) {
-                console.warn('[useVRM] Motion completion timeout, continuing to next segment');
-                isWaitingForMotionRef.current = false;
-                motionFinishedCallbackRef.current = null;
-                resolve();
-              }
-            }, 10000);
-          });
-
-          if (!isPlayingRef.current) {
-            return;
-          }
-        }
-
-        currentSegmentIndexRef.current++;
-        playNextSegment();
-      }, 2000);
-    }
-  }, [character, startIdleTimer, setSubtitle, setExpression, setMotion]);
-
-  /**
-   * 播放 VRM 动画片段（队列追加模式）
-   */
-  const playSegments = useCallback(async (segments: AudioSegment[]) => {
-    if (!isVRMMode || segments.length === 0) {return;}
-
-    // 停止闲置计时器
-    stopIdleTimer();
-
-    // 追加到播放队列（而不是覆盖）
-    const wasPlaying = isPlayingRef.current;
-    playQueueRef.current.push(...segments);
-
-    // 如果当前没有在播放，启动播放
-    if (!wasPlaying) {
-      currentSegmentIndexRef.current = 0;
-      isPlayingRef.current = true;
-
-      // 表情和动作完全由 AI 的标记控制，不设置默认值
-
-      // 开始播放
-      playNextSegment();
-    }
-  }, [isVRMMode, playNextSegment, stopIdleTimer]);
-
-  /**
    * 开始思考状态
    */
   const startThinking = useCallback(async () => {
@@ -517,11 +291,6 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
 
     // 停止闲置计时器
     stopIdleTimer();
-
-    // 停止当前播放（但不清空动作和表情）
-    isPlayingRef.current = false;
-    currentSegmentIndexRef.current = 0;
-    playQueueRef.current = [];
 
     // 停止音频
     if (audioRef.current) {
@@ -549,11 +318,6 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
    * 停止 VRM 播放
    */
   const stop = useCallback(() => {
-    // 停止播放
-    isPlayingRef.current = false;
-    currentSegmentIndexRef.current = 0;
-    playQueueRef.current = [];
-
     // 停止音频
     if (audioRef.current) {
       audioRef.current.pause();
@@ -573,6 +337,81 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
    */
   const clearError = useCallback(() => {
     setRuntime({ error: null });
+  }, [setRuntime]);
+
+  const executeCommands = useCallback(async (commands: string[]) => {
+    if (!isVRMMode) {
+      return { ok: false, error: 'vrm mode disabled' };
+    }
+
+    stopIdleTimer();
+    const { commands: parsed, rejected } = adaptActionCommands(commands);
+    let currentExpression = expression;
+    let currentSubtitle = subtitle;
+    let currentMotion = motionUrl;
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (const command of parsed) {
+      if (command.type === 'emotion') {
+        currentExpression = command.value;
+        setExpression(command.value);
+        continue;
+      }
+
+      if (command.type === 'motion') {
+        if (character?.id) {
+          const motion = await findMotionByName(motionBindingsRef, command.value);
+          if (motion) {
+            currentMotion = motion;
+            setMotion(motion);
+            currentMotionCategoryRef.current = 'reply';
+            lastMotionChangeTimeRef.current = Date.now();
+          }
+        }
+        continue;
+      }
+
+      if (command.type === 'say') {
+        currentExpression = command.emotion;
+        currentSubtitle = command.text;
+        setExpression(command.emotion);
+        setSubtitle(command.text);
+        await sleep(Math.min(Math.max(command.text.length * 120, 1200), 4000));
+        continue;
+      }
+
+      if (command.type === 'wait') {
+        await sleep(command.ms);
+      }
+    }
+
+    startIdleTimer();
+    return {
+      ok: rejected.length === 0,
+      error: rejected.length > 0 ? `rejected: ${rejected.join(', ')}` : undefined,
+      state: {
+        expression: currentExpression,
+        subtitle: currentSubtitle,
+        motionUrl: currentMotion,
+      },
+    };
+  }, [character, expression, isVRMMode, motionUrl, setExpression, setMotion, setSubtitle, startIdleTimer, stopIdleTimer, subtitle]);
+
+  const executeCameraCommand = useCallback(async (command: { action?: string; preset?: string; durationMs?: number }) => {
+    setRuntime({
+      cameraAction: command.action ?? null,
+      cameraPreset: command.preset ?? null,
+      cameraDurationMs: command.durationMs ?? null,
+    });
+    return {
+      ok: true,
+      error: undefined,
+      state: {
+        cameraAction: command.action ?? null,
+        cameraPreset: command.preset ?? null,
+        durationMs: command.durationMs ?? null,
+      },
+    };
   }, [setRuntime]);
 
   // 当角色改变时，自动加载模型
@@ -696,10 +535,11 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
 
     // 方法
     loadModel,
-    playSegments,
     startThinking,
     stop,
     clearError,
+    executeCommands,
+    executeCameraCommand,
     onModelLoaded: handleModelLoaded,
     onMotionComplete: handleMotionComplete,
   };

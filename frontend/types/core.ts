@@ -117,6 +117,94 @@ export interface ToolCall {
   status: 'running' | 'completed' | 'error';
 }
 
+export interface AgentStreamContext {
+  conversation_id: string;
+  character_id: string;
+  model_id: string;
+  provider_config_id: number;
+  display_mode: string;
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+  enable_thinking?: boolean;
+  thinking_config?: ThinkingConfig;
+}
+
+export interface AgentStreamMessageEvent {
+  id?: string;
+  event: 'messages';
+  data: unknown;
+}
+
+export interface AgentStreamUpdateEvent {
+  event: 'updates';
+  data: Record<string, unknown>;
+}
+
+export interface AgentStreamCustomEvent {
+  type: string;
+  content?: string;
+  title?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface AgentStreamMetadataEvent {
+  conversation_id: string;
+  thread_id: string;
+  usage?: Record<string, unknown>;
+}
+
+export interface RuntimeCapabilityStatus {
+  capability: 'agent' | 'asr' | 'tts' | 'vrm' | string;
+  status: 'disabled' | 'uninitialized' | 'warming' | 'ready' | 'busy' | 'failed' | string;
+  summary: string;
+  details: Record<string, unknown>;
+  updated_at: string;
+  manifest?: {
+    capability: string;
+    label: string;
+    adapters: string[];
+    modes: string[];
+    runtime_managed: boolean;
+    supports_warmup: boolean;
+    supports_shutdown: boolean;
+    supports_reset: boolean;
+    supports_frontend_feedback: boolean;
+  };
+}
+
+export interface RuntimeStatusResponse {
+  control_plane: {
+    status: string;
+    startup: {
+      process_started_at: string;
+      phases_ms: Record<string, number>;
+      health_ready_ms: number | null;
+    };
+  };
+  capabilities: RuntimeCapabilityStatus[];
+  summary: {
+    total_count: number;
+    ready_count: number;
+    warming_count: number;
+    failed_count: number;
+    counts: Record<string, number>;
+    statuses: Record<string, string>;
+  };
+}
+
+export interface CapabilityEvent {
+  capability: string;
+  adapter: string;
+  thread_id: string | null;
+  run_id: string | null;
+  phase: string;
+  status: string;
+  payload: Record<string, unknown>;
+  timestamp: string;
+}
+
 // 6. Messages
 export interface Message {
   message_id: number | string; // 支持数字 ID 和临时字符串 ID

@@ -290,7 +290,27 @@
             "reset": "Reset to Defaults",
             "loadingSchema": "Loading parameters...",
             "autoPlay": "Auto Read Aloud",
-            "autoPlayDesc": "Automatically read assistant replies"
+            "autoPlayDesc": "Automatically read assistant replies",
+            "runtimeStatus": "Runtime Status",
+            "loadingRuntimeStatus": "Loading runtime status...",
+            "runtimeStatusUnavailable": "Runtime status is currently unavailable",
+            "unknownStatus": "Unknown",
+            "healthReady": "Health Ready",
+            "readyCapabilities": "Ready Capabilities",
+            "capabilities": {
+                "agent": "Agent",
+                "asr": "ASR",
+                "tts": "TTS",
+                "vrm": "VRM"
+            },
+            "statusMap": {
+                "disabled": "Disabled",
+                "uninitialized": "Uninitialized",
+                "warming": "Warming",
+                "ready": "Ready",
+                "busy": "Busy",
+                "failed": "Failed"
+            }
         }
     },
     "app": {
@@ -302,6 +322,15 @@
         "createConversationFailed": "Failed to create conversation",
         "openMenu": "Open menu",
         "loading": "Loading..."
+    },
+    "bootstrap": {
+        "brand": "ATRI Chat",
+        "initializingDesktop": "Initializing desktop runtime...",
+        "connectingBackend": "Connecting to local backend...",
+        "ready": "Startup complete",
+        "initFailed": "Desktop runtime initialization failed",
+        "loadingTitle": "Starting up",
+        "errorTitle": "Startup failed"
     },
     "vrm": {
         "renderSettings": "Render Settings",

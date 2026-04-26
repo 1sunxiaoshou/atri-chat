@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { useVRMStore } from '@/store/vrm/useVRMStore';
 
 interface GenshinControlsProps {
     /** 相机注视点 */
@@ -40,6 +41,60 @@ export function GenshinControls({
     const { camera } = useThree();
     const controlsRef = useRef<any>(null);
     const targetVector = useRef(new THREE.Vector3(...target));
+    const desiredPositionRef = useRef<THREE.Vector3 | null>(null);
+    const desiredTargetRef = useRef<THREE.Vector3 | null>(null);
+    const cameraPreset = useVRMStore((state) => state.runtime.cameraPreset);
+    const cameraAction = useVRMStore((state) => state.runtime.cameraAction);
+    const cameraDurationMs = useVRMStore((state) => state.runtime.cameraDurationMs);
+
+    const getPresetState = (preset: string | null) => {
+        switch (preset) {
+        case 'close':
+            return {
+                position: new THREE.Vector3(0, 1.15, 1.35),
+                target: new THREE.Vector3(0, 1.05, 0),
+            };
+        case 'upper':
+            return {
+                position: new THREE.Vector3(0, 1.45, 1.9),
+                target: new THREE.Vector3(0, 1.15, 0),
+            };
+        case 'front':
+        default:
+            return {
+                position: new THREE.Vector3(0, 0.9, 2.2),
+                target: new THREE.Vector3(...target),
+            };
+        }
+    };
+
+    useFrame((_, delta) => {
+        if (cameraPreset) {
+            const presetState = getPresetState(cameraPreset);
+            desiredPositionRef.current = presetState.position;
+            desiredTargetRef.current = presetState.target;
+        }
+
+        if (desiredPositionRef.current && desiredTargetRef.current) {
+            const smoothing = cameraAction === 'cut'
+                ? 1
+                : Math.min(1, delta / Math.max((cameraDurationMs ?? 600) / 1000, 0.001));
+
+            camera.position.lerp(desiredPositionRef.current, smoothing);
+            if (controlsRef.current) {
+                controlsRef.current.target.lerp(desiredTargetRef.current, smoothing);
+                controlsRef.current.update();
+            }
+
+            if (
+                camera.position.distanceTo(desiredPositionRef.current) < 0.01 &&
+                controlsRef.current?.target?.distanceTo?.(desiredTargetRef.current) < 0.01
+            ) {
+                desiredPositionRef.current = null;
+                desiredTargetRef.current = null;
+            }
+        }
+    });
 
     // 每帧检查地面碰撞并调整距离
     useFrame(() => {

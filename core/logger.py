@@ -54,13 +54,16 @@ def _format_access_record(record: dict[str, Any]) -> str:
 # 2. 引导控制部分 (由 main.py 显式调用)
 # ============================================================
 
-_is_setup = False
+_console_setup = False
+_file_setup = False
+_pending_file_config: dict[str, Any] | None = None
 
 
 def setup_logging(
     log_level: str = "INFO",
     log_dir: Optional[Path] = None,
-    is_development: bool = True
+    is_development: bool = True,
+    defer_file_logging: bool = False,
 ):
     """引导并激活日志系统
     
@@ -69,8 +72,15 @@ def setup_logging(
         log_dir: 日志文件存放目录（绝对路径）
         is_development: 是否为开发环境（彩色输出开关）
     """
-    global _is_setup
-    if _is_setup:
+    global _console_setup, _pending_file_config
+    if _console_setup:
+        if log_dir:
+            _pending_file_config = {
+                "log_level": log_level,
+                "log_dir": log_dir,
+            }
+            if not defer_file_logging:
+                ensure_file_logging()
         return
     
     # 清空默认处理器
@@ -84,7 +94,7 @@ def setup_logging(
             "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
             "<level>{message}</level>"
         )
-        console_level = "DEBUG"
+        console_level = log_level.upper()
     else:
         console_format = (
             "{time:YYYY-MM-DD HH:mm:ss} | "
@@ -101,64 +111,81 @@ def setup_logging(
             colorize=is_development,
         )
 
-    # 2.2 添加文件处理器 (如果提供了目录)
-    if log_dir:
-        try:
-            log_dir.mkdir(parents=True, exist_ok=True)
-            
-            # 基础应用日志
-            logger.add(
-                log_dir / "app.log",
-                format=(
-                    "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
-                    "{level: <8} | "
-                    "[{extra[request_id]}] | "
-                    "{name}:{function}:{line} - {message}"
-                ),
-                level=log_level,
-                filter=lambda record: (
-                    record["level"].no < ERROR_LEVEL_NO
-                    and record["extra"].get("channel") != "access"
-                ),
-                rotation="100 MB",
-                retention="7 days",
-                encoding="utf-8",
-                enqueue=True,
-            )
-            
-            logger.add(
-                log_dir / "error.log",
-                format=(
-                    "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
-                    "{level: <8} | "
-                    "[{extra[request_id]}] | "
-                    "{name}:{function}:{line} - {message}"
-                ),
-                level="ERROR",
-                rotation="100 MB",
-                retention="30 days",
-                encoding="utf-8",
-                enqueue=True,
-                backtrace=True,
-                diagnose=True,
-            )
-            
-            # 访问日志（由中间件调用，通过 extra 过滤）
-            logger.add(
-                log_dir / "access.log",
-                format=_format_access_record,
-                level="INFO",
-                filter=lambda record: record["extra"].get("channel") == "access",
-                rotation="50 MB",
-                retention="7 days",
-                encoding="utf-8",
-                enqueue=True,
-            )
-        except Exception as e:
-            _safe_print(f"Warning: Failed to initialize file logging handlers: {e}")
+    _console_setup = True
 
-    _is_setup = True
+    # 2.2 文件处理器配置可以延后到 ready 之后，避免阻塞冷启动
+    if log_dir:
+        _pending_file_config = {
+            "log_level": log_level,
+            "log_dir": log_dir,
+        }
+        if not defer_file_logging:
+            ensure_file_logging()
+
     logger.debug(f"日志系统已按配置就位: Level={log_level}, Dir={log_dir}")
+
+
+def ensure_file_logging():
+    """补齐文件日志处理器。可在服务 ready 后后台调用。"""
+    global _file_setup, _pending_file_config
+    if _file_setup or not _pending_file_config:
+        return
+
+    log_level = _pending_file_config["log_level"]
+    log_dir = _pending_file_config["log_dir"]
+
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.add(
+            log_dir / "app.log",
+            format=(
+                "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
+                "{level: <8} | "
+                "[{extra[request_id]}] | "
+                "{name}:{function}:{line} - {message}"
+            ),
+            level=log_level,
+            filter=lambda record: (
+                record["level"].no < ERROR_LEVEL_NO
+                and record["extra"].get("channel") != "access"
+            ),
+            rotation="100 MB",
+            retention="7 days",
+            encoding="utf-8",
+            enqueue=True,
+        )
+
+        logger.add(
+            log_dir / "error.log",
+            format=(
+                "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
+                "{level: <8} | "
+                "[{extra[request_id]}] | "
+                "{name}:{function}:{line} - {message}"
+            ),
+            level="ERROR",
+            rotation="100 MB",
+            retention="30 days",
+            encoding="utf-8",
+            enqueue=True,
+            backtrace=True,
+            diagnose=True,
+        )
+
+        logger.add(
+            log_dir / "access.log",
+            format=_format_access_record,
+            level="INFO",
+            filter=lambda record: record["extra"].get("channel") == "access",
+            rotation="50 MB",
+            retention="7 days",
+            encoding="utf-8",
+            enqueue=True,
+        )
+        _file_setup = True
+    except Exception as e:
+        _safe_print(f"Warning: Failed to initialize file logging handlers: {e}")
 
 
 def get_logger(name: str = None):

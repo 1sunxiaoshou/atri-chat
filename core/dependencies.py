@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from .agent_coordinator import AgentCoordinator
     from .asr.sensevoice import SenseVoiceASR
-    from .prompts.prompt_manager import PromptManager
+    from .prompts.service import PromptService
     from .store import SqliteStore
 
 # ==================== 全局变量 ====================
@@ -43,6 +43,10 @@ async def init_checkpointer() -> "AsyncSqliteSaver":
     global _checkpointer_instance, _aiosqlite_conn
     from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
+    # 同一进程内如果发生二次启动（例如测试或热重载），旧协调器持有的
+    # checkpointer 引用已经失效，需要在重建前清掉缓存，避免复用关闭连接。
+    get_agent_coordinator.cache_clear()
+
     settings = get_settings()
     # 创建 aiosqlite 连接
     _aiosqlite_conn = await aiosqlite.connect(settings.checkpoints_db_path)
@@ -65,6 +69,7 @@ async def close_checkpointer():
         _aiosqlite_conn = None
     
     _checkpointer_instance = None
+    get_agent_coordinator.cache_clear()
 
 
 # ==================== 工厂单例 ====================
@@ -90,11 +95,11 @@ def get_model_factory() -> "ModelFactory":
 
 
 @lru_cache()
-def get_prompt_manager() -> "PromptManager":
-    """获取 PromptManager 单例。"""
-    from .prompts import PromptManager
+def get_prompt_service() -> "PromptService":
+    """获取 PromptService 单例。"""
+    from .prompts import PromptService
 
-    return PromptManager()
+    return PromptService()
 
 
 @lru_cache()
@@ -106,7 +111,7 @@ def get_agent_coordinator() -> "AgentCoordinator":
         store=get_store(),
         checkpointer=get_checkpointer(),
         model_factory=get_model_factory(),
-        prompt_manager=get_prompt_manager(),
+        prompt_manager=get_prompt_service(),
     )
 
 

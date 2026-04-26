@@ -3,7 +3,7 @@ import { Model, ModelParameterSchemaResponse } from '../../../types';
 import { Modal, Button, Input, Select } from '../../ui';
 import { cn } from '../../../utils/cn';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { modelsApi } from '../../../services/api';
+import { modelsApi } from '../../../services/api/models';
 import { DynamicParameterForm } from './DynamicParameterForm';
 import { getCapabilityDefinitions } from '../../../utils/modelCapabilities';
 

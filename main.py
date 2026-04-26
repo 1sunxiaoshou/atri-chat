@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import threading
+import importlib
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -15,12 +16,52 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from core.logger import get_logger, setup_logging
+from core.logger import ensure_file_logging, get_logger, setup_logging
 from core.config import get_settings
+from core.startup_metrics import startup_metrics
 
 # 1.1 提前确保目录存在 (StaticFiles 挂载需要物理目录已就绪)
 settings = get_settings()
 settings.ensure_directories()
+startup_metrics.mark("settings_ready")
+
+CRITICAL_ROUTE_SPECS = [
+    ("health", "/api/v1", ["health"]),
+    ("runtime", "/api/v1", ["runtime"]),
+    ("tts", "/api/v1/tts", ["tts"]),
+    ("characters", "/api/v1", ["characters"]),
+    ("conversations", "/api/v1", ["conversations"]),
+    ("agent_stream", "/api/v1", ["messages"]),
+    ("models", "/api/v1", ["models"]),
+    ("providers", "/api/v1", ["providers"]),
+    ("asr", "/api/v1/asr", ["asr"]),
+]
+
+DEFERRED_ROUTE_SPECS = [
+    ("avatars", "/api/v1", ["assets"]),
+    ("motions", "/api/v1", ["assets"]),
+    ("tts_providers", "/api/v1", ["tts"]),
+    ("voice_assets", "/api/v1", ["tts"]),
+    ("character_motion_bindings_v2", "/api/v1", ["characters"]),
+    ("asr_mgmt", "/api/v1/asr/mgmt", ["asr-mgmt"]),
+    ("upload", "/api", ["upload"]),
+]
+
+
+def register_routes(target_app: FastAPI, route_specs: list[tuple[str, str, list[str]]], state_flag: str) -> None:
+    """延迟导入并注册路由，减少 import main 的冷启动负担。"""
+    if getattr(target_app.state, state_flag, False):
+        return
+
+    for module_name, prefix, tags in route_specs:
+        module = importlib.import_module(f"api.routes.{module_name}")
+        target_app.include_router(module.router, prefix=prefix, tags=tags)
+
+    setattr(target_app.state, state_flag, True)
+    if state_flag == "critical_routes_registered":
+        startup_metrics.mark("routes_registered")
+    else:
+        startup_metrics.mark("background_routes_registered")
 
 def watch_parent_process():
     """监控父进程状态，如果父进程退出则自杀"""
@@ -53,8 +94,10 @@ async def lifespan(app: FastAPI):
     setup_logging(
         log_level=settings.log_level,
         log_dir=settings.logs_dir,
-        is_development=(settings.app_env == "development")
+        is_development=(settings.app_env == "development"),
+        defer_file_logging=True,
     )
+    startup_metrics.mark("logging_ready")
     
     # 获取 logger 实例
     logger = get_logger(__name__)
@@ -62,6 +105,9 @@ async def lifespan(app: FastAPI):
     
     # 5/6/7. 引导阶段：并行初始化组件 (提高启动效率)
     import asyncio
+
+    async def task_routes():
+        await asyncio.to_thread(register_routes, app, CRITICAL_ROUTE_SPECS, "critical_routes_registered")
     
     async def task_db():
         from core.db import init_db
@@ -73,34 +119,33 @@ async def lifespan(app: FastAPI):
 
     # 启动并行初始化
     await asyncio.gather(
+        task_routes(),
         task_db(),
         task_checkpointer(),
     )
-
-    async def warm_agent_coordinator():
-        """将重量级协调器预热移出关键启动路径，避免首屏等待。"""
-        try:
-            await asyncio.sleep(1.5)
-            logger.info("后台预热 agent_coordinator...")
-            from core.dependencies import get_agent_coordinator
-            coordinator = get_agent_coordinator()
-            await coordinator.warm_up()
-            logger.debug("agent_coordinator 预热完成")
-        except Exception:
-            logger.exception("agent_coordinator 预热失败")
+    startup_metrics.mark("lifespan_dependencies_ready")
 
     logger.success(f"[OK] ATRI Backend Service is ready on port {settings.backend_port}")
     logger.info(
         f"Environment: {settings.app_env} | Runtime Mode: {settings.runtime_mode} | "
         f"Data Root: {settings.data_dir} | PID: {os.getpid()} | Parent PID: {os.getppid()}"
     )
-
-    asyncio.create_task(warm_agent_coordinator())
+    logger.info(f"启动阶段耗时快照: {startup_metrics.snapshot()}")
+    from core.runtime_status import get_capability_registry
+    warmup_capabilities = get_capability_registry().schedule_startup_warmups()
+    if warmup_capabilities:
+        logger.info(f"已调度后台能力预热: {', '.join(warmup_capabilities)}")
+    asyncio.create_task(asyncio.to_thread(ensure_file_logging))
+    asyncio.create_task(
+        asyncio.to_thread(register_routes, app, DEFERRED_ROUTE_SPECS, "background_routes_registered")
+    )
 
     yield
     
     # 关闭阶段
+    from core.runtime_status import get_capability_registry
     from core.dependencies import close_checkpointer
+    await get_capability_registry().cancel_background_tasks()
     await close_checkpointer()
     logger.info("系统已安全关闭")
 
@@ -112,6 +157,7 @@ app = FastAPI(
     version="1.1.0",
     lifespan=lifespan
 )
+startup_metrics.mark("fastapi_app_created")
 
 # 中间件配置
 from core.middleware.logging_middleware import LoggingMiddleware
@@ -138,29 +184,6 @@ app.add_middleware(
 # 挂载静态资源 (地基已在 lifespan 中通过 settings.ensure_directories() 夯实)
 # 通过 /static 访问所有图片、模型、动作等
 app.mount("/static", StaticFiles(directory=str(settings.assets_dir)), name="static")
-
-# 注册 API 路由
-from api.routes import (
-    characters, conversations, messages, models, providers, tts, health, upload, asr,
-    avatars, motions, tts_providers, voice_assets, character_motion_bindings_v2, asr_mgmt
-)
-
-app.include_router(health.router, prefix="/api/v1", tags=["health"])
-app.include_router(avatars.router, prefix="/api/v1", tags=["assets"])
-app.include_router(motions.router, prefix="/api/v1", tags=["assets"])
-app.include_router(tts_providers.router, prefix="/api/v1", tags=["tts"])
-app.include_router(voice_assets.router, prefix="/api/v1", tags=["tts"])
-app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
-app.include_router(characters.router, prefix="/api/v1", tags=["characters"])
-app.include_router(character_motion_bindings_v2.router, prefix="/api/v1", tags=["characters"])
-app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])
-app.include_router(messages.router, prefix="/api/v1", tags=["messages"])
-app.include_router(models.router, prefix="/api/v1", tags=["models"])
-app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
-app.include_router(asr.router, prefix="/api/v1/asr", tags=["asr"])
-app.include_router(asr_mgmt.router, prefix="/api/v1/asr/mgmt", tags=["asr-mgmt"])
-app.include_router(upload.router, prefix="/api", tags=["upload"])
-
 
 if __name__ == "__main__":
     import uvicorn
