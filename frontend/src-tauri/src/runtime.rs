@@ -1,7 +1,7 @@
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::io;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use tauri::Manager;
@@ -12,10 +12,8 @@ const BINARIES_DIR_NAME: &str = "binaries";
 const RESOURCES_DIR_NAME: &str = "resources";
 pub const BACKEND_PORT_ENV: &str = "ATRI_BACKEND_PORT";
 pub const RUNTIME_MODE_ENV: &str = "ATRI_RUNTIME_MODE";
-pub const APP_ENV_ENV: &str = "ATRI_APP_ENV";
 pub const APP_ROOT_ENV: &str = "ATRI_APP_ROOT";
 pub const DATA_ROOT_ENV: &str = "ATRI_DATA_ROOT";
-pub const LOGS_ROOT_ENV: &str = "ATRI_LOGS_ROOT";
 
 #[derive(Clone, Copy, Debug)]
 pub enum RuntimeMode {
@@ -32,13 +30,6 @@ impl RuntimeMode {
             Self::Portable => "portable",
         }
     }
-
-    pub fn app_env(&self) -> &'static str {
-        match self {
-            Self::Development => "development",
-            Self::Installed | Self::Portable => "production",
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -46,7 +37,6 @@ pub struct RuntimeLayout {
     pub mode: RuntimeMode,
     pub app_root: PathBuf,
     pub data_root: PathBuf,
-    pub logs_root: PathBuf,
 }
 
 #[derive(Clone, Debug)]
@@ -60,18 +50,21 @@ pub enum BackendLaunch {
 }
 
 impl RuntimeLayout {
-    pub fn new(mode: RuntimeMode, app_root: PathBuf, data_root: PathBuf, logs_root: PathBuf) -> Self {
+    pub fn new(mode: RuntimeMode, app_root: PathBuf, data_root: PathBuf) -> Self {
         Self {
             mode,
             app_root: normalize_windows_path(app_root),
             data_root: normalize_windows_path(data_root),
-            logs_root: normalize_windows_path(logs_root),
         }
+    }
+
+    pub fn logs_root(&self) -> PathBuf {
+        self.data_root.join("logs")
     }
 
     pub fn ensure_directories(&self) -> io::Result<()> {
         fs::create_dir_all(&self.data_root)?;
-        fs::create_dir_all(&self.logs_root)?;
+        fs::create_dir_all(self.logs_root())?;
         Ok(())
     }
 
@@ -79,10 +72,8 @@ impl RuntimeLayout {
         vec![
             (BACKEND_PORT_ENV, port.to_string().into()),
             (RUNTIME_MODE_ENV, self.mode.as_str().into()),
-            (APP_ENV_ENV, self.mode.app_env().into()),
             (APP_ROOT_ENV, self.app_root.clone().into_os_string()),
             (DATA_ROOT_ENV, self.data_root.clone().into_os_string()),
-            (LOGS_ROOT_ENV, self.logs_root.clone().into_os_string()),
         ]
     }
 }
@@ -109,7 +100,6 @@ pub fn resolve_runtime_layout() -> RuntimeLayout {
             RuntimeMode::Development,
             app_root.clone(),
             app_root.join("data"),
-            app_root.join("data").join("logs"),
         );
     }
 
@@ -120,18 +110,10 @@ pub fn resolve_runtime_layout() -> RuntimeLayout {
         .join(APP_DIR_NAME);
 
     match mode {
-        RuntimeMode::Installed => RuntimeLayout::new(
-            mode,
-            app_root,
-            local_data_root.join("data"),
-            local_data_root.join("logs"),
-        ),
-        RuntimeMode::Portable | RuntimeMode::Development => RuntimeLayout::new(
-            mode,
-            app_root.clone(),
-            app_root.join("data"),
-            app_root.join("data").join("logs"),
-        ),
+        RuntimeMode::Installed => RuntimeLayout::new(mode, app_root, local_data_root.join("data")),
+        RuntimeMode::Portable | RuntimeMode::Development => {
+            RuntimeLayout::new(mode, app_root.clone(), app_root.join("data"))
+        }
     }
 }
 
@@ -139,14 +121,21 @@ pub fn resolve_backend_path(app: &tauri::AppHandle) -> Option<PathBuf> {
     let backend_name = backend_binary_name();
 
     if cfg!(debug_assertions) {
-        return Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries").join(backend_name));
+        return Some(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("binaries")
+                .join(backend_name),
+        );
     }
 
     let resource_dir = app.path().resource_dir().ok()?;
     Some(resource_dir.join("binaries").join(backend_name))
 }
 
-pub fn resolve_backend_launch(app: &tauri::AppHandle, layout: &RuntimeLayout) -> Option<BackendLaunch> {
+pub fn resolve_backend_launch(
+    app: &tauri::AppHandle,
+    layout: &RuntimeLayout,
+) -> Option<BackendLaunch> {
     if cfg!(debug_assertions) {
         return Some(BackendLaunch::UvProject {
             cwd: layout.app_root.clone(),
@@ -171,7 +160,11 @@ fn development_app_root() -> PathBuf {
         .join("..")
         .join("..")
         .canonicalize()
-        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(".."))
+        .unwrap_or_else(|_| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+        })
 }
 
 fn packaged_app_root() -> PathBuf {
@@ -191,9 +184,15 @@ fn resolve_app_root_from_executable(executable: &Path) -> PathBuf {
         return exe_dir;
     }
 
-    let parent = exe_dir.parent().map(|dir| dir.to_path_buf()).unwrap_or(exe_dir);
+    let parent = exe_dir
+        .parent()
+        .map(|dir| dir.to_path_buf())
+        .unwrap_or(exe_dir);
     if parent.file_name().and_then(|name| name.to_str()) == Some(RESOURCES_DIR_NAME) {
-        return parent.parent().map(|dir| dir.to_path_buf()).unwrap_or(parent);
+        return parent
+            .parent()
+            .map(|dir| dir.to_path_buf())
+            .unwrap_or(parent);
     }
 
     parent

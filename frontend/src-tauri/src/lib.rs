@@ -9,7 +9,9 @@ use std::time::{Duration, Instant};
 
 use tauri::Manager;
 
-use runtime::{resolve_backend_launch, resolve_runtime_layout, BackendLaunch, RuntimeLayout, BACKEND_PORT_ENV};
+use runtime::{
+    resolve_backend_launch, resolve_runtime_layout, BackendLaunch, RuntimeLayout, BACKEND_PORT_ENV,
+};
 
 struct BackendProcess(Mutex<Option<Child>>);
 struct BackendPortState(u16);
@@ -91,7 +93,7 @@ fn start_backend(app: &tauri::AppHandle, layout: &RuntimeLayout, port: u16) -> O
     println!("Runtime mode: {}", layout.mode.as_str());
     println!("App root: {:?}", layout.app_root);
     println!("Data root: {:?}", layout.data_root);
-    println!("Logs root: {:?}", layout.logs_root);
+    println!("Logs root: {:?}", layout.logs_root());
     println!("Allocating backend to port: {}", port);
 
     let mut command = match backend_launch {

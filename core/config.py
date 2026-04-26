@@ -28,7 +28,6 @@ class AppSettings(BaseSettings):
 
     app_root: Path | None = None
     data_root: Path | None = None
-    logs_root: Path | None = None
 
     log_level: str | None = Field(
         default=None,
@@ -51,7 +50,7 @@ class AppSettings(BaseSettings):
     @property
     def logs_dir(self) -> Path:
         """日志存放目录。"""
-        return self.logs_root
+        return self.data_dir / "logs"
 
     @property
     def db_dir(self) -> Path:
@@ -126,11 +125,14 @@ class AppSettings(BaseSettings):
     def finalize_settings(self) -> "AppSettings":
         """规范化环境并补齐派生路径。"""
         layout: RuntimeLayout = resolve_runtime_layout()
-        self.app_env = layout.app_env.value
         self.runtime_mode = layout.mode.value
+        self.app_env = (
+            AppEnv.DEVELOPMENT.value
+            if layout.mode.value == "development"
+            else AppEnv.PRODUCTION.value
+        )
         self.app_root = layout.app_root
         self.data_root = layout.data_root
-        self.logs_root = layout.logs_root
 
         if not self.log_level:
             if self.app_env == AppEnv.PRODUCTION.value:
