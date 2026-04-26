@@ -78,8 +78,8 @@ This file gives coding agents a compact, project-specific orientation for workin
 
 ## Areas To Treat Carefully
 
-- `main.py`: startup sequencing, directory initialization, logging setup, and route registration are tightly coupled.
-- `core/config.py`, `core/runtime.py`, and Tauri runtime integration: changes here can affect dev mode, packaged mode, and data directory resolution.
+- `main.py` and `core/bootstrap.py`: startup sequencing, directory initialization, logging setup, and route registration are tightly coupled.
+- `core/config.py`, `core/runtime_layout.py`, and Tauri runtime integration: changes here can affect dev mode, packaged mode, and data directory resolution.
 - `frontend/src-tauri/`: desktop runtime and backend process management. Validate carefully after edits.
 - `frontend/locales/`: if UI text changes, update locale files and run `check-i18n`.
 - `data/`, `build/`, `dist/`, `release_package/`, `frontend/dist/`, `frontend/node_modules/`, `*.egg-info`, and `__pycache__/`: usually generated artifacts or runtime outputs. Do not edit them unless the task is specifically about build/runtime artifacts.
@@ -87,8 +87,14 @@ This file gives coding agents a compact, project-specific orientation for workin
 ## Validation Expectations
 
 - For backend-only changes, at minimum run the narrowest relevant check available:
+  - `uv run ruff check .` for Python lint/import/bug checks
+  - `uv run black --check .` for Python formatting checks
   - `pytest` if tests exist for the touched area
   - otherwise a focused startup or import sanity check
+- For routine Python quality checks, prefer the full baseline:
+  - `uv run ruff check .`
+  - `uv run black --check .`
+  - `uv run pytest`
 - For frontend changes, prefer:
   - `npm --prefix frontend run type-check`
   - `npm --prefix frontend run lint`
