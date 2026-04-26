@@ -123,9 +123,11 @@ const mergeMessages = (historyMessages: Message[], streamMessages: Message[]): M
 
 export const useAgentStream = (conversationId: string | number) => {
   const [historyMessages, setHistoryMessages] = useState<Message[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<Message[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [customEvents, setCustomEvents] = useState<AgentStreamCustomEvent[]>([]);
   const [streamingReasoning, setStreamingReasoning] = useState('');
+  const wasLoadingRef = useRef(false);
   const titleUpdateRef = useRef<((title: string) => void) | undefined>(undefined);
   const vrmDataRef = useRef<((data: unknown) => void) | undefined>(undefined);
 
@@ -175,6 +177,7 @@ export const useAgentStream = (conversationId: string | number) => {
       const message = streamError instanceof Error ? streamError.message : '流式消息失败';
       Logger.error('Agent stream 失败', streamError instanceof Error ? streamError : undefined);
       setError(message);
+      setPendingMessages([]);
     },
   });
   const {
@@ -211,8 +214,18 @@ export const useAgentStream = (conversationId: string | number) => {
     switchThread(String(conversationId));
     setStreamingReasoning('');
     setCustomEvents([]);
+    setPendingMessages([]);
+    setHistoryMessages([]);
     void loadMessages(conversationId);
   }, [conversationId, loadMessages, switchThread]);
+
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading) {
+      setPendingMessages([]);
+    }
+
+    wasLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   const sendMessage = useCallback(async (
     targetConversationId: string | number,
@@ -234,6 +247,7 @@ export const useAgentStream = (conversationId: string | number) => {
     setStreamingReasoning('');
     const turnId = crypto.randomUUID();
     const userMessageId = crypto.randomUUID();
+    const pendingAssistantId = `${turnId}-assistant-pending`;
 
     const streamContext: AgentStreamContext = {
       conversation_id: String(targetConversationId),
@@ -255,6 +269,27 @@ export const useAgentStream = (conversationId: string | number) => {
       content: trimmed,
     });
 
+    setPendingMessages([
+      {
+        message_id: userMessageId,
+        conversation_id: targetConversationId,
+        turn_id: turnId,
+        lc_message_id: userMessageId,
+        message_type: 'user',
+        content: trimmed,
+        created_at: new Date().toISOString(),
+      },
+      {
+        message_id: pendingAssistantId,
+        conversation_id: targetConversationId,
+        turn_id: turnId,
+        message_type: 'assistant',
+        content: '',
+        created_at: new Date().toISOString(),
+        generating: true,
+      },
+    ]);
+
     await submit(
       {
         messages: [{ type: 'human', id: userMessageId, content: trimmed }],
@@ -268,6 +303,7 @@ export const useAgentStream = (conversationId: string | number) => {
         onError: (streamError) => {
           const message = streamError instanceof Error ? streamError.message : '消息发送失败';
           setError(message);
+          setPendingMessages([]);
         },
       },
     );
@@ -296,9 +332,25 @@ export const useAgentStream = (conversationId: string | number) => {
     return converted;
   }, [conversationId, isLoading, liveMessages, streamingReasoning, toolCalls]);
 
+  const visiblePendingMessages = useMemo(() => {
+    const pendingUserMessage = pendingMessages.find((message) => message.message_type === 'user');
+    const pendingUserIndex = pendingUserMessage
+      ? streamMessages.findIndex((message) => message.message_id === pendingUserMessage.message_id)
+      : -1;
+    const hasCurrentLiveAssistantMessage = pendingUserIndex >= 0
+      ? streamMessages.slice(pendingUserIndex + 1).some((message) => message.message_type === 'assistant')
+      : false;
+
+    if (!hasCurrentLiveAssistantMessage && isLoading) {
+      return pendingMessages;
+    }
+
+    return pendingMessages.filter((message) => message.message_type !== 'assistant');
+  }, [isLoading, pendingMessages, streamMessages]);
+
   const messages = useMemo(
-    () => mergeMessages(historyMessages, streamMessages),
-    [historyMessages, streamMessages],
+    () => mergeMessages(mergeMessages(historyMessages, visiblePendingMessages), streamMessages),
+    [historyMessages, streamMessages, visiblePendingMessages],
   );
 
   const clearError = useCallback(() => {
