@@ -11,6 +11,7 @@ class AgentContext:
     """Per-request context for the shared LangChain agent runtime."""
 
     character_id: str
+    conversation_id: str | None = None
     enable_vrm: bool = False
     model_id: str = "gpt-4o"
     provider_config_id: int = 1

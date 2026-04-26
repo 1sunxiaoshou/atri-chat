@@ -192,7 +192,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           (vrmData: any) => {
             if (vrmDisplayMode === 'vrm') {
               if (vrmData?.kind === 'commands' && Array.isArray(vrmData.commands)) {
-                executeCommands(vrmData.commands).then((result) => {
+                executeCommands(vrmData.commands, Array.isArray(vrmData.speech) ? vrmData.speech : []).then((result) => {
                   runtimeApi.reportVRMFeedback({
                     conversation_id: String(activeConversationId),
                     kind: 'perform_actions',

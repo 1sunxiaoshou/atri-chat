@@ -4,14 +4,22 @@ from __future__ import annotations
 
 from typing import Literal
 
-from langchain.tools import tool
+from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
+
+from core.agent.context import AgentContext
+from core.logger import get_logger
+from core.tts.synthesis import synthesize_character_speech_file
+
+logger = get_logger(__name__)
 
 
 class PerformActionsInput(BaseModel):
     commands: list[str] = Field(
         ...,
-        description="按顺序执行的命令列表，例如 ['emotion happy', 'say happy | 你好呀']",
+        description=(
+            "按顺序执行的命令列表，例如 ['emotion happy', 'say happy | 你好呀']"
+        ),
         min_length=1,
     )
 
@@ -69,19 +77,65 @@ def _parse_action_command(command: str) -> dict | None:
     return None
 
 
-@tool(args_schema=PerformActionsInput)
-def perform_actions(commands: list[str]) -> str:
-    """向前端发送一组按顺序执行的轻量命令。"""
+def _write_custom_event(runtime: ToolRuntime[AgentContext] | None, event: dict) -> None:
+    if runtime is None:
+        return
 
+    writer = runtime.stream_writer
+    if hasattr(writer, "write"):
+        writer.write(event)
+    else:
+        writer(event)
+
+
+async def _build_speech_events(
+    *,
+    parsed_commands: list[dict],
+    runtime: ToolRuntime[AgentContext] | None,
+) -> list[dict]:
+    if runtime is None:
+        return []
+
+    context = runtime.context
+    db_session = getattr(context, "db_session", None)
+    character_id = getattr(context, "character_id", None)
+    if db_session is None or not character_id:
+        return []
+
+    speech: list[dict] = []
+    for command_index, command in enumerate(parsed_commands):
+        if command.get("type") != "say":
+            continue
+
+        item = {
+            "commandIndex": command_index,
+            "text": command["text"],
+            "emotion": command["emotion"],
+        }
+        try:
+            item["audioUrl"] = await synthesize_character_speech_file(
+                text=command["text"],
+                character_id=character_id,
+                db_session=db_session,
+            )
+        except Exception as exc:
+            logger.warning(f"TTS synthesis for VRM say command failed: {exc}")
+        speech.append(item)
+
+    return speech
+
+
+async def _perform_actions_impl(
+    commands: list[str],
+    runtime: ToolRuntime[AgentContext] | None = None,
+) -> str:
     normalized_commands: list[str] = []
     parsed_commands: list[dict] = []
-    rejected_commands: list[str] = []
 
     for command in commands:
         normalized = _normalize_whitespace(command)
         parsed = _parse_action_command(normalized)
         if parsed is None:
-            rejected_commands.append(command)
             continue
 
         normalized_commands.append(normalized)
@@ -90,16 +144,66 @@ def perform_actions(commands: list[str]) -> str:
     if not parsed_commands:
         return "error: invalid command"
 
+    speech = await _build_speech_events(
+        parsed_commands=parsed_commands,
+        runtime=runtime,
+    )
+    _write_custom_event(
+        runtime,
+        {
+            "type": "vrm.perform_actions",
+            "toolCallId": runtime.tool_call_id if runtime else None,
+            "commands": normalized_commands,
+            "speech": speech,
+        },
+    )
     return "ok"
+
+
+async def _control_camera_impl(
+    action: Literal["cut", "transition"],
+    preset: str,
+    durationMs: int | None = None,
+    runtime: ToolRuntime[AgentContext] | None = None,
+) -> str:
+    if not preset.strip():
+        return "error: invalid preset"
+
+    _write_custom_event(
+        runtime,
+        {
+            "type": "vrm.control_camera",
+            "toolCallId": runtime.tool_call_id if runtime else None,
+            "command": {
+                "action": action,
+                "preset": preset,
+                "durationMs": durationMs,
+            },
+        },
+    )
+    return "ok"
+
+
+@tool(args_schema=PerformActionsInput)
+async def perform_actions(
+    commands: list[str],
+    runtime: ToolRuntime[AgentContext],
+) -> str:
+    """向前端发送一组按顺序执行的轻量命令。"""
+
+    return await _perform_actions_impl(commands, runtime)
 
 
 @tool(args_schema=ControlCameraInput)
-def control_camera(action: Literal["cut", "transition"], preset: str, durationMs: int | None = None) -> str:
+async def control_camera(
+    action: Literal["cut", "transition"],
+    preset: str,
+    durationMs: int | None = None,
+    runtime: ToolRuntime[AgentContext] | None = None,
+) -> str:
     """发送镜头控制意图，和角色表现命令分离。"""
 
-    if not preset.strip():
-        return "error: invalid preset"
-    return "ok"
+    return await _control_camera_impl(action, preset, durationMs, runtime)
 
 
 def get_action_tools():

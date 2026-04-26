@@ -15,6 +15,13 @@ interface CharacterMotionBindings {
   reply?: any[];
 }
 
+interface SpeechSegment {
+  commandIndex: number;
+  text: string;
+  emotion: string;
+  audioUrl?: string;
+}
+
 /**
  * 随机选择动作
  */
@@ -339,7 +346,37 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     setRuntime({ error: null });
   }, [setRuntime]);
 
-  const executeCommands = useCallback(async (commands: string[]) => {
+  const playSpeechAudio = useCallback(async (audioUrl: string) => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        audio.onended = null;
+        audio.onerror = null;
+      };
+
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = buildResourceUrl(audioUrl);
+      audio.onended = () => {
+        cleanup();
+        resolve();
+      };
+      audio.onerror = () => {
+        cleanup();
+        reject(new Error('speech audio playback failed'));
+      };
+      audio.play().catch((error) => {
+        cleanup();
+        reject(error);
+      });
+    });
+  }, []);
+
+  const executeCommands = useCallback(async (commands: string[], speech: SpeechSegment[] = []) => {
     if (!isVRMMode) {
       return { ok: false, error: 'vrm mode disabled' };
     }
@@ -351,7 +388,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
     let currentMotion = motionUrl;
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    for (const command of parsed) {
+    for (const [commandIndex, command] of parsed.entries()) {
       if (command.type === 'emotion') {
         currentExpression = command.value;
         setExpression(command.value);
@@ -376,6 +413,17 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         currentSubtitle = command.text;
         setExpression(command.emotion);
         setSubtitle(command.text);
+
+        const segment = speech.find((item) => item.commandIndex === commandIndex);
+        if (segment?.audioUrl) {
+          try {
+            await playSpeechAudio(segment.audioUrl);
+            continue;
+          } catch (error) {
+            console.warn('[useVRM] Speech audio playback failed, falling back to timed subtitle:', error);
+          }
+        }
+
         await sleep(Math.min(Math.max(command.text.length * 120, 1200), 4000));
         continue;
       }
@@ -395,7 +443,7 @@ export const useVRM = (character: Character | null, isVRMMode: boolean) => {
         motionUrl: currentMotion,
       },
     };
-  }, [character, expression, isVRMMode, motionUrl, setExpression, setMotion, setSubtitle, startIdleTimer, stopIdleTimer, subtitle]);
+  }, [character, expression, isVRMMode, motionUrl, playSpeechAudio, setExpression, setMotion, setSubtitle, startIdleTimer, stopIdleTimer, subtitle]);
 
   const executeCameraCommand = useCallback(async (command: { action?: string; preset?: string; durationMs?: number }) => {
     setRuntime({

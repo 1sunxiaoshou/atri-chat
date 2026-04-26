@@ -156,11 +156,16 @@ export const useAgentStream = (conversationId: string | number) => {
         titleUpdateRef.current?.(customEvent.title);
       }
 
-      if (customEvent.type === 'vrm_commands') {
-        vrmDataRef.current?.({ kind: 'commands', commands: customEvent.commands });
+      if (customEvent.type === 'vrm.perform_actions') {
+        vrmDataRef.current?.({
+          kind: 'commands',
+          commands: customEvent.commands,
+          speech: customEvent.speech,
+          toolCallId: customEvent.toolCallId,
+        });
       }
 
-      if (customEvent.type === 'camera_command') {
+      if (customEvent.type === 'vrm.control_camera') {
         vrmDataRef.current?.({ kind: 'camera', command: customEvent.command });
       }
 

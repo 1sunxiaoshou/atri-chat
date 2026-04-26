@@ -61,12 +61,12 @@ class AppSettings(BaseSettings):
     def models_dir(self) -> Path:
         """AI 模型根目录。"""
         return self.data_dir / "models"
-    
+
     @property
     def memory_dir(self) -> Path:
         """长期记忆存储目录。"""
         return self.data_dir / "memory"
-    
+
     @property
     def asr_models_dir(self) -> Path:
         """SenseVoice ASR 模型存放目录。"""
@@ -101,6 +101,11 @@ class AppSettings(BaseSettings):
         return self.vrm_dir / "thumbnails"
 
     @property
+    def tts_dir(self) -> Path:
+        """TTS audio cache files served under /static/tts."""
+        return self.assets_dir / "tts"
+
+    @property
     def app_db_url(self) -> str:
         db_url = os.getenv("DATABASE_URL")
         if db_url:
@@ -121,8 +126,8 @@ class AppSettings(BaseSettings):
         extra="ignore",
     )
 
-    @model_validator(mode='after')
-    def finalize_settings(self) -> "AppSettings":
+    @model_validator(mode="after")
+    def finalize_settings(self) -> AppSettings:
         """规范化环境并补齐派生路径。"""
         layout: RuntimeLayout = resolve_runtime_layout()
         self.runtime_mode = layout.mode.value
@@ -158,12 +163,13 @@ class AppSettings(BaseSettings):
             self.vrm_models_dir,
             self.vrm_motions_dir,
             self.vrm_thumbnails_dir,
+            self.tts_dir,
         ]
         for d in dirs:
             d.mkdir(parents=True, exist_ok=True)
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> AppSettings:
     """获取全站唯一的配置单例。"""
     return AppSettings()
