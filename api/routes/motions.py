@@ -1,10 +1,9 @@
 """动作资产管理 API (ORM 版本)"""
-import uuid
-from pathlib import Path
-from typing import Optional, List, Dict, Any
+
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.dependencies import get_db
 from core.db import Motion
@@ -20,8 +19,10 @@ router = APIRouter(prefix="/motions", tags=["Motions"])
 
 # ==================== Pydantic 模型 ====================
 
+
 class MotionUpdate(BaseModel):
     """更新动作"""
+
     name: Optional[str] = Field(None, description="动作名称")
     description: Optional[str] = Field(None, description="动作描述")
     tags: Optional[List[str]] = Field(None, description="标签列表")
@@ -29,6 +30,9 @@ class MotionUpdate(BaseModel):
 
 class MotionResponse(BaseModel):
     """动作响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     file_url: str
@@ -37,12 +41,10 @@ class MotionResponse(BaseModel):
     tags: Optional[List[str]]
     created_at: str
     updated_at: str
-    
-    class Config:
-        from_attributes = True
 
 
 # ==================== API 端点 ====================
+
 
 @router.get("", summary="获取所有动作", response_model=ResponseModel)
 async def list_motions(
@@ -53,34 +55,34 @@ async def list_motions(
     duration_min: Optional[int] = None,  # 最小持续时间（毫秒）
     duration_max: Optional[int] = None,  # 最大持续时间（毫秒）
     db: Session = Depends(get_db),
-    settings: AppSettings = Depends(get_settings)
+    settings: AppSettings = Depends(get_settings),
 ) -> Dict[str, Any]:
     """获取所有动作
-    
+
     支持分页、搜索和过滤
     """
     try:
         query = db.query(Motion)
-        
+
         # 搜索过滤
         if search:
             query = query.filter(Motion.name.ilike(f"%{search}%"))
-        
+
         # 持续时间过滤
         if duration_min is not None:
             query = query.filter(Motion.duration_ms >= duration_min)
         if duration_max is not None:
             query = query.filter(Motion.duration_ms <= duration_max)
-        
+
         # 标签过滤（简单实现，检查 JSON 字段）
         if tags:
             tag_list = [t.strip() for t in tags.split(",")]
             for tag in tag_list:
                 query = query.filter(Motion.tags.contains(tag))
-        
+
         # 分页
         motions = query.offset(skip).limit(limit).all()
-        
+
         # 构建响应
         data = [
             {
@@ -96,30 +98,23 @@ async def list_motions(
             }
             for motion in motions
         ]
-        
-        return {
-            "code": 200,
-            "message": "获取成功",
-            "data": data
-        }
-        
+
+        return {"code": 200, "message": "获取成功", "data": data}
+
     except Exception as e:
         logger.error(f"获取动作列表失败: {e}")
         raise HTTPException(status_code=500, detail="获取列表失败")
 
 
 @router.get("/{motion_id}", summary="获取动作详情", response_model=ResponseModel)
-async def get_motion(
-    motion_id: str,
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+async def get_motion(motion_id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     """获取动作详情"""
     try:
         motion = db.query(Motion).filter(Motion.id == motion_id).first()
-        
+
         if not motion:
             raise HTTPException(status_code=404, detail="动作不存在")
-        
+
         # 构建响应
         data = {
             "id": motion.id,
@@ -136,18 +131,14 @@ async def get_motion(
                 {
                     "id": binding.character.id,
                     "name": binding.character.name,
-                    "category": binding.category
+                    "category": binding.category,
                 }
                 for binding in motion.bindings
-            ]
+            ],
         }
-        
-        return {
-            "code": 200,
-            "message": "获取成功",
-            "data": data
-        }
-        
+
+        return {"code": 200, "message": "获取成功", "data": data}
+
     except HTTPException:
         raise
     except Exception as e:
@@ -157,9 +148,7 @@ async def get_motion(
 
 @router.put("/{motion_id}", summary="更新动作", response_model=ResponseModel)
 async def update_motion(
-    motion_id: str,
-    motion_update: MotionUpdate,
-    db: Session = Depends(get_db)
+    motion_id: str, motion_update: MotionUpdate, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """更新动作"""
     try:
@@ -167,18 +156,18 @@ async def update_motion(
         motion = db.query(Motion).filter(Motion.id == motion_id).first()
         if not motion:
             raise HTTPException(status_code=404, detail="动作不存在")
-        
+
         # 更新字段
         updates = motion_update.model_dump(exclude_unset=True)
         if not updates:
             raise HTTPException(status_code=400, detail="没有提供更新字段")
-        
+
         for key, value in updates.items():
             setattr(motion, key, value)
-        
+
         db.commit()
         db.refresh(motion)
-        
+
         # 构建响应
         data = {
             "id": motion.id,
@@ -191,13 +180,9 @@ async def update_motion(
             "created_at": motion.created_at.isoformat(),
             "updated_at": motion.updated_at.isoformat(),
         }
-        
-        return {
-            "code": 200,
-            "message": "动作更新成功",
-            "data": data
-        }
-        
+
+        return {"code": 200, "message": "动作更新成功", "data": data}
+
     except HTTPException:
         raise
     except Exception as e:
@@ -214,53 +199,53 @@ async def upload_motion(
     tags: Optional[str] = Form(None, description="标签（逗号分隔）"),
     duration_ms: Optional[int] = Form(None, description="动作时长（毫秒）"),
     db: Session = Depends(get_db),
-    settings: AppSettings = Depends(get_settings)
+    settings: AppSettings = Depends(get_settings),
 ) -> Dict[str, Any]:
     """上传动作文件"""
     try:
         # 验证文件类型
-        if not file.filename.endswith('.vrma'):
+        if not file.filename.endswith(".vrma"):
             raise HTTPException(status_code=400, detail="只支持.vrma文件")
-        
+
         # 生成唯一的 5 位短 UUID
         from core.utils.short_uuid import generate_short_uuid
-        
+
         motion_id = generate_short_uuid(5)
-        
+
         # 检查 ID 是否已存在（极小概率冲突）
         while db.query(Motion).filter(Motion.id == motion_id).first():
             motion_id = generate_short_uuid(5)
-        
+
         # 保存文件
         filename = f"{motion_id}.vrma"
         file_path = settings.vrm_motions_dir / filename
-        
-        with open(file_path, 'wb') as f:
+
+        with open(file_path, "wb") as f:
             content = await file.read()
             f.write(content)
-        
+
         # 解析标签
         tag_list = []
         if tags:
             tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-        
+
         # 如果没有提供持续时间，使用默认值
         if duration_ms is None:
             duration_ms = 2500  # 默认 2.5 秒
-        
+
         # 保存到数据库
         motion = Motion(
             id=motion_id,
             name=name,
             duration_ms=duration_ms,
             description=description,
-            tags=tag_list if tag_list else None
+            tags=tag_list if tag_list else None,
         )
-        
+
         db.add(motion)
         db.commit()
         db.refresh(motion)
-        
+
         return {
             "code": 200,
             "message": "上传成功",
@@ -273,25 +258,24 @@ async def upload_motion(
                 "description": motion.description,
                 "tags": motion.tags if motion.tags else [],
                 "created_at": motion.created_at.isoformat(),
-            }
+            },
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
         # 清理文件
-        if 'file_path' in locals() and file_path.exists():
+        if "file_path" in locals() and file_path.exists():
             file_path.unlink(missing_ok=True)
-        
+
         logger.error(f"上传动作详情失败: {e}")
         raise HTTPException(status_code=500, detail="上传失败")
 
 
 @router.delete("/{motion_id}", summary="删除动作", response_model=ResponseModel)
 async def delete_motion(
-    motion_id: str,
-    db: Session = Depends(get_db)
+    motion_id: str, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """删除动作（会检查是否被角色绑定）"""
     try:
@@ -299,7 +283,7 @@ async def delete_motion(
         motion = db.query(Motion).filter(Motion.id == motion_id).first()
         if not motion:
             raise HTTPException(status_code=404, detail="动作不存在")
-        
+
         # 检查是否被引用
         references = check_motion_references(db, motion_id)
         if references:
@@ -308,10 +292,10 @@ async def delete_motion(
                 detail={
                     "error": "RESOURCE_IN_USE",
                     "message": f"无法删除动作，因为它被 {len(references)} 个角色绑定",
-                    "referenced_by": references
-                }
+                    "referenced_by": references,
+                },
             )
-        
+
         # 删除文件
         try:
             file_path = motion.get_file_path()
@@ -319,20 +303,18 @@ async def delete_motion(
                 file_path.unlink()
                 logger.info(f"删除动作文件: {file_path}")
             else:
-                logger.warning("动作文件不存在，跳过删除", extra={"path": str(file_path)})
+                logger.warning(
+                    "动作文件不存在，跳过删除", extra={"path": str(file_path)}
+                )
         except Exception as e:
             logger.error(f"删除动作物理文件失败: {e}")
-        
+
         # 删除数据库记录
         db.delete(motion)
         db.commit()
-        
-        return {
-            "code": 200,
-            "message": "动作删除成功",
-            "data": None
-        }
-        
+
+        return {"code": 200, "message": "动作删除成功", "data": None}
+
     except HTTPException:
         raise
     except Exception as e:
