@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class ResponseModel(BaseModel):
 
     code: int = Field(200, description="状态码")
     message: str = Field("success", description="消息")
-    data: Optional[Any] = Field(None, description="数据")
+    data: Any | None = Field(None, description="数据")
 
 
 class RuntimeVRMFeedbackRequest(BaseModel):
@@ -21,5 +21,5 @@ class RuntimeVRMFeedbackRequest(BaseModel):
     conversation_id: str = Field(..., description="会话ID（UUID）")
     kind: str = Field(..., description="反馈类型")
     ok: bool = Field(..., description="执行是否成功")
-    error: Optional[str] = Field(None, description="错误信息")
-    state: Optional[dict[str, Any]] = Field(None, description="当前前端状态快照")
+    error: str | None = Field(None, description="错误信息")
+    state: dict[str, Any] | None = Field(None, description="当前前端状态快照")

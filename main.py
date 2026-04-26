@@ -5,7 +5,6 @@ load_dotenv(override=False)
 
 from core.bootstrap import create_app, run_server
 
-
 app = create_app()
 
 

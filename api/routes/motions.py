@@ -1,16 +1,17 @@
 """动作资产管理 API (ORM 版本)"""
 
-from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any
 
-from core.dependencies import get_db
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
+
+from api.schemas import ResponseModel
+from core.config import AppSettings, get_settings
 from core.db import Motion
 from core.db.utils import check_motion_references
-from core.config import get_settings, AppSettings
+from core.dependencies import get_db
 from core.logger import get_logger
-from api.schemas import ResponseModel
 
 logger = get_logger(__name__)
 
@@ -23,9 +24,9 @@ router = APIRouter(prefix="/motions", tags=["Motions"])
 class MotionUpdate(BaseModel):
     """更新动作"""
 
-    name: Optional[str] = Field(None, description="动作名称")
-    description: Optional[str] = Field(None, description="动作描述")
-    tags: Optional[List[str]] = Field(None, description="标签列表")
+    name: str | None = Field(None, description="动作名称")
+    description: str | None = Field(None, description="动作描述")
+    tags: list[str] | None = Field(None, description="标签列表")
 
 
 class MotionResponse(BaseModel):
@@ -37,8 +38,8 @@ class MotionResponse(BaseModel):
     name: str
     file_url: str
     duration_ms: int
-    description: Optional[str]
-    tags: Optional[List[str]]
+    description: str | None
+    tags: list[str] | None
     created_at: str
     updated_at: str
 
@@ -50,13 +51,13 @@ class MotionResponse(BaseModel):
 async def list_motions(
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = None,
-    tags: Optional[str] = None,  # 逗号分隔的标签
-    duration_min: Optional[int] = None,  # 最小持续时间（毫秒）
-    duration_max: Optional[int] = None,  # 最大持续时间（毫秒）
+    search: str | None = None,
+    tags: str | None = None,  # 逗号分隔的标签
+    duration_min: int | None = None,  # 最小持续时间（毫秒）
+    duration_max: int | None = None,  # 最大持续时间（毫秒）
     db: Session = Depends(get_db),
     settings: AppSettings = Depends(get_settings),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取所有动作
 
     支持分页、搜索和过滤
@@ -103,11 +104,11 @@ async def list_motions(
 
     except Exception as e:
         logger.error(f"获取动作列表失败: {e}")
-        raise HTTPException(status_code=500, detail="获取列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败") from e
 
 
 @router.get("/{motion_id}", summary="获取动作详情", response_model=ResponseModel)
-async def get_motion(motion_id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def get_motion(motion_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
     """获取动作详情"""
     try:
         motion = db.query(Motion).filter(Motion.id == motion_id).first()
@@ -143,13 +144,13 @@ async def get_motion(motion_id: str, db: Session = Depends(get_db)) -> Dict[str,
         raise
     except Exception as e:
         logger.error(f"获取动作详情失败: {e}")
-        raise HTTPException(status_code=500, detail="获取详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败") from e
 
 
 @router.put("/{motion_id}", summary="更新动作", response_model=ResponseModel)
 async def update_motion(
     motion_id: str, motion_update: MotionUpdate, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """更新动作"""
     try:
         # 检查动作是否存在
@@ -188,19 +189,19 @@ async def update_motion(
     except Exception as e:
         db.rollback()
         logger.error(f"更新动作失败: {e}")
-        raise HTTPException(status_code=500, detail="更新失败")
+        raise HTTPException(status_code=500, detail="更新失败") from e
 
 
 @router.post("/upload", summary="上传动作文件", response_model=ResponseModel)
 async def upload_motion(
     file: UploadFile = File(..., description="动作文件(.vrma)"),
     name: str = Form(..., description="动作名称"),
-    description: Optional[str] = Form(None, description="动作描述"),
-    tags: Optional[str] = Form(None, description="标签（逗号分隔）"),
-    duration_ms: Optional[int] = Form(None, description="动作时长（毫秒）"),
+    description: str | None = Form(None, description="动作描述"),
+    tags: str | None = Form(None, description="标签（逗号分隔）"),
+    duration_ms: int | None = Form(None, description="动作时长（毫秒）"),
     db: Session = Depends(get_db),
     settings: AppSettings = Depends(get_settings),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """上传动作文件"""
     try:
         # 验证文件类型
@@ -270,13 +271,13 @@ async def upload_motion(
             file_path.unlink(missing_ok=True)
 
         logger.error(f"上传动作详情失败: {e}")
-        raise HTTPException(status_code=500, detail="上传失败")
+        raise HTTPException(status_code=500, detail="上传失败") from e
 
 
 @router.delete("/{motion_id}", summary="删除动作", response_model=ResponseModel)
 async def delete_motion(
     motion_id: str, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """删除动作（会检查是否被角色绑定）"""
     try:
         # 检查动作是否存在
@@ -320,4 +321,4 @@ async def delete_motion(
     except Exception as e:
         db.rollback()
         logger.error(f"删除数据库动作记录失败: {e}")
-        raise HTTPException(status_code=500, detail="删除失败")
+        raise HTTPException(status_code=500, detail="删除失败") from e

@@ -1,14 +1,15 @@
 """TTS 供应商管理 API (ORM 版本)"""
 
-from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any
 
-from core.dependencies import get_db
-from core.db import TTSProvider
-from core.logger import get_logger
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
+
 from api.schemas import ResponseModel
+from core.db import TTSProvider
+from core.dependencies import get_db
+from core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -23,14 +24,14 @@ class TTSProviderCreate(BaseModel):
 
     provider_type: str = Field(..., description="供应商类型（openai/gpt_sovits/azure）")
     name: str = Field(..., description="供应商名称")
-    config_payload: Dict[str, Any] = Field(..., description="供应商级别配置 JSON")
+    config_payload: dict[str, Any] = Field(..., description="供应商级别配置 JSON")
 
 
 class TTSProviderUpdate(BaseModel):
     """更新 TTS 供应商"""
 
-    name: Optional[str] = Field(None, description="供应商名称")
-    config_payload: Optional[Dict[str, Any]] = Field(
+    name: str | None = Field(None, description="供应商名称")
+    config_payload: dict[str, Any] | None = Field(
         None, description="供应商级别配置 JSON"
     )
 
@@ -43,7 +44,7 @@ class TTSProviderResponse(BaseModel):
     id: int
     provider_type: str
     name: str
-    config_payload: Dict[str, Any]
+    config_payload: dict[str, Any]
     created_at: str
     updated_at: str
     voice_count: int = Field(0, description="该供应商下的音色数量")
@@ -56,10 +57,10 @@ class TTSProviderResponse(BaseModel):
 async def list_providers(
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = None,
-    provider_type: Optional[str] = None,
+    search: str | None = None,
+    provider_type: str | None = None,
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取所有 TTS 供应商
 
     支持分页、搜索和过滤
@@ -94,7 +95,7 @@ async def list_providers(
 
     except Exception as e:
         logger.error(f"获取 TTS 供应商列表失败: {e}")
-        raise HTTPException(status_code=500, detail="获取列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败") from e
 
 
 @router.get(
@@ -102,7 +103,7 @@ async def list_providers(
 )
 async def get_provider(
     provider_id: int, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取 TTS 供应商详情"""
     try:
         provider = db.query(TTSProvider).filter(TTSProvider.id == provider_id).first()
@@ -135,13 +136,13 @@ async def get_provider(
         raise
     except Exception as e:
         logger.error(f"获取 TTS 供应商详情失败: {e}")
-        raise HTTPException(status_code=500, detail="获取详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败") from e
 
 
 @router.post("", summary="创建 TTS 供应商", response_model=ResponseModel)
 async def create_provider(
     provider_create: TTSProviderCreate, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """创建 TTS 供应商"""
     try:
         # 验证供应商类型
@@ -153,7 +154,7 @@ async def create_provider(
             raise HTTPException(
                 status_code=400,
                 detail=f"无效的供应商类型: {provider_create.provider_type}",
-            )
+            ) from None
 
         # 创建供应商
         provider = TTSProvider(
@@ -184,13 +185,13 @@ async def create_provider(
     except Exception as e:
         db.rollback()
         logger.error(f"创建 TTS 供应商失败: {e}")
-        raise HTTPException(status_code=500, detail="创建失败")
+        raise HTTPException(status_code=500, detail="创建失败") from e
 
 
 @router.put("/{provider_id}", summary="更新 TTS 供应商", response_model=ResponseModel)
 async def update_provider(
     provider_id: int, provider_update: TTSProviderUpdate, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """更新 TTS 供应商"""
     try:
         # 检查供应商是否存在
@@ -226,7 +227,7 @@ async def update_provider(
     except Exception as e:
         db.rollback()
         logger.error(f"更新 TTS 供应商失败: {e}")
-        raise HTTPException(status_code=500, detail="更新失败")
+        raise HTTPException(status_code=500, detail="更新失败") from e
 
 
 @router.delete(
@@ -234,7 +235,7 @@ async def update_provider(
 )
 async def delete_provider(
     provider_id: int, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """删除 TTS 供应商（级联删除所有音色）"""
     try:
         # 检查供应商是否存在
@@ -277,19 +278,19 @@ async def delete_provider(
     except Exception as e:
         db.rollback()
         logger.error(f"删除 TTS 供应商失败: {e}")
-        raise HTTPException(status_code=500, detail="删除失败")
+        raise HTTPException(status_code=500, detail="删除失败") from e
 
 
 @router.get(
     "/types/list", summary="获取支持的供应商类型列表", response_model=ResponseModel
 )
-async def list_provider_types() -> Dict[str, Any]:
+async def list_provider_types() -> dict[str, Any]:
     """获取支持的 TTS 供应商类型列表（从注册中心动态获取）"""
     from core.tts.registry import TTSRegistry
 
     types = []
     for provider_id, (
-        provider_class,
+        _provider_class,
         display_name,
     ) in TTSRegistry.get_all_providers().items():
         types.append(
@@ -308,7 +309,7 @@ async def list_provider_types() -> Dict[str, Any]:
     summary="获取供应商配置模板",
     response_model=ResponseModel,
 )
-async def get_provider_template(provider_type: str) -> Dict[str, Any]:
+async def get_provider_template(provider_type: str) -> dict[str, Any]:
     """获取指定供应商类型的配置模板（UI 元数据）
 
     用于前端动态生成配置表单
@@ -333,10 +334,10 @@ async def get_provider_template(provider_type: str) -> Dict[str, Any]:
             },
         }
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"获取配置模板失败: {e}")
-        raise HTTPException(status_code=500, detail="获取模板失败")
+        raise HTTPException(status_code=500, detail="获取模板失败") from e
 
 
 @router.post(
@@ -344,7 +345,7 @@ async def get_provider_template(provider_type: str) -> Dict[str, Any]:
 )
 async def test_provider(
     provider_id: int, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """测试 TTS 供应商配置是否可用"""
     from core.tts.factory import TTSFactory
 

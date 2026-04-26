@@ -1,9 +1,11 @@
 """消息处理工具"""
-from typing import Union, List, Dict, Any
 
-def extract_text_from_content(content: Union[str, List[Union[str, Dict[str, Any]]]]) -> str:
+from typing import Any
+
+
+def extract_text_from_content(content: str | list[str | dict[str, Any]]) -> str:
     """从 LangChain 消息内容中提取纯文本
-    
+
     支持:
     1. 纯字符串
     2. 字典列表 (OpenAI/Anthropic/Qwen 格式)
@@ -11,10 +13,10 @@ def extract_text_from_content(content: Union[str, List[Union[str, Dict[str, Any]
     """
     if not content:
         return ""
-    
+
     if isinstance(content, str):
         return content
-    
+
     if isinstance(content, list):
         texts = []
         for part in content:
@@ -28,5 +30,5 @@ def extract_text_from_content(content: Union[str, List[Union[str, Dict[str, Any]
                 if t:
                     texts.append(str(t))
         return "".join(texts)
-    
+
     return str(content)

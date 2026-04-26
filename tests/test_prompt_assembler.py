@@ -26,7 +26,9 @@ class _FakeCharacterRepository:
 
 
 def test_text_mode_prompt_only_contains_role_and_mode(monkeypatch):
-    monkeypatch.setattr("core.prompts.service.CharacterRepository", _FakeCharacterRepository)
+    monkeypatch.setattr(
+        "core.prompts.service.CharacterRepository", _FakeCharacterRepository
+    )
 
     service = PromptService()
     final_prompt = service.build_system_prompt(
@@ -46,7 +48,9 @@ def test_text_mode_prompt_only_contains_role_and_mode(monkeypatch):
 
 
 def test_vrm_mode_prompt_uses_command_protocol(monkeypatch):
-    monkeypatch.setattr("core.prompts.service.CharacterRepository", _FakeCharacterRepository)
+    monkeypatch.setattr(
+        "core.prompts.service.CharacterRepository", _FakeCharacterRepository
+    )
 
     service = PromptService()
     prompt = service.build_system_prompt(

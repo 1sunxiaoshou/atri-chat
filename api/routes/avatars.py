@@ -2,17 +2,18 @@
 
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any
 
-from core.dependencies import get_db
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
+
+from api.schemas import ResponseModel
+from core.config import AppSettings, get_settings
 from core.db import Avatar
 from core.db.utils import check_avatar_references
-from core.config import get_settings, AppSettings
+from core.dependencies import get_db
 from core.logger import get_logger
-from api.schemas import ResponseModel
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/avatars", tags=["Avatars"])
 class AvatarUpdate(BaseModel):
     """更新形象"""
 
-    name: Optional[str] = Field(None, description="形象名称")
+    name: str | None = Field(None, description="形象名称")
 
 
 class AvatarResponse(BaseModel):
@@ -36,7 +37,7 @@ class AvatarResponse(BaseModel):
     id: str
     name: str
     file_url: str
-    thumbnail_url: Optional[str]
+    thumbnail_url: str | None
     created_at: str
     updated_at: str
 
@@ -48,7 +49,7 @@ class AvatarResponse(BaseModel):
 async def list_avatars(
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = None,
+    search: str | None = None,
     db: Session = Depends(get_db),
     settings: AppSettings = Depends(get_settings),
 ):
@@ -93,11 +94,11 @@ async def list_avatars(
 
     except Exception as e:
         logger.error(f"获取形象列表失败: {e}")
-        raise HTTPException(status_code=500, detail="获取列表失败")
+        raise HTTPException(status_code=500, detail="获取列表失败") from e
 
 
 @router.get("/{avatar_id}", summary="获取形象详情", response_model=ResponseModel)
-async def get_avatar(avatar_id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def get_avatar(avatar_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
     """获取形象详情"""
     try:
         import json
@@ -134,13 +135,13 @@ async def get_avatar(avatar_id: str, db: Session = Depends(get_db)) -> Dict[str,
         raise
     except Exception as e:
         logger.error(f"获取形象详情失败: {e}")
-        raise HTTPException(status_code=500, detail="获取详情失败")
+        raise HTTPException(status_code=500, detail="获取详情失败") from e
 
 
 @router.put("/{avatar_id}", summary="更新形象", response_model=ResponseModel)
 async def update_avatar(
     avatar_id: str, avatar_update: AvatarUpdate, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """更新形象"""
     try:
         # 检查形象是否存在
@@ -178,18 +179,18 @@ async def update_avatar(
     except Exception as e:
         db.rollback()
         logger.error(f"更新形象失败: {e}")
-        raise HTTPException(status_code=500, detail="更新失败")
+        raise HTTPException(status_code=500, detail="更新失败") from e
 
 
 @router.post("/upload", summary="上传形象文件", response_model=ResponseModel)
 async def upload_avatar(
     file: UploadFile = File(..., description="VRM文件"),
     name: str = Form(..., description="形象名称"),
-    thumbnail: Optional[UploadFile] = File(None, description="缩略图文件（可选）"),
-    expressions: Optional[str] = Form(None, description="表情列表（JSON数组字符串）"),
+    thumbnail: UploadFile | None = File(None, description="缩略图文件（可选）"),
+    expressions: str | None = Form(None, description="表情列表（JSON数组字符串）"),
     db: Session = Depends(get_db),
     settings: AppSettings = Depends(get_settings),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """上传形象文件（支持可选的缩略图上传和表情列表）"""
     try:
         import json
@@ -282,13 +283,13 @@ async def upload_avatar(
             thumbnail_file_path.unlink(missing_ok=True)
 
         logger.error(f"上传形象过程发生异常: {e}")
-        raise HTTPException(status_code=500, detail="上传失败")
+        raise HTTPException(status_code=500, detail="上传失败") from e
 
 
 @router.delete("/{avatar_id}", summary="删除形象", response_model=ResponseModel)
 async def delete_avatar(
     avatar_id: str, db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """删除形象（会检查是否被角色引用）"""
     try:
         # 检查形象是否存在
@@ -346,4 +347,4 @@ async def delete_avatar(
     except Exception as e:
         db.rollback()
         logger.error(f"从数据库删除形象记录失败: {e}")
-        raise HTTPException(status_code=500, detail="删除失败")
+        raise HTTPException(status_code=500, detail="删除失败") from e

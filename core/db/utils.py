@@ -1,11 +1,19 @@
 """数据库工具函数"""
-from typing import Optional, List, Dict, Any
+
+from typing import Any
+
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+
 from core.logger import get_logger
+
 from .models import (
-    Avatar, Motion, TTSProvider, VoiceAsset, ProviderConfig, Model,
-    Character, CharacterMotionBinding, Conversation, Message
+    Avatar,
+    Character,
+    CharacterMotionBinding,
+    Conversation,
+    Model,
+    Motion,
+    VoiceAsset,
 )
 
 logger = get_logger(__name__)
@@ -13,11 +21,13 @@ logger = get_logger(__name__)
 
 class DatabaseError(Exception):
     """数据库操作错误基类"""
+
     pass
 
 
 class ResourceInUseError(DatabaseError):
     """资源被引用错误"""
+
     def __init__(self, resource_type: str, resource_id: Any, referenced_by: list):
         self.resource_type = resource_type
         self.resource_id = resource_id
@@ -30,6 +40,7 @@ class ResourceInUseError(DatabaseError):
 
 class InvalidReferenceError(DatabaseError):
     """无效引用错误"""
+
     def __init__(self, field: str, value: Any, resource_type: str):
         self.field = field
         self.value = value
@@ -41,109 +52,99 @@ class InvalidReferenceError(DatabaseError):
 
 # ==================== 引用检查 ====================
 
-def check_avatar_references(db: Session, avatar_id: str) -> List[Dict[str, Any]]:
+
+def check_avatar_references(db: Session, avatar_id: str) -> list[dict[str, Any]]:
     """检查形象是否被角色引用
-    
+
     Args:
         db: 数据库会话
         avatar_id: 形象 ID
-        
+
     Returns:
         引用该形象的角色列表
     """
     characters = db.query(Character).filter(Character.avatar_id == avatar_id).all()
     return [
-        {
-            "type": "character",
-            "id": char.id,
-            "name": char.name
-        }
-        for char in characters
+        {"type": "character", "id": char.id, "name": char.name} for char in characters
     ]
 
 
-def check_voice_asset_references(db: Session, voice_asset_id: int) -> List[Dict[str, Any]]:
+def check_voice_asset_references(
+    db: Session, voice_asset_id: int
+) -> list[dict[str, Any]]:
     """检查音色资产是否被角色引用
-    
+
     Args:
         db: 数据库会话
         voice_asset_id: 音色资产 ID
-        
+
     Returns:
         引用该音色资产的角色列表
     """
-    characters = db.query(Character).filter(Character.voice_asset_id == voice_asset_id).all()
+    characters = (
+        db.query(Character).filter(Character.voice_asset_id == voice_asset_id).all()
+    )
     return [
-        {
-            "type": "character",
-            "id": char.id,
-            "name": char.name
-        }
-        for char in characters
+        {"type": "character", "id": char.id, "name": char.name} for char in characters
     ]
 
 
-def check_motion_references(db: Session, motion_id: str) -> List[Dict[str, Any]]:
+def check_motion_references(db: Session, motion_id: str) -> list[dict[str, Any]]:
     """检查动作是否被角色绑定
-    
+
     Args:
         db: 数据库会话
         motion_id: 动作 ID
-        
+
     Returns:
         绑定该动作的角色列表
     """
-    bindings = db.query(CharacterMotionBinding).filter(
-        CharacterMotionBinding.motion_id == motion_id
-    ).all()
-    
+    bindings = (
+        db.query(CharacterMotionBinding)
+        .filter(CharacterMotionBinding.motion_id == motion_id)
+        .all()
+    )
+
     # 去重并获取角色信息
     character_ids = set(binding.character_id for binding in bindings)
     characters = db.query(Character).filter(Character.id.in_(character_ids)).all()
-    
+
     return [
-        {
-            "type": "character",
-            "id": char.id,
-            "name": char.name
-        }
-        for char in characters
+        {"type": "character", "id": char.id, "name": char.name} for char in characters
     ]
 
 
-def check_model_references(db: Session, model_id: int) -> List[Dict[str, Any]]:
+def check_model_references(db: Session, model_id: int) -> list[dict[str, Any]]:
     """检查模型是否被角色引用
-    
+
     Args:
         db: 数据库会话
         model_id: 模型 UUID（主键 id）
-        
+
     Returns:
         引用该模型的角色列表
     """
-    characters = db.query(Character).filter(Character.primary_model_id == model_id).all()
+    characters = (
+        db.query(Character).filter(Character.primary_model_id == model_id).all()
+    )
     return [
-        {
-            "type": "character",
-            "id": char.id,
-            "name": char.name
-        }
-        for char in characters
+        {"type": "character", "id": char.id, "name": char.name} for char in characters
     ]
 
 
 # ==================== 存在性验证 ====================
 
+
 def validate_avatar_exists(db: Session, avatar_id: str) -> bool:
     """验证形象是否存在
-    
+
     Args:
         db: 数据库会话
         avatar_id: 形象 ID
-        
+
     Returns:
         是否存在
-        
+
     Raises:
         InvalidReferenceError: 如果不存在
     """
@@ -155,14 +156,14 @@ def validate_avatar_exists(db: Session, avatar_id: str) -> bool:
 
 def validate_voice_asset_exists(db: Session, voice_asset_id: int) -> bool:
     """验证音色资产是否存在
-    
+
     Args:
         db: 数据库会话
         voice_asset_id: 音色资产 ID
-        
+
     Returns:
         是否存在
-        
+
     Raises:
         InvalidReferenceError: 如果不存在
     """
@@ -174,14 +175,14 @@ def validate_voice_asset_exists(db: Session, voice_asset_id: int) -> bool:
 
 def validate_motion_exists(db: Session, motion_id: str) -> bool:
     """验证动作是否存在
-    
+
     Args:
         db: 数据库会话
         motion_id: 动作 ID
-        
+
     Returns:
         是否存在
-        
+
     Raises:
         InvalidReferenceError: 如果不存在
     """
@@ -193,14 +194,14 @@ def validate_motion_exists(db: Session, motion_id: str) -> bool:
 
 def validate_model_exists(db: Session, model_id: int) -> bool:
     """验证模型是否存在
-    
+
     Args:
         db: 数据库会话
         model_id: 模型 UUID（主键 id）
-        
+
     Returns:
         是否存在
-        
+
     Raises:
         InvalidReferenceError: 如果不存在
     """
@@ -212,16 +213,17 @@ def validate_model_exists(db: Session, model_id: int) -> bool:
 
 # ==================== 安全删除 ====================
 
+
 def safe_delete_avatar(db: Session, avatar_id: str) -> bool:
     """安全删除形象（检查引用）
-    
+
     Args:
         db: 数据库会话
         avatar_id: 形象 ID
-        
+
     Returns:
         是否成功删除
-        
+
     Raises:
         ResourceInUseError: 如果被引用
     """
@@ -229,7 +231,7 @@ def safe_delete_avatar(db: Session, avatar_id: str) -> bool:
     references = check_avatar_references(db, avatar_id)
     if references:
         raise ResourceInUseError("avatar", avatar_id, references)
-    
+
     # 删除
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
     if avatar:
@@ -241,14 +243,14 @@ def safe_delete_avatar(db: Session, avatar_id: str) -> bool:
 
 def safe_delete_voice_asset(db: Session, voice_asset_id: int) -> bool:
     """安全删除音色资产（检查引用）
-    
+
     Args:
         db: 数据库会话
         voice_asset_id: 音色资产 ID
-        
+
     Returns:
         是否成功删除
-        
+
     Raises:
         ResourceInUseError: 如果被引用
     """
@@ -256,7 +258,7 @@ def safe_delete_voice_asset(db: Session, voice_asset_id: int) -> bool:
     references = check_voice_asset_references(db, voice_asset_id)
     if references:
         raise ResourceInUseError("voice_asset", voice_asset_id, references)
-    
+
     # 删除
     voice_asset = db.query(VoiceAsset).filter(VoiceAsset.id == voice_asset_id).first()
     if voice_asset:
@@ -268,14 +270,14 @@ def safe_delete_voice_asset(db: Session, voice_asset_id: int) -> bool:
 
 def safe_delete_motion(db: Session, motion_id: str) -> bool:
     """安全删除动作（检查引用）
-    
+
     Args:
         db: 数据库会话
         motion_id: 动作 ID
-        
+
     Returns:
         是否成功删除
-        
+
     Raises:
         ResourceInUseError: 如果被引用
     """
@@ -283,7 +285,7 @@ def safe_delete_motion(db: Session, motion_id: str) -> bool:
     references = check_motion_references(db, motion_id)
     if references:
         raise ResourceInUseError("motion", motion_id, references)
-    
+
     # 删除
     motion = db.query(Motion).filter(Motion.id == motion_id).first()
     if motion:
@@ -295,14 +297,14 @@ def safe_delete_motion(db: Session, motion_id: str) -> bool:
 
 def safe_delete_model(db: Session, model_id: int) -> bool:
     """安全删除模型（检查引用）
-    
+
     Args:
         db: 数据库会话
         model_id: 模型 ID
-        
+
     Returns:
         是否成功删除
-        
+
     Raises:
         ResourceInUseError: 如果被引用
     """
@@ -310,7 +312,7 @@ def safe_delete_model(db: Session, model_id: int) -> bool:
     references = check_model_references(db, model_id)
     if references:
         raise ResourceInUseError("model", model_id, references)
-    
+
     # 删除
     model = db.query(Model).filter(Model.id == model_id).first()
     if model:
@@ -322,20 +324,21 @@ def safe_delete_model(db: Session, model_id: int) -> bool:
 
 # ==================== 复杂查询 ====================
 
-def get_character_with_assets(db: Session, character_id: str) -> Optional[Dict[str, Any]]:
+
+def get_character_with_assets(db: Session, character_id: str) -> dict[str, Any] | None:
     """获取角色及其关联的资产信息
-    
+
     Args:
         db: 数据库会话
         character_id: 角色 ID
-        
+
     Returns:
         包含完整资产信息的角色字典，如果不存在则返回 None
     """
     character = db.query(Character).filter(Character.id == character_id).first()
     if not character:
         return None
-    
+
     return {
         "id": character.id,
         "name": character.name,
@@ -357,11 +360,15 @@ def get_character_with_assets(db: Session, character_id: str) -> Optional[Dict[s
             "provider_id": character.voice_asset.provider_id,
             "voice_config": character.voice_asset.voice_config,
         },
-        "primary_model": {
-            "id": character.primary_model.id,
-            "model_id": character.primary_model.model_id,
-            "provider_id": character.primary_model.provider_id,
-        } if character.primary_model else None,
+        "primary_model": (
+            {
+                "id": character.primary_model.id,
+                "model_id": character.primary_model.model_id,
+                "provider_id": character.primary_model.provider_id,
+            }
+            if character.primary_model
+            else None
+        ),
         "motion_bindings": [
             {
                 "id": binding.id,
@@ -371,36 +378,36 @@ def get_character_with_assets(db: Session, character_id: str) -> Optional[Dict[s
                     "name": binding.motion.name,
                     "file_url": binding.motion.file_url,  # 使用属性（动态生成）
                     "duration_ms": binding.motion.duration_ms,
-                }
+                },
             }
             for binding in character.motion_bindings
-        ]
+        ],
     }
 
 
 def get_conversation_with_messages(
-    db: Session, 
-    conversation_id: str,
-    limit: Optional[int] = None
-) -> Optional[Dict[str, Any]]:
+    db: Session, conversation_id: str, limit: int | None = None
+) -> dict[str, Any] | None:
     """获取会话及其消息
-    
+
     Args:
         db: 数据库会话
         conversation_id: 会话 ID
         limit: 消息数量限制
-        
+
     Returns:
         包含消息的会话字典，如果不存在则返回 None
     """
-    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    conversation = (
+        db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    )
     if not conversation:
         return None
-    
+
     messages = conversation.messages
     if limit:
         messages = messages[-limit:]
-    
+
     return {
         "id": conversation.id,
         "character_id": conversation.character_id,
@@ -415,5 +422,5 @@ def get_conversation_with_messages(
                 "created_at": msg.created_at.isoformat(),
             }
             for msg in messages
-        ]
+        ],
     }

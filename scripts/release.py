@@ -98,7 +98,11 @@ def get_project_version():
 
 def validate_version_consistency(expected_version: str):
     versions = collect_project_versions()
-    mismatched = {name: version for name, version in versions.items() if version != expected_version}
+    mismatched = {
+        name: version
+        for name, version in versions.items()
+        if version != expected_version
+    }
 
     if mismatched:
         print_error("版本号不一致，已阻止构建。")
@@ -131,9 +135,15 @@ def sha256_file(path: Path):
 def write_checksums(release_root: Path, version: str):
     checksum_path = release_root / checksum_asset_name(version)
     lines = []
-    for file in sorted(p for p in release_root.iterdir() if p.is_file() and p.name != checksum_path.name):
+    for file in sorted(
+        p
+        for p in release_root.iterdir()
+        if p.is_file() and p.name != checksum_path.name
+    ):
         lines.append(f"{sha256_file(file)}  {file.name}")
-    checksum_path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    checksum_path.write_text(
+        "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8"
+    )
     print_success(f"校验文件已生成: {checksum_path.name}")
 
 
@@ -161,7 +171,10 @@ def kill_existing_processes():
     for proc in psutil.process_iter(["name"]):
         try:
             proc_name = proc.info["name"] or ""
-            if any(t.lower() in proc_name.lower() for t in targets) and proc.pid != os.getpid():
+            if (
+                any(t.lower() in proc_name.lower() for t in targets)
+                and proc.pid != os.getpid()
+            ):
                 proc.kill()
         except Exception:
             continue
@@ -203,7 +216,9 @@ def normalize_formats(format_arg: str):
 
 
 def ensure_pyinstaller():
-    result = subprocess.run(["uv", "pip", "show", "pyinstaller"], cwd=ROOT, capture_output=True)
+    result = subprocess.run(
+        ["uv", "pip", "show", "pyinstaller"], cwd=ROOT, capture_output=True
+    )
     if result.returncode == 0:
         return True
     print("环境缺失 PyInstaller，正在自动安装...")
@@ -232,7 +247,9 @@ def copy_sidecar_to_binaries():
 
     executable_found = False
     for item in source_dir.iterdir():
-        target = TAURI_BINARIES_DIR / (target_name if item.name == "atri-backend.exe" else item.name)
+        target = TAURI_BINARIES_DIR / (
+            target_name if item.name == "atri-backend.exe" else item.name
+        )
         if item.is_dir():
             shutil.copytree(item, target)
         else:
@@ -263,7 +280,9 @@ def check_required_paths():
         ROOT / "core/prompts/templates",
         ROOT / "core/models/providers.yaml",
     ]
-    missing = [str(path.relative_to(ROOT)) for path in required_paths if not path.exists()]
+    missing = [
+        str(path.relative_to(ROOT)) for path in required_paths if not path.exists()
+    ]
     if missing:
         print_error("以下关键打包资源缺失：")
         for path in missing:
@@ -291,7 +310,9 @@ def check_tauri_release_config():
     if product_name != "ATRI Chat":
         problems.append(f"productName 预期为 'ATRI Chat'，当前为 {product_name!r}")
     if targets != DEFAULT_TAURI_TARGETS:
-        problems.append(f"bundle.targets 预期为 {list(DEFAULT_TAURI_TARGETS)!r}，当前为 {list(targets)!r}")
+        problems.append(
+            f"bundle.targets 预期为 {list(DEFAULT_TAURI_TARGETS)!r}，当前为 {list(targets)!r}"
+        )
     if "binaries/atri-backend" not in external_bin:
         problems.append("bundle.externalBin 缺少 'binaries/atri-backend'")
     if "binaries/*" not in resources:
@@ -353,7 +374,9 @@ def build_backend():
     if not ensure_pyinstaller():
         print_error("PyInstaller 环境准备失败")
         return False
-    if not run_command(["uv", "run", "pyinstaller", "atri-backend.spec", "--noconfirm"]):
+    if not run_command(
+        ["uv", "run", "pyinstaller", "atri-backend.spec", "--noconfirm"]
+    ):
         print_error("PyInstaller 打包失败")
         return False
     return copy_sidecar_to_binaries()
@@ -513,7 +536,9 @@ def build_parser():
     subparsers = parser.add_subparsers(dest="command")
 
     release_parser = subparsers.add_parser("release", help="构建正式发布产物")
-    release_parser.add_argument("--format", choices=["all", "portable", "installer"], default="all")
+    release_parser.add_argument(
+        "--format", choices=["all", "portable", "installer"], default="all"
+    )
     release_parser.add_argument("--app-version", help="指定发布版本号")
 
     subparsers.add_parser("backend", help="仅构建并刷新后端 sidecar")
@@ -525,7 +550,11 @@ def build_parser():
 
 def main(argv: list[str] | None = None):
     parser = build_parser()
-    args = parser.parse_args(show_menu()) if argv is None and len(sys.argv) == 1 else parser.parse_args(argv)
+    args = (
+        parser.parse_args(show_menu())
+        if argv is None and len(sys.argv) == 1
+        else parser.parse_args(argv)
+    )
     command = args.command or "release"
 
     if command == "clean":
@@ -557,7 +586,7 @@ if __name__ == "__main__":
         try:
             raise SystemExit(main())
         except KeyboardInterrupt:
-            raise SystemExit(0)
+            raise SystemExit(0) from None
         except Exception as exc:
             print_error(f"发生未预料的错误: {exc}")
             input("按回车键重试...")

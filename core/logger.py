@@ -1,12 +1,12 @@
 """日志系统配置 - 显式引导架构"""
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger as _base_logger
-
 
 # ============================================================
 # 1. 哑配置部分 (仅定义格式，不触碰 IO)
@@ -25,6 +25,7 @@ def _normalize_stdlib_extra(record: dict[str, Any]):
 
 
 logger = _base_logger.patch(_normalize_stdlib_extra)
+
 
 def _safe_print(msg: str):
     """在日志系统完全启动前的保险输出"""
@@ -61,12 +62,12 @@ _pending_file_config: dict[str, Any] | None = None
 
 def setup_logging(
     log_level: str = "INFO",
-    log_dir: Optional[Path] = None,
+    log_dir: Path | None = None,
     is_development: bool = True,
     defer_file_logging: bool = False,
 ):
     """引导并激活日志系统
-    
+
     Args:
         log_level: 捕获日志的最低级别
         log_dir: 日志文件存放目录（绝对路径）
@@ -82,10 +83,10 @@ def setup_logging(
             if not defer_file_logging:
                 ensure_file_logging()
         return
-    
+
     # 清空默认处理器
     logger.remove()
-    
+
     # 2.1 添加控制台处理器
     if is_development:
         console_format = (

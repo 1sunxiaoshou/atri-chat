@@ -6,7 +6,9 @@ from core.runtime_status import CapabilityRegistry
 def test_registry_exposes_manifests_for_core_capabilities():
     registry = CapabilityRegistry()
 
-    manifests = {manifest.capability: manifest for manifest in registry.list_manifests()}
+    manifests = {
+        manifest.capability: manifest for manifest in registry.list_manifests()
+    }
 
     assert set(manifests.keys()) == {"agent", "asr", "tts", "vrm"}
     assert manifests["agent"].supports_warmup is True
@@ -83,4 +85,7 @@ def test_registry_records_events_for_feedback_and_reset():
 
     assert events[0]["phase"] == "reset"
     assert events[0]["capability"] == "vrm"
-    assert any(event["adapter"] == "frontend" and event["thread_id"] == "conv-7" for event in events)
+    assert any(
+        event["adapter"] == "frontend" and event["thread_id"] == "conv-7"
+        for event in events
+    )

@@ -1,5 +1,7 @@
 """健康检查路由"""
+
 from fastapi import APIRouter
+
 from api.schemas_runtime import ResponseModel
 from core.startup_metrics import startup_metrics
 
@@ -16,5 +18,5 @@ async def health_check():
         data={
             "status": "healthy",
             "startup": startup_metrics.snapshot(),
-        }
+        },
     )

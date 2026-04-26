@@ -16,7 +16,11 @@ from core.config import AppSettings, get_settings
 from core.logger import ensure_file_logging, get_logger, setup_logging
 from core.middleware.logging_middleware import LoggingMiddleware
 from core.process_guard import watch_parent_process
-from core.route_registry import CRITICAL_ROUTE_SPECS, DEFERRED_ROUTE_SPECS, register_routes
+from core.route_registry import (
+    CRITICAL_ROUTE_SPECS,
+    DEFERRED_ROUTE_SPECS,
+    register_routes,
+)
 from core.startup_metrics import startup_metrics
 
 
@@ -90,7 +94,9 @@ def create_lifespan(settings: AppSettings):
         await initialize_startup_dependencies(app)
         startup_metrics.mark("lifespan_dependencies_ready")
 
-        logger.success(f"[OK] ATRI Backend Service is ready on port {settings.backend_port}")
+        logger.success(
+            f"[OK] ATRI Backend Service is ready on port {settings.backend_port}"
+        )
         logger.info(
             f"Environment: {settings.app_env} | Runtime Mode: {settings.runtime_mode} | "
             f"Data Root: {settings.data_dir} | PID: {os.getpid()} | Parent PID: {os.getppid()}"

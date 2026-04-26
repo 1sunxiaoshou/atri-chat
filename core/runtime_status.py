@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -20,7 +21,9 @@ from .startup_metrics import startup_metrics
 logger = get_logger(__name__)
 
 CapabilityStateLiteral = str
-CapabilityStatusResolver = Callable[[Session | None, AppSettings | None], "CapabilityStatus"]
+CapabilityStatusResolver = Callable[
+    [Session | None, AppSettings | None], "CapabilityStatus"
+]
 CapabilityLifecycleHook = Callable[[], None | Awaitable[None]]
 
 
@@ -79,7 +82,7 @@ class CapabilityRegistry:
         self._register_defaults()
 
     def _timestamp(self) -> str:
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def _build_status(
         self,
@@ -235,7 +238,9 @@ class CapabilityRegistry:
             events = events[-limit:]
         return [asdict(event) for event in reversed(events)]
 
-    def _merge_lifecycle_details(self, capability: str, details: dict[str, Any]) -> dict[str, Any]:
+    def _merge_lifecycle_details(
+        self, capability: str, details: dict[str, Any]
+    ) -> dict[str, Any]:
         warmup_state = self._get_warmup_state(capability)
         if not warmup_state:
             return details
@@ -244,7 +249,9 @@ class CapabilityRegistry:
             "warmup": warmup_state,
         }
 
-    def _apply_lifecycle_overlay(self, capability: str, status: CapabilityStatus) -> CapabilityStatus:
+    def _apply_lifecycle_overlay(
+        self, capability: str, status: CapabilityStatus
+    ) -> CapabilityStatus:
         warmup_state = self._get_warmup_state(capability)
         if not warmup_state:
             return status
@@ -299,7 +306,9 @@ class CapabilityRegistry:
             )
             logger.info(f"能力预热完成: {capability}")
         except Exception as exc:
-            self._mark_warmup_state(capability, status="failed", error=f"{type(exc).__name__}: {exc}")
+            self._mark_warmup_state(
+                capability, status="failed", error=f"{type(exc).__name__}: {exc}"
+            )
             self.emit_event(
                 capability=capability,
                 adapter="runtime",
@@ -331,7 +340,9 @@ class CapabilityRegistry:
                 await asyncio.sleep(delay_seconds)
             await self._run_warmup(capability)
 
-        self._background_tasks[capability] = asyncio.create_task(runner(), name=f"capability-warmup:{capability}")
+        self._background_tasks[capability] = asyncio.create_task(
+            runner(), name=f"capability-warmup:{capability}"
+        )
         return True
 
     def schedule_startup_warmups(self) -> list[str]:
@@ -340,7 +351,9 @@ class CapabilityRegistry:
             if not definition.manifest.supports_warmup:
                 continue
             capability = definition.manifest.capability
-            if self.schedule_warmup(capability, delay_seconds=1.5 if capability == "agent" else 0.0):
+            if self.schedule_warmup(
+                capability, delay_seconds=1.5 if capability == "agent" else 0.0
+            ):
                 scheduled.append(capability)
         return scheduled
 
@@ -389,11 +402,17 @@ class CapabilityRegistry:
                 raise ValueError(f"{capability} 状态查询需要 db_session")
             if capability == "asr" and settings is None:
                 raise ValueError("asr 状态查询需要 settings")
-            statuses.append(self._apply_lifecycle_overlay(capability, definition.resolve_status(db_session, settings)))
+            statuses.append(
+                self._apply_lifecycle_overlay(
+                    capability, definition.resolve_status(db_session, settings)
+                )
+            )
         return statuses
 
     def get_agent_status(self) -> CapabilityStatus:
-        coordinator_cached = dependencies.get_agent_coordinator.cache_info().currsize > 0
+        coordinator_cached = (
+            dependencies.get_agent_coordinator.cache_info().currsize > 0
+        )
         has_checkpointer = dependencies._checkpointer_instance is not None
 
         if coordinator_cached and has_checkpointer:
@@ -511,7 +530,9 @@ class CapabilityRegistry:
             raise ValueError("vrm 状态查询需要 db_session")
 
         avatar_count = db_session.query(Avatar).count()
-        coordinator_cached = dependencies.get_agent_coordinator.cache_info().currsize > 0
+        coordinator_cached = (
+            dependencies.get_agent_coordinator.cache_info().currsize > 0
+        )
         latest_feedback = self._frontend_feedback.get("vrm", {})
 
         if avatar_count == 0:
@@ -594,9 +615,15 @@ class CapabilityRegistry:
             ],
             "summary": {
                 "total_count": len(capabilities),
-                "ready_count": sum(1 for status in statuses.values() if status == "ready"),
-                "warming_count": sum(1 for status in statuses.values() if status == "warming"),
-                "failed_count": sum(1 for status in statuses.values() if status == "failed"),
+                "ready_count": sum(
+                    1 for status in statuses.values() if status == "ready"
+                ),
+                "warming_count": sum(
+                    1 for status in statuses.values() if status == "warming"
+                ),
+                "failed_count": sum(
+                    1 for status in statuses.values() if status == "failed"
+                ),
                 "counts": counts,
                 "statuses": statuses,
             },

@@ -3,8 +3,8 @@ from __future__ import annotations
 import importlib
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -103,7 +103,9 @@ def test_agent_stream_emits_official_v2_style_events():
 
     try:
         with TestClient(app_module.app) as client:
-            response = client.post("/api/v1/agent-stream", json=_build_request_payload())
+            response = client.post(
+                "/api/v1/agent-stream", json=_build_request_payload()
+            )
 
         assert response.status_code == 200
         events = _parse_sse_events(response)
@@ -143,7 +145,9 @@ def test_agent_stream_surfaces_runtime_errors_as_custom_events():
 
     try:
         with TestClient(app_module.app) as client:
-            response = client.post("/api/v1/agent-stream", json=_build_request_payload())
+            response = client.post(
+                "/api/v1/agent-stream", json=_build_request_payload()
+            )
 
         assert response.status_code == 200
         events = _parse_sse_events(response)
@@ -165,7 +169,9 @@ def test_agent_stream_accepts_vrm_mode_custom_events():
     app_module.app.dependency_overrides[get_db] = _override_db
 
     with TestClient(app_module.app) as client:
-        response = client.post("/api/v1/agent-stream", json=_build_request_payload(display_mode="vrm"))
+        response = client.post(
+            "/api/v1/agent-stream", json=_build_request_payload(display_mode="vrm")
+        )
 
     try:
         assert response.status_code == 200

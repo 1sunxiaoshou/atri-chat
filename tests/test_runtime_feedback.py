@@ -25,9 +25,13 @@ def test_runtime_vrm_feedback_updates_registry():
             if item["capability"] == "vrm"
         )
         assert vrm_status["details"]["latest_feedback"]["conversation_id"] == "conv-1"
-        assert vrm_status["details"]["latest_feedback"]["state"]["expression"] == "happy"
+        assert (
+            vrm_status["details"]["latest_feedback"]["state"]["expression"] == "happy"
+        )
 
-        events_response = client.get("/api/v1/runtime/events", params={"capability": "vrm", "limit": 10})
+        events_response = client.get(
+            "/api/v1/runtime/events", params={"capability": "vrm", "limit": 10}
+        )
         assert events_response.status_code == 200
         events = events_response.json()["data"]["events"]
         assert any(event["adapter"] == "frontend" for event in events)

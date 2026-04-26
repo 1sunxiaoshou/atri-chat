@@ -15,8 +15,8 @@ import argparse
 import importlib
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -92,7 +92,9 @@ def _ensure_model(
     provider_config_id: int,
     model_id: str,
 ) -> int:
-    models = _unwrap(client.get(f"/api/v1/models?provider_config_id={provider_config_id}"))
+    models = _unwrap(
+        client.get(f"/api/v1/models?provider_config_id={provider_config_id}")
+    )
     for model in models:
         if model["model_id"] == model_id:
             return int(model["id"])
@@ -204,7 +206,9 @@ def run_e2e(
         )
 
         if response.status_code != 200:
-            raise RuntimeError(f"agent_stream HTTP {response.status_code}: {response.text}")
+            raise RuntimeError(
+                f"agent_stream HTTP {response.status_code}: {response.text}"
+            )
 
         events = _parse_sse_events(response)
         if not events:

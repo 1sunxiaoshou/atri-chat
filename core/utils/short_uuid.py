@@ -1,12 +1,12 @@
-import uuid
 import base64
+import uuid
 
 
 def generate_short_uuid(length=5):
     full_uuid = uuid.uuid4()
     uuid_bytes = full_uuid.bytes
-    b64 = base64.urlsafe_b64encode(uuid_bytes).decode('ascii')
-    short = b64.replace('=', '').replace('-', '').replace('_', '').lower()
+    b64 = base64.urlsafe_b64encode(uuid_bytes).decode("ascii")
+    short = b64.replace("=", "").replace("-", "").replace("_", "").lower()
     return short[:length]
 
 

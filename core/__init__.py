@@ -4,7 +4,6 @@
 意外拉起 Agent、Store、Factory 等重型依赖链。
 """
 
-from .models.config import ModelConfig, ProviderConfig, ModelType
+from .models.config import ModelConfig, ModelType, ProviderConfig
 
 __all__ = ["ModelConfig", "ProviderConfig", "ModelType"]
-

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from threading import Lock
 import time
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 
 
@@ -13,7 +13,7 @@ from typing import Any
 class StartupMetrics:
     """记录进程启动关键阶段的耗时。"""
 
-    process_started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    process_started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     _started_perf: float = field(default_factory=time.perf_counter)
     _phases: dict[str, float] = field(default_factory=dict)
     _health_ready_ms: float | None = None
@@ -45,4 +45,3 @@ class StartupMetrics:
 
 
 startup_metrics = StartupMetrics()
-

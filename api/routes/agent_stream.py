@@ -95,15 +95,14 @@ def _extract_user_message(payload: AgentStreamRequest) -> str:
 @router.post("/agent-stream")
 async def agent_stream(
     req: AgentStreamRequest,
-    agent_manager: "AgentCoordinator" = Depends(get_agent),
+    agent_manager: AgentCoordinator = Depends(get_agent),
     db: Session = Depends(get_db),
 ):
     """官方 useStream 的自定义 transport 入口。"""
     user_message = _extract_user_message(req)
-    thread_id = (
-        ((req.config or {}).get("configurable") or {}).get("thread_id")
-        or req.context.conversation_id
-    )
+    thread_id = ((req.config or {}).get("configurable") or {}).get(
+        "thread_id"
+    ) or req.context.conversation_id
 
     runtime_config = {
         **(req.config or {}),
@@ -117,18 +116,30 @@ async def agent_stream(
         fallback_message_ids: dict[str, str] = {}
         message_counter = count(1)
 
-        def get_fallback_message_id(mode: str, payload: Any, namespace: Any) -> str | None:
-            if mode != "messages" or not isinstance(payload, tuple) or len(payload) != 2:
+        def get_fallback_message_id(
+            mode: str, payload: Any, namespace: Any
+        ) -> str | None:
+            if (
+                mode != "messages"
+                or not isinstance(payload, tuple)
+                or len(payload) != 2
+            ):
                 return None
 
             token, metadata = payload
             if not isinstance(token, BaseMessage):
                 return None
 
-            namespace_key = "|".join(str(item) for item in namespace) if isinstance(namespace, (list, tuple)) else "root"
+            namespace_key = (
+                "|".join(str(item) for item in namespace)
+                if isinstance(namespace, (list, tuple))
+                else "root"
+            )
             message_type = getattr(token, "type", None) or token.__class__.__name__
             tool_call_id = getattr(token, "tool_call_id", None)
-            metadata_node = metadata.get("langgraph_node") if isinstance(metadata, dict) else None
+            metadata_node = (
+                metadata.get("langgraph_node") if isinstance(metadata, dict) else None
+            )
 
             key_parts = [
                 namespace_key,
@@ -181,7 +192,9 @@ async def agent_stream(
                     _serialize_stream_payload(
                         mode,
                         payload,
-                        fallback_message_id=get_fallback_message_id(mode, payload, namespace),
+                        fallback_message_id=get_fallback_message_id(
+                            mode, payload, namespace
+                        ),
                     ),
                 )
         except HTTPException:

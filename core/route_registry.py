@@ -8,7 +8,6 @@ from fastapi import FastAPI
 
 from core.startup_metrics import startup_metrics
 
-
 RouteSpec = tuple[str, str, list[str]]
 
 
@@ -36,7 +35,9 @@ DEFERRED_ROUTE_SPECS: list[RouteSpec] = [
 ]
 
 
-def register_routes(target_app: FastAPI, route_specs: list[RouteSpec], state_flag: str) -> None:
+def register_routes(
+    target_app: FastAPI, route_specs: list[RouteSpec], state_flag: str
+) -> None:
     """Import and register routes for a startup phase."""
     if getattr(target_app.state, state_flag, False):
         return

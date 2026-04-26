@@ -1,22 +1,25 @@
 """LangGraph 本地持久化 Store 实现"""
+
 import json
 import sqlite3
+from collections.abc import Iterator, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple, Iterator
+
 from langgraph.store.base import BaseStore, Item
+
 from .config import get_settings
 
 
 class SqliteStore(BaseStore):
     """基于 SQLite 的本地持久化 Store 实现
-    
+
     用于在 LangGraph 中跨线程保存和检索用户信息、偏好等业务数据。
     """
-    
-    def __init__(self, db_path: Optional[str] = None):
+
+    def __init__(self, db_path: str | None = None):
         """初始化 SQLite Store
-        
+
         Args:
             db_path: SQLite 数据库文件路径
         """
@@ -24,7 +27,7 @@ class SqliteStore(BaseStore):
         # 确保目录存在
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
-    
+
     def _init_db(self):
         """初始化数据库表"""
         with sqlite3.connect(self.db_path) as conn:
@@ -39,21 +42,21 @@ class SqliteStore(BaseStore):
                 )
             """)
             conn.commit()
-    
-    def _namespace_to_str(self, namespace: Tuple) -> str:
+
+    def _namespace_to_str(self, namespace: tuple) -> str:
         """将命名空间元组转换为字符串"""
         return "/".join(str(n) for n in namespace)
-    
-    def _str_to_namespace(self, namespace_str: str) -> Tuple:
+
+    def _str_to_namespace(self, namespace_str: str) -> tuple:
         """将命名空间字符串转换为元组"""
         return tuple(namespace_str.split("/"))
-    
-    def mget(self, keys: Sequence[str]) -> List[Optional[bytes]]:
+
+    def mget(self, keys: Sequence[str]) -> list[bytes | None]:
         """获取多个键的值
-        
+
         Args:
             keys: 键列表，格式为 "namespace/key"
-            
+
         Returns:
             值列表，不存在的键返回 None
         """
@@ -63,18 +66,20 @@ class SqliteStore(BaseStore):
                 namespace_str, item_key = self._parse_key(key)
                 cursor = conn.execute(
                     "SELECT value FROM store_items WHERE namespace = ? AND key = ?",
-                    (namespace_str, item_key)
+                    (namespace_str, item_key),
                 )
                 row = cursor.fetchone()
                 if row:
-                    result.append(row[0].encode() if isinstance(row[0], str) else row[0])
+                    result.append(
+                        row[0].encode() if isinstance(row[0], str) else row[0]
+                    )
                 else:
                     result.append(None)
         return result
-    
-    def mset(self, key_value_pairs: Sequence[Tuple[str, bytes]]) -> None:
+
+    def mset(self, key_value_pairs: Sequence[tuple[str, bytes]]) -> None:
         """设置多个键值对
-        
+
         Args:
             key_value_pairs: (key, value) 元组列表，key 格式为 "namespace/key"
         """
@@ -83,29 +88,29 @@ class SqliteStore(BaseStore):
             for key, value in key_value_pairs:
                 namespace_str, item_key = self._parse_key(key)
                 value_str = value.decode() if isinstance(value, bytes) else value
-                
+
                 # 检查是否存在
                 cursor = conn.execute(
                     "SELECT 1 FROM store_items WHERE namespace = ? AND key = ?",
-                    (namespace_str, item_key)
+                    (namespace_str, item_key),
                 )
                 exists = cursor.fetchone() is not None
-                
+
                 if exists:
                     conn.execute(
                         "UPDATE store_items SET value = ?, updated_at = ? WHERE namespace = ? AND key = ?",
-                        (value_str, now, namespace_str, item_key)
+                        (value_str, now, namespace_str, item_key),
                     )
                 else:
                     conn.execute(
                         "INSERT INTO store_items (namespace, key, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                        (namespace_str, item_key, value_str, now, now)
+                        (namespace_str, item_key, value_str, now, now),
                     )
             conn.commit()
-    
+
     def mdelete(self, keys: Sequence[str]) -> None:
         """删除多个键
-        
+
         Args:
             keys: 键列表，格式为 "namespace/key"
         """
@@ -114,16 +119,16 @@ class SqliteStore(BaseStore):
                 namespace_str, item_key = self._parse_key(key)
                 conn.execute(
                     "DELETE FROM store_items WHERE namespace = ? AND key = ?",
-                    (namespace_str, item_key)
+                    (namespace_str, item_key),
                 )
             conn.commit()
-    
-    def yield_keys(self, prefix: Optional[str] = None) -> Iterator[str]:
+
+    def yield_keys(self, prefix: str | None = None) -> Iterator[str]:
         """遍历所有键
-        
+
         Args:
             prefix: 可选的前缀过滤
-            
+
         Yields:
             键列表，格式为 "namespace/key"
         """
@@ -131,14 +136,14 @@ class SqliteStore(BaseStore):
             if prefix:
                 cursor = conn.execute(
                     "SELECT namespace, key FROM store_items WHERE namespace LIKE ? OR key LIKE ?",
-                    (f"{prefix}%", f"{prefix}%")
+                    (f"{prefix}%", f"{prefix}%"),
                 )
             else:
                 cursor = conn.execute("SELECT namespace, key FROM store_items")
-            
+
             for row in cursor:
                 yield f"{row[0]}/{row[1]}"
-    
+
     def batch(self, ops):
         """批处理操作（同步）"""
         # 默认实现：逐个执行操作
@@ -154,18 +159,18 @@ class SqliteStore(BaseStore):
             elif op[0] == "search":
                 results.append(self.search(op[1], op[2] if len(op) > 2 else None))
         return results
-    
+
     async def abatch(self, ops):
         """批处理操作（异步）"""
         # 简单实现：调用同步版本
         return self.batch(ops)
-    
-    def _parse_key(self, key: str) -> Tuple[str, str]:
+
+    def _parse_key(self, key: str) -> tuple[str, str]:
         """解析键为命名空间和项键
-        
+
         Args:
             key: 格式为 "namespace/key" 的键
-            
+
         Returns:
             (namespace_str, item_key) 元组
         """
@@ -173,12 +178,12 @@ class SqliteStore(BaseStore):
         if len(parts) == 2:
             return parts[0], parts[1]
         return "", key
-    
+
     # ==================== 高级操作 ====================
-    
-    def put(self, namespace: Tuple, key: str, value: dict) -> None:
+
+    def put(self, namespace: tuple, key: str, value: dict) -> None:
         """存储一个项
-        
+
         Args:
             namespace: 命名空间元组，如 ("user_1", "memories")
             key: 项的唯一键
@@ -187,184 +192,185 @@ class SqliteStore(BaseStore):
         namespace_str = self._namespace_to_str(namespace)
         value_json = json.dumps(value, ensure_ascii=False)
         now = datetime.now().isoformat()
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT 1 FROM store_items WHERE namespace = ? AND key = ?",
-                (namespace_str, key)
+                (namespace_str, key),
             )
             exists = cursor.fetchone() is not None
-            
+
             if exists:
                 conn.execute(
                     "UPDATE store_items SET value = ?, updated_at = ? WHERE namespace = ? AND key = ?",
-                    (value_json, now, namespace_str, key)
+                    (value_json, now, namespace_str, key),
                 )
             else:
                 conn.execute(
                     "INSERT INTO store_items (namespace, key, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                    (namespace_str, key, value_json, now, now)
+                    (namespace_str, key, value_json, now, now),
                 )
             conn.commit()
-    
-    def search(self, namespace: Tuple, query: Optional[str] = None, limit: int = 10) -> List[Item]:
+
+    def search(
+        self, namespace: tuple, query: str | None = None, limit: int = 10
+    ) -> list[Item]:
         """搜索命名空间中的项
-        
+
         Args:
             namespace: 命名空间元组
             query: 可选的搜索查询（简单的内容匹配）
             limit: 返回的最大项数
-            
+
         Returns:
             Item 对象列表
         """
         namespace_str = self._namespace_to_str(namespace)
-        
+
         with sqlite3.connect(self.db_path) as conn:
             if query:
                 # 简单的内容匹配搜索
                 cursor = conn.execute(
                     "SELECT key, value, created_at, updated_at FROM store_items WHERE namespace = ? AND value LIKE ? ORDER BY updated_at DESC LIMIT ?",
-                    (namespace_str, f"%{query}%", limit)
+                    (namespace_str, f"%{query}%", limit),
                 )
             else:
                 cursor = conn.execute(
                     "SELECT key, value, created_at, updated_at FROM store_items WHERE namespace = ? ORDER BY updated_at DESC LIMIT ?",
-                    (namespace_str, limit)
+                    (namespace_str, limit),
                 )
-            
+
             items = []
             for row in cursor:
                 try:
                     value = json.loads(row[1])
                 except json.JSONDecodeError:
                     value = {"raw": row[1]}
-                
+
                 item = Item(
                     key=row[0],
                     value=value,
                     namespace=namespace,
                     created_at=row[2],
-                    updated_at=row[3]
+                    updated_at=row[3],
                 )
                 items.append(item)
-            
+
             return items
-    
-    def get(self, namespace: Tuple, key: str) -> Optional[Item]:
+
+    def get(self, namespace: tuple, key: str) -> Item | None:
         """获取单个项
-        
+
         Args:
             namespace: 命名空间元组
             key: 项的键
-            
+
         Returns:
             Item 对象或 None
         """
         namespace_str = self._namespace_to_str(namespace)
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT key, value, created_at, updated_at FROM store_items WHERE namespace = ? AND key = ?",
-                (namespace_str, key)
+                (namespace_str, key),
             )
             row = cursor.fetchone()
-            
+
             if row:
                 try:
                     value = json.loads(row[1])
                 except json.JSONDecodeError:
                     value = {"raw": row[1]}
-                
+
                 return Item(
                     key=row[0],
                     value=value,
                     namespace=namespace,
                     created_at=row[2],
-                    updated_at=row[3]
+                    updated_at=row[3],
                 )
         return None
-    
-    def delete(self, namespace: Tuple, key: str) -> bool:
+
+    def delete(self, namespace: tuple, key: str) -> bool:
         """删除单个项
-        
+
         Args:
             namespace: 命名空间元组
             key: 项的键
-            
+
         Returns:
             是否成功删除
         """
         namespace_str = self._namespace_to_str(namespace)
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "DELETE FROM store_items WHERE namespace = ? AND key = ?",
-                (namespace_str, key)
+                (namespace_str, key),
             )
             conn.commit()
             return cursor.rowcount > 0
-    
-    def list_namespace(self, namespace: Tuple) -> List[Item]:
+
+    def list_namespace(self, namespace: tuple) -> list[Item]:
         """列出命名空间中的所有项
-        
+
         Args:
             namespace: 命名空间元组
-            
+
         Returns:
             Item 对象列表
         """
         namespace_str = self._namespace_to_str(namespace)
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT key, value, created_at, updated_at FROM store_items WHERE namespace = ? ORDER BY updated_at DESC",
-                (namespace_str,)
+                (namespace_str,),
             )
-            
+
             items = []
             for row in cursor:
                 try:
                     value = json.loads(row[1])
                 except json.JSONDecodeError:
                     value = {"raw": row[1]}
-                
+
                 item = Item(
                     key=row[0],
                     value=value,
                     namespace=namespace,
                     created_at=row[2],
-                    updated_at=row[3]
+                    updated_at=row[3],
                 )
                 items.append(item)
-            
+
             return items
-    
-    def clear_namespace(self, namespace: Tuple) -> int:
+
+    def clear_namespace(self, namespace: tuple) -> int:
         """清空命名空间中的所有项
-        
+
         Args:
             namespace: 命名空间元组
-            
+
         Returns:
             删除的项数
         """
         namespace_str = self._namespace_to_str(namespace)
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "DELETE FROM store_items WHERE namespace = ?",
-                (namespace_str,)
+                "DELETE FROM store_items WHERE namespace = ?", (namespace_str,)
             )
             conn.commit()
             return cursor.rowcount
-    
-    def list_namespaces(self, prefix: Optional[Tuple] = None) -> List[Tuple]:
+
+    def list_namespaces(self, prefix: tuple | None = None) -> list[tuple]:
         """列出所有命名空间
-        
+
         Args:
             prefix: 可选的命名空间前缀
-            
+
         Returns:
             命名空间元组列表
         """
@@ -373,35 +379,37 @@ class SqliteStore(BaseStore):
                 prefix_str = self._namespace_to_str(prefix)
                 cursor = conn.execute(
                     "SELECT DISTINCT namespace FROM store_items WHERE namespace LIKE ?",
-                    (f"{prefix_str}%",)
+                    (f"{prefix_str}%",),
                 )
             else:
                 cursor = conn.execute("SELECT DISTINCT namespace FROM store_items")
-            
+
             namespaces = []
             for row in cursor:
                 namespaces.append(self._str_to_namespace(row[0]))
-            
+
             return namespaces
-    
+
     # ==================== 异步方法 ====================
-    
-    async def aget(self, namespace: Tuple, key: str) -> Optional[Item]:
+
+    async def aget(self, namespace: tuple, key: str) -> Item | None:
         """异步获取单个项"""
         return self.get(namespace, key)
-    
-    async def aput(self, namespace: Tuple, key: str, value: dict) -> None:
+
+    async def aput(self, namespace: tuple, key: str, value: dict) -> None:
         """异步存储一个项"""
         self.put(namespace, key, value)
-    
-    async def adelete(self, namespace: Tuple, key: str) -> bool:
+
+    async def adelete(self, namespace: tuple, key: str) -> bool:
         """异步删除单个项"""
         return self.delete(namespace, key)
-    
-    async def asearch(self, namespace: Tuple, query: Optional[str] = None, limit: int = 10) -> List[Item]:
+
+    async def asearch(
+        self, namespace: tuple, query: str | None = None, limit: int = 10
+    ) -> list[Item]:
         """异步搜索命名空间中的项"""
         return self.search(namespace, query, limit)
-    
-    async def alist_namespaces(self, prefix: Optional[Tuple] = None) -> List[Tuple]:
+
+    async def alist_namespaces(self, prefix: tuple | None = None) -> list[tuple]:
         """异步列出所有命名空间"""
         return self.list_namespaces(prefix)

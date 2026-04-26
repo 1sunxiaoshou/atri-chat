@@ -5,9 +5,8 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-
 
 APP_DIR_NAME = "ATRI-Chat"
 PORTABLE_MARKER = "portable.mode"
@@ -33,7 +32,7 @@ def build_runtime_layout(
     mode: RuntimeMode,
     app_root: str | Path,
     data_root: str | Path,
-) -> "RuntimeLayout":
+) -> RuntimeLayout:
     """构造统一的运行时布局，并在入口处完成路径规整。"""
     return RuntimeLayout(
         mode=mode,
@@ -42,14 +41,14 @@ def build_runtime_layout(
     )
 
 
-class AppEnv(str, Enum):
+class AppEnv(StrEnum):
     """应用环境。"""
 
     DEVELOPMENT = "development"
     PRODUCTION = "production"
 
 
-class RuntimeMode(str, Enum):
+class RuntimeMode(StrEnum):
     """桌面端运行模式。"""
 
     DEVELOPMENT = "development"

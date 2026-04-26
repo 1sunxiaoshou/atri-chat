@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -84,7 +84,9 @@ class PromptService:
         return "\n\n---\n\n".join([role_prompt, mode_prompt])
 
     @staticmethod
-    def _build_role_prompt(*, template: str, character_name: str, character_profile: str) -> str:
+    def _build_role_prompt(
+        *, template: str, character_name: str, character_profile: str
+    ) -> str:
         return template.format(
             character_name=character_name,
             character_profile=character_profile or "你是一个友好的虚拟伴侣。",
@@ -101,10 +103,14 @@ class PromptService:
         character_id: str,
         character_repo: CharacterRepository,
     ) -> str:
-        expressions_list = character_repo.get_avatar_expressions(character_id) or DEFAULT_EXPRESSIONS
+        expressions_list = (
+            character_repo.get_avatar_expressions(character_id) or DEFAULT_EXPRESSIONS
+        )
         expressions_str = ", ".join(expressions_list)
 
-        actions_str, action_ids = self._get_character_action_catalog(character_id, character_repo)
+        actions_str, action_ids = self._get_character_action_catalog(
+            character_id, character_repo
+        )
         sample_emotion = expressions_list[0] if expressions_list else "neutral"
         sample_motion = action_ids[0] if action_ids else "neutral"
 
@@ -123,7 +129,9 @@ class PromptService:
         """获取角色动作目录，供 VRM 模式提示词使用。"""
 
         try:
-            motions = character_repo.get_character_motions(character_id, category="reply")
+            motions = character_repo.get_character_motions(
+                character_id, category="reply"
+            )
             if not motions:
                 fallback = "\n  - " + "\n  - ".join(DEFAULT_ACTIONS)
                 return fallback, []
@@ -136,7 +144,9 @@ class PromptService:
 
                 name = motion.name
                 description = motion.description or "无描述"
-                action_lines.append(f"ID: `{motion_id}` (动作含义: {name}, {description})")
+                action_lines.append(
+                    f"ID: `{motion_id}` (动作含义: {name}, {description})"
+                )
 
             return "\n  - " + "\n  - ".join(action_lines), action_ids
         except Exception as exc:

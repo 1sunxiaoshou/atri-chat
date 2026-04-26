@@ -1,7 +1,7 @@
 import importlib
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -35,7 +35,10 @@ def test_runtime_status_returns_control_plane_and_capabilities():
     capability_names = {capability["capability"] for capability in capabilities}
     assert capability_names == {"agent", "asr", "tts", "vrm"}
     assert all("manifest" in capability for capability in capabilities)
-    assert all(capability["manifest"]["capability"] == capability["capability"] for capability in capabilities)
+    assert all(
+        capability["manifest"]["capability"] == capability["capability"]
+        for capability in capabilities
+    )
 
     summary = data["summary"]
     assert summary["total_count"] == 4
