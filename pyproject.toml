@@ -64,6 +64,7 @@ dependencies = [
     "sherpa-onnx",
     "sherpa-onnx-core",
     "soundfile",
+    "alembic>=1.18.4",
 ]
 
 [project.optional-dependencies]
@@ -95,6 +96,9 @@ include-package-data = true
 [tool.setuptools.packages.find]
 include = ["api*", "core*"]
 exclude = ["data*", "docs*", "examples*", "frontend*", "logs*", "test*", "计划*"]
+
+[tool.setuptools.package-data]
+"core.db.migrations" = ["script.py.mako"]
 
 [tool.black]
 line-length = 88

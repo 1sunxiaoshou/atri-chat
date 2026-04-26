@@ -1,8 +1,9 @@
 """数据库基础配置和会话管理"""
 
 from collections.abc import Generator
+from pathlib import Path
 
-from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
@@ -100,61 +101,18 @@ def get_session() -> Generator[Session, None, None]:
         db.close()
 
 
-def _ensure_message_schema(engine):
-    """Apply lightweight SQLite-compatible schema updates for messages."""
-    inspector = inspect(engine)
-    if "messages" not in inspector.get_table_names():
-        return
+def run_migrations():
+    """Run Alembic migrations against the configured application database."""
+    from alembic import command
+    from alembic.config import Config
 
-    existing_columns = {column["name"] for column in inspector.get_columns("messages")}
-    columns_to_add = {
-        "turn_id": "VARCHAR(36)",
-        "lc_message_id": "VARCHAR(255)",
-        "tool_call_id": "VARCHAR(255)",
-        "tool_name": "VARCHAR(255)",
-        "raw_json": "JSON",
-    }
-
-    with engine.begin() as conn:
-        for column, ddl_type in columns_to_add.items():
-            if column not in existing_columns:
-                logger.info(f"正在升级 messages 表字段: {column}")
-                conn.execute(
-                    text(f"ALTER TABLE messages ADD COLUMN {column} {ddl_type}")
-                )
-
-        indexes = {
-            index["name"]
-            for index in inspector.get_indexes("messages")
-            if index.get("name")
-        }
-        if "ix_messages_turn_id" not in indexes:
-            conn.execute(
-                text(
-                    "CREATE INDEX IF NOT EXISTS ix_messages_turn_id ON messages (turn_id)"
-                )
-            )
-        if "ix_messages_lc_message_id" not in indexes:
-            conn.execute(
-                text(
-                    "CREATE INDEX IF NOT EXISTS ix_messages_lc_message_id "
-                    "ON messages (lc_message_id)"
-                )
-            )
-        if "ix_messages_tool_call_id" not in indexes:
-            conn.execute(
-                text(
-                    "CREATE INDEX IF NOT EXISTS ix_messages_tool_call_id "
-                    "ON messages (tool_call_id)"
-                )
-            )
-        conn.execute(
-            text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS "
-                "uq_messages_conversation_lc_message "
-                "ON messages (conversation_id, lc_message_id)"
-            )
-        )
+    repo_root = Path(__file__).resolve().parents[2]
+    alembic_cfg = Config()
+    alembic_cfg.set_main_option(
+        "script_location", str(repo_root / "core" / "db" / "migrations")
+    )
+    alembic_cfg.set_main_option("sqlalchemy.url", get_database_url())
+    command.upgrade(alembic_cfg, "head")
 
 
 def init_db():
@@ -175,7 +133,7 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         logger.success("✓ 数据库表创建完成")
 
-    _ensure_message_schema(engine)
+    run_migrations()
 
 
 def drop_all_tables():
