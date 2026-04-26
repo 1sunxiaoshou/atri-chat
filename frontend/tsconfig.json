@@ -18,7 +18,6 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
@@ -39,5 +38,30 @@
     "allowUnreachableCode": false,
     "exactOptionalPropertyTypes": false,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "include": [
+    "App.tsx",
+    "index.tsx",
+    "vite-env.d.ts",
+    "components/**/*",
+    "contexts/**/*",
+    "hooks/**/*",
+    "locales/**/*",
+    "pages/**/*",
+    "public/**/*",
+    "scripts/**/*",
+    "services/**/*",
+    "src/**/*",
+    "store/**/*",
+    "types/**/*",
+    "utils/**/*",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src-tauri/target",
+    "src-tauri/gen",
+    "src-tauri/binaries"
+  ]
 }

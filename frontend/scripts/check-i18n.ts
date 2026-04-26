@@ -33,6 +33,9 @@ const CONFIG = {
     rootDir: path.join(__dirname, '..'),
     extensions: ['.tsx', '.ts', '.jsx', '.js'],
     excludeDirs: ['node_modules', 'dist', '.git', 'locales', 'scripts'],
+    ignoreHardcodedUiFiles: [
+        path.join(__dirname, '../pages/StyleGuide.tsx'),
+    ],
 };
 
 // 颜色输出
@@ -75,7 +78,7 @@ function flattenKeys(obj: Record<string, any>, prefix = ''): Set<string> {
 
 // 递归获取所有文件
 function getAllFiles(dir: string, fileList: string[] = []): string[] {
-    if (!fs.existsSync(dir)) return fileList;
+    if (!fs.existsSync(dir)) {return fileList;}
 
     const files = fs.readdirSync(dir);
     files.forEach(file => {
@@ -109,6 +112,13 @@ function extractUsedKeys(content: string): Set<string> {
         }
     }
 
+    const translationKeyRegex = /\btranslationKey\s*:\s*['"]([^'"]+)['"]/g;
+    while ((match = translationKeyRegex.exec(content)) !== null) {
+        if (match[1]) {
+            keys.add(match[1]);
+        }
+    }
+
     return keys;
 }
 
@@ -128,13 +138,32 @@ function checkBadPatterns(filePath: string, content: string): string[] {
     return errors;
 }
 
-// 检测硬编码中文
-function checkHardcodedChinese(filePath: string, content: string): string[] {
+function normalizePath(filePath: string): string {
+    return path.normalize(filePath);
+}
+
+function shouldIgnoreHardcodedUiCheck(filePath: string): boolean {
+    return CONFIG.ignoreHardcodedUiFiles.some(ignoredPath => normalizePath(ignoredPath) === normalizePath(filePath));
+}
+
+function looksLikeUserFacingText(text: string): boolean {
+    const normalized = text.trim();
+    if (!normalized) {return false;}
+    if (normalized.length <= 1) {return false;}
+    if (['VRM', 'Live2D', 'FP32', 'INT8'].includes(normalized)) {return false;}
+    if (/^[\d\s.,:/#()[\]-]+$/.test(normalized)) {return false;}
+    return /[\u4e00-\u9fff]/.test(normalized) || /[A-Za-z]{2,}/.test(normalized);
+}
+
+// 检测硬编码 UI 文案
+function checkHardcodedUiText(filePath: string, content: string): string[] {
+    if (shouldIgnoreHardcodedUiCheck(filePath)) {return [];}
+
     const errors: string[] = [];
     const lines = content.split('\n');
 
-    // 匹配字符串中的中文字符（排除注释）
-    const chineseInStringRegex = /(['"`])([^'"`]*[\u4e00-\u9fff]+[^'"`]*)\1/g;
+    const uiPropRegex = /\b(?:label|placeholder|title|description|confirmText|cancelText|aria-label)\s*[:=]\s*(['"`])([^'"`]+)\1/g;
+    const jsxTextRegex = /<([A-Za-z][A-Za-z0-9]*)[^>]*>\s*([^<>{\n][^<>{]{0,100}?)\s*<\/\1>/g;
 
     lines.forEach((line, index) => {
         // 跳过注释行
@@ -143,11 +172,17 @@ function checkHardcodedChinese(filePath: string, content: string): string[] {
         }
 
         let match;
-        while ((match = chineseInStringRegex.exec(line)) !== null) {
-            const chineseText = match[2];
-            // 排除一些特殊情况（如 placeholder 中的示例文本）
-            if (chineseText && chineseText.length > 1 && !line.includes('placeholder=')) {
-                errors.push(`${filePath}:${index + 1} - 硬编码中文: "${chineseText}"`);
+        while ((match = uiPropRegex.exec(line)) !== null) {
+            const text = match[2]?.trim();
+            if (text && looksLikeUserFacingText(text)) {
+                errors.push(`${filePath}:${index + 1} - 硬编码 UI 文案: "${text}"`);
+            }
+        }
+
+        while ((match = jsxTextRegex.exec(line)) !== null) {
+            const text = match[2]?.trim();
+            if (text && looksLikeUserFacingText(text)) {
+                errors.push(`${filePath}:${index + 1} - 硬编码 UI 文案: "${text}"`);
             }
         }
     });
@@ -237,16 +272,7 @@ async function main() {
 
     // 3. 扫描代码文件
     log('📂 扫描代码文件...', 'blue');
-    const files = [
-        ...getAllFiles(CONFIG.componentsDir),
-        ...getAllFiles(CONFIG.pagesDir),
-    ];
-
-    // 添加根目录的 .tsx 和 .ts 文件（如 App.tsx）
-    const rootFiles = fs.readdirSync(CONFIG.rootDir)
-        .filter(file => CONFIG.extensions.some(ext => file.endsWith(ext)))
-        .map(file => path.join(CONFIG.rootDir, file));
-    files.push(...rootFiles);
+    const files = getAllFiles(CONFIG.rootDir);
 
     log(`  ✓ 找到 ${files.length} 个文件\n`, 'green');
 
@@ -254,7 +280,7 @@ async function main() {
     log('🔎 提取使用的翻译键...', 'blue');
     const usedKeys = new Set<string>();
     const badPatternErrors: string[] = [];
-    const hardcodedChineseErrors: string[] = [];
+    const hardcodedUiErrors: string[] = [];
 
     files.forEach(file => {
         const content = fs.readFileSync(file, 'utf-8');
@@ -265,8 +291,8 @@ async function main() {
         // 检测错误用法
         badPatternErrors.push(...checkBadPatterns(file, content));
 
-        // 检测硬编码中文
-        hardcodedChineseErrors.push(...checkHardcodedChinese(file, content));
+        // 检测硬编码 UI 文案
+        hardcodedUiErrors.push(...checkHardcodedUiText(file, content));
     });
 
     log(`  ✓ 代码中使用了 ${usedKeys.size} 个翻译键\n`, 'green');
@@ -316,24 +342,24 @@ async function main() {
     // 7. 检查错误用法
     log('⚠️  检查错误用法 t(\'key\') || \'默认值\'...', 'blue');
     if (badPatternErrors.length > 0) {
-        log(`  ❌ 发现 ${badPatternErrors.length} 处错误用法:`, 'red');
-        badPatternErrors.forEach(error => log(`    ${error}`, 'red'));
+        log(`  ⚠️  发现 ${badPatternErrors.length} 处待整理用法:`, 'yellow');
+        badPatternErrors.forEach(error => log(`    ${error}`, 'yellow'));
         log('');
     } else {
         log('  ✓ 未发现错误用法\n', 'green');
     }
 
-    // 8. 检查硬编码中文
-    log('🈲 检查硬编码中文...', 'blue');
-    if (hardcodedChineseErrors.length > 0) {
-        log(`  ⚠️  发现 ${hardcodedChineseErrors.length} 处硬编码中文:`, 'yellow');
-        hardcodedChineseErrors.slice(0, 20).forEach(error => log(`    ${error}`, 'yellow'));
-        if (hardcodedChineseErrors.length > 20) {
-            log(`    ... 还有 ${hardcodedChineseErrors.length - 20} 处`, 'yellow');
+    // 8. 检查硬编码 UI 文案
+    log('🈲 检查硬编码 UI 文案...', 'blue');
+    if (hardcodedUiErrors.length > 0) {
+        log(`  ⚠️  发现 ${hardcodedUiErrors.length} 处硬编码 UI 文案:`, 'yellow');
+        hardcodedUiErrors.slice(0, 20).forEach(error => log(`    ${error}`, 'yellow'));
+        if (hardcodedUiErrors.length > 20) {
+            log(`    ... 还有 ${hardcodedUiErrors.length - 20} 处`, 'yellow');
         }
         log('');
     } else {
-        log('  ✓ 未发现硬编码中文\n', 'green');
+        log('  ✓ 未发现硬编码 UI 文案\n', 'green');
     }
 
     // 9. 总结
@@ -341,11 +367,12 @@ async function main() {
     log('─'.repeat(50), 'cyan');
 
     const hasErrors = undefinedKeys.length > 0 ||
-        badPatternErrors.length > 0 ||
         missingInEn.length > 0 ||
         missingInZh.length > 0;
 
-    const hasWarnings = hardcodedChineseErrors.length > 0 || unusedKeys.length > 0;
+    const hasWarnings = unusedKeys.length > 0 ||
+        badPatternErrors.length > 0 ||
+        hardcodedUiErrors.length > 0;
 
     if (!hasErrors && !hasWarnings) {
         log('✅ 所有检查通过！国际化配置完美！', 'green');

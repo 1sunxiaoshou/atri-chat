@@ -118,5 +118,5 @@ ignore = ["B008"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["test"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]

@@ -16,7 +16,9 @@ function BackgroundTextureItem({ url }: { url: string }) {
             const img = texture.image;
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            if (!ctx) return;
+            if (!ctx) {
+                return undefined;
+            }
 
             const dpr = window.devicePixelRatio || 1;
             canvas.width = size.width * dpr;
@@ -56,6 +58,8 @@ function BackgroundTextureItem({ url }: { url: string }) {
                 bgTexture.dispose();
             };
         }
+
+        return undefined;
     }, [texture, scene, size.width, size.height]);
 
     return null;
@@ -82,4 +86,3 @@ export function BackgroundSystem({ url }: { url: string }) {
 
     return <BackgroundTextureItem url={url} />;
 }
-
