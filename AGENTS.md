@@ -21,9 +21,12 @@ This file gives coding agents a compact, project-specific orientation for workin
 
 ## Key Directories
 
-- `main.py`: FastAPI app entrypoint, startup lifecycle, static mount, router registration.
+- `main.py`: thin FastAPI entrypoint; loads `.env`, creates the app via `core/bootstrap.py`, and runs uvicorn.
 - `api/`: HTTP routes and request/response schemas.
 - `core/`: backend domain logic.
+  - `core/bootstrap.py`: FastAPI app construction, middleware, static mount, lifespan startup/shutdown.
+  - `core/route_registry.py`: critical/deferred API route registration.
+  - `core/runtime_layout.py`: backend runtime mode and app/data root resolution.
   - `core/db/`: DB init and persistence-related code
   - `core/services/`: application services
   - `core/repositories/`: repository layer
@@ -44,6 +47,9 @@ This file gives coding agents a compact, project-specific orientation for workin
 - Install/sync Python deps: `uv sync`
 - Run backend locally: `uv run main.py`
 - Default backend port: `9099`
+- Python lint: `uv run ruff check .`
+- Python format check: `uv run black --check .`
+- Python tests: `uv run pytest`
 
 ### Frontend
 
@@ -76,10 +82,21 @@ This file gives coding agents a compact, project-specific orientation for workin
 - When changing prompts, memory, providers, TTS, ASR, or VRM behavior, check `docs/02-架构/` first for the intended design.
 - Keep documentation names and top-level doc structure consistent with the existing Chinese-first convention under `docs/`.
 
+## Startup Runtime Contract
+
+- In desktop mode, Tauri is the runtime contract source and injects:
+  - `ATRI_BACKEND_PORT`
+  - `ATRI_RUNTIME_MODE`
+  - `ATRI_APP_ROOT`
+  - `ATRI_DATA_ROOT`
+- Python derives `app_env` from `runtime_mode` and derives `logs_dir` as `data_root/logs`.
+- Tauri only ensures `data_root`; Python creates logs, database, static asset, model, memory, and modality-specific subdirectories.
+- Do not reintroduce cross-process `ATRI_APP_ENV` or `ATRI_LOGS_ROOT` unless the startup contract is intentionally redesigned.
+
 ## Areas To Treat Carefully
 
 - `main.py` and `core/bootstrap.py`: startup sequencing, directory initialization, logging setup, and route registration are tightly coupled.
-- `core/config.py`, `core/runtime_layout.py`, and Tauri runtime integration: changes here can affect dev mode, packaged mode, and data directory resolution.
+- `core/config.py`, `core/runtime_layout.py`, `frontend/src-tauri/src/runtime_layout.rs`, and `frontend/src-tauri/src/backend.rs`: changes here can affect dev mode, packaged mode, backend port resolution, process lifecycle, and data directory resolution.
 - `frontend/src-tauri/`: desktop runtime and backend process management. Validate carefully after edits.
 - `frontend/locales/`: if UI text changes, update locale files and run `check-i18n`.
 - `data/`, `build/`, `dist/`, `release_package/`, `frontend/dist/`, `frontend/node_modules/`, `*.egg-info`, and `__pycache__/`: usually generated artifacts or runtime outputs. Do not edit them unless the task is specifically about build/runtime artifacts.
@@ -89,8 +106,9 @@ This file gives coding agents a compact, project-specific orientation for workin
 - For backend-only changes, at minimum run the narrowest relevant check available:
   - `uv run ruff check .` for Python lint/import/bug checks
   - `uv run black --check .` for Python formatting checks
-  - `pytest` if tests exist for the touched area
+  - `uv run pytest` if tests exist for the touched area
   - otherwise a focused startup or import sanity check
+- For docs-only changes, a read/diff sanity check is usually enough; mention that no runtime tests were needed.
 - For routine Python quality checks, prefer the full baseline:
   - `uv run ruff check .`
   - `uv run black --check .`
