@@ -4,8 +4,6 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use tauri::Manager;
-
 const APP_DIR_NAME: &str = "ATRI-Chat";
 const PORTABLE_MARKER: &str = "portable.mode";
 const BINARIES_DIR_NAME: &str = "binaries";
@@ -39,16 +37,6 @@ pub struct RuntimeLayout {
     pub data_root: PathBuf,
 }
 
-#[derive(Clone, Debug)]
-pub enum BackendLaunch {
-    UvProject {
-        cwd: PathBuf,
-        program: &'static str,
-        args: Vec<&'static str>,
-    },
-    Sidecar(PathBuf),
-}
-
 impl RuntimeLayout {
     pub fn new(mode: RuntimeMode, app_root: PathBuf, data_root: PathBuf) -> Self {
         Self {
@@ -58,14 +46,12 @@ impl RuntimeLayout {
         }
     }
 
-    pub fn logs_root(&self) -> PathBuf {
+    pub fn logs_dir(&self) -> PathBuf {
         self.data_root.join("logs")
     }
 
-    pub fn ensure_directories(&self) -> io::Result<()> {
-        fs::create_dir_all(&self.data_root)?;
-        fs::create_dir_all(self.logs_root())?;
-        Ok(())
+    pub fn ensure_data_root(&self) -> io::Result<()> {
+        fs::create_dir_all(&self.data_root)
     }
 
     pub fn backend_environment(&self, port: u16) -> Vec<(&'static str, OsString)> {
@@ -115,36 +101,6 @@ pub fn resolve_runtime_layout() -> RuntimeLayout {
             RuntimeLayout::new(mode, app_root.clone(), app_root.join("data"))
         }
     }
-}
-
-pub fn resolve_backend_path(app: &tauri::AppHandle) -> Option<PathBuf> {
-    let backend_name = backend_binary_name();
-
-    if cfg!(debug_assertions) {
-        return Some(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("binaries")
-                .join(backend_name),
-        );
-    }
-
-    let resource_dir = app.path().resource_dir().ok()?;
-    Some(resource_dir.join("binaries").join(backend_name))
-}
-
-pub fn resolve_backend_launch(
-    app: &tauri::AppHandle,
-    layout: &RuntimeLayout,
-) -> Option<BackendLaunch> {
-    if cfg!(debug_assertions) {
-        return Some(BackendLaunch::UvProject {
-            cwd: layout.app_root.clone(),
-            program: "uv",
-            args: vec!["run", "python", "main.py"],
-        });
-    }
-
-    resolve_backend_path(app).map(BackendLaunch::Sidecar)
 }
 
 fn detect_packaged_mode(app_root: &Path) -> RuntimeMode {
@@ -200,18 +156,4 @@ fn resolve_app_root_from_executable(executable: &Path) -> PathBuf {
 
 fn local_appdata_root() -> Option<PathBuf> {
     env::var_os("LOCALAPPDATA").map(PathBuf::from)
-}
-
-fn backend_binary_name() -> &'static str {
-    if cfg!(windows) {
-        "atri-backend-x86_64-pc-windows-msvc.exe"
-    } else if cfg!(target_os = "macos") {
-        if cfg!(target_arch = "aarch64") {
-            "atri-backend-aarch64-apple-darwin"
-        } else {
-            "atri-backend-x86_64-apple-darwin"
-        }
-    } else {
-        "atri-backend-x86_64-unknown-linux-gnu"
-    }
 }

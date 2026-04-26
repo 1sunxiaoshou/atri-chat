@@ -9,7 +9,7 @@ from pathlib import Path
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .runtime import (
+from .runtime_layout import (
     AppEnv,
     RuntimeLayout,
     resolve_runtime_layout,
