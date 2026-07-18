@@ -1,10 +1,19 @@
 import React from 'react';
-import { Message, Character } from '../../types';
+import { AIMessage, type BaseMessage } from '@langchain/core/messages';
+import { Character } from '../../types';
 import MessageList from './MessageList';
 import MessageItem from './MessageItem';
+import { isUserMessage } from '../../utils/langchainMessages';
+
+interface ChatTurn {
+    key: string;
+    messages: BaseMessage[];
+    firstIndex: number;
+    role: 'user' | 'assistant';
+}
 
 interface NormalChatModeProps {
-    messages: Message[];
+    messages: BaseMessage[];
     activeCharacter: Character | null;
     playingMessageId: string | number | null;
     copiedMessageId: string | number | null;
@@ -12,6 +21,8 @@ interface NormalChatModeProps {
     onCopyMessage: (messageId: string | number, content: string) => void;
     onPlayTTS: (messageId: string | number, text: string) => void;
     onToggleReasoning: (messageId: string | number) => void;
+    isTyping: boolean;
+    streamingReasoning: string;
 }
 
 /**
@@ -28,17 +39,68 @@ export const NormalChatMode = React.memo(function NormalChatMode({
     onCopyMessage,
     onPlayTTS,
     onToggleReasoning,
+    isTyping,
+    streamingReasoning,
 }: NormalChatModeProps) {
+    const shouldShowWaiting = isTyping && isUserMessage(messages[messages.length - 1]);
+    const turns = React.useMemo(() => {
+        const groupedTurns: ChatTurn[] = [];
+
+        messages.forEach((message, index) => {
+            const role = isUserMessage(message) ? 'user' : 'assistant';
+            const previous = groupedTurns[groupedTurns.length - 1];
+
+            if (role === 'assistant' && previous?.role === 'assistant') {
+                previous.messages.push(message);
+                return;
+            }
+
+            groupedTurns.push({
+                key: String(message.id ?? `${message.getType()}-${index}`),
+                messages: [message],
+                firstIndex: index,
+                role,
+            });
+        });
+
+        return groupedTurns;
+    }, [messages]);
+
     return (
         <div className="flex-1">
             <MessageList
                 messages={messages}
                 activeCharacter={activeCharacter}
             >
-                {messages.map((msg) => (
+                {turns.map((turn, turnIndex) => {
+                    const primaryMessage = turn.messages[0];
+                    if (!primaryMessage) {
+                        return null;
+                    }
+                    const isStreamingAssistant = isTyping && turnIndex === turns.length - 1 && turn.role === 'assistant';
+                    return (
+                        <MessageItem
+                            key={turn.key}
+                            message={primaryMessage}
+                            groupedMessages={turn.messages}
+                            index={turn.firstIndex}
+                            activeCharacter={activeCharacter}
+                            playingMessageId={playingMessageId}
+                            copiedMessageId={copiedMessageId}
+                            onCopyMessage={onCopyMessage}
+                            onPlayTTS={onPlayTTS}
+                            expandedReasoning={expandedReasoning}
+                            onToggleReasoning={onToggleReasoning}
+                            generating={isStreamingAssistant}
+                            reasoning={isStreamingAssistant ? streamingReasoning : undefined}
+                        />
+                    );
+                })}
+                {shouldShowWaiting && (
                     <MessageItem
-                        key={msg.message_id}
-                        message={msg}
+                        key="assistant-waiting"
+                        message={new AIMessage({ id: 'assistant-waiting', content: '' })}
+                        index={messages.length}
                         activeCharacter={activeCharacter}
                         playingMessageId={playingMessageId}
                         copiedMessageId={copiedMessageId}
@@ -46,8 +108,10 @@ export const NormalChatMode = React.memo(function NormalChatMode({
                         onPlayTTS={onPlayTTS}
                         expandedReasoning={expandedReasoning}
                         onToggleReasoning={onToggleReasoning}
+                        generating
+                        reasoning={streamingReasoning}
                     />
-                ))}
+                )}
             </MessageList>
         </div>
     );
@@ -61,6 +125,8 @@ export const NormalChatMode = React.memo(function NormalChatMode({
         prevProps.expandedReasoning === nextProps.expandedReasoning &&
         prevProps.onCopyMessage === nextProps.onCopyMessage &&
         prevProps.onPlayTTS === nextProps.onPlayTTS &&
-        prevProps.onToggleReasoning === nextProps.onToggleReasoning
+        prevProps.onToggleReasoning === nextProps.onToggleReasoning &&
+        prevProps.isTyping === nextProps.isTyping &&
+        prevProps.streamingReasoning === nextProps.streamingReasoning
     );
 });

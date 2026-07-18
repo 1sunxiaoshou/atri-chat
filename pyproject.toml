@@ -64,6 +64,7 @@ dependencies = [
     "sherpa-onnx",
     "sherpa-onnx-core",
     "soundfile",
+    "alembic>=1.18.4",
 ]
 
 [project.optional-dependencies]
@@ -96,6 +97,9 @@ include-package-data = true
 include = ["api*", "core*"]
 exclude = ["data*", "docs*", "examples*", "frontend*", "logs*", "test*", "计划*"]
 
+[tool.setuptools.package-data]
+"core.db.migrations" = ["script.py.mako"]
+
 [tool.black]
 line-length = 88
 target-version = ["py312"]
@@ -114,9 +118,12 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-ignore = ["B008"]
+ignore = ["B008", "E402", "E501"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["test"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "integration: 需要真实外部依赖或模型配置的集成测试",
+]

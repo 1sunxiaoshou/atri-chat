@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Cpu, Box, Zap, Mic, Menu, PanelLeftOpen } from 'lucide-react';
 import { AdminTab } from '../../types';
 import { useDataStore } from '../../store/useDataStore';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { AdminModels } from './models/AdminModels';
-import { AdminAvatars, AdminMotions } from './vrm';
-import { AdminVoice } from './voice';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
+
+const AdminModels = React.lazy(() => import('./models/AdminModels').then((m) => ({ default: m.AdminModels })));
+const AdminAvatars = React.lazy(() => import('./vrm/AdminAvatars').then((m) => ({ default: m.AdminAvatars })));
+const AdminMotions = React.lazy(() => import('./vrm/AdminMotions').then((m) => ({ default: m.AdminMotions })));
+const AdminVoice = React.lazy(() => import('./voice/AdminVoice'));
 
 interface AdminDashboardProps {
   onBack?: () => void;
@@ -161,17 +163,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             key={activeTab}
             className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out"
           >
-            {activeTab === 'models' && (
-              <AdminModels
-                providers={providers}
-                models={models}
-                providerTemplates={providerTemplates}
-                onRefresh={fetchData}
-              />
-            )}
-            {activeTab === 'vrm' && <AdminAvatars onAvatarsChange={fetchVRMModels} />}
-            {activeTab === 'animations' && <AdminMotions onMotionsChange={fetchAnimations} />}
-            {activeTab === 'voice' && <AdminVoice />}
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground animate-pulse">
+                  {t('app.loading')}
+                </div>
+              }
+            >
+              {activeTab === 'models' && (
+                <AdminModels
+                  providers={providers}
+                  models={models}
+                  providerTemplates={providerTemplates}
+                  onRefresh={fetchData}
+                />
+              )}
+              {activeTab === 'vrm' && <AdminAvatars onAvatarsChange={fetchVRMModels} />}
+              {activeTab === 'animations' && <AdminMotions onMotionsChange={fetchAnimations} />}
+              {activeTab === 'voice' && <AdminVoice />}
+            </Suspense>
           </div>
         </div>
       </main>

@@ -30,22 +30,22 @@ LangString DETAIL_DeleteDataDone ${LANG_CHINESE} "本机用户数据删除完成
   nsExec::Exec 'taskkill /F /IM "atri-backend-x86_64-pc-windows-msvc.exe" /T'
   Sleep 1000
 
-  MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "$(DESC_DeleteData)" /SD IDNO IDYES choose_delete
-  Goto done
+  MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "$(DESC_DeleteData)" /SD IDNO IDYES atri_choose_delete
+  Goto atri_preuninstall_done
 
-choose_delete:
+atri_choose_delete:
   StrCpy $DeleteUserData "1"
 
-done:
+atri_preuninstall_done:
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
-  StrCmp $DeleteUserData "1" 0 done
-  IfFileExists "$LOCALAPPDATA\ATRI-Chat\*.*" 0 done
+  StrCmp $DeleteUserData "1" 0 atri_postuninstall_done
+  IfFileExists "$LOCALAPPDATA\ATRI-Chat\*.*" 0 atri_postuninstall_done
 
   DetailPrint "$(DETAIL_DeleteData)"
   RMDir /r "$LOCALAPPDATA\ATRI-Chat"
   DetailPrint "$(DETAIL_DeleteDataDone)"
 
-done:
+atri_postuninstall_done:
 !macroend

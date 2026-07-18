@@ -2,7 +2,7 @@
 
 使用示例：
     from core.tts import TTSFactory
-    
+
     factory = TTSFactory()
     tts = factory.get_default_tts()
     audio = await tts.synthesize_async("你好")
@@ -12,13 +12,9 @@
     - 音色配置（VoiceAsset.voice_config）：参考音频、语言设置等
     - 使用时自动合并：config = {**provider_config, **voice_config}
 """
-from .base import TTSBase
-from .registry import TTSRegistry
-from .factory import TTSFactory
 
-# 自动导入所有 Provider（触发装饰器注册）
-from . import gpt_sovits  # noqa: F401
-from . import genie_tts  # noqa: F401
-from . import qwen_tts  # noqa: F401
+from .base import TTSBase
+from .factory import TTSFactory
+from .registry import TTSRegistry
 
 __all__ = ["TTSBase", "TTSRegistry", "TTSFactory"]

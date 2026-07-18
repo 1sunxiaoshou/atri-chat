@@ -15,6 +15,7 @@ import { ttsApi } from './tts';
 import { avatarsApi } from './avatars';
 import { voiceAssetsApi } from './voiceAssets';
 import { motionsApi, motionBindingsApi } from './motions';
+import { runtimeApi } from './runtime';
 
 export {
   httpClient,
@@ -28,13 +29,14 @@ export { providersApi } from './providers';
 export { modelsApi } from './models';
 export { charactersApi } from './characters';
 export { conversationsApi } from './conversations';
-export { messagesApi, type SendMessageParams, type StreamCallbacks } from './messages';
+export { messagesApi } from './messages';
 export { vrmApi } from './vrm';
 export { asrApi } from './asr';
 export { ttsApi } from './tts';
 export { avatarsApi } from './avatars';
 export { voiceAssetsApi } from './voiceAssets';
 export { motionsApi, motionBindingsApi } from './motions';
+export { runtimeApi } from './runtime';
 
 /**
  * 向后兼容的 API 对象
@@ -75,8 +77,8 @@ export const api = {
 
   // Message API
   getMessages: messagesApi.getMessages,
-  sendMessage: messagesApi.sendMessage,
   sendAudioMessage: messagesApi.sendAudioMessage,
+  getRuntimeStatus: runtimeApi.getStatus,
 
   // ASR API
   transcribeAudio: asrApi.transcribeAudio,

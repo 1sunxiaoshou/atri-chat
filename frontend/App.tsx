@@ -7,10 +7,10 @@ const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboar
 const SettingsView = React.lazy(() => import('./components/settings/SettingsView'));
 const AdminCharacters = React.lazy(() => import('./components/characters/AdminCharacters').then(m => ({ default: m.AdminCharacters })));
 import { Conversation, ViewMode, Model } from './types';
-import { api } from './services/api/index';
+import { conversationsApi } from './services/api/conversations';
 import { useLanguage } from './contexts/LanguageContext';
 import { buildAvatarUrl } from './utils/url';
-import { Button } from './components/ui';
+import { Button } from './components/ui/Button';
 import { Plus, Sparkles, Menu, PanelLeftOpen } from 'lucide-react';
 import { cn } from './utils/cn';
 import { useDataStore } from './store/useDataStore';
@@ -43,8 +43,10 @@ const App: React.FC = () => {
   // Toast State
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
+  const getConversationId = (conversation: Conversation) => conversation.id || conversation.conversation_id || null;
+
   // Computed state
-  const activeConversation = conversations.find(c => (c.id || c.conversation_id) === activeConversationId);
+  const activeConversation = conversations.find(c => getConversationId(c) === activeConversationId);
   const activeCharacter = characters.find(c => c.id === activeConversation?.character_id) || null;
 
   // Local state for temporary model override in chat
@@ -103,17 +105,17 @@ const App: React.FC = () => {
 
   const loadConversations = async (charId: string | null) => {
     try {
-      const res = await api.getConversations(charId);
+      const res = await conversationsApi.getConversations(charId);
       if (res.code === 200) {
         setConversations(res.data);
         // If we just switched characters and have conversations, pick the first one
-        if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => (c.id || c.conversation_id) === activeConversationId))) {
-          setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
+        if (charId && res.data.length > 0 && res.data[0] && (!activeConversationId || !res.data.find(c => getConversationId(c) === activeConversationId))) {
+          setActiveConversationId(getConversationId(res.data[0]));
         } else if (charId && res.data.length === 0) {
           setActiveConversationId(null);
         } else if (!charId && res.data.length > 0 && res.data[0] && !activeConversationId) {
           // Fallback for 'All' view if nothing selected
-          setActiveConversationId(res.data[0].id || res.data[0].conversation_id || null);
+          setActiveConversationId(getConversationId(res.data[0]));
         }
       } else {
         // Handle API error (e.g. character deleted)
@@ -140,10 +142,10 @@ const App: React.FC = () => {
       return;
     }
 
-    const res = await api.createConversation(defaultCharId);
+    const res = await conversationsApi.createConversation(defaultCharId);
     if (res.code === 200) {
       setConversations(prev => [res.data, ...prev]);
-      setActiveConversationId(res.data.id || res.data.conversation_id || null);
+      setActiveConversationId(getConversationId(res.data));
 
       // If we are currently filtering by a DIFFERENT character, switch filter to this new one
       if (selectedCharacterId && selectedCharacterId !== res.data.character_id) {
@@ -161,8 +163,8 @@ const App: React.FC = () => {
   };
 
   const handleDeleteConversation = async (id: string | number) => {
-    await api.deleteConversation(id);
-    setConversations(prev => prev.filter(c => (c.id || c.conversation_id) !== id));
+    await conversationsApi.deleteConversation(id);
+    setConversations(prev => prev.filter(c => getConversationId(c) !== id));
     if (activeConversationId === id) {
       setActiveConversationId(null);
     }
@@ -230,15 +232,26 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-background transition-all duration-300">
-        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground animate-pulse">{t('app.loading')}</div>}>
+        <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-muted-foreground">{t('app.loading')}</div>}>
         {viewMode === 'chat' ? (
           activeConversationId ? (
             <ChatInterface
               activeConversationId={activeConversationId}
+              activeConversationTitle={activeConversation?.title}
               activeCharacter={activeCharacter}
               activeModel={activeModel}
               onUpdateModel={handleUpdateModel}
-              onConversationUpdated={() => loadConversations(selectedCharacterId)}
+              onConversationUpdated={(update) => {
+                if (!update.title) {
+                  return;
+                }
+
+                setConversations(prev => prev.map(conversation => (
+                  getConversationId(conversation) === update.conversationId
+                    ? { ...conversation, title: update.title }
+                    : conversation
+                )));
+              }}
               onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
               onShowSidebar={() => setIsLeftSidebarHidden(false)}
               isSidebarHidden={isLeftSidebarHidden}

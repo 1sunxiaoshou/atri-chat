@@ -1,17 +1,36 @@
-import React, { useState } from 'react';
-import { Bot, User, Copy, Volume2, RotateCcw, Brain, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
-import { Message, Character } from '../../types';
+import React, { useState, Suspense } from 'react';
+import { Bot, User, Copy, Volume2, RotateCcw } from 'lucide-react';
+import { ToolMessage, type BaseMessage } from '@langchain/core/messages';
+import { Character } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { createMarkdownComponents } from '../../utils/markdownConfig';
 import { buildAvatarUrl } from '../../utils/url';
 import { cn } from '../../utils/cn';
 import { Button } from '../ui';
+import {
+  extractMessageReasoning,
+  extractMessageText,
+  getMessageId,
+  isAssistantMessage,
+  isToolResultMessage,
+  isUserMessage,
+} from '../../utils/langchainMessages';
+
+const MarkdownContent = React.lazy(() => import('./MarkdownContent'));
+
+type MessageWithToolCalls = BaseMessage & {
+  tool_calls?: Array<{ id?: string; name?: string; args?: unknown }>;
+  tool_call_chunks?: Array<{ id?: string; name?: string | null; args?: unknown }>;
+};
+
+type BubbleEvent =
+  | { kind: 'reasoning'; key: string; content: string }
+  | { kind: 'tool'; key: string; name: string; input?: string; output?: string; callId?: string }
+  | { kind: 'content'; key: string; content: string };
 
 interface MessageItemProps {
-  message: Message;
+  message: BaseMessage;
+  groupedMessages?: BaseMessage[];
+  index: number;
   activeCharacter: Character | null;
   playingMessageId: string | number | null;
   copiedMessageId: string | number | null;
@@ -19,28 +38,142 @@ interface MessageItemProps {
   onPlayTTS: (messageId: string | number, text: string) => void;
   expandedReasoning?: Set<string | number>;
   onToggleReasoning?: (messageId: string | number) => void;
+  generating?: boolean;
+  reasoning?: string;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
   message,
+  groupedMessages,
+  index,
   activeCharacter,
   playingMessageId,
   copiedMessageId,
   onCopyMessage,
   onPlayTTS,
   expandedReasoning,
-  onToggleReasoning
+  onToggleReasoning,
+  generating = false,
+  reasoning,
 }) => {
   const { t } = useLanguage();
   // 默认折叠思考过程
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
-  const isExpanded = expandedReasoning?.has(message.message_id) ?? isReasoningExpanded;
-  const isUser = message.message_type === 'user';
+  const messages = groupedMessages?.length ? groupedMessages : [message];
+  const messageId = getMessageId(message, index);
+  const isUser = isUserMessage(message);
+  const content = isUser ? extractMessageText(message.content) : messages
+    .filter(isAssistantMessage)
+    .map((item) => extractMessageText(item.content))
+    .filter(Boolean)
+    .join('\n\n');
+  const formatDetail = (value: unknown): string => {
+    if (!value) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  };
+  const events: BubbleEvent[] = [];
+  const toolEventIndexByCallId = new Map<string, number>();
+
+  messages.forEach((item, itemIndex) => {
+    const itemId = getMessageId(item, `${index}-${itemIndex}`);
+
+    if (isUserMessage(item)) {
+      const text = extractMessageText(item.content);
+      if (text) {
+        events.push({ kind: 'content', key: `${itemId}-content`, content: text });
+      }
+      return;
+    }
+
+    if (isToolResultMessage(item)) {
+      const toolMessage = ToolMessage.isInstance(item) ? item : undefined;
+      const callId = toolMessage?.tool_call_id;
+      const name = toolMessage?.name ?? callId ?? t('chat.usingTool');
+      const output = extractMessageText(item.content);
+
+      if (callId && toolEventIndexByCallId.has(callId)) {
+        const eventIndex = toolEventIndexByCallId.get(callId);
+        if (typeof eventIndex === 'number') {
+          const previousEvent = events[eventIndex];
+          if (previousEvent?.kind === 'tool') {
+            events[eventIndex] = { ...previousEvent, output, name: previousEvent.name || name };
+            return;
+          }
+        }
+      }
+
+      events.push({ kind: 'tool', key: `${itemId}-tool`, name, output, callId });
+      return;
+    }
+
+    if (!isAssistantMessage(item)) {
+      return;
+    }
+
+    const isLastGroupedMessage = itemIndex === messages.length - 1;
+    const itemReasoning = generating && isLastGroupedMessage && reasoning
+      ? reasoning
+      : extractMessageReasoning(item);
+    const toolMessage = item as MessageWithToolCalls;
+    const toolCalls = (toolMessage.tool_calls?.length ? toolMessage.tool_calls : toolMessage.tool_call_chunks ?? [])
+      .filter((toolCall) => toolCall.name);
+    const text = extractMessageText(item.content);
+    const itemEvents: BubbleEvent[] = [];
+
+    if (itemReasoning) {
+      itemEvents.push({ kind: 'reasoning', key: `${itemId}-reasoning`, content: itemReasoning });
+    }
+
+    if (text) {
+      itemEvents.push({ kind: 'content', key: `${itemId}-content`, content: text });
+    }
+
+    toolCalls.forEach((toolCall, toolIndex) => {
+      const callId = toolCall.id ? String(toolCall.id) : undefined;
+      itemEvents.push({
+        kind: 'tool',
+        key: `${itemId}-tool-call-${toolCall.id ?? toolIndex}`,
+        name: String(toolCall.name),
+        input: formatDetail(toolCall.args),
+        callId,
+      });
+    });
+
+    itemEvents.forEach((event) => {
+      if (event.kind === 'tool' && event.callId) {
+        toolEventIndexByCallId.set(event.callId, events.length);
+      }
+      events.push(event);
+    });
+  });
+  const isExpanded = expandedReasoning?.has(messageId) ?? isReasoningExpanded;
+
+  const toggleEvent = (eventKey: string) => {
+    setExpandedEvents((previous) => {
+      const next = new Set(previous);
+      if (next.has(eventKey)) {
+        next.delete(eventKey);
+      } else {
+        next.add(eventKey);
+      }
+      return next;
+    });
+  };
 
   const handleToggleReasoning = () => {
     if (onToggleReasoning) {
-      onToggleReasoning(message.message_id);
+      onToggleReasoning(messageId);
     } else {
       setIsReasoningExpanded(!isReasoningExpanded);
     }
@@ -75,7 +208,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       <div className="max-w-[85%] sm:max-w-[80%] flex flex-col gap-1.5">
         
         {/* 统一的对话气泡 (所有内容都在这个气泡内) */}
-        {(message.content || message.reasoning || (message.tool_calls && message.tool_calls.length > 0) || message.status || message.generating) && (
+        {(events.length > 0 || generating) && (
           <div className={cn(
             "px-4 md:px-5 py-3 md:py-4 rounded-2xl shadow-sm text-sm leading-relaxed transition-all flex flex-col gap-3",
             isUser
@@ -83,98 +216,99 @@ const MessageItem: React.FC<MessageItemProps> = ({
               : "bg-card border border-border text-card-foreground rounded-tl-none"
           )}>
             
-            {/* 1. 极简版工具调用 (Tool Calls) */}
-            {!isUser && message.tool_calls && message.tool_calls.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {message.tool_calls.map((tc, idx) => (
-                  <div 
-                    key={tc.run_id || idx}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 dark:bg-muted/20 px-2.5 py-1.5 rounded-md border border-border/50"
+            {events.map((event) => {
+              if (event.kind === 'content') {
+                return (
+                  <div
+                    key={event.key}
+                    className={cn(
+                      "markdown-content",
+                      isUser ? "markdown-user" : "markdown-assistant"
+                    )}
                   >
-                    <PenTool size={12} className={tc.status === 'running' ? 'animate-pulse text-indigo-500' : ''} />
-                    <span className="font-medium">
-                      {t('chat.usingTool')}: {tc.tool}
-                    </span>
-                    {tc.status === 'running' && <span className="animate-spin ml-1">⚙️</span>}
+                    <Suspense
+                      fallback={
+                        <div className="whitespace-pre-wrap break-words">
+                          {event.content}
+                        </div>
+                      }
+                    >
+                      <MarkdownContent
+                        content={event.content}
+                        messageType={isUser ? 'user' : 'assistant'}
+                        t={t}
+                      />
+                    </Suspense>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
 
-            {/* 1.5 兼容旧版状态 (Legacy Status) */}
-            {!isUser && message.status && (!message.tool_calls || message.tool_calls.length === 0) && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-2.5 py-1.5 rounded-md border border-border/50 w-fit">
-                <span className={message.generating ? 'animate-spin' : ''}>⚙️</span>
-                <span>{message.status}</span>
-              </div>
-            )}
+              const expanded = event.kind === 'reasoning'
+                ? isExpanded || expandedEvents.has(event.key)
+                : expandedEvents.has(event.key);
+              const label = event.kind === 'reasoning' ? t('chat.reasoning') : event.name;
 
-            {/* 2. 内嵌式思考过程 (Reasoning) */}
-            {!isUser && message.reasoning && (
-              <div className="bg-muted/30 dark:bg-muted/10 rounded-lg border border-border/60 overflow-hidden">
-                <button
-                  onClick={handleToggleReasoning}
-                  className="w-full px-3 py-2 flex items-center gap-2 hover:bg-muted/50 transition-colors text-left"
-                >
-                  {isExpanded ? (
-                    <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
-                  ) : (
-                    <ChevronRight size={14} className="text-muted-foreground flex-shrink-0" />
-                  )}
-                  <Brain size={14} className="text-muted-foreground flex-shrink-0" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {t('chat.reasoning')}
-                  </span>
-                </button>
-                
-                {/* 展开后的具体思考内容 */}
-                {isExpanded && (
-                  <div className="px-3 md:px-4 py-3 border-t border-border/60 text-xs text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">
-                    {message.reasoning}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 3. 正文区域 (Main Content) 或者 加载中动画 */}
-            {message.content ? (
-              <div className={cn(
-                "markdown-content",
-                isUser ? "markdown-user" : "markdown-assistant"
-              )}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  components={createMarkdownComponents(message.message_type, t)}
-                >
-                  {message.content}
-                </ReactMarkdown>
-              </div>
-            ) : (
-                // 只有在没有正文且正在生成时才显示“点点点”动画
-                message.generating && (
-                    <div className="flex gap-1.5 items-center h-5 px-1">
-                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                        <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce"></div>
+              return (
+                <div key={event.key} className="text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => event.kind === 'reasoning' ? handleToggleReasoning() : toggleEvent(event.key)}
+                    className="group/event text-left"
+                  >
+                    <span>{label}</span>
+                    <span className="ml-1 opacity-0 group-hover/event:opacity-100 transition-opacity">...</span>
+                  </button>
+                  {expanded && event.kind === 'reasoning' && event.content && (
+                    <div className="mt-1.5 pl-3 whitespace-pre-wrap break-words text-muted-foreground/80 leading-relaxed">
+                      {event.content}
                     </div>
-                )
+                  )}
+                  {expanded && event.kind === 'tool' && (event.input || event.output) && (
+                    <div className="mt-1.5 pl-3 space-y-2 text-muted-foreground/80 leading-relaxed">
+                      {event.input && (
+                        <div>
+                          <div>{t('chat.toolInput')}</div>
+                          <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
+                            {event.input}
+                          </pre>
+                        </div>
+                      )}
+                      {event.output && (
+                        <div>
+                          <div>{t('chat.toolResult')}</div>
+                          <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
+                            {event.output}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {generating && events.length === 0 && (
+              <div className="flex gap-1.5 items-center h-5 px-1">
+                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce"></div>
+              </div>
             )}
           </div>
         )}
 
         {/* Message Actions (底部工具栏) */}
-        {!isUser && (
+        {!isUser && content && (
           <div className="flex gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <Button
               variant="ghost"
               size="icon"
               className={cn(
                 "h-7 w-7 rounded-full",
-                copiedMessageId === message.message_id ? "text-emerald-500" : "text-muted-foreground hover:text-foreground"
+                copiedMessageId === messageId ? "text-emerald-500" : "text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => onCopyMessage(message.message_id, message.content)}
-              title={copiedMessageId === message.message_id ? t('chat.copied') : t('chat.copy')}
+              onClick={() => onCopyMessage(messageId, content)}
+              title={copiedMessageId === messageId ? t('chat.copied') : t('chat.copy')}
             >
               <Copy size={14} />
             </Button>
@@ -183,10 +317,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
               size="icon"
               className={cn(
                 "h-7 w-7 rounded-full",
-                playingMessageId === message.message_id ? "text-primary animate-pulse" : "text-muted-foreground hover:text-foreground"
+                playingMessageId === messageId ? "text-primary animate-pulse" : "text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => onPlayTTS(message.message_id, message.content)}
-              title={playingMessageId === message.message_id ? t('chat.stopPlaying') : t('chat.read')}
+              onClick={() => onPlayTTS(messageId, content)}
+              title={playingMessageId === messageId ? t('chat.stopPlaying') : t('chat.read')}
             >
               <Volume2 size={14} />
             </Button>

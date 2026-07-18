@@ -266,6 +266,8 @@
         "regenerate": "Regenerate",
         "reasoning": "Chain of Thought",
         "usingTool": "Using Tool",
+        "toolInput": "Input",
+        "toolResult": "Result",
         "noModelConfigured": "No AI model configured for this character. Please link a model in character settings first.",
         "asrError": "ASR Error",
         "toggleRecording": "Toggle recording",
@@ -290,7 +292,27 @@
             "reset": "Reset to Defaults",
             "loadingSchema": "Loading parameters...",
             "autoPlay": "Auto Read Aloud",
-            "autoPlayDesc": "Automatically read assistant replies"
+            "autoPlayDesc": "Automatically read assistant replies",
+            "runtimeStatus": "Runtime Status",
+            "loadingRuntimeStatus": "Loading runtime status...",
+            "runtimeStatusUnavailable": "Runtime status is currently unavailable",
+            "unknownStatus": "Unknown",
+            "healthReady": "Health Ready",
+            "readyCapabilities": "Ready Capabilities",
+            "capabilities": {
+                "agent": "Agent",
+                "asr": "ASR",
+                "tts": "TTS",
+                "vrm": "VRM"
+            },
+            "statusMap": {
+                "disabled": "Disabled",
+                "uninitialized": "Uninitialized",
+                "warming": "Warming",
+                "ready": "Ready",
+                "busy": "Busy",
+                "failed": "Failed"
+            }
         }
     },
     "app": {

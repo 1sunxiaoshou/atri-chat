@@ -10,6 +10,7 @@ import ParameterField from './ParameterField';
 import { useAudioStore } from '../../store/useAudioStore';
 import { useDataStore } from '../../store/useDataStore';
 import { getEnabledCapabilities } from '../../utils/modelCapabilities';
+import { useRuntimeStatus } from '../../hooks/useRuntimeStatus';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -32,6 +33,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [parameterSchema, setParameterSchema] = useState<ModelParameterSchemaResponse | null>(null);
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
+  const {
+    status: runtimeStatus,
+    isLoading: isLoadingRuntimeStatus,
+  } = useRuntimeStatus(isOpen);
 
   // Get models and providers from Global Data Store
   const { models, providers, fetchModels, fetchProviders } = useDataStore();
@@ -39,6 +44,22 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   // 从 Zustand Store 读写音频设置
   const autoPlay = useAudioStore((state) => state.autoPlay);
   const setAutoPlay = useAudioStore((state) => state.setAutoPlay);
+
+  const capabilityLabels: Record<string, string> = {
+    agent: t('chat.settings.capabilities.agent'),
+    asr: t('chat.settings.capabilities.asr'),
+    tts: t('chat.settings.capabilities.tts'),
+    vrm: t('chat.settings.capabilities.vrm'),
+  };
+
+  const statusLabels: Record<string, string> = {
+    disabled: t('chat.settings.statusMap.disabled'),
+    uninitialized: t('chat.settings.statusMap.uninitialized'),
+    warming: t('chat.settings.statusMap.warming'),
+    ready: t('chat.settings.statusMap.ready'),
+    busy: t('chat.settings.statusMap.busy'),
+    failed: t('chat.settings.statusMap.failed'),
+  };
 
   // 当模型选择器打开时，加载可用模型列表
   useEffect(() => {
@@ -213,6 +234,57 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
           <div className="h-px bg-border/50" />
 
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-foreground">
+                {t('chat.settings.runtimeStatus')}
+              </label>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {runtimeStatus?.control_plane.status ?? t('chat.settings.unknownStatus')}
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-border/50 bg-muted/20 p-3 space-y-3">
+              {isLoadingRuntimeStatus && !runtimeStatus ? (
+                <div className="text-sm text-muted-foreground">
+                  {t('chat.settings.loadingRuntimeStatus')}
+                </div>
+              ) : runtimeStatus ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {runtimeStatus.capabilities.map((capability) => (
+                      <div
+                        key={capability.capability}
+                        className="rounded-lg border border-border/40 bg-background/70 px-3 py-2"
+                      >
+                        <div className="text-xs font-medium text-foreground">
+                          {capabilityLabels[capability.capability] ?? capability.capability}
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          {statusLabels[capability.status] ?? capability.status}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-[11px] text-muted-foreground space-y-1">
+                    <div>
+                      {t('chat.settings.healthReady')}: {runtimeStatus.control_plane.startup.health_ready_ms ?? '-'} ms
+                    </div>
+                    <div>
+                      {t('chat.settings.readyCapabilities')}: {runtimeStatus.summary.ready_count}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  {t('chat.settings.runtimeStatusUnavailable')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="h-px bg-border/50" />
 
           {/* Dynamic Parameters */}
           {isLoadingSchema ? (

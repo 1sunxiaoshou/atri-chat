@@ -32,6 +32,7 @@ except ModuleNotFoundError:
         collect_project_versions,
     )
 
+
 def collect_versions() -> dict[str, str]:
     return collect_project_versions()
 
@@ -48,7 +49,7 @@ def update_pyproject(version: str) -> None:
     replace_once(
         PYPROJECT_PATH,
         r'(^version\s*=\s*")([^"]+)(")',
-        rf'\g<1>{version}\g<3>',
+        rf"\g<1>{version}\g<3>",
     )
 
 
@@ -76,7 +77,7 @@ def update_cargo_toml(version: str) -> None:
     replace_once(
         CARGO_TOML_PATH,
         r'(^version\s*=\s*")([^"]+)(")',
-        rf'\g<1>{version}\g<3>',
+        rf"\g<1>{version}\g<3>",
     )
 
 

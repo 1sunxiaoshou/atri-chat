@@ -6,11 +6,20 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .dynamic_model import select_model_and_params
-    from .dynamic_prompt import AgentContext, build_character_prompt
-    from .dynamic_tools import filter_tools_by_mode
+    from core.agent.context import AgentContext
 
-__all__ = ["select_model_and_params", "build_character_prompt", "filter_tools_by_mode", "AgentContext"]
+    from .dynamic_model import select_model_and_params
+    from .dynamic_prompt import build_character_prompt
+    from .dynamic_tools import filter_tools_by_mode
+    from .persist_messages import persist_agent_messages
+
+__all__ = [
+    "select_model_and_params",
+    "build_character_prompt",
+    "filter_tools_by_mode",
+    "persist_agent_messages",
+    "AgentContext",
+]
 
 
 def __getattr__(name: str):
@@ -19,11 +28,20 @@ def __getattr__(name: str):
 
         return select_model_and_params
     if name in {"build_character_prompt", "AgentContext"}:
-        from .dynamic_prompt import AgentContext, build_character_prompt
+        from core.agent.context import AgentContext
 
-        return {"build_character_prompt": build_character_prompt, "AgentContext": AgentContext}[name]
+        from .dynamic_prompt import build_character_prompt
+
+        return {
+            "build_character_prompt": build_character_prompt,
+            "AgentContext": AgentContext,
+        }[name]
     if name == "filter_tools_by_mode":
         from .dynamic_tools import filter_tools_by_mode
 
         return filter_tools_by_mode
+    if name == "persist_agent_messages":
+        from .persist_messages import persist_agent_messages
+
+        return persist_agent_messages
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

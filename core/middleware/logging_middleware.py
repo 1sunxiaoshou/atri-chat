@@ -1,4 +1,5 @@
 """HTTP请求日志中间件 - 生产级实践"""
+
 import time
 import uuid
 
@@ -19,7 +20,7 @@ IGNORED_PATHS = {"/favicon.ico", "/health", "/api/v1/health", "/static"}
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     """记录HTTP请求和响应的中间件
-    
+
     日志策略：
     1. access.log - 每个请求恰好一条 access 记录
     2. error.log - 未处理异常只记录一条完整错误
@@ -44,19 +45,19 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # 忽略不需要记录的请求
         if not self.should_log_request(request):
             return await call_next(request)
-        
+
         # 生成请求 ID（用于追踪）
         request_id = str(uuid.uuid4())[:8]
         # 优化 1：使用 perf_counter 提供更精准的基于单调时钟的计时，排除系统修正时间戳带来的影响
         start_time = time.perf_counter()
-        
+
         # 提取请求信息
         method = request.method
         path = request.url.path
         ip = self.get_client_ip(request)
         user_agent = request.headers.get("User-Agent", "-")
         request.state.request_id = request_id
-        
+
         with logger.contextualize(request_id=request_id):
             try:
                 response = await call_next(request)
@@ -91,7 +92,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 response.headers["X-Request-ID"] = request_id
                 response.headers["X-Process-Time"] = f"{duration}ms"
                 return response
-                
+
             except Exception as exc:
                 duration = int((time.perf_counter() - start_time) * 1000)
                 logger.bind(

@@ -108,7 +108,6 @@ export const API_ENDPOINTS = {
   MODELS: '/models',
   CHARACTERS: '/characters',
   CONVERSATIONS: '/conversations',
-  MESSAGES: '/messages',
   VRM: '/vrm',
   ASR: '/asr',
   TTS: '/tts',

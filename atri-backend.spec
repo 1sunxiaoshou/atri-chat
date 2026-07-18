@@ -1,5 +1,9 @@
 import os
 
+from PyInstaller.utils.hooks import collect_submodules
+
+route_hiddenimports = collect_submodules('api.routes')
+
 a = Analysis(
     ['main.py'],
     pathex=[],
@@ -8,7 +12,7 @@ a = Analysis(
         ('core/prompts/templates', 'core/prompts/templates'),
         ('core/models/providers.yaml', 'core/models')
     ],
-    hiddenimports=['uvicorn.logging', 'uvicorn.loops', 'uvicorn.loops.auto', 'uvicorn.protocols', 'uvicorn.protocols.http', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets', 'uvicorn.protocols.websockets.auto', 'uvicorn.lifespan', 'uvicorn.lifespan.on', 'fastapi', 'pydantic', 'langchain', 'langgraph'],
+    hiddenimports=['uvicorn.logging', 'uvicorn.loops', 'uvicorn.loops.auto', 'uvicorn.protocols', 'uvicorn.protocols.http', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets', 'uvicorn.protocols.websockets.auto', 'uvicorn.lifespan', 'uvicorn.lifespan.on', 'fastapi', 'pydantic', 'langchain', 'langgraph'] + route_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

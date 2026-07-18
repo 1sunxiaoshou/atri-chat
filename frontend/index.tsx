@@ -1,27 +1,36 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
-import { BootstrapGate } from './BootstrapGate';
 import StyleGuide from './pages/StyleGuide';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { initApiConfig } from './utils/constants';
 import './src/index.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) { throw new Error('Failed to find the root element'); }
 
 const root = createRoot(rootElement);
-root.render(
-  <ThemeProvider>
-    <LanguageProvider>
-      <BootstrapGate>
+
+async function bootstrap() {
+  try {
+    await initApiConfig();
+  } catch (error) {
+    console.error('Failed to initialize API config:', error);
+  }
+
+  root.render(
+    <ThemeProvider>
+      <LanguageProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<App />} />
             <Route path="/style-guide" element={<StyleGuide />} />
           </Routes>
         </BrowserRouter>
-      </BootstrapGate>
-    </LanguageProvider>
-  </ThemeProvider>
-);
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+}
+
+void bootstrap();
