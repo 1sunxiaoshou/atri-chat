@@ -266,6 +266,8 @@
         "regenerate": "Regenerate",
         "reasoning": "Chain of Thought",
         "usingTool": "Using Tool",
+        "toolInput": "Input",
+        "toolResult": "Result",
         "noModelConfigured": "No AI model configured for this character. Please link a model in character settings first.",
         "asrError": "ASR Error",
         "toggleRecording": "Toggle recording",

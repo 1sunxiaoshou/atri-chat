@@ -246,7 +246,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               const expanded = event.kind === 'reasoning'
                 ? isExpanded || expandedEvents.has(event.key)
                 : expandedEvents.has(event.key);
-              const label = event.kind === 'reasoning' ? '思考' : event.name;
+              const label = event.kind === 'reasoning' ? t('chat.reasoning') : event.name;
 
               return (
                 <div key={event.key} className="text-xs text-muted-foreground">
@@ -267,7 +267,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     <div className="mt-1.5 pl-3 space-y-2 text-muted-foreground/80 leading-relaxed">
                       {event.input && (
                         <div>
-                          <div>输入</div>
+                          <div>{t('chat.toolInput')}</div>
                           <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
                             {event.input}
                           </pre>
@@ -275,7 +275,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                       )}
                       {event.output && (
                         <div>
-                          <div>结果</div>
+                          <div>{t('chat.toolResult')}</div>
                           <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
                             {event.output}
                           </pre>

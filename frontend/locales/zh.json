@@ -266,6 +266,8 @@
         "regenerate": "重新生成",
         "reasoning": "思维链",
         "usingTool": "调用工具",
+        "toolInput": "输入",
+        "toolResult": "结果",
         "noModelConfigured": "该角色尚未配置 AI 模型，请在角色设置中为其关联模型后再试。",
         "asrError": "ASR 错误",
         "toggleRecording": "切换录音状态",

@@ -4,7 +4,7 @@
 
 <img src=".github/images/atri.png" alt="ATRI Mascot" width="280">
 
-**轻量、私有、可定制的 3D AI 桌面伴侣**
+**Windows 桌面优先、私有、可定制的 3D AI 伴侣**
 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
@@ -32,19 +32,9 @@ ATRI Chat 是一个开源的桌面端 3D AI 伴侣项目，整合了大语言模
 
 ---
 
-## 功能计划
+## 开发路线
 
-我们正致力于让 ATRI Chat 变得更加聪明和有趣，以下是我们未来的开发计划：
-
-- [x] 多 LLM 供应商接入与 LangGraph 记忆流机制
-- [x] VRM 3D 模型的导入与基础动作驱动
-- [x] SenseVoice 离线语音识别与多源 TTS 集成
-- [ ] **obs推流**：可以将画面推送到obs
-- [ ] **视觉感知能力 (Vision)**：支持屏幕捕获
-- [ ] **Live2D 支持**：除了 3D，也将支持精美的 2D 动态模型
-- [ ] **桌面挂件模式**：支持透明背景，让 AI 真正站在你的电脑桌面上
-- [ ] **创意工坊 (Workshop)**：支持一键导入/分享社区玩家制作的角色卡、模型与动作预设
-- [ ] **多平台适配**：在现有 Windows 基础之上，完善 macOS / Linux 端的打包与测试
+当前开发优先保证 Windows 桌面主链的安全、数据正确性和运行可靠性，再继续完善 VRM 与产品体验。已经决定推进、暂缓或停止的事项统一记录在 [路线图](docs/03-规划/路线图.md)；README 不维护第二份功能清单。
 
 ---
 
@@ -52,9 +42,9 @@ ATRI Chat 是一个开源的桌面端 3D AI 伴侣项目，整合了大语言模
 
 ATRI Chat 采用了目前最现代化的前后端分离跨端技术体系构建：
 
-- **视窗前端**: React 19 + Tailwind CSS + Framer Motion (通过 `React Three Fiber` 驱动 3D 场景)
+- **视窗前端**: React 19 + Tailwind CSS（通过 `React Three Fiber` 驱动 3D 场景）
 - **逻辑后端**: FastAPI + Python 3.12 + LangChain / LangGraph + aiosqlite
-- **跨端容器**: Tauri (提供超越 Electron 的极致轻量化桌面体验与极速启动)
+- **桌面容器**: Tauri（负责窗口、运行时目录和 Python sidecar 生命周期）
 - **语音引擎**: SenseVoice-Small ONNX (高性能离线 ASR) + 支持多种 TTS 接口 (如 GPT-SoVITS 等)
 
 ---
